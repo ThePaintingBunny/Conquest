@@ -182,6 +182,14 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .bld-x{border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 4px;font:inherit}
 .bld-cat{font-size:12px;color:var(--muted)}
 .bld-cmd{font-size:12.5px;color:var(--muted)}
+.bld-mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;flex-basis:100%}
+.bld-mods .bld-sub{grid-column:1/-1}
+.bld-mod{display:flex;flex-direction:column;gap:2px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.bld-mod.on{border-color:var(--gold)}.bld-mod.cmd{background:var(--gold-soft)}
+.bld-mn{font-weight:600;font-size:14px}.bld-mp{font-size:12px;color:var(--muted)}
+.bld-ctl{display:flex;align-items:center;gap:8px;margin-top:2px}
+.bld-step{min-width:34px;padding:2px 0;font-size:18px;line-height:1.2}
+.bld-n{min-width:20px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
 </style>
 <div class="wrap">
   <div class="top">
@@ -1778,8 +1786,13 @@ function armyBuilder(add,mk,onUse,useLabel){const box=bEl('div',{className:'rev 
       row.append(dot,rs);
       if(r.modular){const M=r.modular,cs2=bEl('select');cs2.setAttribute('aria-label','Command Stand type');Object.keys(MODULAR).forEach(t=>cs2.appendChild(bEl('option',{value:t,textContent:'Command: '+t+' ['+MODULAR[t].role+']'})));cs2.value=M.cmd;
           cs2.onchange=()=>{M.cmd=cs2.value;if(!(+M.counts[M.cmd]))M.counts[M.cmd]=Math.max(2,modTotal(M)-0);bldSave();renderTurnbar();};row.append(cs2);
-          const grid=bEl('div',{className:'bld-opts'});Object.keys(MODULAR).forEach(t=>{const inp=bEl('input',{type:'number',min:'0',max:'12',value:String(+M.counts[t]||0)});inp.style.width='52px';inp.setAttribute('aria-label',t+' stands');
-            inp.onchange=()=>{M.counts[t]=Math.max(0,Math.min(12,+inp.value||0));bldSave();renderTurnbar();};grid.append(bEl('label',{className:'bld-opt'},[inp,document.createTextNode(' '+t+' ('+MODULAR[t].pts+')')]));});
+          const grid=bEl('div',{className:'bld-mods'});grid.appendChild(bEl('div',{className:'bld-sub',textContent:'Stands in this regiment: use + and − to add or remove stands of each type'}));
+          Object.keys(MODULAR).forEach(t=>{const n=+M.counts[t]||0,cell=bEl('div',{className:'bld-mod'+(n?' on':'')+(t===M.cmd?' cmd':'')});
+            const set=v=>{M.counts[t]=Math.max(0,Math.min(20,v));bldSave();renderTurnbar();};
+            const minus=bEl('button',{type:'button',className:'btn ghost bld-step',textContent:'−',disabled:n<=0});minus.setAttribute('aria-label','Remove a '+t+' stand');minus.onclick=()=>set(n-1);
+            const plus=bEl('button',{type:'button',className:'btn ghost bld-step',textContent:'+'});plus.setAttribute('aria-label','Add a '+t+' stand');plus.onclick=()=>set(n+1);
+            const num=bEl('span',{className:'bld-n',textContent:String(n)});num.setAttribute('aria-label',t+' stands: '+n);
+            cell.append(bEl('span',{className:'bld-mn',textContent:t+(t===M.cmd?' (Command)':'')}),bEl('span',{className:'bld-mp',textContent:MODULAR[t].pts+' pts each'}),bEl('span',{className:'bld-ctl'},[minus,num,plus]));grid.appendChild(cell);});
           row.append(grid,bEl('span',{className:'hint',textContent:modTotal(M)+' stands · Command rules: '+MODULAR[M.cmd].cmd+' · march '+modJson(M).M+'″'}));row.append(customEditor(r.custom=r.custom||[],'Other upgrade'));}
       else if(r.chariots){const x=choices.find(q=>q.key==='chariot');[0,1].forEach(k=>{const s2=bEl('select');s2.setAttribute('aria-label','Chariot '+(k+1));if(k===1)s2.appendChild(bEl('option',{value:'',textContent:'No second chariot'}));(x?x.chariots:[]).forEach(n=>s2.appendChild(bEl('option',{value:n,textContent:n+' · '+(bldUnit(n)||{}).pts})));s2.value=r.chariots[k]||'';s2.onchange=()=>{r.chariots[k]=s2.value;bldSave();renderTurnbar();};row.append(s2);});
         row.append(bEl('span',{className:'hint',textContent:'Counts as one regiment; each chariot fights as its own regiment on the table.'}));}
