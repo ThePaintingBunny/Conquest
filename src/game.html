@@ -190,6 +190,81 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .bld-ctl{display:flex;align-items:center;gap:8px;margin-top:2px}
 .bld-step{min-width:34px;padding:2px 0;font-size:18px;line-height:1.2}
 .bld-n{min-width:20px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.ab{gap:14px;min-width:0;max-width:100%}
+.ab-wb,.ab-reg,.ab-mod,.ab-pick,.ab-top,.ab-row,.ab-lab,.ab-rt,.ab-wbt{min-width:0}
+.ab-lab.ab-inl{flex-wrap:wrap}
+.ab-sel{min-width:0;text-overflow:ellipsis}
+.ab-mod .ab-mini{grid-template-columns:repeat(8,1fr);width:100%}
+.ab-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.ab-title{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px}
+.ab-title h3{margin:0;font-family:var(--display);font-size:22px}
+.ab-lab{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);letter-spacing:.04em}
+.ab-lab.ab-inl{flex-direction:row;align-items:center;gap:8px;font-size:14px;letter-spacing:0;color:var(--ink)}
+.ab-lab-t{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ab-sel,.ab-in{font:inherit;font-size:15px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);max-width:100%}
+.ab-fac{min-width:200px}.ab-in-s{width:76px}
+.ab-sum{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ab-total strong{font-family:var(--display);font-size:28px;font-variant-numeric:tabular-nums}.ab-total span{color:var(--muted)}
+.ab-intro{margin:0;color:var(--muted);max-width:70ch}
+.ab-meta{font-size:13px;color:var(--muted)}
+.ab-note{font-size:13px;color:var(--muted)}
+.ab-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:var(--bg);white-space:nowrap}
+.ab-main{color:var(--ok);border-color:var(--ok)}.ab-res{color:var(--gold-ink);border-color:var(--gold)}.ab-bad{color:var(--warn);border-color:var(--warn)}.ab-ok{color:var(--ok);border-color:var(--ok)}
+.ab-led{background:var(--gold-soft);border-color:var(--gold);color:var(--gold-ink)}
+.ab-chip-u{font-weight:500}
+.ab-b{font:inherit;font-size:14px;border-radius:8px;padding:6px 12px;cursor:pointer;border:1px solid transparent;background:var(--gold);color:#1C1408;font-weight:600}
+.ab-b:disabled{opacity:.45;cursor:not-allowed}
+.ab-ghost{background:transparent;border-color:var(--line);color:var(--ink);font-weight:500}
+.ab-ghost:hover:not(:disabled){border-color:var(--gold)}
+.ab-small{font-size:13px;padding:4px 10px}
+.ab-danger:hover:not(:disabled){border-color:var(--warn);color:var(--warn)}
+.ab-link{background:none;border:0;padding:0;color:var(--gold-ink);font-size:13px;text-decoration:underline;text-underline-offset:2px}
+.ab-x{background:none;border:0;padding:0 0 0 2px;color:inherit;font-size:14px;line-height:1}
+.ab-tog{background:var(--bg);border-color:var(--line);color:var(--ink);font-weight:500;font-size:13px;padding:4px 10px;border-radius:999px}
+.ab-tog.on{background:var(--gold-soft);border-color:var(--gold);color:var(--gold-ink);font-weight:600}
+.ab-pri{padding:6px 14px}
+.ab-wide{width:100%;padding:10px;border-style:dashed}
+.ab-step{display:inline-flex;align-items:center;gap:6px}
+.ab-sq{width:32px;height:32px;padding:0;font-size:18px;line-height:1;background:var(--bg);border-color:var(--line);color:var(--ink)}
+.ab-n{min-width:22px;text-align:center;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.ab-wb{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.ab-wbh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.ab-wbt{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.ab-wbt h4{margin:0;font-family:var(--display);font-size:22px;line-height:1.1}
+.ab-kick{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink)}
+.ab-rr{display:flex;flex-wrap:wrap;align-items:center;gap:6px;justify-content:flex-end}
+.ab-pts{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}.ab-pts-l{font-size:18px;font-family:var(--display)}
+.ab-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ab-lead .ab-inl>span:first-child{color:var(--gold-ink);font-weight:600}
+.ab-upg{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ab-upf{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ab-regs{display:flex;flex-direction:column;gap:8px}
+.ab-reg{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;background:var(--bg)}
+.ab-reg.led{border-left-color:var(--gold)}
+.ab-rh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:flex-start}
+.ab-rt{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ab-rt h5{margin:0;font-family:var(--display);font-size:18px}
+.ab-mini{display:grid;grid-template-columns:repeat(8,minmax(26px,38px));border:1px solid var(--line);border-radius:6px;overflow:hidden;text-align:center;font-variant-numeric:tabular-nums;width:max-content;max-width:100%}
+.ab-mk{font-size:10px;color:var(--muted);background:var(--panel);padding:1px 0;grid-row:1}
+.ab-mv{font-size:14px;font-weight:700;padding:2px 0;grid-row:2}
+.ab-rules{font-size:13px;color:var(--ink);opacity:.85}
+.ab-opts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ab-opts .ab-lab-t{flex-basis:100%}
+.ab-mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.ab-mod{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.ab-mod.on{border-color:var(--gold)}.ab-mod.cmd{background:var(--gold-soft)}
+.ab-modh{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.ab-pick{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px dashed var(--gold);border-radius:10px;background:var(--bg)}
+.ab-pickh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ab-pickg{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:4px}
+.ab-pickgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px}
+.ab-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
+.ab-opt:hover:not(:disabled){border-color:var(--gold);background:var(--gold-soft)}
+.ab-opt:disabled{opacity:.45;cursor:not-allowed}
+.ab-opt strong{font-size:15px}
+.ab-iss{font-size:13px;color:var(--warn)}.ab-iss ul{margin:0;padding-left:18px}.ab-iss.ok{color:var(--ok)}
+.ab-foot{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-top:6px;border-top:1px solid var(--line)}
+@media (max-width:520px){.ab-mini{grid-template-columns:repeat(8,1fr);width:100%}.ab-rr{justify-content:flex-start}.ab-lab.ab-inl .ab-sel{width:100%}.ab-fac{min-width:0;width:100%}.ab-title{width:100%}.ab-title .ab-lab{flex:1}}
 </style>
 <div class="wrap">
   <div class="top">
@@ -1752,79 +1827,111 @@ function bldToList(){const f=bldFac();if(!f)return null;const units=[],count={};
   return {faction:f.name,armyRules:f.armyRules.slice(),points:bldTotal(),units};}
 function wbPtsChar(w){const c=bldUnit(w.char);return (c?c.pts||0:0)+(w.custom||[]).reduce((a,x)=>a+(+x.pts||0),0);}
 /* ---------- builder UI ---------- */
-function bEl(tag,props,kids){const e=document.createElement(tag);Object.assign(e,props||{});(kids||[]).forEach(k=>e.append(k));return e;}
-function customEditor(list,label){const box=bEl('div',{className:'bld-cus'});(list||[]).forEach((x,i)=>{const t=bEl('span',{className:'chip',textContent:x.name+' · '+x.pts}),b=bEl('button',{type:'button',className:'bld-x',textContent:'×'});b.setAttribute('aria-label','Remove '+x.name);b.onclick=()=>{list.splice(i,1);bldSave();renderTurnbar();};t.append(b);box.append(t);});
-  const nm=bEl('input',{type:'text',placeholder:label}),pt=bEl('input',{type:'number',placeholder:'pts',min:'0',step:'5'});nm.setAttribute('aria-label',label);pt.setAttribute('aria-label','Points');pt.style.width='64px';
-  const add=bEl('button',{type:'button',className:'btn ghost',textContent:'Add'});add.onclick=()=>{if(!nm.value.trim())return;list.push({name:nm.value.trim(),pts:+pt.value||0});bldSave();renderTurnbar();};box.append(nm,pt,add);return box;}
-function armyBuilder(add,mk,onUse,useLabel){const box=bEl('div',{className:'rev bld'});box.appendChild(bEl('h3',{textContent:'Build your army'}));
-  const fs=bEl('select');fs.setAttribute('aria-label','Faction');fs.appendChild(bEl('option',{value:'',textContent:'Choose a faction…'}));ENCY.forEach(f=>fs.appendChild(bEl('option',{value:f.name,textContent:f.name})));fs.value=bld.fac;
-  fs.onchange=()=>{bld={fac:fs.value,wbs:[],warlord:0};bldSave();renderTurnbar();};box.appendChild(bEl('div',{className:'row'},[fs]));
-  const f=bldFac();if(!f){box.appendChild(ptext('Pick a faction. Each character brings a warband of up to 4 regiments: any number of Mainstay choices, at most 2 Restricted, and at least as many Mainstay as Restricted.'));add(box);return;}
+function bEl(tag,props,kids){const e=document.createElement(tag);Object.assign(e,props||{});(kids||[]).forEach(k=>k!=null&&e.append(k));return e;}
+let abPick=null,abUpg=null,abArm=null;function abArmed(k,fn){if(abArm===k){abArm=null;fn();return;}abArm=k;renderTurnbar();setTimeout(()=>{if(abArm===k){abArm=null;renderTurnbar();}},4000);} // open pickers: {wb:index|'new'}; open upgrade form key
+function abBtn(t,fn,cls,label){const b=bEl('button',{type:'button',className:'ab-b'+(cls?' '+cls:''),textContent:t});b.onclick=fn;if(label)b.setAttribute('aria-label',label);b.disabled=aiBusy&&!/ab-keep/.test(cls||'');return b;}
+function abRe(){bldSave();renderTurnbar();}
+function abStepper(val,min,max,onSet,label){const w=bEl('span',{className:'ab-step'});const m=abBtn('−',()=>onSet(val-1),'ab-sq','Fewer '+label),p=abBtn('+',()=>onSet(val+1),'ab-sq','More '+label);m.disabled=val<=min;p.disabled=val>=max;
+  const n=bEl('span',{className:'ab-n',textContent:String(val)});n.setAttribute('aria-label',label+': '+val);w.append(m,n,p);return w;}
+function abMini(st){const g=bEl('div',{className:'ab-mini'});['M','V','C','A','W','R','D','E'].forEach(k=>{const v=st[k];g.append(bEl('span',{className:'ab-mk',textContent:k}),bEl('span',{className:'ab-mv',textContent:v==='-'||v==null?'–':String(v)}));});return g;}
+function abChip(t,cls){return bEl('span',{className:'ab-chip'+(cls?' '+cls:''),textContent:t});}
+function abUpgrades(list,key,label){const box=bEl('div',{className:'ab-upg'});(list||[]).forEach((x,i)=>{const c=abChip(x.name+' · '+x.pts+' pts','ab-chip-u');c.append(abBtn('×',()=>{list.splice(i,1);abRe();},'ab-x','Remove '+x.name));box.append(c);});
+  if(abUpg===key){const nm=bEl('input',{type:'text',placeholder:label,className:'ab-in'}),pt=bEl('input',{type:'number',placeholder:'pts',min:'0',step:'5',className:'ab-in ab-in-s'});nm.setAttribute('aria-label',label);pt.setAttribute('aria-label','Points');
+    const ok=abBtn('Add',()=>{if(!nm.value.trim()){nm.focus();return;}list.push({name:nm.value.trim(),pts:+pt.value||0});abUpg=null;abRe();},'ab-pri');const no=abBtn('Cancel',()=>{abUpg=null;renderTurnbar();},'ab-ghost');
+    nm.onkeydown=e=>{if(e.key==='Enter')ok.click();};pt.onkeydown=e=>{if(e.key==='Enter')ok.click();};box.append(bEl('span',{className:'ab-upf'},[nm,pt,ok,no]));setTimeout(()=>{try{nm.focus();}catch(e){}},0);}
+  else box.append(abBtn('+ '+label,()=>{abUpg=key;renderTurnbar();},'ab-ghost ab-small'));return box;}
+function abIssues(list,okText){const d=bEl('div',{className:'ab-iss'+(list.length?'':' ok')});if(!list.length){d.append(bEl('span',{textContent:'✓ '+okText}));return d;}
+  const ul=bEl('ul');list.forEach(t=>ul.append(bEl('li',{textContent:t})));d.append(ul);return d;}
+function abRegCard(f,w,wi,r,ri,choices){const c=bldUnit(w.char),led=w.joins===ri&&c&&c.type!=='Monster';const card=bEl('div',{className:'ab-reg'+(led?' led':'')});
+  const key=r.modular?'modular':r.chariots?'chariot':r.unit,ch=choices.find(q=>q.key===key),cat=ch?ch.cat:null;
+  const u=r.modular?null:bldUnit(r.unit||(r.chariots||[])[0]);
+  const title=r.modular?'Modular Regiment':r.chariots?'War Chariots':(r.unit||'');
+  const head=bEl('div',{className:'ab-rh'});const tl=bEl('div',{className:'ab-rt'});tl.append(bEl('h5',{textContent:title}));
+  tl.append(abChip(cat==='res'?'Restricted':cat==='main'?'Mainstay':'Not in this warband',cat==='res'?'ab-res':cat==='main'?'ab-main':'ab-bad'));
+  if(led)tl.append(abChip('★ Led by the '+c.name,'ab-led'));
+  const tr=bEl('div',{className:'ab-rr'});tr.append(bEl('span',{className:'ab-pts',textContent:rowPts(r)+' pts'}));
+  if(u)tr.append(abBtn('Details',()=>enDetail(u,f.name),'ab-ghost ab-small ab-keep'));
+  tr.append(abBtn('Remove',()=>{w.regs.splice(ri,1);if(w.joins===ri)w.joins=null;else if(w.joins>ri)w.joins--;abRe();},'ab-ghost ab-small ab-danger','Remove '+title));
+  head.append(tl,tr);card.append(head);
+  if(r.modular){const M=r.modular,mj=modJson(M);
+    card.append(bEl('div',{className:'ab-meta',textContent:`Medium Brute · ${modTotal(M)} stands · March ${mj.M}″ · Ideal Card ${MODULAR[M.cmd].role}`}));
+    const cmdRow=bEl('div',{className:'ab-row'});const cs=bEl('select',{className:'ab-sel'});cs.setAttribute('aria-label','Command Stand type');Object.keys(MODULAR).forEach(t=>cs.appendChild(bEl('option',{value:t,textContent:t+' ['+MODULAR[t].role+']'})));cs.value=M.cmd;
+    cs.onchange=()=>{M.cmd=cs.value;if(!(+M.counts[M.cmd]))M.counts[M.cmd]=2;abRe();};cmdRow.append(bEl('label',{className:'ab-lab'},[bEl('span',{textContent:'Command Stand'}),cs]),bEl('span',{className:'ab-note',textContent:'Command rules for the whole regiment: '+MODULAR[M.cmd].cmd}));card.append(cmdRow);
+    const grid=bEl('div',{className:'ab-mods'});Object.keys(MODULAR).forEach(t=>{const n=+M.counts[t]||0,X=MODULAR[t],eu=bldUnit(t);const tile=bEl('div',{className:'ab-mod'+(n?' on':'')+(t===M.cmd?' cmd':'')});
+      const th=bEl('div',{className:'ab-modh'});th.append(bEl('strong',{textContent:t}),eu?abBtn('Details',()=>enDetail(eu,f.name),'ab-link ab-keep','Details for '+t):null);tile.append(th);
+      tile.append(bEl('div',{className:'ab-meta',textContent:X.pts+' pts per stand'+(t===M.cmd?' · Command':'')}));
+      tile.append(abMini({M:X.M,V:X.V,C:X.C,A:X.A,W:X.W,R:X.R,D:X.D,E:X.E}));
+      tile.append(bEl('div',{className:'ab-rules',textContent:X.rules.join(', ')}));
+      tile.append(abStepper(n,0,20,v=>{M.counts[t]=Math.max(0,Math.min(20,v));abRe();},t+' stands'));grid.append(tile);});card.append(grid);}
+  else if(r.chariots){card.append(bEl('div',{className:'ab-meta',textContent:'One regiment slot holding 1 or 2 chariots; each chariot fights as its own regiment.'}));
+    const row=bEl('div',{className:'ab-row'});[0,1].forEach(k=>{const s2=bEl('select',{className:'ab-sel'});s2.setAttribute('aria-label','Chariot '+(k+1));if(k===1)s2.appendChild(bEl('option',{value:'',textContent:'No second chariot'}));(ch?ch.chariots:[]).forEach(n=>s2.appendChild(bEl('option',{value:n,textContent:n+' · '+(bldUnit(n)||{}).pts+' pts'})));s2.value=r.chariots[k]||'';s2.onchange=()=>{r.chariots[k]=s2.value;abRe();};row.append(bEl('label',{className:'ab-lab'},[bEl('span',{textContent:'Chariot '+(k+1)}),s2]));});card.append(row);
+    r.chariots.filter(Boolean).forEach(n=>{const cu=bldUnit(n);if(cu){const l=bEl('div',{className:'ab-row'});l.append(bEl('span',{className:'ab-note',textContent:n}),abMini(cu.stats),abBtn('Details',()=>enDetail(cu,f.name),'ab-link ab-keep'));card.append(l);}});}
+  else if(u){const b=bldBase(u);card.append(bEl('div',{className:'ab-meta',textContent:[[u.cls,u.type].filter(Boolean).join(' '),u.type!=='Monster'&&u.kind==='reg'?cmdText(u):''].filter(Boolean).join(' · ')}));
+    card.append(abMini(u.stats));if(u.rules.length)card.append(bEl('div',{className:'ab-rules',textContent:u.rules.join(', ')}));
+    const row=bEl('div',{className:'ab-row'});
+    if(u.kind!=='char'&&!/^1 stand/.test(u.stands)){row.append(bEl('span',{className:'ab-lab ab-inl'},[bEl('span',{textContent:'Stands'}),abStepper(r.stands||b,b,12,v=>{r.stands=Math.max(b,Math.min(12,v));abRe();},'stands'),bEl('span',{className:'ab-note',textContent:u.extra?'+'+u.extra+' pts each above '+b:''})]));}
+    if(row.children.length)card.append(row);
+    const O=regOptions(u);if(O.opts.length){const offN=(r.opts||[]).filter(n=>(O.opts.find(o=>o.name===n)||{}).kind==='off').length,hasAux=(r.opts||[]).some(n=>(O.opts.find(z=>z.name===n)||{}).kind==='aux');
+      const og=bEl('div',{className:'ab-opts'});og.append(bEl('span',{className:'ab-lab-t',textContent:'Options'+(O.max!=null?' (officers: up to '+O.max+')':'')}));
+      O.opts.forEach(o=>{const on=(r.opts||[]).includes(o.name);const t=abBtn((on?'✓ ':'')+o.name+(o.detail?' ('+o.detail+')':'')+' +'+o.cost,()=>{r.opts=r.opts||[];if(on)r.opts=r.opts.filter(n=>n!==o.name);else r.opts.push(o.name);abRe();},'ab-tog'+(on?' on':''));t.setAttribute('aria-pressed',String(on));
+        if(!on&&((o.kind==='off'&&O.max!=null&&offN>=O.max)||(o.kind==='aux'&&hasAux)))t.disabled=true;og.append(t);});card.append(og);}}
+  card.append(abUpgrades(r.custom=r.custom||[],'w'+wi+'r'+ri,'Add upgrade'));
+  return card;}
+function abPicker(f,w,wi,choices){const R=wbRules(bldUnit(w.char)),box=bEl('div',{className:'ab-pick'});box.append(bEl('div',{className:'ab-pickh'},[bEl('strong',{textContent:'Choose a regiment for this warband'}),abBtn('Cancel',()=>{abPick=null;renderTurnbar();},'ab-ghost ab-small')]));
+  const nRes=w.regs.filter(r=>{const k=r.modular?'modular':r.chariots?'chariot':r.unit;const x=choices.find(q=>q.key===k);return x&&x.cat==='res';}).length;
+  [['main','Mainstay','Any number, up to the warband limit'],['res','Restricted','At most 2, and each needs a Mainstay']].forEach(([cat,lab,hint])=>{const list=choices.filter(x=>x.cat===cat);if(!list.length)return;
+    box.append(bEl('div',{className:'ab-pickg'},[bEl('span',{className:'ab-lab-t',textContent:lab}),bEl('span',{className:'ab-note',textContent:hint})]));
+    const grid=bEl('div',{className:'ab-pickgrid'});list.forEach(x=>{const u0=x.unit?bldUnit(x.unit):null;const b=bEl('button',{type:'button',className:'ab-opt'});
+      b.append(bEl('strong',{textContent:x.modular?'Modular Regiment':x.chariots?'War Chariots':x.label}),bEl('span',{className:'ab-meta',textContent:x.modular?'Mix Ayakashi, Bushi and Origami stands':x.chariots?'1 or 2 chariots, one slot':[[u0.cls,u0.type].filter(Boolean).join(' '),u0.pts+' pts'].join(' · ')}));
+      if(cat==='res'&&nRes>=2){b.disabled=true;b.title='Already 2 Restricted choices';}
+      b.onclick=()=>{if(x.modular)w.regs.push({modular:{cmd:'Oni Ayakashi',counts:{'Oni Ayakashi':2}},custom:[]});else if(x.chariots)w.regs.push({chariots:[x.chariots[0],'']});else{const u=bldUnit(x.unit);w.regs.push({unit:x.unit,stands:bldBase(u),opts:[],custom:[]});}
+        if(w.joins==null&&joinable(w,w.regs[w.regs.length-1]))w.joins=w.regs.length-1;abPick=null;abRe();};grid.append(b);});box.append(grid);});
+  return box;}
+function abCharPicker(f,chars,onPick,title){const box=bEl('div',{className:'ab-pick'});box.append(bEl('div',{className:'ab-pickh'},[bEl('strong',{textContent:title}),abBtn('Cancel',()=>{abPick=null;renderTurnbar();},'ab-ghost ab-small')]));
+  const grid=bEl('div',{className:'ab-pickgrid'});chars.forEach(x=>{const b=bEl('button',{type:'button',className:'ab-opt'});b.append(bEl('strong',{textContent:x.name}),bEl('span',{className:'ab-meta',textContent:[[x.cls,x.type].filter(Boolean).join(' '),x.pts+' pts'].join(' · ')}),bEl('span',{className:'ab-rules',textContent:x.rules.slice(0,4).join(', ')}));b.onclick=()=>onPick(x);grid.append(b);});box.append(grid);return box;}
+function armyBuilder(add,mk,onUse,useLabel){const box=bEl('div',{className:'rev ab'});
+  const f0=bldFac();
+  // header: faction and summary
+  const top=bEl('div',{className:'ab-top'});const fs=bEl('select',{className:'ab-sel ab-fac'});fs.setAttribute('aria-label','Faction');fs.appendChild(bEl('option',{value:'',textContent:'Choose a faction…'}));ENCY.forEach(f=>fs.appendChild(bEl('option',{value:f.name,textContent:f.name})));fs.value=bld.fac;
+  fs.onchange=()=>{bld={fac:fs.value,wbs:[],warlord:0};abPick=bld.fac?{wb:'new'}:null;abRe();};if(bld.wbs.length)fs.title='Changing faction clears this army';
+  top.append(bEl('div',{className:'ab-title'},[bEl('h3',{textContent:'Army builder'}),bEl('label',{className:'ab-lab'},[bEl('span',{textContent:'Faction'}),fs])]));
+  if(f0){const probs=bldProblems(),nReg=bld.wbs.reduce((a,w)=>a+w.regs.length,0);const sum=bEl('div',{className:'ab-sum'});
+    sum.append(bEl('div',{className:'ab-total'},[bEl('strong',{textContent:String(bldTotal())}),bEl('span',{textContent:' pts'})]),bEl('div',{className:'ab-meta',textContent:`${bld.wbs.length} warband${bld.wbs.length===1?'':'s'} · ${nReg} regiment${nReg===1?'':'s'}`}),
+      abChip(probs.length?probs.length+' issue'+(probs.length===1?'':'s'):'✓ Legal army',probs.length?'ab-bad':'ab-ok'));top.append(sum);}
+  box.append(top);
+  const f=f0;if(!f){box.append(bEl('p',{className:'ab-intro',textContent:'Pick a faction to start. Every character leads a warband of up to 4 regiments: any number of Mainstay choices, at most 2 Restricted, and at least as many Mainstay as Restricted. The character joins one regiment of its own type.'}));add(box);return;}
   const chars=f.units.filter(u=>u.kind==='char'&&u.pts!=null);
-  // Lists saved by an older version kept modular stand types as separate regiments: fold them into Modular Regiments.
   let mig=false;bld.wbs.forEach(w=>{const c=bldUnit(w.char);if(!c||!wbChoices(c).some(q=>q.modular))return;w.regs=w.regs.map(r=>{if(r.unit&&MODULAR[r.unit]){mig=true;return {modular:{cmd:r.unit,counts:{[r.unit]:Math.max(2,+r.stands||2)}},custom:r.custom||[]};}return r;});});if(mig)bldSave();
-  bld.wbs.forEach((w,wi)=>{const c=bldUnit(w.char),card=bEl('div',{className:'bld-wb'});
-    const head=bEl('div',{className:'bld-wbh'});const cs=bEl('select');cs.setAttribute('aria-label','Character of warband '+(wi+1));chars.forEach(x=>cs.appendChild(bEl('option',{value:x.name,textContent:x.name+' · '+x.pts})));cs.value=w.char;
-    cs.onchange=()=>{w.char=cs.value;w.regs=[];w.joins=null;w.custom=[];bldSave();renderTurnbar();};
-    const wl=bEl('label',{className:'bld-wl'});const wr=bEl('input',{type:'radio',name:'bld-warlord',checked:bld.warlord===wi});wr.onchange=()=>{bld.warlord=wi;bldSave();renderTurnbar();};wl.append(wr,document.createTextNode(' Warlord'));
-    const det=bEl('button',{type:'button',className:'btn ghost',textContent:'Details'});det.onclick=()=>c&&enDetail(c,f.name);
-    const rm=bEl('button',{type:'button',className:'btn ghost',textContent:'Remove warband'});rm.onclick=()=>{bld.wbs.splice(wi,1);if(bld.warlord>=bld.wbs.length)bld.warlord=0;bldSave();renderTurnbar();};
-    head.append(bEl('span',{className:'bld-tag',textContent:'Warband '+(wi+1)}),cs,wl,bEl('span',{className:'bld-pts',textContent:wbPts(w)+' pts'}),det,rm);card.appendChild(head);
-    if(!c){box.appendChild(card);return;}
-    const R=wbRules(c),choices=wbChoices(c);
-    const info=bEl('div',{className:'bld-ci'});
-    if(c.type!=='Monster'&&!R.none){const js=bEl('select');js.setAttribute('aria-label','Regiment the '+c.name+' joins');js.appendChild(bEl('option',{value:'',textContent:'Choose a regiment…'}));
+  bld.wbs.forEach((w,wi)=>{const c=bldUnit(w.char);const card=bEl('section',{className:'ab-wb'});card.setAttribute('aria-label','Warband '+(wi+1));
+    if(!c)return;
+    const R=wbRules(c),choices=wbChoices(c),isWL=bld.warlord===wi;
+    const head=bEl('div',{className:'ab-wbh'});const hl=bEl('div',{className:'ab-wbt'});
+    hl.append(bEl('span',{className:'ab-kick',textContent:'Warband '+(wi+1)}),bEl('h4',{textContent:c.name}),bEl('div',{className:'ab-meta',textContent:[[c.cls,c.type].filter(Boolean).join(' ')+' character',c.pts+' pts'].join(' · ')}));
+    const wlb=abBtn(isWL?'★ Warlord':'☆ Make Warlord',()=>{bld.warlord=wi;abRe();},'ab-tog'+(isWL?' on':''));wlb.setAttribute('aria-pressed',String(isWL));hl.append(wlb);
+    const hr=bEl('div',{className:'ab-rr'});hr.append(bEl('span',{className:'ab-pts ab-pts-l',textContent:wbPts(w)+' pts'}),abBtn('Details',()=>enDetail(c,f.name),'ab-ghost ab-small ab-keep'),abBtn('Change character',()=>{abPick={wb:wi,chr:true};renderTurnbar();},'ab-ghost ab-small'),
+      abBtn(abArm==='wb'+wi?'Click again to remove':'Remove',()=>abArmed('wb'+wi,()=>{bld.wbs.splice(wi,1);if(bld.warlord>=bld.wbs.length)bld.warlord=0;abRe();}),'ab-ghost ab-small ab-danger','Remove warband '+(wi+1)));
+    head.append(hl,hr);card.append(head);
+    if(abPick&&abPick.wb===wi&&abPick.chr){card.append(abCharPicker(f,chars,x=>{if(x.name!==w.char){w.char=x.name;w.regs=[];w.joins=null;w.custom=[];}abPick=null;abRe();},'Choose a different character (this clears the warband)'));}
+    const info=bEl('div',{className:'ab-row ab-lead'});
+    if(c.type!=='Monster'&&!R.none){const js=bEl('select',{className:'ab-sel'});js.setAttribute('aria-label','Regiment the '+c.name+' joins');js.appendChild(bEl('option',{value:'',textContent:w.regs.some(r=>joinable(w,r))?'Choose a regiment…':'Add a '+c.type+' regiment first'}));
       w.regs.forEach((r,ri)=>{if(joinable(w,r))js.appendChild(bEl('option',{value:String(ri),textContent:(r.unit||(r.modular?'Modular Regiment ('+r.modular.cmd+')':''))+' (regiment '+(ri+1)+')'}));});js.value=w.joins!=null?String(w.joins):'';
-      js.onchange=()=>{w.joins=js.value===''?null:+js.value;bldSave();renderTurnbar();};info.append(bEl('span',{textContent:'● The '+c.name+' joins '}),js);}
-    else if(c.type==='Monster')info.append(bEl('span',{textContent:'The '+c.name+' fights as its own regiment.'}));
-    if(R.none)info.append(bEl('span',{textContent:' No warband: '+c.warband}));
-    card.appendChild(info);
-    card.appendChild(bEl('div',{className:'bld-sub',textContent:'Character upgrades (Trove-finds, Masteries, Relics… type the name and cost):'}));card.appendChild(customEditor(w.custom=w.custom||[],'Upgrade name'));
-    w.regs.forEach((r,ri)=>{const row=bEl('div',{className:'bld-row'});const isJ=w.joins===ri&&c.type!=='Monster';
-      const dot=bEl('span',{className:'bld-dot'+(isJ?' on':''),textContent:'●',title:isJ?'The '+c.name+' joins this regiment':''});dot.setAttribute('aria-label',isJ?'The '+c.name+' joins this regiment':'No character');
-      const rs=bEl('select');rs.setAttribute('aria-label','Regiment '+(ri+1)+' of warband '+(wi+1));
-      ['main','res'].forEach(cat=>{const og=bEl('optgroup',{label:cat==='main'?'Mainstay':'Restricted'});choices.filter(x=>x.cat===cat).forEach(x=>{const u0=x.unit?bldUnit(x.unit):null;og.appendChild(bEl('option',{value:x.key,textContent:x.label+(u0?' · '+u0.pts:'')}));});if(og.children.length)rs.appendChild(og);});
-      rs.value=r.modular?'modular':r.chariots?'chariot':r.unit;rs.onchange=()=>{const x=choices.find(q=>q.key===rs.value);if(x.modular){w.regs[ri]={modular:{cmd:'Oni Ayakashi',counts:{'Oni Ayakashi':2}},custom:[]};}else if(x.chariots){w.regs[ri]={chariots:[x.chariots[0],'']};}else{const u=bldUnit(x.unit);w.regs[ri]={unit:x.unit,stands:bldBase(u),opts:[],custom:[],bearer:bearerDefault(u)};}if(w.joins===ri&&!joinable(w,w.regs[ri]))w.joins=null;bldSave();renderTurnbar();};
-      row.append(dot,rs);
-      if(r.modular){const M=r.modular,cs2=bEl('select');cs2.setAttribute('aria-label','Command Stand type');Object.keys(MODULAR).forEach(t=>cs2.appendChild(bEl('option',{value:t,textContent:'Command: '+t+' ['+MODULAR[t].role+']'})));cs2.value=M.cmd;
-          cs2.onchange=()=>{M.cmd=cs2.value;if(!(+M.counts[M.cmd]))M.counts[M.cmd]=Math.max(2,modTotal(M)-0);bldSave();renderTurnbar();};row.append(cs2);
-          const grid=bEl('div',{className:'bld-mods'});grid.appendChild(bEl('div',{className:'bld-sub',textContent:'Stands in this regiment: use + and − to add or remove stands of each type'}));
-          Object.keys(MODULAR).forEach(t=>{const n=+M.counts[t]||0,cell=bEl('div',{className:'bld-mod'+(n?' on':'')+(t===M.cmd?' cmd':'')});
-            const set=v=>{M.counts[t]=Math.max(0,Math.min(20,v));bldSave();renderTurnbar();};
-            const minus=bEl('button',{type:'button',className:'btn ghost bld-step',textContent:'−',disabled:n<=0});minus.setAttribute('aria-label','Remove a '+t+' stand');minus.onclick=()=>set(n-1);
-            const plus=bEl('button',{type:'button',className:'btn ghost bld-step',textContent:'+'});plus.setAttribute('aria-label','Add a '+t+' stand');plus.onclick=()=>set(n+1);
-            const num=bEl('span',{className:'bld-n',textContent:String(n)});num.setAttribute('aria-label',t+' stands: '+n);
-            cell.append(bEl('span',{className:'bld-mn',textContent:t+(t===M.cmd?' (Command)':'')}),bEl('span',{className:'bld-mp',textContent:MODULAR[t].pts+' pts each'}),bEl('span',{className:'bld-ctl'},[minus,num,plus]));grid.appendChild(cell);});
-          row.append(grid,bEl('span',{className:'hint',textContent:modTotal(M)+' stands · Command rules: '+MODULAR[M.cmd].cmd+' · march '+modJson(M).M+'″'}));row.append(customEditor(r.custom=r.custom||[],'Other upgrade'));}
-      else if(r.chariots){const x=choices.find(q=>q.key==='chariot');[0,1].forEach(k=>{const s2=bEl('select');s2.setAttribute('aria-label','Chariot '+(k+1));if(k===1)s2.appendChild(bEl('option',{value:'',textContent:'No second chariot'}));(x?x.chariots:[]).forEach(n=>s2.appendChild(bEl('option',{value:n,textContent:n+' · '+(bldUnit(n)||{}).pts})));s2.value=r.chariots[k]||'';s2.onchange=()=>{r.chariots[k]=s2.value;bldSave();renderTurnbar();};row.append(s2);});
-        row.append(bEl('span',{className:'hint',textContent:'Counts as one regiment; each chariot fights as its own regiment on the table.'}));}
-      else{const u=bldUnit(r.unit);const b=bldBase(u);
-        if(u&&u.kind!=='char'&&!/^1 stand/.test(u.stands)){const sn=bEl('input',{type:'number',min:String(b),max:'12',value:String(r.stands||b)});sn.setAttribute('aria-label','Stands');sn.onchange=()=>{r.stands=Math.max(b,Math.min(12,+sn.value||b));bldSave();renderTurnbar();};row.append(bEl('label',{className:'bld-st'},[sn,document.createTextNode(' stands')]));}
-        if(u&&u.type!=='Monster')row.append(bEl('span',{className:'bld-cmd',textContent:cmdText(u)}));
-        const O=u?regOptions(u):{opts:[],max:null};if(O.opts.length){const ob=bEl('div',{className:'bld-opts'});const offN=(r.opts||[]).filter(n=>(O.opts.find(o=>o.name===n)||{}).kind==='off').length;
-          O.opts.forEach(o=>{const l=bEl('label',{className:'bld-opt'});const cbx=bEl('input',{type:'checkbox',checked:(r.opts||[]).includes(o.name)});
-            cbx.disabled=!cbx.checked&&((o.kind==='off'&&O.max!=null&&offN>=O.max)||(o.kind==='aux'&&(r.opts||[]).some(n=>(O.opts.find(z=>z.name===n)||{}).kind==='aux')));
-            cbx.onchange=()=>{r.opts=r.opts||[];if(cbx.checked)r.opts.push(o.name);else r.opts=r.opts.filter(n=>n!==o.name);bldSave();renderTurnbar();};
-            l.append(cbx,document.createTextNode(' '+o.name+(o.detail?' ('+o.detail+')':'')+' +'+o.cost));ob.append(l);});
-          if(O.max!=null)ob.append(bEl('span',{className:'hint',textContent:'Officers: up to '+O.max}));row.append(ob);}
-        const cus=customEditor(r.custom=r.custom||[],'Other upgrade');row.append(cus);}
-      const cat=(choices.find(q=>q.key===(r.modular?'modular':r.chariots?'chariot':r.unit))||{}).cat;
-      row.append(bEl('span',{className:'bld-cat',textContent:cat==='res'?'Restricted':cat==='main'?'Mainstay':'Not in warband'}),bEl('span',{className:'bld-pts',textContent:rowPts(r)+' pts'}));
-      const dd=bEl('button',{type:'button',className:'btn ghost',textContent:'Details'});dd.onclick=()=>{const u=bldUnit(r.unit||(r.chariots||[])[0]||(r.modular&&r.modular.cmd));if(u)enDetail(u,f.name);};
-      const rr=bEl('button',{type:'button',className:'btn ghost',textContent:'Remove'});rr.onclick=()=>{w.regs.splice(ri,1);if(w.joins===ri)w.joins=null;else if(w.joins>ri)w.joins--;bldSave();renderTurnbar();};
-      row.append(dd,rr);card.appendChild(row);});
-    const full=w.regs.length>=R.allow||R.none;const ar=mk(full?(R.none?'No warband':'Warband full ('+R.allow+')'):'Add a regiment to this warband',()=>{const x=choices.find(q=>q.cat==='main')||choices[0];if(!x)return;
-      if(x.modular)w.regs.push({modular:{cmd:'Oni Ayakashi',counts:{'Oni Ayakashi':2}},custom:[]});else if(x.chariots)w.regs.push({chariots:[x.chariots[0],'']});else{const u=bldUnit(x.unit);w.regs.push({unit:x.unit,stands:bldBase(u),opts:[],custom:[],bearer:bearerDefault(u)});}
-      if(w.joins==null&&joinable(w,w.regs[w.regs.length-1]))w.joins=w.regs.length-1;bldSave();renderTurnbar();},true);ar.disabled=full||aiBusy;
-    card.appendChild(bEl('div',{className:'row'},[ar,bEl('span',{className:'hint',textContent:`${w.regs.length} of ${R.allow} regiments`})]));
-    const probs=wbProblems(w);if(probs.length)card.appendChild(ptext(probs.join(' '),'warn'));
-    box.appendChild(card);});
-  const foot=bEl('div',{className:'row'});foot.appendChild(mk('Add a warband',()=>{const c0=chars.find(x=>x.type!=='Monster')||chars[0];bld.wbs.push({char:c0.name,regs:[],joins:null,custom:[]});bldSave();renderTurnbar();},true));
-  foot.appendChild(bEl('span',{className:'read',textContent:'Total: '+bldTotal()+' points · '+bld.wbs.length+' warband'+(bld.wbs.length===1?'':'s')}));
-  const probs=bldProblems();
-  if(bld.wbs.length)foot.appendChild(mk(probs.length?useLabel+' anyway':useLabel,()=>{const L=bldToList();if(!L||!L.units.length){toast('Add at least one regiment.');return;}onUse(L);}));
-  box.appendChild(foot);if(probs.length)box.appendChild(ptext('Not yet legal: '+probs.join(' '),'warn'));
-  box.appendChild(ptext('Officer and upgrade effects beyond their stat changes are listed on the regiment for you to apply. Spells for casters can be added in the review step.'));add(box);}
+      js.onchange=()=>{w.joins=js.value===''?null:+js.value;abRe();};info.append(bEl('label',{className:'ab-lab ab-inl'},[bEl('span',{textContent:'★ The '+c.name+' leads'}),js]));}
+    else info.append(bEl('span',{className:'ab-note',textContent:c.type==='Monster'?'The '+c.name+' fights as its own regiment.':'No warband: '+c.warband}));
+    card.append(info);
+    const cu=bEl('div',{className:'ab-row'});cu.append(bEl('span',{className:'ab-lab-t',textContent:'Character upgrades'}),abUpgrades(w.custom=w.custom||[],'w'+wi+'c','Add Trove-find, Mastery or Relic'));card.append(cu);
+    const regs=bEl('div',{className:'ab-regs'});w.regs.forEach((r,ri)=>regs.append(abRegCard(f,w,wi,r,ri,choices)));card.append(regs);
+    const full=w.regs.length>=R.allow||R.none;
+    if(abPick&&abPick.wb===wi&&!abPick.chr&&!full)card.append(abPicker(f,w,wi,choices));
+    else{const row=bEl('div',{className:'ab-row'});const b=abBtn(full?(R.none?'No warband':'Warband full'):'+ Add regiment',()=>{abPick={wb:wi};renderTurnbar();},'ab-ghost');b.disabled=full;row.append(b,bEl('span',{className:'ab-note',textContent:`${w.regs.length} of ${R.allow} regiments`}));card.append(row);}
+    card.append(abIssues(wbProblems(w),'This warband is legal'));
+    box.append(card);});
+  if(abPick&&abPick.wb==='new')box.append(abCharPicker(f,chars,x=>{bld.wbs.push({char:x.name,regs:[],joins:null,custom:[]});if(bld.wbs.length===1)bld.warlord=0;abPick={wb:bld.wbs.length-1};abRe();},'Choose a character to lead a new warband'));
+  else box.append(bEl('div',{className:'ab-row'},[abBtn('+ Add a warband',()=>{abPick={wb:'new'};renderTurnbar();},'ab-ghost ab-wide')]));
+  const probs=bldProblems();const foot=bEl('div',{className:'ab-foot'});
+  if(probs.length)foot.append(abIssues(probs.slice(0,6).concat(probs.length>6?['…and '+(probs.length-6)+' more']:[]),''));
+  if(bld.wbs.length)foot.append(mk(probs.length?useLabel+' anyway':useLabel,()=>{const L=bldToList();if(!L||!L.units.length){toast('Add at least one regiment.');return;}onUse(L);}));
+  foot.append(bEl('p',{className:'ab-note',textContent:'Officer and upgrade effects beyond stat changes are listed on the regiment for you to apply. Spells for casters can be added in the review step.'}));
+  box.append(foot);add(box);}
 function armyModePicker(add){const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','How to enter your army');
   [['build','Build it here'],['paste','Paste a list (Claude reads it)']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String(armyMode===m));b.onclick=()=>{armyMode=m;renderTurnbar();};g.appendChild(b);});add(g);}
 function modePicker(add){const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','Opponent');
