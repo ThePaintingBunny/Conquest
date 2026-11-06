@@ -22,6 +22,7 @@ h1{font-family:var(--display);font-size:28px;margin:0;text-wrap:balance}
 .score{display:flex;gap:10px;font-family:var(--display);font-weight:700;font-size:18px}
 .score span{padding:4px 12px;border-radius:8px;color:#fff;font-variant-numeric:tabular-nums}
 .score .cs{background:var(--cs)}.score .nord{background:var(--nord)}
+.main[hidden],.roster[hidden],.score[hidden],#last[hidden],#view-hint[hidden]{display:none!important}
 .main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
 @media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
 .mapbox{overflow-x:auto;border-radius:12px;touch-action:none;min-width:0}
@@ -942,7 +943,7 @@ function renderCard(){
   if(w.length){$('c-warn').hidden=false;$('c-warn').textContent=w.join(' ');}
 }
 function render(){
-  if(!state)return;drawTerrain();drawZones();
+  if(!state)return;{const su=state.step==='setup';['.main','.roster','#view-hint','#last','.score'].forEach(q=>{const e=document.querySelector(q);if(e)e.hidden=su;});}drawTerrain();drawZones();
   $('phase').textContent=state.phase||'';
   $('vp-cs').textContent=N('cs')+' '+(state.vp?.cs??0);$('vp-nord').textContent=N('nord')+' '+(state.vp?.nord??0);$('h-cs').textContent=N('cs');$('h-nord').textContent=N('nord');$('combat').classList.toggle('busy',aiBusy);
   const ug=$('units'),mg=$('moves'),rg=$('rings');ug.innerHTML='';mg.innerHTML='';rg.innerHTML='';
