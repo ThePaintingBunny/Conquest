@@ -228,6 +228,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .ab-x{background:none;border:0;padding:0 0 0 2px;color:inherit;font-size:14px;line-height:1}
 .ab-tog{background:var(--bg);border-color:var(--line);color:var(--ink);font-weight:500;font-size:13px;padding:4px 10px;border-radius:999px}
 .ab-tog.ab-off,.ab-tog:disabled:not(.on){color:var(--muted);border-style:dashed;cursor:not-allowed}
+.tf-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}.tf-l{font-size:13px;color:var(--muted)}.tf-in{min-width:0;flex:1 1 180px;max-width:280px}.tf-chk{font-size:13px;display:flex;align-items:center;gap:6px}.tf-add>summary{cursor:pointer;font-weight:600;font-size:15px;padding:2px 0}.tf-sel h3{margin:0 0 4px}
 .ab-wlnote{font-size:12px;color:var(--muted);margin-top:2px}
 .ab-tog.on{background:var(--gold-soft);border-color:var(--gold);color:var(--gold-ink);font-weight:600}
 .ab-pri{padding:6px 14px}
@@ -364,7 +365,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="roster"><div class="side cs"><h2 id="h-cs">City States</h2><div id="r-cs"></div></div><div class="side nord"><h2 id="h-nord">Nords</h2><div id="r-nord"></div></div></div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-06 14:32 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-06 14:42 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -954,7 +955,7 @@ function renderCard(){
   if(w.length){$('c-warn').hidden=false;$('c-warn').textContent=w.join(' ');}
 }
 function render(){
-  if(!state)return;{const su=state.step==='setup';['.main','.roster','#view-hint','#last','.score'].forEach(q=>{const e=document.querySelector(q);if(e)e.hidden=su;});}drawTerrain();drawZones();
+  if(!state)return;bldUse(SBX()?'test':'main');if(SBX()){state.strategicHeld=true;}{const su=state.step==='setup';['.main','.roster','#view-hint','#last','.score'].forEach(q=>{const e=document.querySelector(q);if(e)e.hidden=su;});}drawTerrain();drawZones();
   $('phase').textContent=state.phase||'';
   $('vp-cs').textContent=N('cs')+' '+(state.vp?.cs??0);$('vp-nord').textContent=N('nord')+' '+(state.vp?.nord??0);$('h-cs').textContent=N('cs');$('h-nord').textContent=N('nord');$('combat').classList.toggle('busy',aiBusy);
   const ug=$('units'),mg=$('moves'),rg=$('rings');ug.innerHTML='';mg.innerHTML='';rg.innerHTML='';
@@ -976,6 +977,7 @@ function render(){
       cr.append(cn,cs2);cr.onclick=()=>{selId=u.id;render();};cr.onkeydown=e=>{if(e.key==='Enter'){selId=u.id;render();}};box.appendChild(cr);}});});
   renderCard();renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
   const held=!!PS().strategicHeld,used=PS().strategicUsedRound===state.round,notMine=PVP()&&(state.turn!==HU||!seatSide());
+  {const ss=$('strat-btn').closest('.sec');if(ss)ss.hidden=SBX();}
   $('strat-read').textContent=held?'1 card held, face down':'Empty';
   $('strat-btn').disabled=held||used||!!act||notMine;
   $('strat-btn').title=held?'A card is already held':used?'Already used this round':act?'Finish the current activation first':'';
@@ -1144,17 +1146,19 @@ $('board').addEventListener('pointerdown',ev=>{
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){const t=byId(id);if(t&&t.side!==ME){selId=act.id;act.cur.stage='combat';act.cur.target=t.id;openCombat({type:'volley',att:act.id,tgt:t.id,inAct:true});render();return;}}
   if(pick){const t=byId(id),a=byId(pick.att);if(t&&a&&t.side!==a.side){const p=pick;pick=null;openCombat({type:p.type,att:p.att,tgt:t.id,inAct:false});return;}}
   selId=id;
+  if(SBX()&&!act&&!pick&&!cb){const u=base(id);if(u&&u.onTable&&u.type!=='marker'){tfDrag={id,ox:ix(pt.x)-u.x,oy:iy(pt.y)-u.y,moved:false};$('board').setPointerCapture(ev.pointerId);}}
   if(act&&act.id===id&&((act.entering&&!act.placed)||(act.cur&&(act.cur.moving||(act.cur.type==='charge'&&act.cur.stage==='adjust'))))){const u=byId(id);drag={ox:ix(pt.x)-u.x,oy:iy(pt.y)-u.y};$('board').setPointerCapture(ev.pointerId);}
   render();});
 $('board').addEventListener('pointermove',ev=>{const pt=svgPt(ev);
   if(ruler&&rA&&!rB){drawRuler([ix(pt.x),iy(pt.y)]);return;}
+  if(tfDrag){const u=base(tfDrag.id);if(u){u.x=Math.max(0,Math.min(72,Math.round((ix(pt.x)-tfDrag.ox)*4)/4));u.y=Math.max(0,Math.min(48,Math.round((iy(pt.y)-tfDrag.oy)*4)/4));tfDrag.moved=true;drawUnitsFast();}return;}
   if(!drag)return;setPose({x:Math.round((ix(pt.x)-drag.ox)*8)/8,y:Math.round((iy(pt.y)-drag.oy)*8)/8});});
-$('board').addEventListener('pointerup',()=>{drag=null;if(act&&act.cur&&(act.cur.type==='march'||act.cur.withdraw)&&act.cur.pending){const c=act.cur;if(c.pending.amt>0)c.segs.push(c.pending);c.pending=null;c.segStart={x:act.pose.x,y:act.pose.y,facing:act.pose.facing,files:act.pose.files};render();}});
+$('board').addEventListener('pointerup',()=>{if(tfDrag){const d=tfDrag;tfDrag=null;if(d.moved)putState({units:state.units.slice()}).catch(()=>{});return;}drag=null;if(act&&act.cur&&(act.cur.type==='march'||act.cur.withdraw)&&act.cur.pending){const c=act.cur;if(c.pending.amt>0)c.segs.push(c.pending);c.pending=null;c.segStart={x:act.pose.x,y:act.pose.y,facing:act.pose.facing,files:act.pose.files};render();}});
 $('rot-l').onclick=()=>rot(-15);$('rot-r').onclick=()=>rot(15);$('rot-180').onclick=()=>rot(180);
 $('f-less').onclick=()=>form(-1);$('f-more').onclick=()=>form(1);
 $('done-act').onclick=finishAction;$('cancel-act').onclick=cancelAction;$('abort').onclick=abort;
 $('ruler').onclick=()=>{ruler=!ruler;$('ruler').setAttribute('aria-pressed',ruler);rA=rB=null;drawRuler();};
-document.addEventListener('keydown',ev=>{if(!act||ev.target.tagName==='INPUT')return;const u=byId(act.id);const k=ev.key;let dx=0,dy=0;
+document.addEventListener('keydown',ev=>{if(!act&&SBX()&&selId&&!/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)){tfKey(ev);return;}if(!act||ev.target.tagName==='INPUT')return;const u=byId(act.id);const k=ev.key;let dx=0,dy=0;
   if(k==='ArrowLeft')dx=.5;if(k==='ArrowRight')dx=-.5;if(k==='ArrowUp')dy=-.5;if(k==='ArrowDown')dy=.5;if(FLIP){dx=-dx;dy=-dy;}
   if(dx||dy){ev.preventDefault();setPose({x:u.x+dx,y:u.y+dy});}
   if(k==='q'||k==='Q')rot(-15);if(k==='e'||k==='E')rot(15);});
@@ -1275,9 +1279,10 @@ let AI='nord',HU='cs';
 /* ---------- multiplayer: seats, private stacks, shared combat ---------- */
 let myId=null,realId=null,myStk=null,ract=null,lastCbJson='null',lastLive='',liveT=null,usr=null;
 function PVP(){return !!(state&&state.mode==='pvp');}
+function SBX(){return !!(state&&state.mode==='test');}
 function other(s){return s==='cs'?'nord':'cs';}
 function seatSide(){if(!PVP()||!myId)return null;const st=state.seats||{};return st.cs===myId?'cs':st.nord===myId?'nord':null;}
-function applySeat(){const was=FLIP;const me=PVP()?(seatSide()||'cs'):'cs';HU=ME=me;AI=other(me);FLIP=me==='nord';
+function applySeat(){const was=FLIP;const me=PVP()?(seatSide()||'cs'):SBX()?(state.sbSide||'cs'):'cs';HU=ME=me;AI=other(me);FLIP=!SBX()&&me==='nord';
   if(was!==FLIP){terrKey='';zoneKey='';}
   $('edge-top').setAttribute('fill',FLIP?'#8E2F2F':'#2F578E');$('edge-bot').setAttribute('fill',FLIP?'#2F578E':'#8E2F2F');
   const ly=$('leg-you'),lt2=$('leg-them'),ltt=$('leg-them-t');if(ly)ly.setAttribute('fill',HU==='cs'?'#9A3328':'#2C5A8E');if(lt2)lt2.setAttribute('fill',HU==='cs'?'#2C5A8E':'#9A3328');if(ltt)ltt.textContent=PVP()?'Opponent':'Claude’s army';
@@ -1836,8 +1841,12 @@ function modJson(m){const types=Object.entries(m.counts||{}).filter(([t,n])=>+n>
   return {name:'Modular Regiment ('+m.cmd+')',short:m.cmd.split(' ')[0]+' Modular',points:modPts(m),cls:'Medium Brute',type:'brute',stands:tot,M,V:C.V,C:C.C,A:C.A+plusA,W:C.W,R:C.R,D:C.D,E:C.E+(m.cmd==='Kami Ayakashi'?1:0),
     rules,abilities:ab,standardBearer:false,leader:true,auxiliary:null,character:null,mods,modProfiles:prof};}
 /* ---------- army builder: warbands (from the encyclopedia, no Claude needed) ---------- */
-let bld=(()=>{try{const v=JSON.parse(localStorage.getItem('conquest-army-builder2')||'null');if(v&&Array.isArray(v.wbs))return v;}catch(e){}return {fac:'',wbs:[],warlord:0};})(),armyMode='build';
-function bldSave(){try{localStorage.setItem('conquest-army-builder2',JSON.stringify(bld));}catch(e){}}
+const BLDKEY={main:'conquest-army-builder2',test:'conquest-test-field-draft'};
+function bldLoad(k){try{const v=JSON.parse(localStorage.getItem(BLDKEY[k])||'null');if(v&&Array.isArray(v.wbs))return v;}catch(e){}return {fac:'',wbs:[],warlord:0};}
+let bld=bldLoad('main'),bldWho='main',bldStash={},armyMode='build';
+function bldSave(){try{localStorage.setItem(BLDKEY[bldWho],JSON.stringify(bld));}catch(e){}}
+/* the test field keeps its own builder draft, so it never touches the player's army */
+function bldUse(k){if(k===bldWho)return;bldStash[bldWho]=bld;bld=bldStash[k]||bldLoad(k);bldWho=k;abPick=null;}
 function bldFac(){return ENCY.find(f=>f.name===bld.fac)||null;}
 function bldUnit(name){const f=bldFac();return f&&f.units.find(u=>u.name===name);}
 function bldBase(u){if(!u)return 1;const m=String(u.stands||'').match(/(\d+)\s*(?:double\s+)?stands?/i);return u.kind==='char'||/^1 stand/.test(u.stands)?1:(m?+m[1]:3);}
@@ -2082,8 +2091,89 @@ function armyBuilder(add,mk,onUse,useLabel){wlFix();bldSave();const box=bEl('div
 function armyModePicker(add){const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','How to enter your army');
   [['build','Build it here'],['paste','Paste a list (Claude reads it)']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String(armyMode===m));b.onclick=()=>{armyMode=m;renderTurnbar();};g.appendChild(b);});add(g);}
 function modePicker(add){const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','Opponent');
-  [['ai','Play against Claude'],['pvp','Play against a friend']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String((state.mode||'ai')===m));b.onclick=()=>{if((state.mode||'ai')!==m)putState({mode:m});};g.appendChild(b);});add(g);}
+  [['ai','Play against Claude'],['pvp','Play against a friend'],['test','Test field']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String((state.mode||'ai')===m));b.onclick=()=>{if(m==='test'){tfEnter();return;}if((state.mode||'ai')!==m)putState({mode:m});};g.appendChild(b);});add(g);}
 const SEATNAME={cs:'South edge (red)',nord:'North edge (blue)'};
+
+/* ---------- test field: drop regiments, set conditions, activate freely ---------- */
+let tfDrag=null,tfSide='cs',tfReserve=false,tfAddOpen=true,tfFx='';
+async function tfEnter(){act=null;cb=null;selId=null;charAct=null;
+  await putState({mode:'test',sbSide:'cs',step:'activations',units:[],army:{cs:[],nord:[]},round:1,turn:'cs',zones:[],terrain:[],sbN:0,vp:{cs:0,nord:0},names:{cs:'South',nord:'North'},
+    aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:true,strategicUsedRound:0,hammerUsed:false,moves:[],picks:{},ready:{},
+    phase:'Test field',lastTitle:'Test field',lastText:'Drop regiments on the table, then activate them as often as you like.'});applySeat();render();}
+async function tfLeave(){act=null;cb=null;selId=null;charAct=null;
+  await putState({mode:'ai',sbSide:null,step:'setup',units:[],army:null,round:0,turn:null,zones:null,terrain:null,vp:{cs:0,nord:0},names:null,aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,moves:[],setup:null,phase:'New game',ready:{},chooser:null,reinfTurn:'cs',lastTitle:'New game',lastText:'Set up the armies to begin.'});applySeat();render();}
+function tfUnits(fn){return putState({units:(state.units||[]).map(u=>{const r=fn(u);return r===undefined?u:r;}).filter(Boolean)});}
+function tfSet(id,patch){return tfUnits(u=>u.id===id?Object.assign({},u,typeof patch==='function'?patch(u):patch):u);}
+function tfSpot(side,k){const n=(state.units||[]).filter(u=>u.side===side&&u.onTable).length+k;return {x:12+(n%5)*12,y:side==='cs'?30+Math.floor(n/5)*6:18-Math.floor(n/5)*6};}
+async function tfDrop(L){const side=tfSide;let n=state.sbN||0;
+  const units=buildUnits(side,L).map((u,i)=>{n++;const p=tfSpot(side,i);return Object.assign(u,{id:'t'+(side==='cs'?'s':'n')+'-'+n,x:p.x,y:Math.max(4,Math.min(44,p.y)),onTable:!tfReserve,arriving:tfReserve});});
+  const A=Object.assign({cs:[],nord:[]},state.army||{});A[side]=[...new Set((A[side]||[]).concat(L.armyRules||[]))];
+  await putState({army:A,units:(state.units||[]).concat(units),sbN:n,lastTitle:'Test field',lastText:units.length+' regiment'+(units.length===1?'':'s')+' dropped for '+(side==='cs'?'South':'North')+(tfReserve?' (arriving from reserves)':'')+'.'});
+  if(units[0])selId=units[0].id;tfAddOpen=false;toast(tfReserve?'Dropped in reserves: activate it to bring it on from an edge.':'Dropped on the table. Drag to move; Q and E turn the selected regiment.');render();}
+function tfWmax(u){const W=+(u.stats&&u.stats.W)||4;return Math.max(1,(u.stands||1)*W+(u.auxStats?+u.auxStats.W||0:0));}
+function tfKey(ev){const u=base(selId);if(!u||!u.onTable)return;const k=ev.key;let p=null;
+  if(k==='q'||k==='Q')p={facing:((u.facing||0)-15+360)%360};if(k==='e'||k==='E')p={facing:((u.facing||0)+15)%360};
+  const d={ArrowLeft:[.5,0],ArrowRight:[-.5,0],ArrowUp:[0,-.5],ArrowDown:[0,.5]}[k];if(d)p={x:u.x+d[0],y:u.y+d[1]};
+  if(p){ev.preventDefault();tfSet(u.id,p);}}
+function tfDropChar(u){const o=(u.order||[]).filter(t=>t!=='c');const st=Math.max(1,(u.stands||2)-1);
+  const x=Object.assign({},u,{stands:st,files:Math.min(u.files||1,st)});['char','charName','charStats','charRules','warlord','spells','charActivated'].forEach(k=>delete x[k]);if(u.order)x.order=o;return x;}
+function renderTestField(tb,info,mk,add){
+  const nOn=s=>(state.units||[]).filter(u=>u.side===s&&u.type!=='marker').length;
+  info.textContent='Test field: drop regiments for either side, set up the situation, then activate any of your regiments as often as you like. Nothing here is scored.';
+  const top=bEl('div',{className:'tf-row'});
+  const ctl=bEl('div',{className:'grp'});ctl.setAttribute('role','group');ctl.setAttribute('aria-label','You control');
+  [['cs','Control South (red)'],['nord','Control North (blue)']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t+' · '+nOn(sd)});b.setAttribute('aria-pressed',String(ME===sd));b.onclick=async()=>{if(act){toast('Finish or undo the current activation first.');return;}if(ME!==sd){await putState({sbSide:sd});applySeat();render();}};ctl.appendChild(b);});
+  top.append(ctl,bEl('span',{className:'tf-l',textContent:'Round'}),abStepper(state.round||1,1,10,v=>putState({round:v}),'round'),
+    mk('Next round (ready everyone)',()=>{if(act){toast('Finish or undo the current activation first.');return;}tfUnits(u=>Object.assign({},u,{activated:false,charActivated:false,effects:(u.effects||[]).filter(e=>e==='Broken')})).then(()=>putState({round:Math.min(10,(state.round||1)+1),hammerUsed:false,strategicUsedRound:0,moves:[]}));},true),
+    mk('Ready everyone',()=>tfUnits(u=>Object.assign({},u,{activated:false,charActivated:false})),true));
+  add(top);
+  const t2=bEl('div',{className:'tf-row'});
+  t2.append(mk((state.terrain||[]).length?'Shuffle terrain':'Add terrain',()=>putState({terrain:genTerrain()}),true));
+  if((state.terrain||[]).length)t2.append(mk('Clear terrain',()=>putState({terrain:[]}),true));
+  t2.append(mk((state.zones||[]).length?'Remove objective zones':'Add objective zones',()=>putState({zones:(state.zones||[]).length?[]:SCEN[7].zones}),true));
+  t2.append(mk((state.units||[]).length?'Clear the table':'Table is empty',()=>{act=null;cb=null;selId=null;putState({units:[],moves:[],army:{cs:[],nord:[]}});},true));
+  t2.append(mk('Leave the test field',tfLeave,true));t2.lastChild.classList.add('ng');t2.lastChild.previousSibling.disabled=!(state.units||[]).length;
+  add(t2);if(((state.army||{}).cs||[]).length||((state.army||{}).nord||[]).length)add(armyRulesBox());
+  // selected regiment: conditions
+  const u=base(selId);
+  if(u&&u.type!=='marker'){const box=bEl('div',{className:'rev tf-sel'});
+    box.append(bEl('h3',{textContent:'Conditions · '+u.name+(u.charName?' + '+u.charName:'')+' ('+(u.side==='cs'?'South':'North')+')'}));
+    if(act&&act.id===u.id){box.append(ptext('Activating now: use the panel beside the map. Conditions unlock when the activation is saved or undone.'));add(box);}
+    else{
+    const r1=bEl('div',{className:'tf-row'});
+    r1.append(bEl('span',{className:'tf-l',textContent:'Wounds taken'}),abStepper(u.wounds||0,0,tfWmax(u)-1,v=>tfSet(u.id,{wounds:v}),'wounds'));
+    r1.append(bEl('span',{className:'tf-l',textContent:(u.stands||1)+' stands, '+live(u)+' left'}));
+    if(u.auxStats)r1.append(bEl('span',{className:'tf-l',textContent:(u.auxName||'Auxiliary')+' wounds'}),abStepper(u.auxWounds||0,0,+u.auxStats.W||6,v=>tfSet(u.id,{auxWounds:v}),'auxiliary wounds'));
+    box.append(r1);
+    const r2=bEl('div',{className:'tf-row'});r2.append(bEl('span',{className:'tf-l',textContent:'Effects'}));
+    const E=u.effects||[];
+    ['Broken','Inspired'].forEach(e=>{const on=E.some(x=>x===e||x.startsWith(e+' ('));const b=abBtn((on?'✓ ':'')+e,()=>tfSet(u.id,{effects:on?E.filter(x=>!(x===e||x.startsWith(e+' ('))):E.concat([e])}),'ab-tog'+(on?' on':''));b.setAttribute('aria-pressed',String(on));r2.append(b);});
+    E.filter(e=>!/^(Broken|Inspired)/.test(e)).forEach(e=>r2.append(abBtn('✕ '+e,()=>tfSet(u.id,{effects:E.filter(x=>x!==e)}),'ab-tog on','Remove '+e)));
+    const inp=bEl('input',{type:'text',value:tfFx,placeholder:'Other effect, e.g. a spell',className:'tf-in'});inp.setAttribute('aria-label','Add an effect');inp.oninput=()=>{tfFx=inp.value;};
+    const addFx=()=>{const v=tfFx.trim();if(!v)return;tfFx='';tfSet(u.id,{effects:E.concat([v])});};inp.onkeydown=e=>{if(e.key==='Enter')addFx();};
+    r2.append(inp,abBtn('Add',addFx,'ab-ghost ab-small'));box.append(r2);
+    const r3=bEl('div',{className:'tf-row'});
+    if(u.activated||u.charActivated)r3.append(mk('Ready to activate again',()=>tfSet(u.id,{activated:false,charActivated:false})));
+    if(u.onTable){r3.append(mk('⟲ 15°',()=>tfSet(u.id,{facing:((u.facing||0)-15+360)%360}),true),mk('15° ⟳',()=>tfSet(u.id,{facing:((u.facing||0)+15)%360}),true),mk('Turn around',()=>tfSet(u.id,{facing:((u.facing||0)+180)%360}),true));
+      r3.append(mk('Send to reserves',()=>tfSet(u.id,{onTable:false,arriving:true,activated:false}),true));}
+    else r3.append(mk('Put it on the table',()=>{const p=tfSpot(u.side,0);tfSet(u.id,{onTable:true,arriving:false,x:p.x,y:Math.max(4,Math.min(44,p.y))});}));
+    r3.append(mk('Move to '+(u.side==='cs'?'North':'South'),()=>tfSet(u.id,x=>({side:other(x.side),facing:((x.facing||0)+180)%360})),true));
+    if(u.charName)r3.append(mk('Remove the '+u.charName,()=>tfUnits(x=>x.id===u.id?tfDropChar(x):x),true));
+    r3.append(mk('Remove from the field',()=>{if(selId===u.id)selId=null;tfUnits(x=>x.id===u.id?null:x);},true));r3.lastChild.classList.add('ab-danger');
+    box.append(r3);
+    box.append(ptext(u.side===ME?'Drag it on the map to move it, Q and E to turn it. Activate it from the panel beside the map.':'This regiment belongs to the side you are not controlling. Switch control above to activate it, or charge it with one of yours.','hint'));
+    add(box);}}
+  else add(ptext('Select a regiment on the map or in the rosters to set its wounds, effects and facing.','hint'));
+  // adding regiments: the army builder with its own draft
+  const det=bEl('details',{className:'rev tf-add'});det.open=tfAddOpen||!(state.units||[]).length;det.ontoggle=()=>{tfAddOpen=det.open;};
+  det.append(bEl('summary',{textContent:'Add regiments'}));
+  const r4=bEl('div',{className:'tf-row'});const sg=bEl('div',{className:'grp'});sg.setAttribute('role','group');sg.setAttribute('aria-label','Drop for');
+  [['cs','For South (red)'],['nord','For North (blue)']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t});b.setAttribute('aria-pressed',String(tfSide===sd));b.onclick=()=>{tfSide=sd;renderTurnbar();};sg.appendChild(b);});
+  const lab=bEl('label',{className:'tf-chk'});const cbx=bEl('input',{type:'checkbox',checked:tfReserve});cbx.onchange=()=>{tfReserve=cbx.checked;};lab.append(cbx,document.createTextNode(' Arrive from reserves (to test entering the table)'));
+  r4.append(sg,lab);det.append(r4);
+  det.append(ptext('Build one or more warbands below, with options and upgrades, then drop them. Characters join the regiment you choose; use "Remove the character" afterwards to test a regiment on its own.','hint'));
+  armyBuilder(e=>det.appendChild(e),mk,L=>tfDrop(L),'Drop on the table');
+  add(det);}
 function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},seats=state.seats||{};
   info.textContent='Play against a friend. Press Host an online game at the top, then send your opponent the invite link. Each of you takes an edge and builds or pastes your own army.';
   const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent='Seats';box.appendChild(h);
@@ -2177,6 +2267,7 @@ function renderTurnbar(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHTM
   const mk=(t,fn,ghost)=>{const b=document.createElement('button');b.type='button';b.className='btn'+(ghost?' ghost':'');b.textContent=t;b.onclick=fn;b.disabled=aiBusy;return b;};
   if(aiBusy){info.textContent=$('ai-status').textContent||N(AI)+' are acting…';return;}
   if(renderSetup(tb,info,mk,add))return;
+  if(SBX()){renderTestField(tb,info,mk,add);return;}
   if(step==='over'){info.textContent='The game is over. '+N('cs')+' '+(state.vp?.cs||0)+', '+N('nord')+' '+(state.vp?.nord||0)+'.';add(mk(resetArm?'Click again to confirm':'Start a new game',newGame));return;}
   const ng=mk(resetArm?'Click again to reset the game':'New game',newGame,true);ng.classList.add('ng');
   add(ng);
