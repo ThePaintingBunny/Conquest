@@ -19,7 +19,7 @@ A browser battle map for **Conquest: The Last Argument of Kings**: build your ar
 2. Press **Copy invite link** and send it to your opponent. They can also type the code into the **Join** box.
 3. Choose **Play against a friend**. Each player takes an edge, builds an army, and either of you starts the game.
 
-If the host reloads the page, the game resumes from that browser. The guest reconnects automatically and keeps their seat after a reload. You can also join from a second tab in the same browser, which is handy for testing.
+With Firebase set up (see below), the game is saved in the cloud: either player can close the tab and come back later through the same link. Without Firebase, the host's tab holds the game, so it must stay open. Either way, players keep their seats after a reload, and you can join from a second tab in the same browser, which is handy for testing.
 
 ## Playing against Claude
 
@@ -33,16 +33,43 @@ Claude needs an [Anthropic API key](https://console.anthropic.com/):
 
 - **No build step and no server.** The site is plain files on GitHub Pages.
 - **Game:** `src/game.html`, the same page that runs as a Claude artifact.
-- **Standalone runtime:** `shim.js` replaces Claude's runtime. It keeps game data in local storage, handles online play by relaying moves through a free public MQTT broker over secure WebSockets (EMQX, with HiveMQ and Mosquitto as fallbacks), which works on almost any network, and calls Claude with the player's own API key.
+- **Standalone runtime:** `shim.js` replaces Claude's runtime. It keeps game data in local storage, syncs online games through Firebase Cloud Firestore (or, if Firebase isn't configured, relays moves through a free public MQTT broker with the host's browser as referee), and calls Claude with the player's own API key.
 - **Building the site:** `tools/build.py` wraps `src/game.html` into `index.html`. After editing the game, run `python3 tools/build.py` and commit both files.
 
 ### Publishing with GitHub Pages
 
 In the repository settings, go to **Pages** and set **Source** to *Deploy from a branch*, using the `main` branch and the `/ (root)` folder.
 
+### Setting up Firebase for online games
+
+Online games are synced through **Cloud Firestore** from Google Firebase when `firebase-config.js` is filled in. Without it, they fall back to a public MQTT relay. Firestore's free Spark plan is plenty for this game.
+
+1. Go to the [Firebase console](https://console.firebase.google.com/), choose **Create a project**, give it a name and skip Google Analytics.
+2. Open **Build → Firestore Database**, press **Create database**, choose a location (for example `eur3` for Europe) and start in **production mode**.
+3. On the **Rules** tab, replace the rules with these, then press **Publish**:
+
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /rooms/{room}/docs/{doc} {
+         allow read: if true;
+         allow create, update: if request.resource.data.j is string
+                               && request.resource.data.j.size() < 900000;
+         allow delete: if true;
+       }
+     }
+   }
+   ```
+
+4. Open **Project settings** (the gear icon), go to **Your apps**, add a **Web app** (`</>`), and copy the `firebaseConfig` object it shows.
+5. Paste it into `firebase-config.js` as `window.CONQUEST_FIREBASE = { apiKey: "…", authDomain: "…", projectId: "…", … };` and commit.
+
+The web config is not a secret: Firebase web configs are meant to be public, and the rules above control what can be read and written.
+
 ### Privacy of online games
 
-Public brokers are open, so anyone who knew your game code could in principle read the shared game. Codes are random and 8 characters long, and hidden Command Stacks are never sent at all.
+Games are stored under their random code. Anyone who knew a code could in principle read or change that game, because there are no player accounts. Codes are random and 8 characters long, and hidden Command Stacks are never sent at all.
 
 ## Disclaimer
 

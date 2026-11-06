@@ -44,10 +44,13 @@
   const storeKey = PREFIX + 'room-' + room;
   const privKey = PREFIX + 'priv-' + room + '-' + myId;
   // The host and offline players keep the game in localStorage, so a refresh resumes it.
-  let docs = (mode === 'guest') ? {} : LS.get(storeKey, {});
+  // Firebase (when configured in firebase-config.js) keeps online games in the cloud;
+  // otherwise online games relay through MQTT with the host's browser as referee.
+  const FB = (mode !== 'local' && window.CONQUEST_FIREBASE && window.CONQUEST_FIREBASE.projectId) ? window.CONQUEST_FIREBASE : null;
+  let docs = (mode === 'guest' || FB) ? {} : LS.get(storeKey, {});
   let priv = LS.get(privKey, {});
   const subs = {};
-  function persist() { if (mode !== 'guest') LS.set(storeKey, docs); LS.set(privKey, priv); }
+  function persist() { if (mode !== 'guest' && !FB) LS.set(storeKey, docs); LS.set(privKey, priv); }
   function read(p) { return isPrivate(p) ? priv[p] : docs[p]; }
   function fire(p) {
     const v = read(p), list = subs[p] || [];
@@ -81,6 +84,7 @@
   }
   async function write(p, data, isUpdate) {
     if (isPrivate(p) || mode === 'local') { applyLocal(p, data, isUpdate); return; }
+    if (FB) { await whenReady(); applyLocal(p, data, isUpdate); return fbWrite(p, data, isUpdate); }
     if (mode === 'host') { hostWrite(p, data, isUpdate); return; }
     await whenReady();
     const msg = { p, v: data, u: !!isUpdate, from: myId };
@@ -119,9 +123,50 @@
       else if (mode === 'host' && restoring && v != null && docs[p] == null) { docs[p] = v; persist(); fire(p); }
     }
   }
+  /* ---------- Firebase (Cloud Firestore) ---------- */
+  const FBV = '10.12.2';
+  let fs = null, fdb = null, fbFirst = true;
+  const fbId = p => p.replace(/\//g, '~');
+  const fbPath = id => id.replace(/~/g, '/');
+  function fbRef(p) { return fs.doc(fdb, 'rooms', room, 'docs', fbId(p)); }
+  async function fbWrite(p, data, isUpdate) {
+    const ref = fbRef(p);
+    try {
+      if (data === null && !isUpdate) await fs.deleteDoc(ref);
+      else if (!isUpdate) await fs.setDoc(ref, { j: JSON.stringify(data), at: Date.now(), by: myId });
+      else await fs.runTransaction(fdb, async t => {
+        const snap = await t.get(ref); const cur = snap.exists() ? JSON.parse(snap.data().j) : undefined;
+        t.set(ref, { j: JSON.stringify(merge(cur, data)), at: Date.now(), by: myId });
+      });
+    } catch (e) { console.error(e); setStatus('Could not save to Firebase (' + (e.code || e.message) + '). Check the Firestore rules.'); throw Object.assign(e, { code: 'unavailable' }); }
+  }
+  async function startFirebase() {
+    setStatus('Connecting to game ' + room + '…');
+    let app;
+    try {
+      app = await import('https://www.gstatic.com/firebasejs/' + FBV + '/firebase-app.js');
+      fs = await import('https://www.gstatic.com/firebasejs/' + FBV + '/firebase-firestore.js');
+    } catch (e) { setStatus('Could not load Firebase. Check your internet connection and reload.'); return; }
+    try { fdb = fs.getFirestore(app.initializeApp(FB)); } catch (e) { setStatus('Firebase is not set up correctly (' + e.message + ').'); return; }
+    fs.onSnapshot(fs.collection(fdb, 'rooms', room, 'docs'), snap => {
+      const changed = [];
+      snap.docChanges().forEach(ch => {
+        const p = fbPath(ch.doc.id);
+        if (ch.type === 'removed') delete docs[p];
+        else { try { docs[p] = JSON.parse(ch.doc.data().j); } catch (e) { return; } }
+        changed.push(p);
+      });
+      if (fbFirst) { fbFirst = false; setStatus('Online game ' + room + ' · saved in the cloud'); markReady(); Object.keys(subs).forEach(fire); }
+      else changed.forEach(fire);
+    }, err => setStatus('Firebase refused the connection (' + (err.code || err.message) + '). Check the Firestore rules.'));
+    addEventListener('online', () => setStatus('Online game ' + room + ' · saved in the cloud'));
+    addEventListener('offline', () => setStatus('You are offline. Moves will sync when you reconnect.'));
+  }
+
   let restoring = false;
   async function startNetwork() {
     if (mode === 'local') return;
+    if (FB) return startFirebase();
     try { await loadLib(); } catch (e) { setStatus('Could not load the online play library. Check your internet connection and reload.'); return; }
     const list = brokers(); let order = list.map((u, i) => i), fallback = null;
     const pref = +params.get('b'); if (pref >= 0 && pref < list.length) order = [pref].concat(order.filter(i => i !== pref));
@@ -231,7 +276,7 @@
     if (!bar) { bar = document.createElement('div'); bar.id = 'net-bar'; document.body.insertBefore(bar, document.body.firstChild); }
     bar.innerHTML = '';
     const left = document.createElement('div'); left.className = 'nb-l';
-    const dot = document.createElement('span'); dot.className = 'nb-dot ' + (mode === 'local' ? 'off' : /^(Connected|Hosting game)/.test(status) ? 'on' : 'wait');
+    const dot = document.createElement('span'); dot.className = 'nb-dot ' + (mode === 'local' ? 'off' : /^(Connected|Hosting game|Online game)/.test(status) ? 'on' : 'wait');
     const st = document.createElement('span'); st.textContent = status; left.append(dot, st); bar.appendChild(left);
     const right = document.createElement('div'); right.className = 'nb-r';
     const btn = (t, fn, primary) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (primary ? '' : ' ghost'); b.textContent = t; b.onclick = fn; right.appendChild(b); return b; };
@@ -243,7 +288,7 @@
       f.onsubmit = e => { e.preventDefault(); const c = clean(inp.value); if (c.length >= 4) location.href = urlWith('join=' + c); else flash('Type the game code your host sent you.'); };
       f.append(inp, go); right.appendChild(f);
     } else {
-      if (mode === 'host') btn('Copy invite link', async () => {
+      if (mode === 'host' || FB) btn('Copy invite link', async () => {
         const link = urlWith('join=' + room + (brokerIx > 0 ? '&b=' + brokerIx : ''));
         try { await navigator.clipboard.writeText(link); flash('Invite link copied: ' + link); } catch (e) { flash('Send this link to your opponent: ' + link); }
       }, true);

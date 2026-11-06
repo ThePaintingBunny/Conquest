@@ -29,14 +29,14 @@ body = swap(body, "'Claude was not allowed to run, so the armies were not built.
 body = swap(body, 'Share this page with them from the Share menu, with permission to interact.',
             'Press Host an online game at the top, then send your opponent the invite link.')
 
-body = swap(body, '<script>\n(function(){', '<script src="shim.js"></script>\n<script>\n(function(){')
+body = swap(body, '<script>\n(function(){', '<script src="firebase-config.js"></script>\n<script src="shim.js"></script>\n<script>\n(function(){')
 
 footer = ('<footer class="fan-note"><p>Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. '
           'Conquest, its rules, factions and unit profiles belong to '
           '<a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. '
           'Unit data and rule summaries are paraphrased from their free army lists; always check the '
           '<a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>\n')
-body = swap(body, '<script src="shim.js"></script>', footer + '<script src="shim.js"></script>')
+body = swap(body, '<script src="firebase-config.js"></script>', footer + '<script src="firebase-config.js"></script>')
 
 extra_css = ('<style>.fan-note{max-width:1240px;margin:24px auto 32px;font-size:13px;color:var(--muted)}'
              '.fan-note a{color:inherit}</style>\n')
