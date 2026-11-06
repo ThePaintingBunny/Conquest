@@ -1844,7 +1844,7 @@ function upgWhy(e,c,wi){const who=e[3],f=bldFac();if(charNoUpg(c))return 'The '+
   const taken=bld.wbs.findIndex((w,i)=>i!==wi&&(w.upg||[]).includes(e[1]));if(taken>=0)return 'Taken by warband '+(taken+1);
   return '';}
 function upgPts(w){return (w.upg||[]).reduce((a,n)=>a+((upgFind(n)||[])[2]||0),0);}
-function upgProblems(w,wi){const c=bldUnit(w.char),out=[];if(!c)return out;const cats={};(w.upg||[]).forEach(n=>{const e=upgFind(n);if(!e)return;const why=upgWhy(e,c,wi);if(why&&!/^Taken/.test(why))out.push(n+': '+why+'.');if(!UPG_MULTI.test(e[0])){cats[e[0]]=(cats[e[0]]||0)+1;}});
+function upgProblems(w,wi){const c=bldUnit(w.char),out=[];if(!c)return out;const cats={};(w.upg||[]).forEach(n=>{const e=upgFind(n);if(!e)return;const why=upgWhy(e,c,wi);if(why&&!/^Taken/.test(why))out.push(n+': '+why+'.');if(!UPG_MULTI.test(e[0])){const k=e[0].replace(/^Discipline.*/,'Discipline');cats[k]=(cats[k]||0)+1;}});
   Object.entries(cats).forEach(([k,v])=>{if(v>1)out.push(`More than one ${k} upgrade on the ${c.name}.`);});return out;}
 function abUpgPicker(f,w,wi){const c=bldUnit(w.char),box=bEl('div',{className:'ab-pick'});const U=UPG[f.name]||{rule:'',list:[]};
   box.append(bEl('div',{className:'ab-pickh'},[bEl('strong',{textContent:'Upgrades for the '+c.name}),abBtn('Done',()=>{abPick=null;renderTurnbar();},'ab-pri ab-small ab-keep')]));

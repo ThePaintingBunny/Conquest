@@ -31,7 +31,9 @@ body = swap(body, 'Share this page with them from the Share menu, with permissio
 
 body = swap(body, '<script>\n(function(){', '<script src="firebase-config.js"></script>\n<script src="shim.js"></script>\n<script>\n(function(){')
 
-footer = ('<footer class="fan-note"><p>Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. '
+import datetime
+BUILD_STAMP = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+footer = ('<footer class="fan-note"><p>Version ' + BUILD_STAMP + '. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. '
           'Conquest, its rules, factions and unit profiles belong to '
           '<a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. '
           'Unit data and rule summaries are paraphrased from their free army lists; always check the '
