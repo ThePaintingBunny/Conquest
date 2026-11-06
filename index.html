@@ -226,6 +226,8 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .ab-link{background:none;border:0;padding:0;color:var(--gold-ink);font-size:13px;text-decoration:underline;text-underline-offset:2px}
 .ab-x{background:none;border:0;padding:0 0 0 2px;color:inherit;font-size:14px;line-height:1}
 .ab-tog{background:var(--bg);border-color:var(--line);color:var(--ink);font-weight:500;font-size:13px;padding:4px 10px;border-radius:999px}
+.ab-tog.ab-off,.ab-tog:disabled:not(.on){color:var(--muted);border-style:dashed;cursor:not-allowed}
+.ab-wlnote{font-size:12px;color:var(--muted);margin-top:2px}
 .ab-tog.on{background:var(--gold-soft);border-color:var(--gold);color:var(--gold-ink);font-weight:600}
 .ab-pri{padding:6px 14px}
 .ab-wide{width:100%;padding:10px;border-style:dashed}
@@ -361,7 +363,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="roster"><div class="side cs"><h2 id="h-cs">City States</h2><div id="r-cs"></div></div><div class="side nord"><h2 id="h-nord">Nords</h2><div id="r-nord"></div></div></div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-06 14:20 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-06 14:27 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1894,7 +1896,20 @@ function wbProblems(w){const c=bldUnit(w.char),p=[];if(!c)return ['Choose a char
   if((R.needOne||c.type==='Monster')&&!n&&!R.none&&c.type==='Monster'&&R.needOne)p.push('Must include at least one regiment.');
   if(c.type!=='Monster'&&w.joins!=null&&!(w.regs[w.joins]&&joinable(w,w.regs[w.joins])))p.push('Choose which regiment the character joins.');
   return p;}
-function bldProblems(){const out=[];if(!bld.wbs.length)out.push('Add at least one warband.');bld.wbs.forEach((w,i)=>wbProblems(w).concat(upgProblems(w,i)).forEach(t=>out.push(`Warband ${i+1}: ${t}`)));return out;}
+const WL_CREED={'Ardent Kerawegh':['Ardent'],'Hold Raegh':['Clan'],'Exemplar':['Ardent','Clan'],'Tempered Sorcerer':['Tempered'],'Tempered Steelshaper':['Tempered'],'Lost Ancestor':['Ardent','Tempered']};
+function wlRule(c){if(!c)return {no:true,why:'Unknown character'};const t=(c.options||'')+' '+(c.warband||'');
+  if(/cannot be (the )?(army's )?warlord/i.test(t))return {no:true,why:c.name+' cannot be the Warlord (army list rule).'};
+  if(/must be (your )?warlord/i.test(t))return {must:true,why:'A '+c.name+' must be your Warlord.'};
+  if(WL_CREED[c.name])return {creeds:WL_CREED[c.name]};return {};}
+function canWarlord(c){return !wlRule(c).no;}
+function wlFix(){const W=bld.wbs.map(w=>bldUnit(w.char));const must=W.findIndex(c=>c&&wlRule(c).must);
+  if(must>=0){bld.warlord=must;return;}
+  if(!(bld.warlord>=0&&W[bld.warlord]&&canWarlord(W[bld.warlord])))bld.warlord=W.findIndex(c=>c&&canWarlord(c));}
+function wlProblems(){const out=[],W=bld.wbs.map(w=>bldUnit(w.char)).filter(Boolean);if(!W.length)return out;
+  const musts=W.filter(c=>wlRule(c).must);if(musts.length>1)out.push('Only one '+musts[0].name+' is allowed: it must be your Warlord.');
+  if(!W.some(canWarlord))out.push('No character here can be the Warlord. Add one who can.');
+  return out;}
+function bldProblems(){const out=[];if(!bld.wbs.length)out.push('Add at least one warband.');bld.wbs.forEach((w,i)=>wbProblems(w).concat(upgProblems(w,i)).forEach(t=>out.push(`Warband ${i+1}: ${t}`)));wlProblems().forEach(t=>out.push(t));return out;}
 function bldType(t){t=String(t||'').toLowerCase();return t.includes('cav')?'cav':t.includes('brute')?'brute':t.includes('monster')?'monster':t.includes('chariot')?'chariot':'inf';}
 function bearerDefault(u){return !!(u&&u.cmd&&u.cmd.bearer);}
 function cmdText(u){const c=u&&u.cmd;if(!c)return '';return [c.leader?'Leader':'',c.bearer?'Standard Bearer':''].filter(Boolean).join(' · ')||'No command models';}
@@ -1918,7 +1933,7 @@ function bldToList(){const f=bldFac();if(!f)return null;const units=[],count={};
       if(w.joins===ri&&c.type!=='Monster')x.character=charJson(c,wl,w.custom,w);x.abilities=(x.abilities||[]).concat(upgAbilities(w).map(a=>['The '+c.name+': '+a[0],a[1]]));units.push(x);});});
   // number duplicate names
   const seen={};units.forEach(u=>{if(count[u.name]>1){seen[u.name]=(seen[u.name]||0)+1;u.name=u.name+' '+roman[seen[u.name]]||u.name;}});
-  if(!units.some(u=>u.character&&u.character.warlord)){const fc=units.find(u=>u.character);if(fc)fc.character.warlord=true;}
+  if(!units.some(u=>(u.character&&u.character.warlord)||u.warlordMonster)){const fc=units.find(u=>u.character&&canWarlord(bldUnit(u.character.name)));if(fc)fc.character.warlord=true;}
   return {faction:f.name,armyRules:f.armyRules.slice(),points:bldTotal(),units};}
 function wbPtsChar(w){const c=bldUnit(w.char);return (c?c.pts||0:0)+upgPts(w)+(w.custom||[]).reduce((a,x)=>a+(+x.pts||0),0);}
 /* character upgrade catalogue per faction (paraphrased from the 2026 army lists) */
@@ -1952,7 +1967,7 @@ function abUpgPicker(f,w,wi){const c=bldUnit(w.char),box=bEl('div',{className:'a
 function bEl(tag,props,kids){const e=document.createElement(tag);Object.assign(e,props||{});(kids||[]).forEach(k=>k!=null&&e.append(k));return e;}
 let abPick=null,abUpg=null,abArm=null;function abArmed(k,fn){if(abArm===k){abArm=null;fn();return;}abArm=k;renderTurnbar();setTimeout(()=>{if(abArm===k){abArm=null;renderTurnbar();}},4000);} // open pickers: {wb:index|'new'}; open upgrade form key
 function abBtn(t,fn,cls,label){const b=bEl('button',{type:'button',className:'ab-b'+(cls?' '+cls:''),textContent:t});b.onclick=fn;if(label)b.setAttribute('aria-label',label);b.disabled=aiBusy&&!/ab-keep/.test(cls||'');return b;}
-function abRe(){bldSave();renderTurnbar();}
+function abRe(){wlFix();bldSave();renderTurnbar();}
 function abStepper(val,min,max,onSet,label){const w=bEl('span',{className:'ab-step'});const m=abBtn('−',()=>onSet(val-1),'ab-sq','Fewer '+label),p=abBtn('+',()=>onSet(val+1),'ab-sq','More '+label);m.disabled=val<=min;p.disabled=val>=max;
   const n=bEl('span',{className:'ab-n',textContent:String(val)});n.setAttribute('aria-label',label+': '+val);w.append(m,n,p);return w;}
 function abMini(st){const g=bEl('div',{className:'ab-mini'});['M','V','C','A','W','R','D','E'].forEach(k=>{const v=st[k];g.append(bEl('span',{className:'ab-mk',textContent:k}),bEl('span',{className:'ab-mv',textContent:v==='-'||v==null?'–':String(v)}));});return g;}
@@ -2011,7 +2026,7 @@ function abPicker(f,w,wi,choices){const R=wbRules(bldUnit(w.char)),box=bEl('div'
   return box;}
 function abCharPicker(f,chars,onPick,title){const box=bEl('div',{className:'ab-pick'});box.append(bEl('div',{className:'ab-pickh'},[bEl('strong',{textContent:title}),abBtn('Cancel',()=>{abPick=null;renderTurnbar();},'ab-ghost ab-small')]));
   const grid=bEl('div',{className:'ab-pickgrid'});chars.forEach(x=>{const b=bEl('button',{type:'button',className:'ab-opt'});b.append(bEl('strong',{textContent:x.name}),bEl('span',{className:'ab-meta',textContent:[[x.cls,x.type].filter(Boolean).join(' '),x.pts+' pts'].join(' · ')}),bEl('span',{className:'ab-rules',textContent:x.rules.slice(0,4).join(', ')}));b.onclick=()=>onPick(x);grid.append(b);});box.append(grid);return box;}
-function armyBuilder(add,mk,onUse,useLabel){const box=bEl('div',{className:'rev ab'});
+function armyBuilder(add,mk,onUse,useLabel){wlFix();bldSave();const box=bEl('div',{className:'rev ab'});
   const f0=bldFac();
   // header: faction and summary
   const top=bEl('div',{className:'ab-top'});const fs=bEl('select',{className:'ab-sel ab-fac'});fs.setAttribute('aria-label','Faction');fs.appendChild(bEl('option',{value:'',textContent:'Choose a faction…'}));ENCY.forEach(f=>fs.appendChild(bEl('option',{value:f.name,textContent:f.name})));fs.value=bld.fac;
@@ -2029,9 +2044,13 @@ function armyBuilder(add,mk,onUse,useLabel){const box=bEl('div',{className:'rev 
     const R=wbRules(c),choices=wbChoices(c),isWL=bld.warlord===wi;
     const head=bEl('div',{className:'ab-wbh'});const hl=bEl('div',{className:'ab-wbt'});
     hl.append(bEl('span',{className:'ab-kick',textContent:'Warband '+(wi+1)}),bEl('h4',{textContent:c.name}),bEl('div',{className:'ab-meta',textContent:[[c.cls,c.type].filter(Boolean).join(' ')+' character',c.pts+' pts'].join(' · ')}));
-    const wlb=abBtn(isWL?'★ Warlord':'☆ Make Warlord',()=>{bld.warlord=wi;abRe();},'ab-tog'+(isWL?' on':''));wlb.setAttribute('aria-pressed',String(isWL));hl.append(wlb);
+    const WR=wlRule(c),mustOther=!WR.must&&bld.wbs.some(x=>{const y=bldUnit(x.char);return y&&wlRule(y).must;});
+    const wlb=abBtn(WR.no?'Can\u2019t be Warlord':isWL?'★ Warlord':'☆ Make Warlord',()=>{if(WR.no||mustOther)return;bld.warlord=wi;abRe();},'ab-tog'+(isWL?' on':'')+(WR.no?' ab-off':''));
+    wlb.setAttribute('aria-pressed',String(isWL));if(WR.no||mustOther||WR.must){wlb.disabled=true;wlb.title=WR.no?WR.why:WR.must?WR.why:'Your '+bldUnit(bld.wbs[bld.warlord].char).name+' must be the Warlord.';}hl.append(wlb);
+    if(WR.must)hl.append(bEl('div',{className:'ab-wlnote',textContent:'Must be the Warlord · one per army'}));
+    else if(WR.creeds)hl.append(bEl('div',{className:'ab-wlnote',textContent:'Warlord only in '+WR.creeds.join(' or ')+' Creed armies'}));
     const hr=bEl('div',{className:'ab-rr'});hr.append(bEl('span',{className:'ab-pts ab-pts-l',textContent:wbPts(w)+' pts'}),abBtn('Details',()=>enDetail(c,f.name),'ab-ghost ab-small ab-keep'),abBtn('Change character',()=>{abPick={wb:wi,chr:true};renderTurnbar();},'ab-ghost ab-small'),
-      abBtn(abArm==='wb'+wi?'Click again to remove':'Remove',()=>abArmed('wb'+wi,()=>{bld.wbs.splice(wi,1);if(bld.warlord>=bld.wbs.length)bld.warlord=0;abRe();}),'ab-ghost ab-small ab-danger','Remove warband '+(wi+1)));
+      abBtn(abArm==='wb'+wi?'Click again to remove':'Remove',()=>abArmed('wb'+wi,()=>{bld.wbs.splice(wi,1);if(bld.warlord>wi)bld.warlord--;else if(bld.warlord===wi)bld.warlord=-1;abRe();}),'ab-ghost ab-small ab-danger','Remove warband '+(wi+1)));
     head.append(hl,hr);card.append(head);
     if(abPick&&abPick.wb===wi&&abPick.chr){card.append(abCharPicker(f,chars,x=>{if(x.name!==w.char){w.char=x.name;w.regs=[];w.joins=null;w.custom=[];}abPick=null;abRe();},'Choose a different character (this clears the warband)'));}
     const info=bEl('div',{className:'ab-row ab-lead'});
@@ -2052,7 +2071,7 @@ function armyBuilder(add,mk,onUse,useLabel){const box=bEl('div',{className:'rev 
     else{const row=bEl('div',{className:'ab-row'});const b=abBtn(full?(R.none?'No warband':'Warband full'):'+ Add regiment',()=>{abPick={wb:wi};renderTurnbar();},'ab-ghost');b.disabled=full;row.append(b,bEl('span',{className:'ab-note',textContent:`${w.regs.length} of ${R.allow} regiments`}));card.append(row);}
     card.append(abIssues(wbProblems(w).concat(upgProblems(w,wi)),'This warband is legal'));
     box.append(card);});
-  if(abPick&&abPick.wb==='new')box.append(abCharPicker(f,chars,x=>{bld.wbs.push({char:x.name,regs:[],joins:null,custom:[]});if(bld.wbs.length===1)bld.warlord=0;abPick={wb:bld.wbs.length-1};abRe();},'Choose a character to lead a new warband'));
+  if(abPick&&abPick.wb==='new')box.append(abCharPicker(f,chars,x=>{bld.wbs.push({char:x.name,regs:[],joins:null,custom:[]});if(bld.wbs.length===1)bld.warlord=-1;abPick={wb:bld.wbs.length-1};abRe();},'Choose a character to lead a new warband'));
   else box.append(bEl('div',{className:'ab-row'},[abBtn('+ Add a warband',()=>{abPick={wb:'new'};renderTurnbar();},'ab-ghost ab-wide')]));
   const probs=bldProblems();const foot=bEl('div',{className:'ab-foot'});
   if(probs.length)foot.append(abIssues(probs.slice(0,6).concat(probs.length>6?['…and '+(probs.length-6)+' more']:[]),''));
