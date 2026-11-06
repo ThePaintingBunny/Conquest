@@ -169,6 +169,18 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .bld-st input{width:56px}
 .bld-wl{font-size:14px;display:flex;align-items:center;gap:4px}
 .bld-pts{font-weight:600;font-variant-numeric:tabular-nums;margin-left:auto}
+.bld-wb{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.bld-wbh{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.bld-tag{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-ink)}
+.bld-ci{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.bld-sub{font-size:12px;color:var(--muted)}
+.bld-ci>span:first-child{color:var(--gold)}.bld-dot{font-size:14px;color:var(--line);line-height:1}.bld-dot.on{color:var(--gold)}
+.bld-opts{display:flex;flex-wrap:wrap;gap:4px 10px;flex-basis:100%}
+.bld-opt{font-size:13px;display:flex;align-items:center;gap:4px}
+.bld-cus{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.bld-cus input[type=text]{width:150px}
+.bld-x{border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 4px;font:inherit}
+.bld-cat{font-size:12px;color:var(--muted)}
 </style>
 <div class="wrap">
   <div class="top">
@@ -294,7 +306,9 @@ const ACT={
   crally:{n:'Combat Rally',d:'Remove Broken in combat'},
   fluid:{n:'Free Reform',d:'Fluid Formation, first or last'},
   hammer:{n:'Free Reform',d:'Hammer and Anvil, last action'},
-  fadv:{n:'Free March',d:'Fire and Advance, forward or wheel only'}
+  fadv:{n:'Free March',d:'Fire and Advance, forward or wheel only'},
+  dtmarch:{n:'Free March',d:'Double Time, after two Marches'},
+  trample:{n:'Trample',d:'End of activation: automatic Hits on the enemy in front'}
 };
 let state=null,db=null,selId=null,act=null,ruler=false,rA=null,rB=null,drag=null;
 function regTot(u){return Math.max(1,(u.stands||1)-(u.char!=null?1:0)-(u.aux!=null&&u.auxStats?1:0));}
@@ -393,6 +407,8 @@ function availableActions(u){
   }
   if(fx(u).some(x=>/Fluid Formation/.test(x))&&!act.actions.some(a=>a.type==='fluid')&&!act.cur){const ok=used.length===0||cap;const narrow=geom(u).files<=3;out.push({type:'fluid',why:!narrow?'Needs 3 or fewer stands in the front rank':ok?'':'Only before the first action or after the last',free:true});}
   if((state.army?.[base(act.id).side]||[]).some(x=>/Hammer and Anvil/.test(x))&&/Infantry|Cavalry/.test(u.cls||'')&&!PS().hammerUsed&&!act.actions.some(a=>a.type==='hammer')&&!act.cur){out.push({type:'hammer',why:'',free:true});}
+  if(used.length===2&&used[0].type==='march'&&used[1].type==='march'&&hasDraw(u,/^Double Time/)&&!act.actions.some(a=>a.dt)&&!act.cur)out.push({type:'dtmarch',why:'',free:true});
+  if(trampleX(u)&&!act.actions.some(a=>a.type==='trample')&&!act.cur&&frontFoes(u).length)out.push({type:'trample',why:'',free:true});
   if(used.length===2&&used[1].type==='volley'&&(u.abilities||[]).some(a=>/Fire and Advance/.test(a[0]))&&!act.actions.some(a=>a.fadv)&&!act.cur&&act.actions.length<3)out.push({type:'fadv',why:'',free:true});
   return out;
 }
@@ -431,10 +447,12 @@ function wdFail(){const c=act.cur;if(!c||c.type!=='withdraw')return;Object.assig
 function startAction(type){
   const u=byId(act.id);const st={x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files};
   if(type==='fadv'){act.cur={type:'march',start:st,budget:u.m||0,moving:true,reshape:false,free:true,noSide:true,fadv:true,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null};render();return;}
+  if(type==='dtmarch'){act.cur={type:'march',start:st,budget:u.m||0,moving:true,reshape:false,free:true,dt:true,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null};render();return;}
+  if(type==='trample'){const foes=frontFoes(u),t=foes[0],n=trampleX(u)*live(u)-(u.char!=null?trampleX(u):0)+(u.char!=null&&rx(u.charRules,'Trample')?rx(u.charRules,'Trample'):0);act.actions.push({type:'trample',free:true,from:st,to:st,target:t.id,hits:n});render();openCombat({type:'lethal',att:u.id,tgt:t.id,inAct:false,lethalHits:n,lethalX:trampleX(u),lethalLost:0,selfTitle:'Trample',selfText:`${u.short||u.name} tramples ${t.short||t.name}: ${n} automatic Hits. No Morale Tests.`});return;}
   const firstMarch=type==='march'&&act.entering&&!act.actions.some(a=>a.type==='march');
   let b=0,roll=null;
   const secondMarch=type==='march'&&act.actions.filter(a=>a.type==='march').length===1;
-  if(type==='march')b=(u.m||0)+(firstMarch?(u.vanguard||0):0)+(secondMarch&&u.bearer?1:0);
+  if(type==='march')b=(u.m||0)+(firstMarch?(u.vanguard||0):0)+(secondMarch&&u.bearer?(hasRule(u,/^Forced March/)?2:1):0);
   if(type==='charge'){act.cur={type,stage:'target',start:st,budget:0,moving:false,reshape:false};render();toast('Click the enemy regiment you are charging.');return;}
   const moving=type==='march'||type==='charge';
   if(type==='creform'){crStart(u,st);return;}
@@ -453,26 +471,34 @@ function finishAction(){
     if(!c1.failed){const uu=byId(act.id),A=corners(uu);if(all().some(o=>o.onTable&&o.side!==uu.side&&polyDist(A,corners(o))<1-1e-6)){toast('A Withdraw March cannot end within 1″ of an enemy. Move further, or press "Withdraw fails" to return to the start.');return;}}}
   const u=byId(act.id),c=act.cur;const entry={type:c.type,free:['fluid','hammer'].includes(c.type)||!!c.free,fadv:!!c.fadv,from:c.start,to:{x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files}};
   if(c.moving)entry.dist=+curCost(act.pose).cost.toFixed(2);
-  if(c.type==='charge'){entry.target=c.target;entry.dist=+c.dist.toFixed(2);entry.result='success';entry.face=c.face;entry.chargeDistance=c.cd;if(c.rerolled)entry.rerolled=true;if(!act.extraFx.includes('Inspired (charged)'))act.extraFx.push('Inspired (charged)');}if(c.roll!=null)entry.roll=c.roll;if(c.type==='withdraw'){entry.clean=c.clean;entry.resolve=c.R;entry.woundDie=c.wd;entry.wounds=c.wounds;entry.result=c.failed?'failed':'withdrew';entry.from=c.origin||c.start;}if(c.type==='creform'){entry.clean=c.clean;entry.resolve=c.R;entry.contact=crContact(c);}if(c.firstMarch&&u.vanguard)entry.vanguard=u.vanguard;
+  if(c.type==='charge'){entry.target=c.target;entry.dist=+c.dist.toFixed(2);entry.result='success';entry.face=c.face;entry.chargeDistance=c.cd;if(c.rerolled)entry.rerolled=true;if(!act.extraFx.includes('Inspired (charged)'))act.extraFx.push('Inspired (charged)');}if(c.roll!=null)entry.roll=c.roll;if(c.type==='withdraw'){entry.clean=c.clean;entry.resolve=c.R;entry.woundDie=c.wd;entry.wounds=c.wounds;entry.result=c.failed?'failed':'withdrew';entry.from=c.origin||c.start;}if(c.type==='creform'){entry.clean=c.clean;entry.resolve=c.R;entry.contact=crContact(c);}if(c.firstMarch&&u.vanguard)entry.vanguard=u.vanguard;if(c.dt)entry.dt=true;
   if(c.combat)entry.combat=c.combat;
   if(c.segs)entry.segs=c.segs.map(s=>({mode:s.mode,amt:+s.amt.toFixed(2),cost:+s.cost.toFixed(2)}));
   if(c.type==='inspire'&&!act.extraFx.includes('Inspired (Inspire action)'))act.extraFx.push('Inspired (Inspire action)');
   act.actions.push(entry);act.cur=null;render();
   if(c.type==='charge'&&hasImpact(byId(act.id)))openCombat({type:'impact',att:act.id,tgt:c.target,inAct:false,fromCharge:true});
 }
+function hasDraw(u,re){return (u.abilities||[]).some(a=>re.test(a[0]))||fx(u).some(x=>re.test(x));}
+function drawVal(u,re){let v=0;(u.abilities||[]).concat(fx(u).map(x=>[x])).forEach(a=>{const m=String(a[0]).match(re);if(m)v=Math.max(v,+m[1]||0);});return v;}
+function trampleX(u){return Math.max(rx(u.rules,'Trample'),u.char!=null?rx(u.charRules,'Trample'):0);}
+function frontFoes(u){const uc=standsOf(u).filter(s=>s.rank===0);return engaged(u).filter(e=>{const ec=corners(e);return uc.some(s=>polyDist(s.poly,ec)<=0.35)&&corners(e).concat([[e.x,e.y]]).some(p=>arcOf(u,p)==='front');});}
+function animate(u){return rh((u&&u.rules)||[],'Animate Vessel');}
+function phalanx(u){return rh((u&&u.rules)||[],'Phalanx');}
+function chargeFixed(u){return jugg(u)?5:phalanx(u)?3:null;}
+function armyHas(side,re){return (state.army?.[side]||[]).some(x=>re.test(x));}
 function jugg(u){return hasRule(u,/^Juggernaut/)||fx(u).some(x=>/Clockwork Parade/.test(x));}
-function chargeMax(u){return jugg(u)?(u.m||0)+5:(u.m||0)+6;}
+function chargeMax(u){const f=chargeFixed(u);return (u.m||0)+(f!=null?f:6)+(act&&act.cur&&act.cur.pu?2:0);}
 function arcOf(t,p){const G=geom(t),a=(t.facing||0)*Math.PI/180,f=[Math.sin(a),Math.cos(a)],r=[Math.cos(a),-Math.sin(a)];const v=[p[0]-t.x,p[1]-t.y],fw=v[0]*f[0]+v[1]*f[1],rr=v[0]*r[0]+v[1]*r[1];
   if(fw>=G.d/2-1e-6&&Math.abs(rr)<=G.w/2+(fw-G.d/2))return'front';if(fw<=-G.d/2+1e-6&&Math.abs(rr)<=G.w/2+(-fw-G.d/2))return'rear';return rr>0?'right':'left';}
 function setChargeTarget(t){const u=byId(act.id);if(t.type==='marker'&&(state.round||1)<2){toast('Objective Markers cannot be attacked before round 2.');return;}const dist=polyDist(corners(u),corners(t));
   const arcOk=corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)==='front');
   if(!arcOk){toast((t.short||t.name)+' is not in this regiment’s front arc.');return;}
-  if(dist>chargeMax(u)+1e-6){toast(`Out of reach: ${(t.short||t.name)} is ${dist.toFixed(1)}″ away and the furthest this regiment can charge is ${chargeMax(u)}″.`);return;}
-  Object.assign(act.cur,{stage:'roll',target:t.id,dist});toast('');render();}
+  if(dist>chargeMax(u)+(armyHas(u.side,/Prophecy Unfulfilled/)&&engaged(t).length?2:0)+1e-6){toast(`Out of reach: ${(t.short||t.name)} is ${dist.toFixed(1)}″ away and the furthest this regiment can charge is ${chargeMax(u)}″.`);return;}
+  Object.assign(act.cur,{stage:'roll',target:t.id,dist,pu:armyHas(u.side,/Prophecy Unfulfilled/)&&engaged(t).length>0});toast('');render();}
 function resolveCharge(roll,reroll){const u=byId(act.id),c=act.cur;c.roll=roll;if(reroll)c.rerolled=true;
-  const cd=jugg(u)?(u.m||0)+5:(u.m||0)+roll;c.cd=cd;
+  const f=chargeFixed(u);const cd=(u.m||0)+(f!=null?f:roll)+(c.pu?2:0);c.cd=cd;
   if(cd>=c.dist-1e-6){c.success=true;placeCharge();c.stage='adjust';}
-  else if(hasRule(u,/Unstoppable/)&&!c.rerolled){c.stage='reroll';}
+  else if((hasRule(u,/Unstoppable/)||u.bearer)&&!c.rerolled&&chargeFixed(u)==null){c.stage='reroll';}
   else failCharge();
   render();}
 function failCharge(){const u=byId(act.id),c=act.cur;const a=(u.facing||0)*Math.PI/180,f=[Math.sin(a),Math.cos(a)];
@@ -507,8 +533,20 @@ function startActivation(id,source){
   act={id,source,entering,placed:false,actions:[],cur:null,arrivedThisRound:!!u.arrivedRound&&u.arrivedRound===state.round,
     pose:entering?Object.assign({onTable:true,x:36,files:G.files},ownEntry(u.side,G.d)):{x:u.x,y:u.y,facing:u.facing||0,files:G.files},
     extraFx:(source==='strategic'||source==='entourage')?(hasRule(u,/Automaton/)?[]:[source==='entourage'?'Inspired (Direct Orders)':'Inspired (Strategic Stack)']).concat(u.strategicFx||[]).concat((/Infantry|Cavalry/.test(u.cls||'')&&(state.units||[]).some(x=>x.charName==='Ipparchos'&&x.onTable&&!x.destroyed))?['Shock (Hammer and Anvil)']:[]):[]};
-  selId=id;render();
+  selId=id;render();drawEvents(u);
 }
+/* Draw Events and start-of-activation effects */
+function drawEvents(u){const notes=[];
+  const bas=(u.abilities||[]).map(a=>String(a[0]).match(/^Bastion\s*\((\d+)\)/)).find(Boolean);if(bas){act.extraFx.push('Bastion ('+bas[1]+')');notes.push('Bastion: +'+bas[1]+' Defense until the end of the round');}
+  let heal=0;const reg=(u.abilities||[]).map(a=>String(a[0]).match(/^Regeneration\s*\(\+?(\d+)\)/)).find(Boolean);if(reg)heal+=+reg[1];
+  if((u.abilities||[]).some(a=>/^Biotic Renewal/.test(a[0]))){const v=d6(),h=u.type==='inf'?v:Math.ceil(v/2);heal+=h;notes.push('Biotic Renewal rolled '+v);}
+  if(heal&&(u.wounds||0)>0){const h=Math.min(heal,u.wounds||0);const units=(state.units||[]).map(x=>x.id!==u.id?x:Object.assign({},x,{wounds:(x.wounds||0)-h}));putState({units,lastTitle:N(u.side)+' · '+u.name,lastText:`Draw Event: heals ${h} wound${h>1?'s':''}.`}).catch(()=>{});notes.push('heals '+h+' wound'+(h>1?'s':''));}
+  if(hasDraw(u,/^Double Time/))notes.push('Double Time: after two Marches, take a free third March');
+  if(notes.length)toast('Draw Events: '+notes.join(' · ')+'.');
+  // Aura of Death from engaged enemies
+  const me=byId(u.id);if(!me||!me.onTable)return;const mc=corners(me);let first=null,tot=0;
+  engaged(me).forEach(e=>{const X=rx(e.rules,'Aura of Death');if(!X)return;const k=standsOf(e).filter(st=>polyDist(st.poly,mc)<=0.35).length;const per=e.type==='monster'?X:Math.min(4,X);if(k){tot+=per*k;if(!first)first=e;}});
+  if(tot&&first)setTimeout(()=>openCombat({type:'lethal',att:first.id,tgt:u.id,inAct:false,lethalHits:tot,lethalX:0,lethalLost:0,selfTitle:'Aura of Death',selfText:`${me.short||me.name} starts its activation in contact with an Aura of Death and suffers ${tot} Hits. No Morale Tests.`}),50);}
 async function charCommit(id,extra){extra=extra||{};charAct=null;
   if(!db){toast('The board is read-only in this view.');return;}
   const u=base(id);const note=window.prompt?null:null;
@@ -776,47 +814,51 @@ function standsOf(u){const G=geom(u),a=(u.facing||0)*Math.PI/180,f=[Math.sin(a),
     const fo=G.d/2-(rr+.5)*G.sd,lo=-G.w/2+(fi+.5)*G.sw,cx=u.x+f[0]*fo+r[0]*lo,cy=u.y+f[1]*fo+r[1]*lo,hw=G.sw/2,hd=G.sd/2;
     out.push({rank:rr,cmd,kind:aux?'aux':ch?'char':'reg',poly:[[1,1],[1,-1],[-1,-1],[-1,1]].map(([i,j])=>[cx+f[0]*hd*i+r[0]*hw*j,cy+f[1]*hd*i+r[1]*hw*j])});}
   return out;}
-function supportLost(u){return engaged(u).some(e=>arcOf(u,[e.x,e.y])!=='front');}
-function hasImpact(u){if(!u)return false;return rx(u.rules,'Impact')>0||(u.aux!=null&&rx(u.auxRules,'Impact')>0)||(u.char!=null&&rx(u.charRules,'Impact')>0);}
-function hitMods(A,p,type){let base=type==='volley'?p.V:p.C,r6=false;
+function supportLost(u){if(rh(u.rules,'Iron Discipline'))return false;return engaged(u).some(e=>arcOf(u,[e.x,e.y])!=='front');}
+function hasImpact(u){if(!u||rh(u.rules,'Loose Formation'))return false;return rx(u.rules,'Impact')>0||(u.aux!=null&&rx(u.auxRules,'Impact')>0)||(u.char!=null&&rx(u.charRules,'Impact')>0);}
+function hitMods(A,p,type,T){let base=type==='volley'?p.V:p.C,r6=false;const inFront=T&&arcOf(T,[A.x,A.y])==='front',pike=T&&rh(T.rules,'Pike Formation')&&inFront&&fxHas(A,/charged/);
+  if(type==='clash'&&T&&rh(T.rules,'Disruptive')&&inFront)base-=1;
   if(type==='clash'&&fxHas(A,/Aggression Directive/)&&base<4)base+=1;
-  if((type==='clash'||type==='impact')&&rh((A.rules||[]).concat(fx(A)),'Shock')&&(type==='impact'||fxHas(A,/charged/)))base+=1;
-  if(type==='clash'){const dread=engaged(A).some(e=>rh(e.rules,'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if(fxHas(A,/Inspired/)&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
+  if((type==='clash'||type==='impact')&&!pike&&rh((A.rules||[]).concat(fx(A)),'Shock')&&(type==='impact'||fxHas(A,/charged/)))base+=1;
+  if(type==='clash'){const dread=engaged(A).some(e=>rh(e.rules,'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if(fxHas(A,/Inspired/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
   if(type==='volley'){const aim=(act&&act.id===A.id&&act.actions.some(a=>a.type==='aim'))||rh(p.rules,'Deadshot');if(aim){if(base+1>=5)r6=true;else base+=1;}}
-  return {hitOn:Math.min(6,base),reroll6:r6};}
+  return {hitOn:Math.max(1,Math.min(6,base)),reroll6:r6};}
 function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=supportLost(A)?1:(rx(A.rules,'Support')||1);
-  const add=(key,label,n,p,extra)=>{if(n<=0)return;if(!groups[key]){const hm=hitMods(A,p,type),R=p.rules.concat(fx(A));
+  const tArc=arcOf(T,[A.x,A.y]),side=tArc==='left'||tArc==='right'||tArc==='rear',big=T.type==='monster'||T.type==='brute';
+  const add=(key,label,n,p,extra)=>{if(n<=0)return;if(!groups[key]){const hm=hitMods(A,p,type,T),R=p.rules.concat(fx(A));
     groups[key]=Object.assign({label,n:0,hitOn:hm.hitOn,reroll6:hm.reroll6,flurry:type!=='volley'&&rh(R,'Flurry'),
       relentless:type==='volley'?(rh(R,'Rapid Volley')||hm.hitOn>=6):type==='clash'&&(rh(R,'Relentless Blows')||hm.hitOn>=6),
       red:type==='impact'?rx(R,'Brutal Impact'):type==='volley'?rx(R,'Armor Piercing'):rx(R,'Cleave'),smite:type==='clash'&&rh(R,'Smite'),
       flawless:(type==='clash'&&rh(R,'Flawless Strikes'))||(type==='volley'&&rh(R,'Precise Shot')),deadly:(type==='clash'&&rh(R,'Deadly Blades'))||(type==='volley'&&rh(R,'Deadly Shot')),
-      linebreaker:type!=='volley'&&rh(R,'Linebreaker')},extra||{});}
+      linebreaker:type!=='volley'&&rh(R,'Linebreaker'),fiend:type!=='impact'&&big&&rh(R,'Fiend Hunter'),opp:(type==='clash'||type==='volley')&&side&&(rh(R,'Opportunists')||rh(R,'Opportunist'))},extra||{});
+      const gg=groups[key];if(gg.fiend||gg.opp)gg.flurry=true;if(type==='volley'&&rh(R,'Torrential Fire'))gg.torrentOk=true;}
     groups[key].n+=n;};
   st.forEach(s=>{const p=prof(A,s.kind),nm=s.kind==='reg'?(A.short||A.name):p.name;
     const ldr=s.cmd&&s.kind==='reg'&&A.leader!==false;
-    if(type==='clash'){const eng=polyDist(s.poly,Tc)<=0.35;add(s.kind+(eng?'e':'s')+(ldr&&eng?'L':''),(ldr&&eng?'Leader':nm)+(eng?' (engaged)':' (supporting)')+(ldr&&eng?', +1 Attack':''),eng?p.A+(ldr?1:0):(s.kind==='char'?1:sup),p);}
-    if(type==='impact')add(s.kind,nm+' impacts',rx(p.rules,'Impact'),p);
-    if(type==='volley'&&s.rank===0){const bx=rx(p.rules,'Barrage');if(bx){const rng=+((p.rules.join(', ').match(/Barrage\s*\(\d+\)\s*(\d+)/)||[])[1])||0;const eff=rh(p.rules,'Longshot')||(rng&&polyDist(s.poly,Tc)<=rng/2);add(s.kind,nm+' shots',bx+(eff?1:0)+(ldr?1:0),p);}}});
+    if(type==='clash'){const eng=polyDist(s.poly,Tc)<=0.35,ie=eng&&rh(T.rules,'Inherited Excellence')&&arcOf(T,[A.x,A.y])==='front'?1:0;add(s.kind+(eng?'e':'s')+(ldr&&eng?'L':''),(ldr&&eng?'Leader':nm)+(eng?' (engaged)':' (supporting)')+(ldr&&eng?', +1 Attack':''),eng?Math.max(0,p.A+(ldr?1:0)-ie):(s.kind==='char'?1:sup),p);}
+    if(type==='impact'&&!rh(p.rules,'Loose Formation'))add(s.kind,nm+' impacts',Math.max(0,rx(p.rules,'Impact')-(rh(T.rules,'Pike Formation')&&arcOf(T,[A.x,A.y])==='front'?3:0)),p);
+    if(type==='volley'&&s.rank===0){const bx=rx(p.rules,'Barrage');if(bx){const rng=+((p.rules.join(', ').match(/Barrage\s*\(\d+\)\s*(\d+)/)||[])[1])||0;const eff=rh(p.rules,'Longshot')||(rng&&polyDist(s.poly,Tc)<=rng/2);add(s.kind,nm+' shots',bx+(eff?1:0)+(ldr?1:0),p);if(eff&&groups[s.kind]&&groups[s.kind].torrentOk)groups[s.kind].torrent=true;}}});
   return Object.values(groups).map(g=>Object.assign(g,{rolls:null}));}
-function defInfo(T,A,g){const s=T.stats||{},front=(cb&&cb.type==='lethal')||arcOf(T,[A.x,A.y])==='front';let D=+s.D||0;if(front&&rh(T.rules,'Shield')&&!g.linebreaker)D+=1;
+function defInfo(T,A,g){const s=T.stats||{},front=(cb&&cb.type==='lethal')||arcOf(T,[A.x,A.y])==='front';let D=+s.D||0;if(front&&rh(T.rules,'Shield')&&!g.linebreaker&&!(T.garrison))D+=1;if(front&&phalanx(T))D+=1;const bas=drawVal(T,/^Bastion\s*\((\d+)\)/);if(bas&&!g.linebreaker)D+=bas;
   const red=Math.max(0,g.red-rx((T.rules||[]).concat(fx(T)),'Hardened'));D=Math.max(0,D-red);if(g.smite)D=0;return {D,E:+s.E||0,front,red};}
 function moraleInfo(T,A){const s=T.stats||{},R0=s.R,broken=(T.effects||[]).includes('Broken');const auto=R0==='–'||R0==null||rh(T.rules,'Automaton')||rh(T.rules,'Animate Vessel');
   let R=+R0||0;const cR=+(T.charStats&&T.charStats.R)||0;if(!broken)R=Math.max(R,cR);const n=live(T),bonus=broken?0:(n>=10?3:n>=7?2:n>=4?1:0);R+=bonus;
-  const self=A&&A.id===T.id;const terr=(self||rh(T.rules,'Fearless')||rh(T.rules,'Bravery'))?0:rx((A.rules||[]).concat(fx(A)),'Terrifying');R-=terr;
-  return {auto,R,bonus,terr,arc:self?'front':arcOf(T,[A.x,A.y]),oblivious:rh(T.rules,'Oblivious'),indom:rx((T.rules||[]).concat(fx(T)),'Indomitable')};}
-function openCombat(o){cb=Object.assign({step:'att',groups:null,cover:false,owner:HU},o);if(cb.type==='freform'){cb.hits=0;cb.wounds=cb.preWounds;cb.step=cb.noMorale?'done':'mor';cb.extra=0;cb.groups=[];}else if(cb.type==='lethal'){cb.hits=cb.lethalHits;cb.step='def';cb.groups=[{label:'Lethal Demise',n:cb.lethalHits,nUse:cb.lethalHits,hits:cb.lethalHits,ones:0,red:0,rolls:null}];}else if(cb.tgt)cb.groups=buildGroups(cb.type,byId(cb.att),byId(cb.tgt));renderCombat();renderCard();maybeAutoAI();try{$('combat').scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}}
+  const self=A&&A.id===T.id;const terr=(self||rh(T.rules,'Fearless')||rh(T.rules,'Bravery'))?0:Math.max(rx((A.rules||[]).concat(fx(A)),'Terrifying'),animate(A)?1:0);R-=terr;const arc0=self?'front':arcOf(T,[A.x,A.y]);if(phalanx(T)&&arc0==='front')R+=1;
+  return {auto,R,bonus,terr,iron:rh(T.rules,'Iron Discipline'),arc:arc0,oblivious:rh(T.rules,'Oblivious'),indom:rx((T.rules||[]).concat(fx(T)),'Indomitable')};}
+function openCombat(o){cb=Object.assign({step:'att',groups:null,cover:false,owner:HU},o);if(cb.type==='volley'&&cb.tgt&&rh((byId(cb.tgt)||{}).rules||[],'Loose Formation'))cb.cover=true;if(cb.type==='freform'){cb.hits=0;cb.wounds=cb.preWounds;cb.step=cb.noMorale?'done':'mor';cb.extra=0;cb.groups=[];}else if(cb.type==='lethal'){cb.hits=cb.lethalHits;cb.step='def';cb.groups=[{label:'Lethal Demise',n:cb.lethalHits,nUse:cb.lethalHits,hits:cb.lethalHits,ones:0,red:0,rolls:null}];}else if(cb.tgt)cb.groups=buildGroups(cb.type,byId(cb.att),byId(cb.tgt));renderCombat();renderCard();maybeAutoAI();try{$('combat').scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}}
 function maybeAutoAI(){if(PVP())return;if(cb&&!aiBusy&&!autoRunning){const A=base(cb.att);if(A&&A.side===AI&&cb.tgt){setTimeout(async()=>{if(autoRunning||aiBusy||!cb)return;autoRunning=true;try{await autoResolve();}finally{autoRunning=false;}},400);}}}
 let autoRunning=false;
 function closeCombat(){if(PVP()&&cb&&cb.owner!==HU)return;if(cb&&cb.inAct&&act&&act.cur&&(act.cur.type==='clash'||act.cur.type==='volley'))act.cur=null;cb=null;renderCombat();render();}
 function rollHits(g,n,parry){const isHit=v=>v===1||(v<=g.hitOn&&v!==6);const rolls=[];for(let i=0;i<n;i++)rolls.push({v:d6(),re:false});
   rolls.forEach(r=>{if(!isHit(r.v)&&!parry&&(g.flurry||(g.reroll6&&r.v===6))){r.first=r.v;r.v=d6();r.re=true;}});
-  let hits=0,ones=0;rolls.forEach(r=>{if(isHit(r.v)){hits++;r.hit=true;if(r.v===1)ones++;}});g.rolls=rolls;g.ones=ones;g.extra=g.relentless?ones:0;g.hits=hits+g.extra;}
+  let hits=0,ones=0;rolls.forEach(r=>{if(isHit(r.v)){hits++;r.hit=true;if(r.v===1)ones++;}});g.rolls=rolls;g.ones=ones;g.extra=(g.relentless?ones:0)+(g.torrent?Math.ceil(hits/2):0);g.hits=hits+g.extra;}
 function rollDef(T){const A=byId(cb.att);let fails=0,dbl=0;
   cb.groups.forEach(g=>{const di=defInfo(T,A,g);g.def=di;g.drolls=[];for(let i=0;i<(g.hits||0);i++){const flaw=g.flawless&&i<(g.ones||0),ok=x=>x!==6&&((!flaw&&x<=di.D)||x<=di.E);
     let v=d6(),re=false,first=null;if(!ok(v)&&v===6&&rh((T.rules||[]).concat(fx(T)),'Untouchable')){first=v;v=d6();re=true;}const save=ok(v);g.drolls.push({v,save,re,first});if(!save){fails++;if(g.deadly&&v===6)dbl++;}}});
+  let brit=0;if((rh(T.rules,'Brittle')||animate(T))&&A&&(cb.type==='clash'||cb.type==='impact')){const ar=arcOf(T,[A.x,A.y]);const k=ar==='rear'?4:ar==='left'||ar==='right'?2:0;cb.groups.forEach(g=>(g.drolls||[]).forEach(r=>{if(brit<k&&r.save){r.save=false;r.brittle=true;brit++;fails++;}}));}cb.brittle=brit;
   const ten=rx((T.rules||[]).concat(fx(T)),'Tenacious'),conv=Math.min(ten,fails);cb.tenacious=conv;cb.dbl=dbl;cb.wounds=fails-conv+dbl;}
 function rollMor(T){const mi=moraleInfo(T,byId(cb.att));cb.mi=mi;cb.mrolls=[];let fails=0;const ok=v=>v===1||(v<=mi.R&&v!==6);
-  for(let i=0;i<cb.wounds;i++){let v=d6(),re=false,first=null,pass=mi.arc!=='rear'&&ok(v);
+  for(let i=0;i<cb.wounds;i++){let v=d6(),re=false,first=null,pass=(mi.arc!=='rear'||mi.iron)&&ok(v);
     if(pass&&(mi.arc==='left'||mi.arc==='right')&&!rh(T.rules,'Iron Discipline')){first=v;v=d6();re=true;pass=ok(v);}cb.mrolls.push({v,pass,re,first});if(!pass)fails++;}
   const ind=Math.min(mi.indom,fails);fails-=ind;cb.indom=ind;cb.extra=mi.oblivious?Math.ceil(fails/2):fails;}
 function dieMini(v,cls){const d=document.createElement('span');d.className='md '+(cls||'');d.setAttribute('role','img');d.setAttribute('aria-label','Die showing '+v);for(let i=0;i<9;i++){const p=document.createElement('i');if(PIPS[v]&&PIPS[v].includes(i))p.className='on';d.appendChild(p);}return d;}
@@ -829,7 +871,7 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;return;}b
   $('cb-title').textContent=(cb.dieFight?'Die Fighting! ':'')+(cb.selfTitle||LBL[cb.type])+': '+(A.short||A.name)+(T?' against '+(T.short||T.name):'');
   if(!T){body.appendChild(ptext('Choose which engaged enemy regiment to attack.'));const row=document.createElement('div');row.className='row';(cb.choices||[]).forEach(id=>{const e=byId(id);const b=document.createElement('button');b.type='button';b.className='btn ghost';b.dataset.who='O';b.textContent=e.short||e.name;b.onclick=()=>{cb.tgt=id;cb.groups=buildGroups(cb.type,A,byId(id));renderCombat();};row.appendChild(b);});body.appendChild(row);return;}
   const sA=N(A.side),sT=N(T.side),arc=arcOf(T,[A.x,A.y]);
-  if(cb.type==='freform'&&cb.selfText){body.appendChild(ptext(cb.selfText));}
+  if(cb.selfText){body.appendChild(ptext(cb.selfText));}
   else if(cb.type==='freform'){body.appendChild(ptext(`The Combat Reform test failed, so ${T.short||T.name} suffers ${cb.preWounds} wound${cb.preWounds>1?'s':''}, one for each stand in contact with the enemy. Test Morale for them, record, then finish the reform.`));}
   else if(cb.type==='lethal'){body.appendChild(ptext(`${cb.lethalLost} ${A.short||A.name} stand${cb.lethalLost>1?'s were':' was'} destroyed while in contact, so ${T.short||T.name} suffers ${cb.lethalHits} automatic Hits (Lethal Demise ${cb.lethalX} each). They hit the front arc, use no other special rules, and the wounds cause no Morale Tests.`));}
   else{body.appendChild(ptext(`${A.short||A.name} strikes ${T.short||T.name} in the ${arc==='left'||arc==='right'?'flank':arc}.`+(cb.type==='volley'?' Claude checks Line of Sight and cover.':'')+' Dice counts are worked out from the stands in contact; change a count if the table says otherwise.'));}
@@ -851,12 +893,12 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;return;}b
       if(g.drolls){const dr=document.createElement('div');dr.className='drow';g.drolls.forEach(r=>dr.appendChild(dieMini(r.v,(r.save?'hit':'miss')+(r.re?' re':''))));row.appendChild(dr);}s2.appendChild(row);});
     const ten=rx((T.rules||[]).concat(fx(T)),'Tenacious');if(ten)s2.appendChild(ptext(`Tenacious (${ten}): up to ${ten} failed save${ten>1?'s count':' counts'} as a success.`));
     if(cb.step==='def')s2.appendChild(cbtn('Roll Defense ('+sT+')',()=>{rollDef(T);cb.step=cb.type!=='volley'&&cb.type!=='lethal'&&cb.wounds?'mor':'done';renderCombat();},'T'));
-    else s2.appendChild(ptext(cb.wounds+(cb.wounds===1?' wound':' wounds')+(cb.tenacious?`, after Tenacious saved ${cb.tenacious}`:'')+(cb.dbl?` (${cb.dbl} extra from Deadly)`:''),'tot'));
+    else s2.appendChild(ptext(cb.wounds+(cb.wounds===1?' wound':' wounds')+(cb.tenacious?`, after Tenacious saved ${cb.tenacious}`:'')+(cb.dbl?` (${cb.dbl} extra from Deadly)`:'')+(cb.brittle?` (${cb.brittle} save${cb.brittle>1?'s':''} lost to Brittle)`:''),'tot'));
     body.appendChild(s2);}
   if(cb.step==='def')return;
   if(cb.type!=='volley'&&cb.type!=='lethal'&&cb.wounds){const mi=cb.mi||moraleInfo(T,A),s3=stepBox('3 · '+sT+' tests Morale');
     if(mi.auto){s3.appendChild(ptext('No Resolve: passes every Morale Test automatically.'));if(cb.step==='mor'){cb.extra=0;cb.step='done';}}
-    else{s3.appendChild(ptext(`${cb.wounds} dice, pass on ${mi.R} or less (includes +${mi.bonus} for regiment size${mi.terr?`, −${mi.terr} Terrifying`:''})`+(mi.arc==='rear'?'. Rear attack: every test fails.':(mi.arc==='left'||mi.arc==='right')?'. Flank attack: passed tests are re-rolled.':'.')+(mi.oblivious?' Oblivious: 1 wound per 2 failures.':'')+(mi.indom?` Indomitable (${mi.indom}).`:'')));
+    else{s3.appendChild(ptext(`${cb.wounds} dice, pass on ${mi.R} or less (includes +${mi.bonus} for regiment size${mi.terr?`, −${mi.terr} Terrifying`:''})`+(mi.arc==='rear'&&!mi.iron?'. Rear attack: every test fails.':(mi.arc==='left'||mi.arc==='right')?'. Flank attack: passed tests are re-rolled.':'.')+(mi.oblivious?' Oblivious: 1 wound per 2 failures.':'')+(mi.indom?` Indomitable (${mi.indom}).`:'')));
       if(cb.mrolls){const dr=document.createElement('div');dr.className='drow';cb.mrolls.forEach(r=>dr.appendChild(dieMini(r.v,(r.pass?'hit':'miss')+(r.re?' re':''))));s3.appendChild(dr);}
       if(cb.step==='mor')s3.appendChild(cbtn('Roll Morale ('+sT+')',()=>{rollMor(T);cb.step='done';renderCombat();},'T'));
       else s3.appendChild(ptext(cb.extra+(cb.extra===1?' extra wound':' extra wounds')+' from failed Morale','tot'));}
@@ -881,16 +923,16 @@ async function recordCombat(){if(!db||!state){toast('The board is read-only in t
   const dieF=dead&&!T.activated&&cb.type!=='lethal'&&cb.type!=='freform'&&(((T.abilities||[]).some(a=>/Shield Biter/.test(a[0]))&&touching('cmd'))||(T.charName&&!T.charActivated&&touching('char')));
   const dieLost=dead&&!dieF&&!T.activated&&((T.abilities||[]).some(a=>/Shield Biter/.test(a[0]))||(T.charName&&!T.charActivated));
   const chN=T.char!=null?1:0,stBefore=live(T)-chN,stAfter=dead?0:live(Object.assign({},T,{wounds:newW,auxWounds:AL.aw}))-chN,stLost=Math.max(0,stBefore-stAfter);
-  const ldX=Math.max(rx(T.rules,'Lethal Demise'),T.aux!=null?rx(T.auxRules,'Lethal Demise'):0),ldHits=(cb.type==='clash'||cb.type==='impact')?ldX*stLost:0;
+  const ldX=Math.max(rx(T.rules,'Lethal Demise'),T.aux!=null?rx(T.auxRules,'Lethal Demise'):0),ldHits0=(cb.type==='clash'||cb.type==='impact')?ldX*stLost:0,caHits=cb.type==='clash'&&(rh(T.rules,'Counter Attack')||rh(T.rules,'Counter-Attack'))?cb.groups.reduce((a,g)=>a+(g.rolls||[]).filter(r=>r.v===6).length,0):0,ldHits=ldHits0+caHits;
   const units=state.units.map(u=>u.id!==cb.tgt?(u.id===cb.att&&cb.dieFight&&A.dyingFight?Object.assign({},u,{onTable:false,destroyed:true,dyingFight:false,status:'Destroyed',destroyedRound:state.round}):u):Object.assign({},u,{wounds:newW,auxWounds:AL.aw},dead?(dieF?{dyingFight:true,status:'Destroyed · command stand may Die Fighting'}:{onTable:false,destroyed:true,status:'Destroyed',destroyedRound:state.round}):{}));
-  const text=`${LBL[cb.type]}, ${A.short||A.name} on ${T.short||T.name}: ${sum.hits} hits, ${sum.wounds} wounds`+(sum.moraleExtra?` + ${sum.moraleExtra} from Morale`:'')+` = ${tot}.`+(dead?` ${T.short||T.name} ${dieF?'is destroyed, but its last stand may Die Fighting first.':'is destroyed'+(dieLost?'; no stand that could Die Fighting is touching an enemy, so none does.':'.')}`:'')+(ldHits?` Lethal Demise: ${stLost} stand${stLost>1?'s':''} lost in contact, so ${A.short||A.name} suffers ${ldHits} Hits.`:'')+(cb.dieFight&&A.dyingFight?` ${A.short||A.name} fought to the last and is removed.`:'');
+  const text=`${LBL[cb.type]}, ${A.short||A.name} on ${T.short||T.name}: ${sum.hits} hits, ${sum.wounds} wounds`+(sum.moraleExtra?` + ${sum.moraleExtra} from Morale`:'')+` = ${tot}.`+(dead?` ${T.short||T.name} ${dieF?'is destroyed, but its last stand may Die Fighting first.':'is destroyed'+(dieLost?'; no stand that could Die Fighting is touching an enemy, so none does.':'.')}`:'')+(ldHits0?` Lethal Demise: ${stLost} stand${stLost>1?'s':''} lost in contact, so ${A.short||A.name} suffers ${ldHits0} Hits.`:'')+(caHits?` Counter-Attack: ${caHits} attack roll${caHits>1?'s':''} of 6 cause ${caHits} Hits on ${A.short||A.name}.`:'')+(cb.dieFight&&A.dyingFight?` ${A.short||A.name} fought to the last and is removed.`:'');
   try{const nextS=Object.assign({},state,{units,lastTitle:N(A.side)+' · '+LBL[cb.type]+(cb.dieFight?' (Die Fighting)':''),lastText:text,updatedAt:Date.now()});
     await db.doc('game/state').set(nextS);state=nextS;
     await db.collection('events').doc('e'+Date.now()).set(Object.assign({at:Date.now(),kind:'combat',side:A.side,dieFight:!!cb.dieFight},sum));
     if(sum.type==='freform'&&act&&act.cur&&act.cur.type==='withdraw'){cb=null;renderCombat();wdTurn();return;}
     if(sum.type==='freform'&&act&&act.cur&&act.cur.type==='creform'){cb=null;act.cur.contact0=crContact(act.cur);renderCombat();render();toast('Wounds recorded. Now reshape and press Done.');return;}
     const inA=cb.inAct,resume=cb.resumeAct,thenDie=cb.thenDie;cb=null;
-    if(ldHits){if(inA&&act&&act.cur)act.cur.combat=sum;render();openCombat({type:'lethal',att:T.id,tgt:A.id,inAct:false,resumeAct:inA||resume,lethalHits:ldHits,lethalX:ldX,lethalLost:stLost,thenDie:dead&&dieF?{att:T.id,tgt:A.id}:null});toast(`Lethal Demise: ${A.short||A.name} suffers ${ldHits} Hits. Roll Defense for them.`);return;}
+    if(ldHits){if(inA&&act&&act.cur)act.cur.combat=sum;render();openCombat({type:'lethal',att:T.id,tgt:A.id,inAct:false,resumeAct:inA||resume,lethalHits:ldHits,lethalX:ldX,lethalLost:stLost,selfTitle:ldHits0&&caHits?'Lethal Demise and Counter-Attack':caHits?'Counter-Attack':'Lethal Demise',selfText:caHits&&!ldHits0?`${T.short||T.name} counter-attacks: ${A.short||A.name} suffers ${ldHits} automatic Hits to its front. No Morale Tests.`:undefined,thenDie:dead&&dieF?{att:T.id,tgt:A.id}:null});toast(`Lethal Demise: ${A.short||A.name} suffers ${ldHits} Hits. Roll Defense for them.`);return;}
     if(thenDie){render();openCombat({type:'clash',att:thenDie.att,tgt:thenDie.tgt,inAct:false,resumeAct:resume,dieFight:true});toast('Now the last stand Dies Fighting: roll that Clash.');return;}
     if(dead&&dieF){if(inA&&act&&act.cur)act.cur.combat=sum;render();openCombat({type:'clash',att:T.id,tgt:A.id,inAct:false,resumeAct:inA,dieFight:true});toast(`${T.short||T.name} is destroyed. Its last stand Dies Fighting: roll that Clash now.`);return;}
     renderCombat();
@@ -992,7 +1034,7 @@ function drawMarker(u,g){const c=u.side==='cs'?'#9A3328':u.side==='nord'?'#2C5A8
   const d=Math.max(u.dmg?.cs||0,u.dmg?.nord||0);if(d){const wg=el('g',{transform:'translate(7 -7)'},grp);el('circle',{cx:0,cy:0,r:5,fill:'#B3261E',stroke:'#FFF3E0','stroke-width':1},wg);const wt=el('text',{x:0,y:0.5,'text-anchor':'middle','dominant-baseline':'central',fill:'#FFF3E0','font-size':8,'font-weight':700},wg);wt.textContent=String(d);}}
 function zoneControl(){const R=state.round||1;return zonesOf().map(z=>{const tot={cs:0,nord:0},sz={cs:0,nord:0};const contested={cs:false,nord:false};
   all().filter(u=>u.onTable&&!u.destroyed).forEach(u=>{if(isMarker(u)){if(u.side!=='neutral'&&Math.hypot(u.x-z.x,u.y-z.y)<=z.r+1.4)contested[u.side==='cs'?'nord':'cs']=true;return;}
-    const k=standsOf(u).filter(s=>inZone(s.poly,z)).length;if(!k)return;tot[u.side]+=k;sz[u.side]+=k*seizeVal(u);});
+    const k=standsOf(u).filter(s=>inZone(s.poly,z)).length;if(!k)return;tot[u.side]+=k;sz[u.side]+=k*seizeVal(u);if(rh(u.rules,'Unyielding')&&!(u.effects||[]).includes('Broken'))contested[u.side==='cs'?'nord':'cs']=true;});
   const holder=['cs','nord'].find(s=>{const o=s==='cs'?'nord':'cs';return z.friendly!==s&&!contested[s]&&tot[s]>tot[o]&&sz[s]>sz[o];})||null;return Object.assign({},z,{tot,sz,holder,vp:z.size===9?3:2});});}
 function scoreRound(R){const sc=scenOf(),id=scenId(),zc=zoneControl(),from=sc.from||2,add={cs:0,nord:0},lines={cs:[],nord:[]};const P=(s,v,t)=>{if(!v)return;add[s]+=v;lines[s].push(t+' '+v);};
   const opp=s=>s==='cs'?'nord':'cs',held=s=>R>=from?zc.filter(z=>z.holder===s):[];
@@ -1320,7 +1362,7 @@ function reinfRule(cls,R){const c=/Light/.test(cls||'')?'L':/Heavy/.test(cls||''
 function reserves(side){return (state.units||[]).filter(u=>u.side===side&&!u.onTable&&!u.arriving&&!u.destroyed);}
 async function doReinforcements(humanAuto){const R=state.round,out=[];const units=(state.units||[]).map(u=>Object.assign({},u));
   const roll=async(side,autoId)=>{const res=[];const pool=units.filter(u=>u.side===side&&!u.onTable&&!u.arriving&&!u.destroyed);
-    for(const u of pool){const rule=reinfRule(u.cls,R);if(u.id===autoId&&rule!=='no'){u.arriving=true;res.push(u.name+' arrives (chosen)');continue;}
+    for(const u of pool){const rule=reinfRule(u.cls,R);if(rule!=='no'&&(hasRule(u,/^Flank/)||(u.char!=null&&rh(u.charRules,'Forward Force')&&u.type!=='monster'))){u.arriving=true;res.push(u.name+' arrives (Flank: kept out of the roll)');continue;}if(u.id===autoId&&rule!=='no'){u.arriving=true;res.push(u.name+' arrives (chosen)');continue;}
       if(rule==='auto'){u.arriving=true;res.push(u.name+' arrives automatically');continue;}if(rule==='no')continue;const need=rule==='roll4'?4:2,v=d6();
       banner(N(side)+' reinforcement: '+u.name,[{v,cls:v<=need?'hit':'miss'}],`needs ${need} or less`);await sleep(900);if(v<=need){u.arriving=true;res.push(`${u.name} arrives (rolled ${v})`);}else res.push(`${u.name} stays back (rolled ${v})`);}
     return res;};
@@ -1544,8 +1586,8 @@ async function designList(faction,pts,enemyFaction){const prompt=`You are Claude
   const ff=faction?encyFor('',faction).faction:null;const ref=ff?`\nOfficial 2026 ${ff.name} roster (use only these units and numbers):\n${ff.units.filter(u=>u.pts!=null).map(u=>encyBrief(Object.assign({faction:ff.name},u))).join('\n')}\n`:'';
   return await sample.json(prompt+ref,{modelTier:'complex'});}
 let setupDraft={faction:'',pts:2000,list:'',aiFaction:''},resetArm=false;
-function rosterTable(units){const t=document.createElement('table');t.className='rost';const h=t.insertRow();['Regiment','Class','Stands','M V C A W R D E','Rules','Character'].forEach(x=>{const th=document.createElement('th');th.textContent=x;h.appendChild(th);});
-  units.forEach(u=>{const r=t.insertRow();const S0=u.stats;[u.name+(u.points?' ('+u.points+')':''),u.cls,String(u.stands),['M','V','C','A','W','R','D','E'].map(k=>S0[k]).join(' '),(u.rules||[]).join(', ')+(u.auxName?' · with '+u.auxName:''),u.charName?(u.charName+(u.warlord?' (Warlord)':'')+((u.spells||[]).length?' · '+u.spells.map(s=>s.name).join(', '):'')):''].forEach(v=>{const c=r.insertCell();c.textContent=v;});});return t;}
+function rosterTable(units,onBanner){const t=document.createElement('table');t.className='rost';const h=t.insertRow();['Regiment','Class','Stands','M V C A W R D E','Rules','Character'].concat(onBanner?['Standard Bearer']:[]).forEach(x=>{const th=document.createElement('th');th.textContent=x;h.appendChild(th);});
+  units.forEach(u=>{const r=t.insertRow();const S0=u.stats;[u.name+(u.points?' ('+u.points+')':''),u.cls,String(u.stands),['M','V','C','A','W','R','D','E'].map(k=>S0[k]).join(' '),(u.rules||[]).join(', ')+(u.auxName?' · with '+u.auxName:''),u.charName?(u.charName+(u.warlord?' (Warlord)':'')+((u.spells||[]).length?' · '+u.spells.map(s=>s.name).join(', '):'')):''].forEach(v=>{const c=r.insertCell();c.textContent=v;});if(onBanner){const c=r.insertCell();if(u.type!=='monster'){const x=document.createElement('input');x.type='checkbox';x.checked=!!u.bearer;x.setAttribute('aria-label','Standard Bearer for '+u.name);x.onchange=()=>onBanner(units.indexOf(u),x.checked);c.appendChild(x);}}});return t;}
 function terrR(t){return Math.max(t.rx,t.ry);}
 function terrWhy(p,list){const R=terrR(p);if(p.x-p.rx<0||p.x+p.rx>72||p.y-p.ry<0||p.y+p.ry>48)return 'That piece would hang off the table.';
   for(const q of list){if(q===p)continue;if(Math.hypot(p.x-q.x,p.y-q.y)-R-terrR(q)<7-1e-6)return 'Terrain must be at least 7″ from other terrain.';}
@@ -1576,49 +1618,152 @@ function terrainClick(pt,ev){const g=ev.target.closest('g[data-tid]');const T=te
   if(g){T.splice(+g.getAttribute('data-tid'),1);putState({terrain:T});return;}
   const [rx,ry]=TSIZE[terrSize],p={type:terrType,x:+ix(pt.x).toFixed(1),y:+iy(pt.y).toFixed(1),rx,ry,seed:Math.floor(Math.random()*1e9)};
   const why=terrWhy(p,T);if(why){toast(why);return;}T.push(p);putState({terrain:T});}
-/* ---------- army builder (from the encyclopedia, no Claude needed) ---------- */
-let bld=(()=>{try{const v=JSON.parse(localStorage.getItem('conquest-army-builder')||'null');if(v&&v.fac)return v;}catch(e){}return {fac:'',rows:[],warlord:0};})(),armyMode='build';
-function bldSave(){try{localStorage.setItem('conquest-army-builder',JSON.stringify(bld));}catch(e){}}
+/* ---------- army builder: warbands (from the encyclopedia, no Claude needed) ---------- */
+let bld=(()=>{try{const v=JSON.parse(localStorage.getItem('conquest-army-builder2')||'null');if(v&&Array.isArray(v.wbs))return v;}catch(e){}return {fac:'',wbs:[],warlord:0};})(),armyMode='build';
+function bldSave(){try{localStorage.setItem('conquest-army-builder2',JSON.stringify(bld));}catch(e){}}
 function bldFac(){return ENCY.find(f=>f.name===bld.fac)||null;}
-function bldBase(u){const m=String(u.stands||'').match(/(\d+)\s*(?:double\s+)?stands?/i);return u.kind==='char'||/^1 stand/.test(u.stands)?1:(m?+m[1]:3);}
 function bldUnit(name){const f=bldFac();return f&&f.units.find(u=>u.name===name);}
-function bldRowPts(r){const u=bldUnit(r.reg);if(!u)return 0;const b=bldBase(u),c=r.char?bldUnit(r.char):null;return (u.pts||0)+Math.max(0,(r.stands||b)-b)*(u.extra||0)+(c&&c.pts||0);}
-function bldTotal(){return bld.rows.reduce((a,r)=>a+bldRowPts(r),0);}
+function bldBase(u){if(!u)return 1;const m=String(u.stands||'').match(/(\d+)\s*(?:double\s+)?stands?/i);return u.kind==='char'||/^1 stand/.test(u.stands)?1:(m?+m[1]:3);}
+function bnorm(t){return String(t||'').toLowerCase().replace(/[-–]/g,' ').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim().replace(/s\b/g,'');}
+function isChariot(u){return u&&/chariot/i.test(u.type);}
+/* warband rules for a character */
+function wbRules(c){const f=bldFac();let txt=c.warband||'';const same=txt.match(/^Same warband as the (.+)$/i);if(same){const o=f.units.find(x=>x.name.toLowerCase()===same[1].toLowerCase());if(o)txt=o.warband;}
+  const out={main:[],res:[],caps:{},allow:4,needOne:/at least (one|1) regiment/i.test(txt),joinExtra:[],none:/no warband/i.test(txt)};
+  const m=txt.match(/(?:up to|max(?:imum)?)\s*(\d+)\s*regiments?/i);if(m)out.allow=+m[1];
+  const att=txt.match(/attach to ([A-Za-z -]+?)(?: Brute)? regiments|attach to (Infantry|Cavalry|Brute)/i);if(att)out.joinExtra.push((att[1]||att[2]).trim());
+  txt.split(/(?<=\.)\s+|;\s*/).forEach(seg=>{const mm=seg.match(/(mainstay|restricted)\s*:?\s*(.*)$/i);if(!mm)return;
+    mm[2].replace(/\.$/,'').split(/,\s*|\s+and\s+/).forEach(n=>{n=n.trim();if(!n)return;const cap=n.match(/\(max (\d+)(?: each)?\)/i);const nm=n.replace(/\(.*?\)/g,'').trim();(mm[1].toLowerCase()==='mainstay'?out.main:out.res).push(nm);if(cap)out.caps[bnorm(nm)]=+cap[1];});});
+  (txt.match(/max (\d+) ([A-Z][A-Za-z' -]+?)(?=(?: and |,|;|\.|$))/g)||[]).forEach(t=>{const mm=t.match(/max (\d+) (.+)/);if(mm&&!/regiments?$/i.test(mm[2]))out.caps[bnorm(mm[2].replace(/ Regiments?$/i,''))]=+mm[1];});
+  (txt.match(/and (\d+) ([A-Z][A-Za-z' -]+?)(?=(?:,|;|\.|$))/g)||[]).forEach(t=>{const mm=t.match(/and (\d+) (.+)/);if(mm)out.caps[bnorm(mm[2])]=+mm[1];});
+  return out;}
+/* resolve an option name from a warband list to units of the faction */
+function wbResolve(name){const f=bldFac(),n=bnorm(name),units=f.units.filter(u=>u.pts!=null&&(u.kind==='reg'||u.type==='Monster'||/Trebuchet/.test(u.name)));
+  if(/war chariot/.test(n))return units.filter(isChariot);
+  let hit=units.filter(u=>bnorm(u.name)===n);if(hit.length)return hit;
+  hit=units.filter(u=>bnorm(u.name).startsWith(n)||n.startsWith(bnorm(u.name)));if(hit.length&&n.length>3)return hit;
+  const rest=n.replace(/^(all|any|other|the) /,'');
+  if(/modular/.test(n))return units.filter(u=>/modular/i.test(u.warband+' '+u.stands));
+  if(/spires regiment|any /.test(n))return units.filter(u=>u.kind==='reg');
+  if(/order/.test(rest))return units.filter(u=>/The Orders/.test(u.warband));
+  if(/sorcerer saint/.test(n))return units.filter(u=>/Sorcerer Saints/.test(u.name));
+  hit=units.filter(u=>bnorm(u.name).startsWith(rest)||bnorm(u.warband).includes(rest));return hit;}
+function wbChoices(c){const r=wbRules(c),seen=new Set(),out=[];
+  [['main',r.main],['res',r.res]].forEach(([cat,list])=>list.forEach(nm=>{const us=wbResolve(nm);const chariots=us.length&&us.every(isChariot)&&/chariot/i.test(nm);
+    if(chariots){const key='chariot';if(!seen.has(key)){seen.add(key);out.push({key,cat,label:'War Chariots (1 or 2 chariots, one regiment slot)',chariots:us.map(u=>u.name)});}return;}
+    us.forEach(u=>{if(seen.has(u.name))return;seen.add(u.name);out.push({key:u.name,cat,label:u.name,unit:u.name});});}));
+  return out;}
+/* regiment options parsed from the encyclopedia text */
+function regOptions(u){const t=String(u.options||'');const out=[];let max=null;const mx=t.match(/up to (\d+)|\((\d+)\)|\bone\b/i);if(mx&&/officer/i.test(t))max=mx[1]?+mx[1]:mx[2]?+mx[2]:1;
+  t.split(/;\s*/).forEach(seg=>{const kind=/auxiliar/i.test(seg)?'aux':/veteran/i.test(seg)?'vet':/officer|captain|thegn|savage|shield biter|herald|lochagos|dorilates|andromachos|optio|cenotaph|reliquary|preceptor|node|apprentice|drillmaster|null mage|armsmaster|servite|neophyte|seasoned|stalker|flamecaster|aberration|hetairos/i.test(seg)?'off':'other';
+    const body=seg.replace(/^[^:]*:\s*/,'');
+    const re=/([A-Z][A-Za-z'’ -]*?)\s*\+?(\d{1,3})\b(?:\s*\(([^)]*)\))?/g;let m;while((m=re.exec(body))){const nm=m[1].replace(/\s+(or|and)$/i,'').trim();if(!nm||/^(Up to|Max)/i.test(nm))continue;
+      out.push({name:kind==='vet'?'Veteran':nm,cost:+m[2],kind,detail:m[3]||''});}});
+  return {opts:out,max};}
+function rowPts(r){if(r.chariots)return r.chariots.filter(Boolean).reduce((a,n)=>a+((bldUnit(n)||{}).pts||0),0);const u=bldUnit(r.unit);if(!u)return 0;const b=bldBase(u);
+  const o=regOptions(u).opts;return (u.pts||0)+Math.max(0,(r.stands||b)-b)*(u.extra||0)+(r.opts||[]).reduce((a,n)=>a+((o.find(x=>x.name===n)||{}).cost||0),0)+(r.custom||[]).reduce((a,c)=>a+(+c.pts||0),0);}
+function wbPts(w){const c=bldUnit(w.char);return (c?c.pts||0:0)+(w.custom||[]).reduce((a,x)=>a+(+x.pts||0),0)+w.regs.reduce((a,r)=>a+rowPts(r),0);}
+function bldTotal(){return bld.wbs.reduce((a,w)=>a+wbPts(w),0);}
+function joinable(w,r){const c=bldUnit(w.char);if(!c||c.type==='Monster'||r.chariots)return false;const u=bldUnit(r.unit);if(!u)return false;const R=wbRules(c);
+  return u.type===c.type||R.joinExtra.some(x=>new RegExp(x.split(' ')[0],'i').test(u.type+' '+u.warband));}
+function wbProblems(w){const c=bldUnit(w.char),p=[];if(!c)return ['Choose a character.'];const R=wbRules(c),ch=wbChoices(c);
+  if(R.none)return w.regs.length?[c.name+' has no warband of its own.']:[];
+  const n=w.regs.length,cat=r=>{const k=r.chariots?'chariot':r.unit;const x=ch.find(q=>q.key===k);return x?x.cat:'none';};
+  const nm=w.regs.filter(r=>cat(r)==='main').length,nr=w.regs.filter(r=>cat(r)==='res').length;
+  if(n>R.allow)p.push(`Too many regiments: ${n} of ${R.allow}.`);
+  if(nr>2)p.push(`At most 2 Restricted choices (you have ${nr}).`);
+  if(nr>nm)p.push(`Each Restricted choice needs a Mainstay choice (${nm} Mainstay, ${nr} Restricted).`);
+  if(w.regs.some(r=>cat(r)==='none'))p.push('A regiment is not in this character’s warband.');
+  Object.entries(R.caps).forEach(([k,v])=>{const cnt=w.regs.filter(r=>r.unit&&bnorm(r.unit).startsWith(k)).length;if(cnt>v)p.push(`At most ${v} × ${k.replace(/\b\w/g,s=>s.toUpperCase())}.`);});
+  if(c.type!=='Monster'&&!w.regs.some(r=>joinable(w,r)))p.push(`Needs a ${c.type} regiment for the ${c.name} to join.`);
+  if((R.needOne||c.type==='Monster')&&!n&&!R.none&&c.type==='Monster'&&R.needOne)p.push('Must include at least one regiment.');
+  if(c.type!=='Monster'&&w.joins!=null&&!(w.regs[w.joins]&&joinable(w,w.regs[w.joins])))p.push('Choose which regiment the character joins.');
+  return p;}
+function bldProblems(){const out=[];if(!bld.wbs.length)out.push('Add at least one warband.');bld.wbs.forEach((w,i)=>wbProblems(w).forEach(t=>out.push(`Warband ${i+1}: ${t}`)));return out;}
 function bldType(t){t=String(t||'').toLowerCase();return t.includes('cav')?'cav':t.includes('brute')?'brute':t.includes('monster')?'monster':t.includes('chariot')?'chariot':'inf';}
-function bldToList(){const f=bldFac();if(!f)return null;let wl=false;
-  const units=bld.rows.filter(r=>bldUnit(r.reg)).map((r,i)=>{const u=bldUnit(r.reg),c=r.char?bldUnit(r.char):null,S=u.stats,n=v=>v==='-'?null:v;
-    const ab=u.draw.map(d=>[d,ruleInfo(d,f.name)||'Draw Event']);
-    const x={name:u.name+(bld.rows.filter(q=>q.reg===r.reg).length>1?' '+['I','II','III','IV','V','VI'][bld.rows.filter((q,j)=>q.reg===r.reg&&j<=i).length-1]:''),short:u.name.slice(0,20),points:bldRowPts(r),cls:[u.cls||'Medium',u.type].join(' ').trim(),type:bldType(u.type),
-      stands:u.kind==='char'?1:(r.stands||bldBase(u)),M:n(S.M)||(bldType(u.type)==='monster'?7:6),V:n(S.V)||0,C:n(S.C)||1,A:n(S.A)||1,W:n(S.W)||4,R:S.R==='-'?'–':S.R,D:n(S.D)||0,E:n(S.E)||0,rules:u.rules.slice(),abilities:ab,standardBearer:/standard bearer/i.test(u.options),auxiliary:null,character:null};
-    if(c){const isW=!wl&&bld.warlord===i;if(isW)wl=true;x.character={name:c.name,warlord:isW,stats:{C:n(c.stats.C)||1,A:n(c.stats.A)||1,W:n(c.stats.W)||4,R:c.stats.R==='-'?0:c.stats.R,D:n(c.stats.D)||0,E:n(c.stats.E)||0,V:n(c.stats.V)||0},rules:c.rules.slice(),spells:[]};}
-    return x;});
-  if(!wl){const first=units.find(x=>x.character);if(first)first.character.warlord=true;}
+function bearerDefault(u){const o=String(u.options||'');if(/standard bearer/i.test(o))return true;if(/leader/i.test(o))return false;return u.type==='Infantry';}
+function unitJson(u,extra,f){const S=u.stats,n=v=>v==='-'?null:v;return Object.assign({name:u.name,short:u.name.slice(0,20),points:u.pts||0,cls:[u.cls||'Medium',u.type].join(' ').trim(),type:bldType(u.type),
+  stands:bldBase(u),M:n(S.M)||(bldType(u.type)==='monster'?7:6),V:n(S.V)||0,C:n(S.C)||1,A:n(S.A)||1,W:n(S.W)||4,R:S.R==='-'?'–':S.R,D:n(S.D)||0,E:n(S.E)||0,rules:u.rules.slice(),abilities:u.draw.map(d=>[d,ruleInfo(d,f.name)||'Draw Event']),standardBearer:false,auxiliary:null,character:null},extra||{});}
+function charJson(c,warlord,custom){const n=v=>v==='-'?null:v,S=c.stats;return {name:c.name,warlord,stats:{C:n(S.C)||1,A:n(S.A)||1,W:n(S.W)||4,R:S.R==='-'?0:S.R,D:n(S.D)||0,E:n(S.E)||0,V:n(S.V)||0},rules:c.rules.slice(),spells:[],upgrades:(custom||[]).map(x=>x.name+' ('+x.pts+')')};}
+function bldToList(){const f=bldFac();if(!f)return null;const units=[],count={};const roman=['','I','II','III','IV','V','VI'];
+  const nameOf=u=>{count[u]=(count[u]||0)+1;return u;};
+  bld.wbs.forEach((w,wi)=>{const c=bldUnit(w.char);if(!c)return;const wl=bld.warlord===wi;
+    if(c.type==='Monster'){units.push(unitJson(c,{name:nameOf(c.name),points:wbPtsChar(w),abilities:c.draw.map(d=>[d,ruleInfo(d,f.name)||'Draw Event']).concat((w.custom||[]).map(x=>[x.name,'Upgrade, '+x.pts+' pts'])),warlordMonster:wl},f));}
+    w.regs.forEach((r,ri)=>{if(r.chariots){r.chariots.filter(Boolean).forEach(nm=>{const u=bldUnit(nm);if(u)units.push(unitJson(u,{name:nameOf(nm),stands:1},f));});return;}
+      const u=bldUnit(r.unit);if(!u)return;const o=regOptions(u).opts,ab=u.draw.map(d=>[d,ruleInfo(d,f.name)||'Draw Event']);let aux=null;const rules=u.rules.slice();
+      (r.opts||[]).forEach(nm=>{const op=o.find(x=>x.name===nm);if(!op)return;
+        if(op.kind==='aux'){const au=f.units.find(x=>bnorm(x.name).startsWith(bnorm(op.name).split(' ').slice(0,2).join(' ')));aux={name:op.name,stats:au?{C:au.stats.C,A:au.stats.A,W:au.stats.W}:{C:3,A:4,W:6},rules:au?au.rules.slice():[]};return;}
+        if(op.kind==='vet'&&op.detail&&ruleInfo(op.detail,f.name)&&!/[+]/.test(op.detail)){rules.push(op.detail);ab.push(['Veteran',op.detail]);return;}
+        ab.push([op.name,(op.kind==='off'?'Officer':'Option')+(op.detail?': '+op.detail:'')+', '+op.cost+' pts']);});
+      (r.custom||[]).forEach(x=>ab.push([x.name,'Upgrade, '+x.pts+' pts']));
+      const x=unitJson(u,{name:nameOf(u.name),points:rowPts(r),stands:u.kind==='char'?1:(r.stands||bldBase(u)),rules,abilities:ab,standardBearer:r.bearer!=null?!!r.bearer:bearerDefault(u),auxiliary:aux},f);
+      if(w.joins===ri&&c.type!=='Monster')x.character=charJson(c,wl,w.custom);units.push(x);});});
+  // number duplicate names
+  const seen={};units.forEach(u=>{if(count[u.name]>1){seen[u.name]=(seen[u.name]||0)+1;u.name=u.name+' '+roman[seen[u.name]]||u.name;}});
+  if(!units.some(u=>u.character&&u.character.warlord)){const fc=units.find(u=>u.character);if(fc)fc.character.warlord=true;}
   return {faction:f.name,armyRules:f.armyRules.slice(),points:bldTotal(),units};}
-function armyBuilder(add,mk,onUse,useLabel){const box=document.createElement('div');box.className='rev bld';
-  const h=document.createElement('h3');h.textContent='Build your army';box.appendChild(h);
-  const fs=document.createElement('select');fs.setAttribute('aria-label','Faction');const o0=document.createElement('option');o0.value='';o0.textContent='Choose a faction…';fs.appendChild(o0);
-  ENCY.forEach(f=>{const o=document.createElement('option');o.value=f.name;o.textContent=f.name;fs.appendChild(o);});fs.value=bld.fac;
-  fs.onchange=()=>{bld={fac:fs.value,rows:[],warlord:0};bldSave();renderTurnbar();};const fr=document.createElement('div');fr.className='row';fr.appendChild(fs);box.appendChild(fr);
-  const f=bldFac();if(!f){box.appendChild(ptext('Pick a faction, then add regiments and the characters leading them. Profiles come from the encyclopedia.'));add(box);return;}
-  const regs=f.units.filter(u=>u.kind==='reg'&&u.pts!=null).concat(f.units.filter(u=>u.kind==='char'&&u.type==='Monster'&&u.pts!=null)),chars=f.units.filter(u=>u.kind==='char'&&u.type!=='Monster');
-  const list=document.createElement('div');list.className='bld-list';
-  bld.rows.forEach((r,i)=>{const row=document.createElement('div');row.className='bld-row';const u=bldUnit(r.reg);
-    const rs=document.createElement('select');rs.setAttribute('aria-label','Regiment '+(i+1));regs.forEach(x=>{const o=document.createElement('option');o.value=x.name;o.textContent=x.name+(x.kind==='char'?' (character)':'')+' · '+x.pts;rs.appendChild(o);});rs.value=r.reg;
-    rs.onchange=()=>{r.reg=rs.value;r.stands=bldBase(bldUnit(r.reg));bldSave();renderTurnbar();};
-    const sn=document.createElement('input');sn.type='number';sn.min=String(u?bldBase(u):1);sn.max='12';sn.value=String(r.stands||(u?bldBase(u):3));sn.setAttribute('aria-label','Stands');sn.disabled=!u||bldBase(u)===1&&!(u.extra);sn.onchange=()=>{r.stands=Math.max(+sn.min,Math.min(12,+sn.value||+sn.min));bldSave();renderTurnbar();};
-    const sl=document.createElement('label');sl.className='bld-st';sl.append(sn,document.createTextNode(' stands'));
-    const cs=document.createElement('select');cs.setAttribute('aria-label','Character leading regiment '+(i+1));const n0=document.createElement('option');n0.value='';n0.textContent='No character';cs.appendChild(n0);
-    chars.forEach(x=>{const o=document.createElement('option');o.value=x.name;o.textContent=x.name+' · '+x.pts;cs.appendChild(o);});cs.value=r.char||'';cs.disabled=!u||u.type==='Monster';cs.onchange=()=>{r.char=cs.value;bldSave();renderTurnbar();};
-    const wl=document.createElement('label');wl.className='bld-wl';const wr=document.createElement('input');wr.type='radio';wr.name='bld-warlord';wr.checked=bld.warlord===i;wr.disabled=!r.char;wr.onchange=()=>{bld.warlord=i;bldSave();renderTurnbar();};wl.append(wr,document.createTextNode(' Warlord'));
-    const pt=document.createElement('span');pt.className='bld-pts';pt.textContent=bldRowPts(r)+' pts';
-    const rm=document.createElement('button');rm.type='button';rm.className='btn ghost';rm.textContent='Remove';rm.setAttribute('aria-label','Remove regiment '+(i+1));rm.onclick=()=>{bld.rows.splice(i,1);if(bld.warlord>=bld.rows.length)bld.warlord=0;bldSave();renderTurnbar();};
-    const info=document.createElement('button');info.type='button';info.className='btn ghost';info.textContent='Details';info.onclick=()=>{if(u)enDetail(u,f.name);};
-    row.append(rs,sl,cs,wl,pt,info,rm);list.appendChild(row);});
-  box.appendChild(list);
-  const foot=document.createElement('div');foot.className='row';foot.appendChild(mk('Add a regiment',()=>{const r0=regs[0];bld.rows.push({reg:r0.name,stands:bldBase(r0),char:''});bldSave();renderTurnbar();},true));
-  const tot=document.createElement('span');tot.className='read';tot.textContent='Total: '+bldTotal()+' points · '+bld.rows.length+' regiment'+(bld.rows.length===1?'':'s');foot.appendChild(tot);
-  if(bld.rows.length)foot.appendChild(mk(useLabel,()=>{const L=bldToList();if(!L||!L.units.length){toast('Add at least one regiment.');return;}onUse(L);}));
-  box.appendChild(foot);box.appendChild(ptext('Officers, upgrades and spells are not included; note them for yourselves, or fix any profile in the review step.'));add(box);}
+function wbPtsChar(w){const c=bldUnit(w.char);return (c?c.pts||0:0)+(w.custom||[]).reduce((a,x)=>a+(+x.pts||0),0);}
+/* ---------- builder UI ---------- */
+function bEl(tag,props,kids){const e=document.createElement(tag);Object.assign(e,props||{});(kids||[]).forEach(k=>e.append(k));return e;}
+function customEditor(list,label){const box=bEl('div',{className:'bld-cus'});(list||[]).forEach((x,i)=>{const t=bEl('span',{className:'chip',textContent:x.name+' · '+x.pts}),b=bEl('button',{type:'button',className:'bld-x',textContent:'×'});b.setAttribute('aria-label','Remove '+x.name);b.onclick=()=>{list.splice(i,1);bldSave();renderTurnbar();};t.append(b);box.append(t);});
+  const nm=bEl('input',{type:'text',placeholder:label}),pt=bEl('input',{type:'number',placeholder:'pts',min:'0',step:'5'});nm.setAttribute('aria-label',label);pt.setAttribute('aria-label','Points');pt.style.width='64px';
+  const add=bEl('button',{type:'button',className:'btn ghost',textContent:'Add'});add.onclick=()=>{if(!nm.value.trim())return;list.push({name:nm.value.trim(),pts:+pt.value||0});bldSave();renderTurnbar();};box.append(nm,pt,add);return box;}
+function armyBuilder(add,mk,onUse,useLabel){const box=bEl('div',{className:'rev bld'});box.appendChild(bEl('h3',{textContent:'Build your army'}));
+  const fs=bEl('select');fs.setAttribute('aria-label','Faction');fs.appendChild(bEl('option',{value:'',textContent:'Choose a faction…'}));ENCY.forEach(f=>fs.appendChild(bEl('option',{value:f.name,textContent:f.name})));fs.value=bld.fac;
+  fs.onchange=()=>{bld={fac:fs.value,wbs:[],warlord:0};bldSave();renderTurnbar();};box.appendChild(bEl('div',{className:'row'},[fs]));
+  const f=bldFac();if(!f){box.appendChild(ptext('Pick a faction. Each character brings a warband of up to 4 regiments: any number of Mainstay choices, at most 2 Restricted, and at least as many Mainstay as Restricted.'));add(box);return;}
+  const chars=f.units.filter(u=>u.kind==='char'&&u.pts!=null);
+  bld.wbs.forEach((w,wi)=>{const c=bldUnit(w.char),card=bEl('div',{className:'bld-wb'});
+    const head=bEl('div',{className:'bld-wbh'});const cs=bEl('select');cs.setAttribute('aria-label','Character of warband '+(wi+1));chars.forEach(x=>cs.appendChild(bEl('option',{value:x.name,textContent:x.name+' · '+x.pts})));cs.value=w.char;
+    cs.onchange=()=>{w.char=cs.value;w.regs=[];w.joins=null;w.custom=[];bldSave();renderTurnbar();};
+    const wl=bEl('label',{className:'bld-wl'});const wr=bEl('input',{type:'radio',name:'bld-warlord',checked:bld.warlord===wi});wr.onchange=()=>{bld.warlord=wi;bldSave();renderTurnbar();};wl.append(wr,document.createTextNode(' Warlord'));
+    const det=bEl('button',{type:'button',className:'btn ghost',textContent:'Details'});det.onclick=()=>c&&enDetail(c,f.name);
+    const rm=bEl('button',{type:'button',className:'btn ghost',textContent:'Remove warband'});rm.onclick=()=>{bld.wbs.splice(wi,1);if(bld.warlord>=bld.wbs.length)bld.warlord=0;bldSave();renderTurnbar();};
+    head.append(bEl('span',{className:'bld-tag',textContent:'Warband '+(wi+1)}),cs,wl,bEl('span',{className:'bld-pts',textContent:wbPts(w)+' pts'}),det,rm);card.appendChild(head);
+    if(!c){box.appendChild(card);return;}
+    const R=wbRules(c),choices=wbChoices(c);
+    const info=bEl('div',{className:'bld-ci'});
+    if(c.type!=='Monster'&&!R.none){const js=bEl('select');js.setAttribute('aria-label','Regiment the '+c.name+' joins');js.appendChild(bEl('option',{value:'',textContent:'Choose a regiment…'}));
+      w.regs.forEach((r,ri)=>{if(joinable(w,r))js.appendChild(bEl('option',{value:String(ri),textContent:(r.unit||'')+' (regiment '+(ri+1)+')'}));});js.value=w.joins!=null?String(w.joins):'';
+      js.onchange=()=>{w.joins=js.value===''?null:+js.value;bldSave();renderTurnbar();};info.append(bEl('span',{textContent:'● The '+c.name+' joins '}),js);}
+    else if(c.type==='Monster')info.append(bEl('span',{textContent:'The '+c.name+' fights as its own regiment.'}));
+    if(R.none)info.append(bEl('span',{textContent:' No warband: '+c.warband}));
+    card.appendChild(info);
+    card.appendChild(bEl('div',{className:'bld-sub',textContent:'Character upgrades (Trove-finds, Masteries, Relics… type the name and cost):'}));card.appendChild(customEditor(w.custom=w.custom||[],'Upgrade name'));
+    w.regs.forEach((r,ri)=>{const row=bEl('div',{className:'bld-row'});const isJ=w.joins===ri&&c.type!=='Monster';
+      const dot=bEl('span',{className:'bld-dot'+(isJ?' on':''),textContent:'●',title:isJ?'The '+c.name+' joins this regiment':''});dot.setAttribute('aria-label',isJ?'The '+c.name+' joins this regiment':'No character');
+      const rs=bEl('select');rs.setAttribute('aria-label','Regiment '+(ri+1)+' of warband '+(wi+1));
+      ['main','res'].forEach(cat=>{const og=bEl('optgroup',{label:cat==='main'?'Mainstay':'Restricted'});choices.filter(x=>x.cat===cat).forEach(x=>{const u0=x.unit?bldUnit(x.unit):null;og.appendChild(bEl('option',{value:x.key,textContent:x.label+(u0?' · '+u0.pts:'')}));});if(og.children.length)rs.appendChild(og);});
+      rs.value=r.chariots?'chariot':r.unit;rs.onchange=()=>{const x=choices.find(q=>q.key===rs.value);if(x.chariots){w.regs[ri]={chariots:[x.chariots[0],'']};}else{const u=bldUnit(x.unit);w.regs[ri]={unit:x.unit,stands:bldBase(u),opts:[],custom:[],bearer:bearerDefault(u)};}if(w.joins===ri&&!joinable(w,w.regs[ri]))w.joins=null;bldSave();renderTurnbar();};
+      row.append(dot,rs);
+      if(r.chariots){const x=choices.find(q=>q.key==='chariot');[0,1].forEach(k=>{const s2=bEl('select');s2.setAttribute('aria-label','Chariot '+(k+1));if(k===1)s2.appendChild(bEl('option',{value:'',textContent:'No second chariot'}));(x?x.chariots:[]).forEach(n=>s2.appendChild(bEl('option',{value:n,textContent:n+' · '+(bldUnit(n)||{}).pts})));s2.value=r.chariots[k]||'';s2.onchange=()=>{r.chariots[k]=s2.value;bldSave();renderTurnbar();};row.append(s2);});
+        row.append(bEl('span',{className:'hint',textContent:'Counts as one regiment; each chariot fights as its own regiment on the table.'}));}
+      else{const u=bldUnit(r.unit);const b=bldBase(u);
+        if(u&&u.kind!=='char'&&!/^1 stand/.test(u.stands)){const sn=bEl('input',{type:'number',min:String(b),max:'12',value:String(r.stands||b)});sn.setAttribute('aria-label','Stands');sn.onchange=()=>{r.stands=Math.max(b,Math.min(12,+sn.value||b));bldSave();renderTurnbar();};row.append(bEl('label',{className:'bld-st'},[sn,document.createTextNode(' stands')]));}
+        if(u&&u.type!=='Monster'){const bl=bEl('label',{className:'bld-wl'});const bc=bEl('input',{type:'checkbox',checked:r.bearer!=null?!!r.bearer:bearerDefault(u)});bc.onchange=()=>{r.bearer=bc.checked;bldSave();renderTurnbar();};bl.append(bc,document.createTextNode(' Standard Bearer'));row.append(bl);}
+        const O=u?regOptions(u):{opts:[],max:null};if(O.opts.length){const ob=bEl('div',{className:'bld-opts'});const offN=(r.opts||[]).filter(n=>(O.opts.find(o=>o.name===n)||{}).kind==='off').length;
+          O.opts.forEach(o=>{const l=bEl('label',{className:'bld-opt'});const cbx=bEl('input',{type:'checkbox',checked:(r.opts||[]).includes(o.name)});
+            cbx.disabled=!cbx.checked&&((o.kind==='off'&&O.max!=null&&offN>=O.max)||(o.kind==='aux'&&(r.opts||[]).some(n=>(O.opts.find(z=>z.name===n)||{}).kind==='aux')));
+            cbx.onchange=()=>{r.opts=r.opts||[];if(cbx.checked)r.opts.push(o.name);else r.opts=r.opts.filter(n=>n!==o.name);bldSave();renderTurnbar();};
+            l.append(cbx,document.createTextNode(' '+o.name+(o.detail?' ('+o.detail+')':'')+' +'+o.cost));ob.append(l);});
+          if(O.max!=null)ob.append(bEl('span',{className:'hint',textContent:'Officers: up to '+O.max}));row.append(ob);}
+        const cus=customEditor(r.custom=r.custom||[],'Other upgrade');row.append(cus);}
+      const cat=(choices.find(q=>q.key===(r.chariots?'chariot':r.unit))||{}).cat;
+      row.append(bEl('span',{className:'bld-cat',textContent:cat==='res'?'Restricted':cat==='main'?'Mainstay':'Not in warband'}),bEl('span',{className:'bld-pts',textContent:rowPts(r)+' pts'}));
+      const dd=bEl('button',{type:'button',className:'btn ghost',textContent:'Details'});dd.onclick=()=>{const u=bldUnit(r.unit||(r.chariots||[])[0]);if(u)enDetail(u,f.name);};
+      const rr=bEl('button',{type:'button',className:'btn ghost',textContent:'Remove'});rr.onclick=()=>{w.regs.splice(ri,1);if(w.joins===ri)w.joins=null;else if(w.joins>ri)w.joins--;bldSave();renderTurnbar();};
+      row.append(dd,rr);card.appendChild(row);});
+    const full=w.regs.length>=R.allow||R.none;const ar=mk(full?(R.none?'No warband':'Warband full ('+R.allow+')'):'Add a regiment to this warband',()=>{const x=choices.find(q=>q.cat==='main')||choices[0];if(!x)return;
+      if(x.chariots)w.regs.push({chariots:[x.chariots[0],'']});else{const u=bldUnit(x.unit);w.regs.push({unit:x.unit,stands:bldBase(u),opts:[],custom:[],bearer:bearerDefault(u)});}
+      if(w.joins==null&&joinable(w,w.regs[w.regs.length-1]))w.joins=w.regs.length-1;bldSave();renderTurnbar();},true);ar.disabled=full||aiBusy;
+    card.appendChild(bEl('div',{className:'row'},[ar,bEl('span',{className:'hint',textContent:`${w.regs.length} of ${R.allow} regiments`})]));
+    const probs=wbProblems(w);if(probs.length)card.appendChild(ptext(probs.join(' '),'warn'));
+    box.appendChild(card);});
+  const foot=bEl('div',{className:'row'});foot.appendChild(mk('Add a warband',()=>{const c0=chars.find(x=>x.type!=='Monster')||chars[0];bld.wbs.push({char:c0.name,regs:[],joins:null,custom:[]});bldSave();renderTurnbar();},true));
+  foot.appendChild(bEl('span',{className:'read',textContent:'Total: '+bldTotal()+' points · '+bld.wbs.length+' warband'+(bld.wbs.length===1?'':'s')}));
+  const probs=bldProblems();
+  if(bld.wbs.length)foot.appendChild(mk(probs.length?useLabel+' anyway':useLabel,()=>{const L=bldToList();if(!L||!L.units.length){toast('Add at least one regiment.');return;}onUse(L);}));
+  box.appendChild(foot);if(probs.length)box.appendChild(ptext('Not yet legal: '+probs.join(' '),'warn'));
+  box.appendChild(ptext('Officer and upgrade effects beyond their stat changes are listed on the regiment for you to apply. Spells for casters can be added in the review step.'));add(box);}
 function armyModePicker(add){const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','How to enter your army');
   [['build','Build it here'],['paste','Paste a list (Claude reads it)']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String(armyMode===m));b.onclick=()=>{armyMode=m;renderTurnbar();};g.appendChild(b);});add(g);}
 function modePicker(add){const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','Opponent');
@@ -1666,7 +1811,7 @@ function renderSetup(tb,info,mk,add){
   if(state.step==='review'){const S=state.setup||{};info.textContent='Check both armies. Fix any profile in the JSON boxes if something is off, then start the game.';
     ['cs','nord'].forEach(side=>{const L=S[side]||{units:[]};const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent=(PVP()?(side===HU&&seatSide()?'Your army: ':(side==='cs'?'South':'North')+' army: '):(side===HU?'Your army: ':'Claude’s army: '))+(L.faction||N(side))+(L.points?' · '+L.points+' points':'');box.appendChild(h);
       if((L.armyRules||[]).length)box.appendChild(ptext('Army rules: '+L.armyRules.join(', ')));
-      const units=buildUnits(side,L);const sc=document.createElement('div');sc.className='rost-wrap';sc.appendChild(rosterTable(units));box.appendChild(sc);
+      const units=buildUnits(side,L);const sc=document.createElement('div');sc.className='rost-wrap';sc.appendChild(rosterTable(units,(i,v)=>{const L2=JSON.parse(JSON.stringify(L));if(L2.units[i])L2.units[i].standardBearer=v;putState({setup:Object.assign({},state.setup,{[side]:L2})});}));box.appendChild(sc);
       const det=document.createElement('details');const sm=document.createElement('summary');sm.textContent='Edit as JSON';det.appendChild(sm);const ta=document.createElement('textarea');ta.rows=10;ta.value=JSON.stringify(L,null,1);ta.id='json-'+side;det.appendChild(ta);
       const sv=mk('Apply changes',async()=>{try{const v=JSON.parse(ta.value);const set=Object.assign({},state.setup,{[side]:v});await putState({setup:set});}catch(e){toast('That JSON has an error: '+e.message);}},true);det.appendChild(sv);box.appendChild(det);add(box);});
     scenarioPanel(add,mk);terrainPanel(add,mk);
@@ -1679,6 +1824,11 @@ async function newGame(){if(!resetArm){resetArm=true;render();setTimeout(()=>{re
   await putState({step:'setup',units:[],round:0,turn:null,vp:{cs:0,nord:0},aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,moves:[],setup:null,phase:'New game',ready:{},chooser:null,reinfTurn:'cs',lastTitle:'New game',lastText:'Set up the armies to begin.'});
   $('ai-report').hidden=true;}
 
+const AUTO_ARMY=/Strategic Stack|Direct Orders|Hammer and Anvil|Prophecy Unfulfilled|Animate Vessel|Brittle/;
+function armyRulesBox(){const d=document.createElement('details');d.className='vc';const sm=document.createElement('summary');sm.textContent='Army rules';d.appendChild(sm);
+  ['cs','nord'].forEach(side=>{const list=(state.army&&state.army[side])||[];if(!list.length)return;const fac=facOf(N(side));const h=document.createElement('div');h.className='en-tag';h.style.marginTop='6px';h.textContent=N(side)+(side===HU?' (you)':'');d.appendChild(h);
+    const ch=document.createElement('div');ch.className='chips';list.forEach(r=>{const auto=AUTO_ARMY.test(r),c=chip(r,auto?'fx':'',fac);if(auto)c.textContent+=' · automatic';ch.appendChild(c);});d.appendChild(ch);});
+  d.appendChild(ptext('Rules marked automatic are applied by the map. Apply the others yourselves: hover a rule to read it.'));return d;}
 function renderTurnbarPvp(tb,info,mk,add,step){const me=seatSide();
   if(!me){info.textContent=`You are watching ${N('cs')} against ${N('nord')}. ${state.phase||''}`;return true;}
   if(step==='reinforce'){const rt=state.reinfTurn||'cs';if(rt!==HU){info.textContent=`Round ${state.round} · Reinforcements. Waiting for ${N(rt)} to roll.`;return true;}
@@ -1704,8 +1854,8 @@ function renderTurnbarPvp(tb,info,mk,add,step){const me=seatSide();
   if(step==='choose'){if(state.chooser!==HU){info.textContent=`${N(state.chooser||AI)} won Supremacy and are choosing who goes first.`;return true;}
     info.textContent='You won Supremacy. Who goes first?';add(mk('I go first',()=>chooseFirst(HU)));add(mk(N(AI)+' go first',()=>chooseFirst(AI),true));return true;}
   const hu=sideCardsLeft(HU),op=sideCardsLeft(AI),vd=document.createElement('details');vd.className='vc';const vs=document.createElement('summary');vs.textContent='Victory conditions';vd.append(vs,ptext(scenOf().vp+picksText()));
-  if(state.turn!==HU){info.textContent=`${scenOf().name} · Waiting for ${N(state.turn||AI)} to act. You have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${op}.`;add(vd);return true;}
-  const tp=humanTop();info.textContent=`${scenOf().name} · Your turn · ${tp?'next card: '+cardName(tp)+' · ':''}${huHeldOk()?'held in the Strategic Stack: '+cardName(PS().huHeld)+' · ':''}you have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${op}.`;add(mk('End turn',endTurn));add(vd);return true;}
+  if(state.turn!==HU){info.textContent=`${scenOf().name} · Waiting for ${N(state.turn||AI)} to act. You have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${op}.`;add(vd);add(armyRulesBox());return true;}
+  const tp=humanTop();info.textContent=`${scenOf().name} · Your turn · ${tp?'next card: '+cardName(tp)+' · ':''}${huHeldOk()?'held in the Strategic Stack: '+cardName(PS().huHeld)+' · ':''}you have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${op}.`;add(mk('End turn',endTurn));add(vd);add(armyRulesBox());return true;}
 
 function renderTurnbar(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHTML='';const step=state.step||'activations';const add=e=>tb.appendChild(e);
   const info=document.createElement('span');info.className='read';info.id='tb-info';add(info);
@@ -1733,7 +1883,7 @@ function renderTurnbar(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHTM
   if(step==='choose'){info.textContent='You won Supremacy. Who goes first?';add(mk('I go first',()=>chooseFirst(HU)));add(mk(N(AI)+' go first',()=>chooseFirst(AI),true));return;}
   const hu=humanCardsLeft(),ai=aiCardsLeft();
   if(state.turn===AI){info.textContent=`${N(AI)}'s turn.`;add(mk('Play the '+N(AI)+' turn',runAITurn));return;}
-  const tp=humanTop();info.textContent=`${scenOf().name} · Your turn · ${tp?'next card: '+cardName(tp)+' · ':''}${huHeldOk()?'held in the Strategic Stack: '+cardName(PS().huHeld)+' · ':''}you have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${ai}.`;add(mk('End turn',endTurn));const vd=document.createElement('details');vd.className='vc';const vs=document.createElement('summary');vs.textContent='Victory conditions';vd.append(vs,ptext(scenOf().vp+picksText()));add(vd);}
+  const tp=humanTop();info.textContent=`${scenOf().name} · Your turn · ${tp?'next card: '+cardName(tp)+' · ':''}${huHeldOk()?'held in the Strategic Stack: '+cardName(PS().huHeld)+' · ':''}you have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${ai}.`;add(mk('End turn',endTurn));const vd=document.createElement('details');vd.className='vc';const vs=document.createElement('summary');vs.textContent='Victory conditions';vd.append(vs,ptext(scenOf().vp+picksText()));add(vd);add(armyRulesBox());}
 
 (async()=>{try{db=await window.claude?.use?.('db')}catch(e){}
  try{window.claude?.use?.('sample').then(x=>{sample=x;}).catch(()=>{});}catch(e){}
