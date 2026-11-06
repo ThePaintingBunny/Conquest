@@ -279,6 +279,14 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .fm-st.sel{outline:3px solid var(--gold);outline-offset:1px}.fm-st.over{outline:2px dashed var(--gold)}
 .fm-tag{display:inline-block;font-size:10px!important;font-weight:700;color:#1C1410!important;border-radius:3px;padding:0 4px;margin-bottom:2px}
 .fm-leg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted)}
+#legend{display:none}
+.mapbox{position:relative}
+.leg-btn{position:absolute;top:8px;left:8px;z-index:3;font:inherit;font-size:13px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.leg-btn[aria-expanded=true]{background:var(--gold-soft);border-color:var(--gold);color:var(--gold-ink)}
+.leg-panel{position:absolute;top:44px;left:8px;z-index:3;width:min(270px,calc(100% - 16px));max-height:calc(100% - 52px);overflow-y:auto;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.leg-h{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px}.leg-h:first-child{margin-top:0}
+.leg-i{display:flex;align-items:center;gap:8px;padding:2px 0}.leg-panel .leg-i svg{flex:none;width:40px!important;height:26px!important;min-width:40px;max-width:40px;display:block}
+.leg-i strong{display:block;font-size:13px;line-height:1.2}.leg-i span{display:block;font-size:11.5px;color:var(--muted);line-height:1.25}
 </style>
 <style>.fan-note{max-width:1240px;margin:24px auto 32px;font-size:13px;color:var(--muted)}.fan-note a{color:inherit}</style>
 </head>
@@ -292,8 +300,8 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <section class="ency" id="ency" hidden aria-label="Encyclopedia"><div class="en-head"><h2>Encyclopedia</h2><button type="button" class="btn ghost" id="en-close">Close</button></div><div class="en-facs" id="en-facs" role="group" aria-label="Faction"></div><div class="en-ctl"><input type="search" id="en-q" placeholder="Search every faction: a name, a rule like Impact or Fly…" aria-label="Search the encyclopedia"><div class="grp" role="group" aria-label="Show"><button type="button" data-k="all" aria-pressed="true">All</button><button type="button" data-k="char" aria-pressed="false">Characters</button><button type="button" data-k="reg" aria-pressed="false">Regiments</button></div></div><div id="en-info"></div><div class="en-grid" id="en-grid"></div></section><span id="ai-status" hidden></span>
   <section class="report" id="ai-report" hidden aria-live="polite"><div class="cb-head"><h2 id="air-title">Turn report</h2><button type="button" class="btn ghost" id="air-close">Close</button></div><div id="air-body"></div></section>
   <div class="main">
-    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="mapbox">
-    <svg id="board" viewBox="0 0 724 400" role="img" aria-labelledby="mt"><title id="mt">Battlefield with terrain, objectives and regiments</title>
+    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="mapbox"><button type="button" class="leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel">Legend</button><div class="leg-panel" id="leg-panel" hidden></div>
+    <svg id="board" viewBox="150 0 544 400" role="img" aria-labelledby="mt"><title id="mt">Battlefield with terrain, objectives and regiments</title>
       <style>.grass{fill:#86A85E}.patch{fill:#739650}.tuft{stroke:#5F8443}
       @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .grass{fill:#4C6A36}:root:not([data-theme="light"]) .patch{fill:#425E2F}:root:not([data-theme="light"]) .tuft{stroke:#37502A}}
       :root[data-theme="dark"] .grass{fill:#4C6A36}:root[data-theme="dark"] .patch{fill:#425E2F}:root[data-theme="dark"] .tuft{stroke:#37502A}</style>
@@ -353,7 +361,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="roster"><div class="side cs"><h2 id="h-cs">City States</h2><div id="r-cs"></div></div><div class="side nord"><h2 id="h-nord">Nords</h2><div id="r-nord"></div></div></div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-06 14:16 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-06 14:20 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -395,6 +403,37 @@ const L=$('legend');function lt(x,y,cls,t){const e=el('text',{x,y,class:cls,'dom
  if(i==8){el('rect',{x:16,y:cy-7,width:14,height:14,rx:1.5,fill:'#3B1A14',stroke:'#F3E6C4','stroke-width':.8},ic);el('path',{d:`M18.5 ${cy-3.5} Q20 ${cy+2} 23 ${cy+2} Q26 ${cy+2} 27.5 ${cy-3.5}`,fill:'none',stroke:'#F3E6C4','stroke-width':1.6,'stroke-linecap':'round'},ic);}});
 const sy=50+9*36+2;el('rect',{x:10,y:sy,width:84,height:5,fill:'#4A3418'},L);el('rect',{x:10,y:sy,width:42,height:5,fill:'#C9B27A'},L);lt(102,sy+3,'ls','12 in');
 
+/* legend: a toggle panel over the map, listing what this game uses */
+let legOpen=false;try{legOpen=localStorage.getItem('conquest-legend')==='1';}catch(e){}
+function legIcon(draw){const sv=document.createElementNS(NS,'svg');sv.setAttribute('viewBox','0 0 40 26');sv.setAttribute('width','40');sv.setAttribute('height','26');sv.setAttribute('aria-hidden','true');draw(sv);return sv;}
+function legStand(g,fill,stroke,sw){return el('rect',{x:13,y:6,width:14,height:14,rx:1.5,fill,stroke:stroke||'#F3E6C4','stroke-width':sw||.8},g);}
+function renderLegend(){const pan=$('leg-panel'),btn=$('leg-btn');if(!pan||!btn)return;btn.setAttribute('aria-expanded',String(legOpen));btn.textContent=legOpen?'Hide legend':'Legend';pan.hidden=!legOpen;if(!legOpen||!state)return;
+  pan.innerHTML='';const sec=t=>{const h=document.createElement('div');h.className='leg-h';h.textContent=t;pan.appendChild(h);};
+  const item=(draw,a,b)=>{const r=document.createElement('div');r.className='leg-i';const t=document.createElement('div');const s1=document.createElement('strong');s1.textContent=a;t.appendChild(s1);if(b){const s2=document.createElement('span');s2.textContent=b;t.appendChild(s2);}r.append(legIcon(draw),t);pan.appendChild(r);};
+  const zs=zonesOf(),T=terrainOf(),U=(state.units||[]).filter(u=>u.type!=='marker');
+  sec('Objectives');
+  if(zs.some(z=>z.size===9))item(g=>el('circle',{cx:20,cy:13,r:11,fill:'#D9B44A','fill-opacity':.25,stroke:'#C9A63E','stroke-width':1.5,'stroke-dasharray':'4 3'},g),'Large zone','9″, 3 VP');
+  if(zs.some(z=>z.size!==9))item(g=>el('circle',{cx:20,cy:13,r:7,fill:'#D9B44A','fill-opacity':.25,stroke:'#C9A63E','stroke-width':1.5,'stroke-dasharray':'3 3'},g),'Small zone','6″, 2 VP');
+  if(zs.some(z=>z.friendly))item(g=>{el('circle',{cx:13,cy:13,r:8,fill:'#C9655A','fill-opacity':.35,stroke:'#C9655A'},g);el('circle',{cx:28,cy:13,r:8,fill:'#5E8BC0','fill-opacity':.35,stroke:'#5E8BC0'},g);},'Friendly zones','Only the other side can seize them');
+  if((state.units||[]).some(u=>u.type==='marker'))item(g=>{[['#9A3328',9],['#2C5A8E',20],['#6B5638',31]].forEach(([c,x])=>el('circle',{cx:x,cy:13,r:5,fill:c,stroke:'#F3E6C4','stroke-width':1},g));},'Objective Markers','Red south, blue north, brown neutral; 3 wounds');
+  const types=[...new Set(T.map(t=>t.type))];if(types.length){sec('Terrain');
+    if(types.includes('forest'))item(g=>forest(20,13,14,9,g),'Forest','Hindering, cover');if(types.includes('hill'))item(g=>hill(20,13,14,8,g),'Hill','Blocks sight');if(types.includes('rocks'))item(g=>rocks(20,13,11,7,g),'Rocks','Impassable');}
+  sec('Armies');
+  ['cs','nord'].forEach(sd=>item(g=>{el('rect',{x:8,y:6,width:24,height:14,rx:2,fill:COL[sd].fill,stroke:'#F3E6C4','stroke-width':1},g);},N(sd)+(sd===HU?' (you)':''),(sd===HU)?'Bottom edge':'Top edge'));
+  sec('Stands');
+  item(g=>{legStand(g,'#9A3328','#E8C65A',2.2);el('path',{d:'M20 8.5 L24 13 L20 17.5 L16 13Z',fill:'#E8C65A',stroke:'#4A3418','stroke-width':.6},g);},'Command stand','Gold edge and diamond; removed last');
+  item(g=>{legStand(g,'#C9655A');},'Rear rank','Lighter colour');
+  if(U.some(u=>u.char!=null))item(g=>{legStand(g,'#9A3328');el('circle',{cx:20,cy:13,r:4,fill:'#F3E6C4',stroke:'#4A3418','stroke-width':.8},g);},'Character','Always in the front rank');
+  const auxes=new Set(U.filter(u=>u.aux!=null&&u.auxStats).map(u=>auxStyle(u).key));
+  if(auxes.has('mino'))item(g=>{legStand(g,'#3B1A14');el('path',{d:'M15.5 9.5 Q17 15 20 15 Q23 15 24.5 9.5',fill:'none',stroke:'#F3E6C4','stroke-width':1.6,'stroke-linecap':'round'},g);},'Minotaur','Auxiliary stand, own profile');
+  if(auxes.has('sb'))item(g=>{legStand(g,'#2E3B55');el('circle',{cx:20,cy:13,r:4.6,fill:'#B8862E',stroke:'#F3E6C4','stroke-width':.8},g);el('path',{d:'M17.7 15.2 L20 10.4 L22.3 15.2',fill:'none',stroke:'#1C1410','stroke-width':1.2},g);},'Sacred Band Veteran','Auxiliary stand, own profile');
+  const mods=[...new Set(U.flatMap(u=>u.mods||[]))];if(mods.length){sec('Modular stands');mods.forEach(m=>{const M=MODSTYLE[m];if(!M)return;const P=MODULAR[m]||{};
+    item(g=>{legStand(g,'#9A3328');el('rect',{x:14,y:9,width:12,height:8,rx:2,fill:M[1],stroke:'#1C1410','stroke-width':.5},g);const t=el('text',{x:20,y:13.3,'text-anchor':'middle','dominant-baseline':'central','font-size':6,'font-weight':700,fill:'#1C1410'},g);t.textContent=M[0];},m,P.role?'Ideal '+P.role+' · '+(P.rules||[]).join(', '):'');});}
+  sec('Markers');
+  item(g=>{legStand(g,'#9A3328');el('circle',{cx:26,cy:9,r:5.5,fill:'#B3261E',stroke:'#FFF3E0','stroke-width':1.2},g);const t=el('text',{x:26,y:9.5,'text-anchor':'middle','dominant-baseline':'central','font-size':7,'font-weight':700,fill:'#FFF3E0'},g);t.textContent='3';},'Wounds','On the stand taking them');
+  item(g=>{legStand(g,'#9A3328');el('path',{d:'M15 8 L19 11 L22 13 L19 16 L25 19',fill:'none',stroke:'#1C1410','stroke-width':1.4,'stroke-linecap':'round'},g);},'Broken','Crack across the stands');
+  item(g=>{el('rect',{x:4,y:10,width:32,height:5,fill:'#4A3418'},g);el('rect',{x:4,y:10,width:16,height:5,fill:'#C9B27A'},g);},'Scale','Bar is 12″, each half 6″');}
+$('leg-btn').onclick=()=>{legOpen=!legOpen;try{localStorage.setItem('conquest-legend',legOpen?'1':'0');}catch(e){}renderLegend();};
 /* ---------- game logic ---------- */
 const COL={cs:{fill:'#9A3328',light:'#C9655A'},nord:{fill:'#2C5A8E',light:'#5E8BC0'}};
 const ACT={
@@ -932,7 +971,7 @@ function render(){
     if(u.charName){const cr=document.createElement('div');cr.className='u'+(u.onTable?'':' off')+(u.charActivated?' done':'')+(u.id===selId?' sel':'');cr.tabIndex=0;
       const cn=document.createElement('span');cn.className='n';cn.textContent=u.charName;const cs2=document.createElement('span');cs2.className='s';cs2.textContent='Character · with '+(u.short||u.name);
       cr.append(cn,cs2);cr.onclick=()=>{selId=u.id;render();};cr.onkeydown=e=>{if(e.key==='Enter'){selId=u.id;render();}};box.appendChild(cr);}});});
-  renderCard();renderFormation();renderCharPanel();drawRuler();renderTurnbar();pushLive();
+  renderCard();renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
   const held=!!PS().strategicHeld,used=PS().strategicUsedRound===state.round,notMine=PVP()&&(state.turn!==HU||!seatSide());
   $('strat-read').textContent=held?'1 card held, face down':'Empty';
   $('strat-btn').disabled=held||used||!!act||notMine;
