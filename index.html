@@ -24,6 +24,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
 .top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
 h1{font-family:var(--display);font-size:28px;margin:0;text-wrap:balance}
 .phase{font-size:15px;color:var(--muted)}
+.fr-strip{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.fr-strip button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer}.fr-strip button b{font-weight:600}.fr-strip .cs{border-color:#9A3328}.fr-strip .nord{border-color:#2C5A8E}
 .score{display:flex;gap:10px;font-family:var(--display);font-weight:700;font-size:18px}
 .score span{padding:4px 12px;border-radius:8px;color:#fff;font-variant-numeric:tabular-nums}
 .score .cs{background:var(--cs)}.score .nord{background:var(--nord)}
@@ -298,7 +299,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 <body>
 <div class="wrap">
   <div class="top">
-    <div><h1>Vale of Banners</h1><div class="phase" id="phase">Waiting for the game state…</div></div>
+    <div><h1>Vale of Banners</h1><div class="phase" id="phase">Waiting for the game state…</div><div class="fr-strip" id="fr-strip" hidden></div></div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" id="en-open" aria-expanded="false">Encyclopedia</button><div class="score" aria-label="Victory points"><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div></div>
   </div>
   <div class="turnbar" id="turnbar" aria-live="polite"></div>
@@ -366,7 +367,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="roster"><div class="side cs"><h2 id="h-cs">City States</h2><div id="r-cs"></div></div><div class="side nord"><h2 id="h-nord">Nords</h2><div id="r-nord"></div></div></div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-06 15:07 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-06 15:20 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -981,7 +982,7 @@ function render(){
     if(u.charName){const cr=document.createElement('div');cr.className='u'+(u.onTable?'':' off')+(u.charActivated?' done':'')+(u.id===selId?' sel':'');cr.tabIndex=0;
       const cn=document.createElement('span');cn.className='n';cn.textContent=u.charName;const cs2=document.createElement('span');cs2.className='s';cs2.textContent='Character · with '+(u.short||u.name);
       cr.append(cn,cs2);cr.onclick=()=>{selId=u.id;render();};cr.onkeydown=e=>{if(e.key==='Enter'){selId=u.id;render();}};box.appendChild(cr);}});});
-  renderCard();try{renderFacBox();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
+  renderCard();try{renderFacBox();renderFrStrip();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
   const held=!!PS().strategicHeld,used=PS().strategicUsedRound===state.round,notMine=PVP()&&(state.turn!==HU||!seatSide());
   {const ss=$('strat-btn').closest('.sec');if(ss)ss.hidden=SBX()||!canStrat(ME);}
   $('strat-read').textContent=held?'1 card held, face down':'Empty';
@@ -1289,7 +1290,7 @@ function PVP(){return !!(state&&state.mode==='pvp');}
 function SBX(){return !!(state&&state.mode==='test');}
 function other(s){return s==='cs'?'nord':'cs';}
 function seatSide(){if(!PVP()||!myId)return null;const st=state.seats||{};return st.cs===myId?'cs':st.nord===myId?'nord':null;}
-function applySeat(){const was=FLIP;const me=PVP()?(seatSide()||'cs'):SBX()?(state.sbSide||'cs'):'cs';HU=ME=me;AI=other(me);FLIP=!SBX()&&me==='nord';
+function applySeat(){const was=FLIP;const me=PVP()?(seatSide()||'cs'):SBX()?(state.sbSide||'cs'):'cs';HU=ME=me;AI=other(me);FLIP=me==='nord';
   if(was!==FLIP){terrKey='';zoneKey='';}
   $('edge-top').setAttribute('fill',FLIP?'#8E2F2F':'#2F578E');$('edge-bot').setAttribute('fill',FLIP?'#2F578E':'#8E2F2F');
   const ly=$('leg-you'),lt2=$('leg-them'),ltt=$('leg-them-t');if(ly)ly.setAttribute('fill',HU==='cs'?'#9A3328':'#2C5A8E');if(lt2)lt2.setAttribute('fill',HU==='cs'?'#2C5A8E':'#9A3328');if(ltt)ltt.textContent=PVP()?'Opponent':'Claude’s army';
@@ -2120,7 +2121,7 @@ async function tfDrop(L){const side=tfSide;let n=state.sbN||0;
 function tfWmax(u){const W=+(u.stats&&u.stats.W)||4;return Math.max(1,(u.stands||1)*W+(u.auxStats?+u.auxStats.W||0:0));}
 function tfKey(ev){const u=base(selId);if(!u||!u.onTable)return;const k=ev.key;let p=null;
   if(k==='q'||k==='Q')p={facing:((u.facing||0)-15+360)%360};if(k==='e'||k==='E')p={facing:((u.facing||0)+15)%360};
-  const d={ArrowLeft:[.5,0],ArrowRight:[-.5,0],ArrowUp:[0,-.5],ArrowDown:[0,.5]}[k];if(d)p={x:u.x+d[0],y:u.y+d[1]};
+  const d0={ArrowLeft:[.5,0],ArrowRight:[-.5,0],ArrowUp:[0,-.5],ArrowDown:[0,.5]}[k],d=d0&&(FLIP?[-d0[0],-d0[1]]:d0);if(d)p={x:u.x+d[0],y:u.y+d[1]};
   if(p){ev.preventDefault();tfSet(u.id,p);}}
 function tfDropChar(u){const o=(u.order||[]).filter(t=>t!=='c');const st=Math.max(1,(u.stands||2)-1);
   const x=Object.assign({},u,{stands:st,files:Math.min(u.files||1,st)});['char','charName','charStats','charRules','warlord','spells','charActivated'].forEach(k=>delete x[k]);if(u.order)x.order=o;return x;}
@@ -2292,6 +2293,25 @@ function renderFacBox(){const box=$('c-fac');if(!box)return;box.innerHTML='';con
   const wrap=bEl('div',{className:'fr-opts'});items.forEach(it=>{if(it.head){wrap.append(bEl('div',{className:'tf-l',textContent:it.head}));return;}const b=document.createElement('button');b.type='button';b.className='btn'+(it.cls==='pri'?'':' ghost');b.textContent=it.label;if(it.why){b.disabled=true;b.title=it.why;}b.onclick=()=>{if(b.disabled)return;Promise.resolve(it.fn()).then(()=>render()).catch(()=>toast('That could not be saved. Try again.'));};wrap.append(b);});
   if(items.length)box.append(wrap);}
 function tfSeeds(u,d){return putState({units:state.units.map(x=>x.id===u.id?Object.assign({},x,{seeds:Math.max(0,Math.min(3,(+x.seeds||0)+d))}):x)});}
+
+/* always-visible summary of faction tokens and trackers */
+function frSummary(side,f){const g=k=>frG(side,k);
+  if(f==='Old Dominion'){const o=g('od');return ['Dark Power '+(+o.dark||0)+' · Tier '+odTier(side,'dark'),'Fallen Pantheon '+(+o.pant||0)+' · Tier '+odTier(side,'pant')];}
+  if(f==='Nords'){const o=g('no');return ['Tribal Tactic: '+(o.round===(state.round||1)?o.tactic+' (this round)':o.used?'used':'available')];}
+  if(f==="W'adrhŭn"){const o=g('wa');return ['Chant: '+((o.seq||[]).join(', ')||'no markers')+' ('+(o.seq||[]).length+'/3)'];}
+  if(f==='Sorcerer Kings'){const o=g('sk');return [o.ritual?'Ritual: '+o.ritual+' '+(+o.rm||0)+'/'+(o.th||7):'No Ritual being prepared'];}
+  if(f==='Weaver Courts'){const o=g('wc'),seeds=(state.units||[]).filter(u=>u.side===side&&!u.destroyed).reduce((a,u)=>a+(+u.seeds||0),0);return [(o.season?'Season: '+o.season:'Season not chosen')+' · '+seeds+' Seed Marker'+(seeds===1?'':'s')];}
+  if(f==='Spires')return ['Sect: '+(g('sp').sect||'not chosen')];
+  if(f==='Dweghom'){const o=g('dw');return [(dwCreed(side)||'No Creed')+' · Elemental Power '+(+o.ep||0)+'/10'];}
+  if(f==='City States'&&stratU({side,fac:'City States'}))return [PS().strategicHeld&&side===ME&&!SBX()?'Strategic Stack: 1 card':'Strategic Stack: empty'];
+  return [];}
+function renderFrStrip(){const el=$('fr-strip');if(!el)return;el.innerHTML='';const st=state.step||'activations';
+  if(!state||['setup','review'].includes(st)){el.hidden=true;return;}
+  const sides=SBX()?['cs','nord']:PVP()?[ME,other(ME)]:[HU,AI];
+  sides.forEach(side=>frFacs(side).forEach(f=>frSummary(side,f).forEach(t=>{const b=document.createElement('button');b.type='button';b.className=side;
+    const who=SBX()?(side==='cs'?'South':'North'):side===ME?'You':N(side);b.innerHTML='';const bb=document.createElement('b');bb.textContent=who+': ';b.append(bb,document.createTextNode(t));
+    b.title='Open the Faction rules panel';b.onclick=()=>{frOpen=true;renderTurnbar();const d=document.querySelector('#turnbar .fr-panel');if(d)d.scrollIntoView({block:'nearest',behavior:'smooth'});};el.appendChild(b);})));
+  el.hidden=!el.children.length;}
 /* the Faction rules panel: trackers per side */
 let frOpen=false;
 function frPanel(){const d=bEl('details',{className:'vc fr-panel'});d.open=frOpen;d.ontoggle=()=>{frOpen=d.open;};d.append(bEl('summary',{textContent:'Faction rules'}));let any=false;
