@@ -2,9 +2,9 @@
  * Conquest Table: standalone runtime.
  * Provides the small API the game expects (db, user, sample) outside Claude:
  *  - db: a document store. Offline it lives in this browser (localStorage).
- *        Online, the host's browser holds the game and every guest syncs with it
- *        peer-to-peer (PeerJS / WebRTC). Paths under data/users/ never leave the device,
- *        so Command Stacks stay hidden.
+ *        Online, the host's browser holds the game and guests sync with it through a
+ *        public MQTT broker over secure WebSockets. Paths under data/users/ never leave
+ *        the device, so Command Stacks stay hidden.
  *  - user: a random id kept in this browser.
  *  - sample: Claude through the player's own Anthropic API key (optional).
  */
@@ -23,22 +23,26 @@
     return o;
   }
 
-  /* ---------- identity ---------- */
-  let myId = LS.get(PREFIX + 'me', null);
-  if (!myId) { myId = 'p' + Math.random().toString(36).slice(2, 10); LS.set(PREFIX + 'me', myId); }
-
   /* ---------- session: offline, hosting or joined ---------- */
   const params = new URLSearchParams(location.search);
-  const joinCode = (params.get('join') || '').trim().toUpperCase();
-  const hostCode = (params.get('host') || '').trim().toUpperCase();
+  const clean = v => (v || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const joinCode = clean(params.get('join'));
+  const hostCode = clean(params.get('host'));
   const mode = joinCode ? 'guest' : hostCode ? 'host' : 'local';
   const room = joinCode || hostCode || 'local';
-  const PEER_PREFIX = 'conquest-table-v1-';
+
+  /* ---------- identity ----------
+     The host and offline player use one id per browser. A guest gets an id per game,
+     so a second tab in the same browser can join as a different player, and the same
+     guest gets their seat back after a reload. */
+  const idKey = mode === 'guest' ? PREFIX + 'me-guest-' + room : PREFIX + 'me';
+  let myId = LS.get(idKey, null);
+  if (!myId) { myId = (mode === 'guest' ? 'g' : 'p') + Math.random().toString(36).slice(2, 10); LS.set(idKey, myId); }
 
   /* ---------- store ---------- */
   const isPrivate = p => p.startsWith('data/users/');
   const storeKey = PREFIX + 'room-' + room;
-  const privKey = PREFIX + 'priv-' + room;
+  const privKey = PREFIX + 'priv-' + room + '-' + myId;
   // The host and offline players keep the game in localStorage, so a refresh resumes it.
   let docs = (mode === 'guest') ? {} : LS.get(storeKey, {});
   let priv = LS.get(privKey, {});
@@ -56,80 +60,104 @@
     persist(); fire(p);
   }
 
-  /* ---------- peer-to-peer ---------- */
-  let peer = null, hostConn = null; const guests = new Set();
-  let ready = mode !== 'guest', readyWaiters = [];
+  /* ---------- online play ----------
+     Players meet on a public MQTT broker over secure WebSockets, which works on almost
+     any network (no WebRTC, no TURN). The host's browser is the referee: guests send
+     write requests, the host applies them and publishes each shared document as a
+     retained message. Private paths (data/users/...) are never sent. */
+  const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
+  const TOPIC = 'conquest-table/v2/' + room + '/';
+  let client = null, brokerIx = -1;
+  let ready = mode !== 'guest', readyWaiters = [], hostSeen = false, wq = [];
   let status = mode === 'local' ? 'Offline: this device only' : 'Connecting…';
   function setStatus(t) { status = t; renderBar(); }
   function whenReady() { return ready ? Promise.resolve() : new Promise(r => readyWaiters.push(r)); }
-  function markReady() { ready = true; readyWaiters.splice(0).forEach(r => r()); }
-  function broadcast(msg, except) { guests.forEach(c => { if (c !== except && c.open) try { c.send(msg); } catch (e) { } }); }
+  function markReady() { if (ready) return; ready = true; readyWaiters.splice(0).forEach(r => r()); }
+  function pub(topic, obj, retain) { if (client && client.connected) client.publish(topic, obj == null ? '' : JSON.stringify(obj), { qos: 1, retain: !!retain }); }
 
-  function hostWrite(p, data, isUpdate, from) {
+  function hostWrite(p, data, isUpdate) {
     applyLocal(p, data, isUpdate);
-    broadcast({ t: 'doc', p, v: docs[p] == null ? null : docs[p] }, null);
+    pub(TOPIC + 'doc/' + p, docs[p] == null ? null : docs[p], true);
   }
   async function write(p, data, isUpdate) {
     if (isPrivate(p) || mode === 'local') { applyLocal(p, data, isUpdate); return; }
     if (mode === 'host') { hostWrite(p, data, isUpdate); return; }
     await whenReady();
-    if (!hostConn || !hostConn.open) throw Object.assign(new Error('Not connected to the host'), { code: 'unavailable' });
-    hostConn.send({ t: 'write', p, v: data, u: !!isUpdate });
+    const msg = { p, v: data, u: !!isUpdate, from: myId };
+    if (client && client.connected) pub(TOPIC + 'w', msg, false); else wq.push(msg);
     // Show our own change straight away; the host's copy follows and wins.
     applyLocal(p, data, isUpdate);
   }
 
-  function loadPeerJs() {
+  function loadLib() {
     return new Promise((res, rej) => {
-      if (window.Peer) return res();
+      if (window.mqtt) return res();
       const s = document.createElement('script');
-      s.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
-      s.onload = () => res(); s.onerror = () => rej(new Error('PeerJS failed to load'));
+      s.src = 'https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js';
+      s.onload = () => window.mqtt ? res() : rej(new Error('mqtt missing')); s.onerror = () => rej(new Error('MQTT library failed to load'));
       document.head.appendChild(s);
     });
   }
+  function brokers() { const o = window.__conquestBrokers; return Array.isArray(o) && o.length ? o : BROKERS; }
+  function tryConnect(url) {
+    return new Promise(res => {
+      const opts = { clientId: 'ct-' + myId + '-' + Math.random().toString(36).slice(2, 6), clean: true, connectTimeout: 5000, reconnectPeriod: 3000, keepalive: 30 };
+      if (mode === 'host') opts.will = { topic: TOPIC + 'host', payload: JSON.stringify({ online: false, at: Date.now() }), qos: 1, retain: true };
+      const c = window.mqtt.connect(url, opts); let done = false;
+      const fin = ok => { if (done) return; done = true; if (!ok) { try { c.end(true); } catch (e) { } } res(ok ? c : null); };
+      c.once('connect', () => fin(true)); c.once('error', () => fin(false)); setTimeout(() => fin(false), 6000);
+    });
+  }
+  function onMessage(topic, buf) {
+    const rest = topic.slice(TOPIC.length); let v = null; const txt = buf ? buf.toString() : '';
+    if (txt) { try { v = JSON.parse(txt); } catch (e) { return; } }
+    if (rest === 'host') { if (mode === 'guest') { hostSeen = !!(v && v.online); setStatus(hostSeen ? 'Connected to game ' + room : 'Game ' + room + ': waiting for the host to come back…'); if (hostSeen) markReady(); } return; }
+    if (rest === 'w') { if (mode === 'host' && v && typeof v.p === 'string' && !isPrivate(v.p)) hostWrite(v.p, v.v, v.u); return; }
+    if (rest.startsWith('doc/')) {
+      const p = rest.slice(4);
+      if (mode === 'guest') { if (v == null) delete docs[p]; else docs[p] = v; fire(p); }
+      else if (mode === 'host' && restoring && v != null && docs[p] == null) { docs[p] = v; persist(); fire(p); }
+    }
+  }
+  let restoring = false;
   async function startNetwork() {
     if (mode === 'local') return;
-    try { await loadPeerJs(); } catch (e) { setStatus('Could not load the online play library. Check your connection.'); return; }
+    try { await loadLib(); } catch (e) { setStatus('Could not load the online play library. Check your internet connection and reload.'); return; }
+    const list = brokers(); let order = list.map((u, i) => i), fallback = null;
+    const pref = +params.get('b'); if (pref >= 0 && pref < list.length) order = [pref].concat(order.filter(i => i !== pref));
+    for (const i of order) {
+      setStatus((mode === 'host' ? 'Starting game ' : 'Looking for game ') + room + '… (server ' + (i + 1) + ' of ' + list.length + ')');
+      const c = await tryConnect(list[i]); if (!c) continue;
+      if (mode === 'guest') {
+        // Check that the host is on this server before settling on it.
+        const found = await new Promise(res => {
+          let ok = false; const h = (t, b) => { if (t === TOPIC + 'host') { try { const v = JSON.parse(b.toString() || 'null'); if (v && v.online) { ok = true; res(true); } } catch (e) { } } };
+          c.on('message', h); c.subscribe(TOPIC + 'host', { qos: 1 }); setTimeout(() => { c.removeListener('message', h); res(ok); }, 3500);
+        });
+        if (!found) { if (!fallback) fallback = [c, i]; else { try { c.end(true); } catch (e) { } } continue; }
+        if (fallback) { try { fallback[0].end(true); } catch (e) { } fallback = null; }
+        hostSeen = true;
+      }
+      client = c; brokerIx = i; break;
+    }
+    // No host anywhere yet: wait on the first server that answered.
+    if (!client && fallback) { client = fallback[0]; brokerIx = fallback[1]; }
+    if (!client) { setStatus('Could not reach any game server. Your network may block them; try another network (for example mobile data).'); return; }
+    client.on('message', onMessage);
+    client.on('reconnect', () => setStatus('Connection lost, reconnecting…'));
+    client.on('offline', () => setStatus('Offline, reconnecting…'));
     if (mode === 'host') {
-      peer = new window.Peer(PEER_PREFIX + room);
-      peer.on('open', () => setStatus('Hosting game ' + room + ' · keep this tab open'));
-      peer.on('error', err => {
-        if (err && err.type === 'unavailable-id') setStatus('Game ' + room + ' is already hosted in another tab or by someone else.');
-        else setStatus('Connection problem: ' + ((err && err.type) || 'unknown') + '. Reload to retry.');
+      const announce = () => { pub(TOPIC + 'host', { online: true, at: Date.now(), id: myId }, true); setStatus('Hosting game ' + room + ' · keep this tab open'); };
+      client.on('connect', () => { announce(); Object.keys(docs).forEach(p => pub(TOPIC + 'doc/' + p, docs[p], true)); });
+      restoring = !Object.keys(docs).length;
+      client.subscribe([TOPIC + 'w', TOPIC + 'doc/#'], { qos: 1 }, () => {
+        setTimeout(() => { restoring = false; Object.keys(docs).forEach(p => pub(TOPIC + 'doc/' + p, docs[p], true)); announce(); }, 1500);
       });
-      peer.on('disconnected', () => { setStatus('Lost the signalling server, reconnecting…'); try { peer.reconnect(); } catch (e) { } });
-      peer.on('connection', conn => {
-        conn.on('open', () => {
-          guests.add(conn); conn.send({ t: 'snapshot', docs });
-          setStatus('Hosting game ' + room + ' · ' + guests.size + ' connected');
-        });
-        conn.on('data', msg => {
-          if (msg && msg.t === 'write' && typeof msg.p === 'string' && !isPrivate(msg.p)) hostWrite(msg.p, msg.v, msg.u, conn);
-        });
-        conn.on('close', () => { guests.delete(conn); setStatus('Hosting game ' + room + ' · ' + guests.size + ' connected'); });
-      });
+      addEventListener('pagehide', () => { try { client.publish(TOPIC + 'host', JSON.stringify({ online: false, at: Date.now() }), { qos: 0, retain: true }); } catch (e) { } });
     } else {
-      peer = new window.Peer();
-      const connect = () => {
-        setStatus('Joining game ' + room + '…');
-        hostConn = peer.connect(PEER_PREFIX + room, { reliable: true });
-        hostConn.on('open', () => setStatus('Connected to game ' + room));
-        hostConn.on('data', msg => {
-          if (!msg) return;
-          if (msg.t === 'snapshot') {
-            const old = Object.keys(docs); docs = msg.docs || {};
-            new Set(old.concat(Object.keys(docs))).forEach(fire); markReady();
-          } else if (msg.t === 'doc') {
-            if (msg.v == null) delete docs[msg.p]; else docs[msg.p] = msg.v; fire(msg.p);
-          }
-        });
-        hostConn.on('close', () => { setStatus('The host left or the connection dropped. Retrying…'); setTimeout(connect, 3000); });
-      };
-      peer.on('open', connect);
-      peer.on('error', err => {
-        if (err && err.type === 'peer-unavailable') { setStatus('No game ' + room + ' is running right now. Retrying…'); setTimeout(connect, 4000); }
-        else setStatus('Connection problem: ' + ((err && err.type) || 'unknown') + '.');
+      client.on('connect', () => { wq.splice(0).forEach(m => pub(TOPIC + 'w', m, false)); });
+      client.subscribe([TOPIC + 'doc/#', TOPIC + 'host'], { qos: 1 }, () => {
+        setTimeout(() => { Object.keys(docs).forEach(fire); setStatus(hostSeen ? 'Connected to game ' + room : 'No host is online for game ' + room + ' yet. Waiting…'); markReady(); }, 1200);
       });
     }
   }
@@ -196,23 +224,27 @@
 
   /* ---------- connection bar and settings ---------- */
   let bar = null;
-  function newCode() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 5; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
+  function newCode() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
   function urlWith(q) { return location.origin + location.pathname + (q ? '?' + q : ''); }
   function renderBar() {
     if (!document.body) return;
     if (!bar) { bar = document.createElement('div'); bar.id = 'net-bar'; document.body.insertBefore(bar, document.body.firstChild); }
     bar.innerHTML = '';
     const left = document.createElement('div'); left.className = 'nb-l';
-    const dot = document.createElement('span'); dot.className = 'nb-dot ' + (mode === 'local' ? 'off' : /Connected|Hosting game \w+ ·/.test(status) ? 'on' : 'wait');
+    const dot = document.createElement('span'); dot.className = 'nb-dot ' + (mode === 'local' ? 'off' : /^(Connected|Hosting game)/.test(status) ? 'on' : 'wait');
     const st = document.createElement('span'); st.textContent = status; left.append(dot, st); bar.appendChild(left);
     const right = document.createElement('div'); right.className = 'nb-r';
     const btn = (t, fn, primary) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (primary ? '' : ' ghost'); b.textContent = t; b.onclick = fn; right.appendChild(b); return b; };
     if (mode === 'local') {
       btn('Host an online game', () => { location.href = urlWith('host=' + newCode()); }, true);
-      btn('Join with a code', () => { const c = prompt('Game code from the host:'); if (c && c.trim()) location.href = urlWith('join=' + encodeURIComponent(c.trim().toUpperCase())); });
+      const f = document.createElement('form'); f.className = 'nb-join';
+      const inp = Object.assign(document.createElement('input'), { type: 'text', placeholder: 'Game code', maxLength: 12, autocomplete: 'off' }); inp.setAttribute('aria-label', 'Game code from the host');
+      const go = document.createElement('button'); go.type = 'submit'; go.className = 'btn ghost'; go.textContent = 'Join';
+      f.onsubmit = e => { e.preventDefault(); const c = clean(inp.value); if (c.length >= 4) location.href = urlWith('join=' + c); else flash('Type the game code your host sent you.'); };
+      f.append(inp, go); right.appendChild(f);
     } else {
       if (mode === 'host') btn('Copy invite link', async () => {
-        const link = urlWith('join=' + room);
+        const link = urlWith('join=' + room + (brokerIx > 0 ? '&b=' + brokerIx : ''));
         try { await navigator.clipboard.writeText(link); flash('Invite link copied: ' + link); } catch (e) { flash('Send this link to your opponent: ' + link); }
       }, true);
       btn('Leave', () => { location.href = urlWith(''); });
@@ -247,10 +279,11 @@
   const css = document.createElement('style');
   css.textContent = '#net-bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;max-width:1240px;margin:8px auto 0;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:14px}' +
     '#net-bar .nb-l{display:flex;align-items:center;gap:8px;min-width:0}#net-bar .nb-r{display:flex;flex-wrap:wrap;gap:6px}' +
+    '.nb-join{display:flex;gap:6px}.nb-join input{width:120px;font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);text-transform:uppercase}' +
     '.nb-dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--muted)}.nb-dot.on{background:var(--ok)}.nb-dot.wait{background:var(--gold)}' +
     '.nb-flash{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:calc(100vw - 32px);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;z-index:60;overflow-wrap:anywhere}';
   document.head.appendChild(css);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderBar); else renderBar();
   startNetwork();
-  window.__conquestNet = { mode, room, docs: () => docs };
+  window.__conquestNet = { mode, room, docs: () => docs, id: () => myId };
 })();
