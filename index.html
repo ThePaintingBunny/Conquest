@@ -1772,6 +1772,8 @@ function armyBuilder(add,mk,onUse,useLabel){const box=bEl('div',{className:'rev 
   fs.onchange=()=>{bld={fac:fs.value,wbs:[],warlord:0};bldSave();renderTurnbar();};box.appendChild(bEl('div',{className:'row'},[fs]));
   const f=bldFac();if(!f){box.appendChild(ptext('Pick a faction. Each character brings a warband of up to 4 regiments: any number of Mainstay choices, at most 2 Restricted, and at least as many Mainstay as Restricted.'));add(box);return;}
   const chars=f.units.filter(u=>u.kind==='char'&&u.pts!=null);
+  // Lists saved by an older version kept modular stand types as separate regiments: fold them into Modular Regiments.
+  let mig=false;bld.wbs.forEach(w=>{const c=bldUnit(w.char);if(!c||!wbChoices(c).some(q=>q.modular))return;w.regs=w.regs.map(r=>{if(r.unit&&MODULAR[r.unit]){mig=true;return {modular:{cmd:r.unit,counts:{[r.unit]:Math.max(2,+r.stands||2)}},custom:r.custom||[]};}return r;});});if(mig)bldSave();
   bld.wbs.forEach((w,wi)=>{const c=bldUnit(w.char),card=bEl('div',{className:'bld-wb'});
     const head=bEl('div',{className:'bld-wbh'});const cs=bEl('select');cs.setAttribute('aria-label','Character of warband '+(wi+1));chars.forEach(x=>cs.appendChild(bEl('option',{value:x.name,textContent:x.name+' · '+x.pts})));cs.value=w.char;
     cs.onchange=()=>{w.char=cs.value;w.regs=[];w.joins=null;w.custom=[];bldSave();renderTurnbar();};
@@ -1783,7 +1785,7 @@ function armyBuilder(add,mk,onUse,useLabel){const box=bEl('div',{className:'rev 
     const R=wbRules(c),choices=wbChoices(c);
     const info=bEl('div',{className:'bld-ci'});
     if(c.type!=='Monster'&&!R.none){const js=bEl('select');js.setAttribute('aria-label','Regiment the '+c.name+' joins');js.appendChild(bEl('option',{value:'',textContent:'Choose a regiment…'}));
-      w.regs.forEach((r,ri)=>{if(joinable(w,r))js.appendChild(bEl('option',{value:String(ri),textContent:(r.unit||'')+' (regiment '+(ri+1)+')'}));});js.value=w.joins!=null?String(w.joins):'';
+      w.regs.forEach((r,ri)=>{if(joinable(w,r))js.appendChild(bEl('option',{value:String(ri),textContent:(r.unit||(r.modular?'Modular Regiment ('+r.modular.cmd+')':''))+' (regiment '+(ri+1)+')'}));});js.value=w.joins!=null?String(w.joins):'';
       js.onchange=()=>{w.joins=js.value===''?null:+js.value;bldSave();renderTurnbar();};info.append(bEl('span',{textContent:'● The '+c.name+' joins '}),js);}
     else if(c.type==='Monster')info.append(bEl('span',{textContent:'The '+c.name+' fights as its own regiment.'}));
     if(R.none)info.append(bEl('span',{textContent:' No warband: '+c.warband}));
