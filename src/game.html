@@ -19,7 +19,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
 .top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
 h1{font-family:var(--display);font-size:28px;margin:0;text-wrap:balance}
 .phase{font-size:15px;color:var(--muted)}
-.fr-strip{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.fr-strip button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer}.fr-strip button b{font-weight:600}.fr-strip .cs{border-color:#9A3328}.fr-strip .nord{border-color:#2C5A8E}
+.fr-strip{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.fr-strip button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer}.fr-strip button b{font-weight:600}.fr-strip .cs{border-color:var(--cs)}.fr-strip .nord{border-color:var(--nord)}
+.col-row{flex-basis:100%;width:100%;gap:18px}.col-pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0}.col-sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}.col-sw.on{outline:3px solid var(--gold);outline-offset:2px;border-color:#fff}.col-sw.taken{opacity:.25;cursor:not-allowed}.col-sw:disabled:not(.taken){cursor:default}
 .score{display:flex;gap:10px;font-family:var(--display);font-weight:700;font-size:18px}
 .score span{padding:4px 12px;border-radius:8px;color:#fff;font-variant-numeric:tabular-nums}
 .score .cs{background:var(--cs)}.score .nord{background:var(--nord)}
@@ -409,28 +410,44 @@ function renderLegend(){const pan=$('leg-panel'),btn=$('leg-btn');if(!pan||!btn)
   sec('Objectives');
   if(zs.some(z=>z.size===9))item(g=>el('circle',{cx:20,cy:13,r:11,fill:'#D9B44A','fill-opacity':.25,stroke:'#C9A63E','stroke-width':1.5,'stroke-dasharray':'4 3'},g),'Large zone','9″, 3 VP');
   if(zs.some(z=>z.size!==9))item(g=>el('circle',{cx:20,cy:13,r:7,fill:'#D9B44A','fill-opacity':.25,stroke:'#C9A63E','stroke-width':1.5,'stroke-dasharray':'3 3'},g),'Small zone','6″, 2 VP');
-  if(zs.some(z=>z.friendly))item(g=>{el('circle',{cx:13,cy:13,r:8,fill:'#C9655A','fill-opacity':.35,stroke:'#C9655A'},g);el('circle',{cx:28,cy:13,r:8,fill:'#5E8BC0','fill-opacity':.35,stroke:'#5E8BC0'},g);},'Friendly zones','Only the other side can seize them');
-  if((state.units||[]).some(u=>u.type==='marker'))item(g=>{[['#9A3328',9],['#2C5A8E',20],['#6B5638',31]].forEach(([c,x])=>el('circle',{cx:x,cy:13,r:5,fill:c,stroke:'#F3E6C4','stroke-width':1},g));},'Objective Markers','Red south, blue north, brown neutral; 3 wounds');
+  if(zs.some(z=>z.friendly))item(g=>{el('circle',{cx:13,cy:13,r:8,fill:COL.cs.light,'fill-opacity':.35,stroke:COL.cs.light},g);el('circle',{cx:28,cy:13,r:8,fill:COL.nord.light,'fill-opacity':.35,stroke:COL.nord.light},g);},'Friendly zones','Only the other side can seize them');
+  if((state.units||[]).some(u=>u.type==='marker'))item(g=>{[[COL.cs.fill,9],[COL.nord.fill,20],['#6B5638',31]].forEach(([c,x])=>el('circle',{cx:x,cy:13,r:5,fill:c,stroke:'#F3E6C4','stroke-width':1},g));},'Objective Markers',PAL[colId('cs')].name+' south, '+colName('nord')+' north, brown neutral; 3 wounds');
   const types=[...new Set(T.map(t=>t.type))];if(types.length){sec('Terrain');
     if(types.includes('forest'))item(g=>forest(20,13,14,9,g),'Forest','Hindering, cover');if(types.includes('hill'))item(g=>hill(20,13,14,8,g),'Hill','Blocks sight');if(types.includes('rocks'))item(g=>rocks(20,13,11,7,g),'Rocks','Impassable');}
   sec('Armies');
   ['cs','nord'].forEach(sd=>item(g=>{el('rect',{x:8,y:6,width:24,height:14,rx:2,fill:COL[sd].fill,stroke:'#F3E6C4','stroke-width':1},g);},N(sd)+(sd===HU?' (you)':''),(sd===HU)?'Bottom edge':'Top edge'));
   sec('Stands');
-  item(g=>{legStand(g,'#9A3328','#E8C65A',2.2);el('path',{d:'M20 8.5 L24 13 L20 17.5 L16 13Z',fill:'#E8C65A',stroke:'#4A3418','stroke-width':.6},g);},'Command stand','Gold edge and diamond; removed last');
-  item(g=>{legStand(g,'#C9655A');},'Rear rank','Lighter colour');
-  if(U.some(u=>u.char!=null))item(g=>{legStand(g,'#9A3328');el('circle',{cx:20,cy:13,r:4,fill:'#F3E6C4',stroke:'#4A3418','stroke-width':.8},g);},'Character','Always in the front rank');
+  item(g=>{legStand(g,COL[HU].fill,'#E8C65A',2.2);el('path',{d:'M20 8.5 L24 13 L20 17.5 L16 13Z',fill:'#E8C65A',stroke:'#4A3418','stroke-width':.6},g);},'Command stand','Gold edge and diamond; removed last');
+  item(g=>{legStand(g,COL[HU].light);},'Rear rank','Lighter colour');
+  if(U.some(u=>u.char!=null))item(g=>{legStand(g,COL[HU].fill);el('circle',{cx:20,cy:13,r:4,fill:'#F3E6C4',stroke:'#4A3418','stroke-width':.8},g);},'Character','Always in the front rank');
   const auxes=new Set(U.filter(u=>u.aux!=null&&u.auxStats).map(u=>auxStyle(u).key));
   if(auxes.has('mino'))item(g=>{legStand(g,'#3B1A14');el('path',{d:'M15.5 9.5 Q17 15 20 15 Q23 15 24.5 9.5',fill:'none',stroke:'#F3E6C4','stroke-width':1.6,'stroke-linecap':'round'},g);},'Minotaur','Auxiliary stand, own profile');
   if(auxes.has('sb'))item(g=>{legStand(g,'#2E3B55');el('circle',{cx:20,cy:13,r:4.6,fill:'#B8862E',stroke:'#F3E6C4','stroke-width':.8},g);el('path',{d:'M17.7 15.2 L20 10.4 L22.3 15.2',fill:'none',stroke:'#1C1410','stroke-width':1.2},g);},'Sacred Band Veteran','Auxiliary stand, own profile');
   const mods=[...new Set(U.flatMap(u=>u.mods||[]))];if(mods.length){sec('Modular stands');mods.forEach(m=>{const M=MODSTYLE[m];if(!M)return;const P=MODULAR[m]||{};
-    item(g=>{legStand(g,'#9A3328');el('rect',{x:14,y:9,width:12,height:8,rx:2,fill:M[1],stroke:'#1C1410','stroke-width':.5},g);const t=el('text',{x:20,y:13.3,'text-anchor':'middle','dominant-baseline':'central','font-size':6,'font-weight':700,fill:'#1C1410'},g);t.textContent=M[0];},m,P.role?'Ideal '+P.role+' · '+(P.rules||[]).join(', '):'');});}
+    item(g=>{legStand(g,COL[HU].fill);el('rect',{x:14,y:9,width:12,height:8,rx:2,fill:M[1],stroke:'#1C1410','stroke-width':.5},g);const t=el('text',{x:20,y:13.3,'text-anchor':'middle','dominant-baseline':'central','font-size':6,'font-weight':700,fill:'#1C1410'},g);t.textContent=M[0];},m,P.role?'Ideal '+P.role+' · '+(P.rules||[]).join(', '):'');});}
   sec('Markers');
-  item(g=>{legStand(g,'#9A3328');el('circle',{cx:26,cy:9,r:5.5,fill:'#B3261E',stroke:'#FFF3E0','stroke-width':1.2},g);const t=el('text',{x:26,y:9.5,'text-anchor':'middle','dominant-baseline':'central','font-size':7,'font-weight':700,fill:'#FFF3E0'},g);t.textContent='3';},'Wounds','On the stand taking them');
-  item(g=>{legStand(g,'#9A3328');el('path',{d:'M15 8 L19 11 L22 13 L19 16 L25 19',fill:'none',stroke:'#1C1410','stroke-width':1.4,'stroke-linecap':'round'},g);},'Broken','Crack across the stands');
+  item(g=>{legStand(g,COL[HU].fill);el('circle',{cx:26,cy:9,r:5.5,fill:'#B3261E',stroke:'#FFF3E0','stroke-width':1.2},g);const t=el('text',{x:26,y:9.5,'text-anchor':'middle','dominant-baseline':'central','font-size':7,'font-weight':700,fill:'#FFF3E0'},g);t.textContent='3';},'Wounds','On the stand taking them');
+  item(g=>{legStand(g,COL[HU].fill);el('path',{d:'M15 8 L19 11 L22 13 L19 16 L25 19',fill:'none',stroke:'#1C1410','stroke-width':1.4,'stroke-linecap':'round'},g);},'Broken','Crack across the stands');
   item(g=>{el('rect',{x:4,y:10,width:32,height:5,fill:'#4A3418'},g);el('rect',{x:4,y:10,width:16,height:5,fill:'#C9B27A'},g);},'Scale','Bar is 12″, each half 6″');}
 $('leg-btn').onclick=()=>{legOpen=!legOpen;try{localStorage.setItem('conquest-legend',legOpen?'1':'0');}catch(e){}renderLegend();};
 /* ---------- game logic ---------- */
-const COL={cs:{fill:'#9A3328',light:'#C9655A'},nord:{fill:'#2C5A8E',light:'#5E8BC0'}};
+const PAL={red:{name:'Red',fill:'#9A3328',light:'#C9655A',edge:'#8E2F2F',ui:'#D0675B'},blue:{name:'Blue',fill:'#2C5A8E',light:'#5E8BC0',edge:'#2F578E',ui:'#6E9BD3'},
+ green:{name:'Green',fill:'#2F6B3A',light:'#6E9E72',edge:'#2A5F34',ui:'#6FB57A'},purple:{name:'Purple',fill:'#5B3A8C',light:'#8C70B8',edge:'#523480',ui:'#A58BD6'},
+ gold:{name:'Gold',fill:'#946414',light:'#C79A4A',edge:'#87590F',ui:'#D9A74A'},teal:{name:'Teal',fill:'#1F6E73',light:'#5C9EA2',edge:'#1B6368',ui:'#5DB5BA'},
+ orange:{name:'Orange',fill:'#B0501A',light:'#D98A5A',edge:'#A04716',ui:'#E38A5B'},black:{name:'Black',fill:'#2E3438',light:'#687176',edge:'#25292C',ui:'#9AA3A8'}};
+const COL={cs:Object.assign({},PAL.red),nord:Object.assign({},PAL.blue)};
+function colId(side){const c=(state&&state.colors)||{};const id=c[side]||(side==='cs'?'red':'blue');return PAL[id]?id:(side==='cs'?'red':'blue');}
+function colName(side){return PAL[colId(side)].name.toLowerCase();}
+function applyColors(){['cs','nord'].forEach(sd=>Object.assign(COL[sd],PAL[colId(sd)]));let st=document.getElementById('side-colors');if(!st){st=document.createElement('style');st.id='side-colors';document.head.appendChild(st);}
+  const L=`--cs:${COL.cs.fill};--nord:${COL.nord.fill};`,D=`--cs:${COL.cs.ui};--nord:${COL.nord.ui};`;
+  const css=`:root{${L}}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){${D}}}:root[data-theme="dark"]{${D}}`;if(st.textContent!==css)st.textContent=css;
+  const et=$('edge-top'),eb=$('edge-bot');if(et)et.setAttribute('fill',(FLIP?COL.cs:COL.nord).edge);if(eb)eb.setAttribute('fill',(FLIP?COL.nord:COL.cs).edge);
+  const ly=$('leg-you'),lt2=$('leg-them');if(ly)ly.setAttribute('fill',COL[HU].fill);if(lt2)lt2.setAttribute('fill',COL[AI].fill);}
+async function setColor(side,id){const c=Object.assign({cs:colId('cs'),nord:colId('nord')},state.colors||{});const o=side==='cs'?'nord':'cs';if(c[o]===id){toast('The other side already uses '+PAL[id].name.toLowerCase()+'. Pick another colour.');return;}c[side]=id;await putState({colors:c});}
+function colorPicker(side,label,editable){const r=bEl('div',{className:'col-pick'});r.setAttribute('role','group');r.setAttribute('aria-label',label);r.append(bEl('span',{className:'tf-l',textContent:label}));
+  const o=side==='cs'?'nord':'cs',mine=colId(side),theirs=colId(o);
+  Object.entries(PAL).forEach(([id,P])=>{const b=bEl('button',{type:'button',className:'col-sw'+(id===mine?' on':'')});b.style.background=P.fill;b.title=P.name+(id===theirs?' (taken by the other side)':'');b.setAttribute('aria-label',P.name+(id===theirs?', taken':''));b.setAttribute('aria-pressed',String(id===mine));
+    b.disabled=!editable||id===theirs;if(id===theirs)b.classList.add('taken');b.onclick=()=>{if(id!==mine)setColor(side,id);};r.append(b);});return r;}
 const ACT={
   march:{n:'March',d:'Move up to M; sideways and back at half'},
   charge:{n:'Charge',d:'Roll D6 + M to reach a target'},
@@ -951,7 +968,7 @@ function renderCard(){
   if(w.length){$('c-warn').hidden=false;$('c-warn').textContent=w.join(' ');}
 }
 function render(){
-  if(!state)return;bldUse(SBX()?'test':'main');if(SBX()){state.strategicHeld=true;}{const su=state.step==='setup';['.main','.roster','#view-hint','#last','.score'].forEach(q=>{const e=document.querySelector(q);if(e)e.hidden=su;});}drawTerrain();drawZones();
+  if(!state)return;applyColors();bldUse(SBX()?'test':'main');if(SBX()){state.strategicHeld=true;}{const su=state.step==='setup';['.main','.roster','#view-hint','#last','.score'].forEach(q=>{const e=document.querySelector(q);if(e)e.hidden=su;});}drawTerrain();drawZones();
   $('phase').textContent=state.phase||'';
   $('vp-cs').textContent=N('cs')+' '+(state.vp?.cs??0);$('vp-nord').textContent=N('nord')+' '+(state.vp?.nord??0);$('h-cs').textContent=N('cs');$('h-nord').textContent=N('nord');$('combat').classList.toggle('busy',aiBusy);
   const ug=$('units'),mg=$('moves'),rg=$('rings');ug.innerHTML='';mg.innerHTML='';rg.innerHTML='';
@@ -1217,10 +1234,10 @@ function markerUnits(id){return (SCEN[id].markers||[]).map((m,i)=>({id:'m-'+(i+1
 function isMarker(u){return u&&u.type==='marker';}
 let zoneKey='';
 function drawZones(){const zs=zonesOf(),k=JSON.stringify(zs);if(k===zoneKey)return;zoneKey=k;const zg=$('zones'),sg=$('stones');zg.innerHTML='';sg.innerHTML='';
-  zs.forEach(z=>{const fill=z.friendly==='cs'?'#C9655A':z.friendly==='nord'?'#5E8BC0':'#D9B44A';el('circle',{cx:px(z.x),cy:py(z.y),r:z.r*S,fill,stroke:z.friendly?fill:'#E8C65A'},zg);
+  zs.forEach(z=>{const fill=z.friendly==='cs'?COL.cs.light:z.friendly==='nord'?COL.nord.light:'#D9B44A';el('circle',{cx:px(z.x),cy:py(z.y),r:z.r*S,fill,stroke:z.friendly?fill:'#E8C65A'},zg);
     stones(px(z.x),py(z.y),z.r>=4?5:3,z.r>=4?13:8,sg);
     const t=el('text',{x:px(z.x),y:py(z.y)+z.r*S+11,'text-anchor':'middle',fill:'#F7F3E6','font-size':10,'font-weight':700,'font-family':'Alegreya Sans, sans-serif',stroke:'#1C2421','stroke-width':2.2,'paint-order':'stroke','pointer-events':'none'},sg);t.textContent=z.name;});}
-function drawMarker(u,g){const c=u.side==='cs'?'#9A3328':u.side==='nord'?'#2C5A8E':'#6B5638';const grp=el('g',{transform:`translate(${px(u.x)} ${py(u.y)})`,'data-id':u.id,style:'cursor:pointer'},g);
+function drawMarker(u,g){const c=u.side==='cs'?COL.cs.fill:u.side==='nord'?COL.nord.fill:'#6B5638';const grp=el('g',{transform:`translate(${px(u.x)} ${py(u.y)})`,'data-id':u.id,style:'cursor:pointer'},g);
   el('rect',{x:-7,y:-7,width:14,height:14,rx:2,fill:c,stroke:'#F3E6C4','stroke-width':1.4},grp);const t=el('text',{x:0,y:0.5,'text-anchor':'middle','dominant-baseline':'central',fill:'#FFF3E0','font-size':9,'font-weight':700,'font-family':'Alegreya Sans, sans-serif'},grp);t.textContent=(u.short||'').replace('Marker ','');
   const d=Math.max(u.dmg?.cs||0,u.dmg?.nord||0);if(d){const wg=el('g',{transform:'translate(7 -7)'},grp);el('circle',{cx:0,cy:0,r:5,fill:'#B3261E',stroke:'#FFF3E0','stroke-width':1},wg);const wt=el('text',{x:0,y:0.5,'text-anchor':'middle','dominant-baseline':'central',fill:'#FFF3E0','font-size':8,'font-weight':700},wg);wt.textContent=String(d);}}
 function zoneControl(){const R=state.round||1;return zonesOf().map(z=>{const tot={cs:0,nord:0},sz={cs:0,nord:0};const contested={cs:false,nord:false};
@@ -1281,8 +1298,8 @@ function other(s){return s==='cs'?'nord':'cs';}
 function seatSide(){if(!PVP()||!myId)return null;const st=state.seats||{};return st.cs===myId?'cs':st.nord===myId?'nord':null;}
 function applySeat(){const was=FLIP;const me=PVP()?(seatSide()||'cs'):SBX()?(state.sbSide||'cs'):'cs';HU=ME=me;AI=other(me);FLIP=me==='nord';
   if(was!==FLIP){terrKey='';zoneKey='';}
-  $('edge-top').setAttribute('fill',FLIP?'#8E2F2F':'#2F578E');$('edge-bot').setAttribute('fill',FLIP?'#2F578E':'#8E2F2F');
-  const ly=$('leg-you'),lt2=$('leg-them'),ltt=$('leg-them-t');if(ly)ly.setAttribute('fill',HU==='cs'?'#9A3328':'#2C5A8E');if(lt2)lt2.setAttribute('fill',HU==='cs'?'#2C5A8E':'#9A3328');if(ltt)ltt.textContent=PVP()?'Opponent':'Claude’s army';
+  applyColors();
+  const ly=$('leg-you'),lt2=$('leg-them'),ltt=$('leg-them-t');if(ltt)ltt.textContent=PVP()?'Opponent':'Claude’s army';
   const h=$('view-hint');if(h)h.textContent=(PVP()?(seatSide()?'Shown from your side of the table. ':'You are watching; the view is from the south edge. '):'Shown from your side of the table. ')+'Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.';}
 function PS(){if(!PVP())return state;const d={gid:state.gid,round:state.round,huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,strategicUsedRound:0,hammerUsed:false},s=myStk||{};
   if(s.gid!==state.gid)return d;if(s.round!==state.round)return Object.assign(d,{strategicUsedRound:s.strategicUsedRound||0});return Object.assign(d,s);}
@@ -1796,7 +1813,7 @@ let terrMode='random',terrType='forest',terrSize='medium';
 function scenarioPanel(add,mk){const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent='Scenario';box.appendChild(h);
   const sel=document.createElement('select');sel.setAttribute('aria-label','Scenario');Object.keys(SCEN).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k+'. '+SCEN[k].name;sel.appendChild(o);});sel.value=String(scenId());
   sel.onchange=async()=>{const id=+sel.value;const patch={scenario:id,zones:SCEN[id].zones};await putState(patch);if(terrMode==='random')await putState({terrain:genTerrain()});else{const ok=terrainOf().filter(t=>!terrWhy(t,terrainOf()));await putState({terrain:ok});}};
-  box.appendChild(sel);box.appendChild(ptext(scenOf().vp));if((scenOf().markers||[]).length)box.appendChild(ptext('Objective Markers: red belongs to the south army, blue to the north army, brown is neutral. Each has 3 wounds and Defense 3 and can be attacked from round 2.'));add(box);}
+  box.appendChild(sel);box.appendChild(ptext(scenOf().vp));if((scenOf().markers||[]).length)box.appendChild(ptext('Objective Markers: '+colName('cs')+' belongs to the south army, '+colName('nord')+' to the north army, brown is neutral. Each has 3 wounds and Defense 3 and can be attacked from round 2.'));add(box);}
 function terrainPanel(add,mk){const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent='Terrain';box.appendChild(h);
   const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','Terrain mode');
   [['random','Random'],['manual','Place it yourself']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String(terrMode===m));b.onclick=()=>{terrMode=m;renderTurnbar();};g.appendChild(b);});
@@ -2089,7 +2106,7 @@ function armyModePicker(add){const g=document.createElement('div');g.className='
   [['build','Build it here'],['paste','Paste a list (Claude reads it)']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String(armyMode===m));b.onclick=()=>{armyMode=m;renderTurnbar();};g.appendChild(b);});add(g);}
 function modePicker(add){const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','Opponent');
   [['ai','Play against Claude'],['pvp','Play against a friend'],['test','Test field']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String((state.mode||'ai')===m));b.onclick=()=>{if(m==='test'){tfEnter();return;}if((state.mode||'ai')!==m)putState({mode:m});};g.appendChild(b);});add(g);}
-const SEATNAME={cs:'South edge (red)',nord:'North edge (blue)'};
+const SEATNAME={get cs(){return 'South edge ('+colName('cs')+')';},get nord(){return 'North edge ('+colName('nord')+')';}};
 
 /* ---------- test field: drop regiments, set conditions, activate freely ---------- */
 let tfDrag=null,tfSide='cs',tfReserve=false,tfAddOpen=true,tfFx='';
@@ -2119,7 +2136,7 @@ function renderTestField(tb,info,mk,add){
   info.textContent='Test field: drop regiments for either side, set up the situation, then activate any of your regiments as often as you like. Nothing here is scored.';
   const top=bEl('div',{className:'tf-row'});
   const ctl=bEl('div',{className:'grp'});ctl.setAttribute('role','group');ctl.setAttribute('aria-label','You control');
-  [['cs','Control South (red)'],['nord','Control North (blue)']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t+' · '+nOn(sd)});b.setAttribute('aria-pressed',String(ME===sd));b.onclick=async()=>{if(act){toast('Finish or undo the current activation first.');return;}if(ME!==sd){await putState({sbSide:sd});applySeat();render();}};ctl.appendChild(b);});
+  [['cs','Control South ('+colName('cs')+')'],['nord','Control North ('+colName('nord')+')']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t+' · '+nOn(sd)});b.setAttribute('aria-pressed',String(ME===sd));b.onclick=async()=>{if(act){toast('Finish or undo the current activation first.');return;}if(ME!==sd){await putState({sbSide:sd});applySeat();render();}};ctl.appendChild(b);});
   top.append(ctl,bEl('span',{className:'tf-l',textContent:'Round'}),abStepper(state.round||1,1,10,v=>putState({round:v}),'round'),
     mk('Next round (ready everyone)',()=>{if(act){toast('Finish or undo the current activation first.');return;}const nr=Math.min(10,(state.round||1)+1),FRE=frRoundEnd(state.units||[],nr);putState({fr:FRE.fr,units:FRE.units.map(u=>Object.assign({},u,{activated:false,charActivated:false,effects:(u.effects||[]).filter(e=>e==='Broken'||/^Season: /.test(e))})),round:nr,hammerUsed:false,strategicUsedRound:0,moves:[]});},true),
     mk('Ready everyone',()=>tfUnits(u=>Object.assign({},u,{activated:false,charActivated:false})),true));
@@ -2130,13 +2147,14 @@ function renderTestField(tb,info,mk,add){
   t2.append(mk((state.zones||[]).length?'Remove objective zones':'Add objective zones',()=>putState({zones:(state.zones||[]).length?[]:SCEN[7].zones}),true));
   t2.append(mk((state.units||[]).length?'Clear the table':'Table is empty',()=>{act=null;cb=null;selId=null;putState({units:[],moves:[],fr:{},army:{cs:[],nord:[]}});},true));
   t2.append(mk('Leave the test field',tfLeave,true));t2.lastChild.classList.add('ng');t2.lastChild.previousSibling.disabled=!(state.units||[]).length;
+  {const cr=bEl('div',{className:'tf-row col-row'});cr.append(colorPicker('cs','South colour',true),colorPicker('nord','North colour',true));add(cr);}
   add(t2);if(((state.army||{}).cs||[]).length||((state.army||{}).nord||[]).length)add(armyRulesBox());if((state.units||[]).length)add(frPanel());
   // selected regiment: conditions
   const u=base(selId);
   if(u&&u.type!=='marker'){const box=bEl('div',{className:'rev tf-sel'});
     box.append(bEl('h3',{textContent:'Conditions · '+u.name+(u.charName?' + '+u.charName:'')}));
     if(!(act&&act.id===u.id)){const r0=bEl('div',{className:'tf-row'});const sg2=bEl('div',{className:'grp'});sg2.setAttribute('role','group');sg2.setAttribute('aria-label','Belongs to');
-      [['cs','South (red)'],['nord','North (blue)']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t});b.setAttribute('aria-pressed',String(u.side===sd));b.onclick=()=>{if(u.side!==sd)tfSet(u.id,x=>({side:sd,facing:((x.facing||0)+180)%360}));};sg2.appendChild(b);});
+      [['cs','South ('+colName('cs')+')'],['nord','North ('+colName('nord')+')']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t});b.setAttribute('aria-pressed',String(u.side===sd));b.onclick=()=>{if(u.side!==sd)tfSet(u.id,x=>({side:sd,facing:((x.facing||0)+180)%360}));};sg2.appendChild(b);});
       r0.append(bEl('span',{className:'tf-l',textContent:'Belongs to'}),sg2);box.append(r0);}
     if(act&&act.id===u.id){box.append(ptext('Activating now: use the panel beside the map. Conditions unlock when the activation is saved or undone.'));add(box);}
     else{
@@ -2167,7 +2185,7 @@ function renderTestField(tb,info,mk,add){
   const det=bEl('details',{className:'rev tf-add'});det.open=tfAddOpen||!(state.units||[]).length;det.ontoggle=()=>{tfAddOpen=det.open;};
   det.append(bEl('summary',{textContent:'Add regiments'}));
   const r4=bEl('div',{className:'tf-row'});const sg=bEl('div',{className:'grp'});sg.setAttribute('role','group');sg.setAttribute('aria-label','Drop for');
-  [['cs','For South (red)'],['nord','For North (blue)']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t});b.setAttribute('aria-pressed',String(tfSide===sd));b.onclick=()=>{tfSide=sd;renderTurnbar();};sg.appendChild(b);});
+  [['cs','For South ('+colName('cs')+')'],['nord','For North ('+colName('nord')+')']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t});b.setAttribute('aria-pressed',String(tfSide===sd));b.onclick=()=>{tfSide=sd;renderTurnbar();};sg.appendChild(b);});
   const lab=bEl('label',{className:'tf-chk'});const cbx=bEl('input',{type:'checkbox',checked:tfReserve});cbx.onchange=()=>{tfReserve=cbx.checked;};lab.append(cbx,document.createTextNode(' Arrive from reserves (to test entering the table)'));
   r4.append(sg,lab);det.append(r4);
   det.append(ptext('Build one or more warbands below, with options and upgrades, then drop them. Characters join the regiment you choose; use "Remove the character" afterwards to test a regiment on its own.','hint'));
@@ -2356,6 +2374,7 @@ function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},s
   ['cs','nord'].forEach(side=>{const row=document.createElement('div');row.className='row';const who=seats[side];const L=S0[side];
     const t=document.createElement('span');t.className='read';t.textContent=SEATNAME[side]+': '+(who?(who===myId?'you':'taken'):'open')+(L?' · army ready: '+(L.faction||'army')+' ('+((L.units||[]).length)+' regiments)':who?' · no army yet':'');row.appendChild(t);
     if(!who&&!me)row.appendChild(mk('Sit here',()=>db.doc('game/state').update({seats:{[side]:myId},updatedAt:Date.now()}).catch(()=>toast('That seat could not be taken. Try again.'))));
+    row.appendChild(colorPicker(side,'Colour',who===myId));
     if(who===myId)row.appendChild(mk('Leave this seat',()=>db.doc('game/state').update({seats:{[side]:null},updatedAt:Date.now()}).catch(()=>{}),true));
     box.appendChild(row);});add(box);
   if(!myId){add(ptext('Your identity is not available in this view, so you cannot take a seat here.','warn'));}
@@ -2382,7 +2401,7 @@ function renderSetup(tb,info,mk,add){
     const pts=lab('Points',Object.assign(document.createElement('input'),{type:'number',value:String(setupDraft.pts),min:'500',step:'50'}));pts.oninput=()=>setupDraft.pts=+pts.value||2000;
     const aif=lab("Claude's faction",Object.assign(document.createElement('input'),{type:'text',value:setupDraft.aiFaction,placeholder:'Leave empty to let Claude choose'}));aif.oninput=()=>setupDraft.aiFaction=aif.value;
     if(armyMode==='paste'){const ta=document.createElement('textarea');ta.rows=9;ta.value=setupDraft.list;ta.placeholder='Paste your list here: characters, regiments, stands, options and upgrades.';ta.oninput=()=>setupDraft.list=ta.value;lab('Your army list',ta).parentNode.classList.add('wide');}else{fac.parentNode.hidden=true;pts.parentNode.hidden=true;}
-    armyModePicker(add);add(f);if(armyMode==='build')armyBuilder(add,mk,()=>{toast('Army saved. Now press Build both armies.');},'Check the list');
+    {const cr=bEl('div',{className:'tf-row col-row'});cr.append(colorPicker('cs','Your colour',true),colorPicker('nord',"Claude's colour",true));add(cr);}armyModePicker(add);add(f);if(armyMode==='build')armyBuilder(add,mk,()=>{toast('Army saved. Now press Build both armies.');},'Check the list');
     add(mk('Build both armies',async()=>{const built=armyMode==='build'?bldToList():null;if(armyMode==='build'&&(!built||!built.units.length)){toast('Add at least one regiment to your army first.');return;}if(armyMode==='paste'&&!setupDraft.list.trim()){toast('Paste your army list first.');return;}if(!sample){toast('Claude is not available in this view, so the armies cannot be built here.');return;}
       aiBusy=true;aiStatus('Claude is reading your list…');render();
       try{const mine=built||await convertList(setupDraft.list,setupDraft.faction,setupDraft.pts);aiStatus('Claude is designing its army…');render();
