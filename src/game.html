@@ -20,6 +20,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
 h1{font-family:var(--display);font-size:28px;margin:0;text-wrap:balance}
 .phase{font-size:15px;color:var(--muted)}
 .fr-strip{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.fr-strip button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer}.fr-strip button b{font-weight:600}.fr-strip .cs{border-color:var(--cs)}.fr-strip .nord{border-color:var(--nord)}
+.pn-in{display:flex;align-items:center;gap:6px}.pn-in input{width:150px;min-width:0}
 .col-row{flex-basis:100%;width:100%;gap:18px}.col-pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0}.col-sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}.col-sw.on{outline:3px solid var(--gold);outline-offset:2px;border-color:#fff}.col-sw.taken{opacity:.25;cursor:not-allowed}.col-sw:disabled:not(.taken){cursor:default}
 .score{display:flex;gap:10px;font-family:var(--display);font-weight:700;font-size:18px}
 .score span{padding:4px 12px;border-radius:8px;color:#fff;font-variant-numeric:tabular-nums}
@@ -970,7 +971,7 @@ function renderCard(){
 function render(){
   if(!state)return;applyColors();bldUse(SBX()?'test':'main');if(SBX()){state.strategicHeld=true;}{const su=state.step==='setup';['.main','.roster','#view-hint','#last','.score'].forEach(q=>{const e=document.querySelector(q);if(e)e.hidden=su;});}drawTerrain();drawZones();
   $('phase').textContent=state.phase||'';
-  $('vp-cs').textContent=N('cs')+' '+(state.vp?.cs??0);$('vp-nord').textContent=N('nord')+' '+(state.vp?.nord??0);$('h-cs').textContent=N('cs');$('h-nord').textContent=N('nord');$('combat').classList.toggle('busy',aiBusy);
+  $('vp-cs').textContent=(PN('cs')?PN('cs')+' · ':'')+N('cs')+' '+(state.vp?.cs??0);$('vp-nord').textContent=(PN('nord')?PN('nord')+' · ':'')+N('nord')+' '+(state.vp?.nord??0);$('h-cs').textContent=WHO('cs');$('h-nord').textContent=WHO('nord');$('combat').classList.toggle('busy',aiBusy);
   const ug=$('units'),mg=$('moves'),rg=$('rings');ug.innerHTML='';mg.innerHTML='';rg.innerHTML='';
   (state.moves||[]).forEach(m=>{const p=m.path||[];if(p.length<2)return;
     el('polyline',{points:p.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#F3E6C4','stroke-width':2,'stroke-dasharray':'5 4','marker-end':'url(#ah)',opacity:.75},mg);});
@@ -1329,6 +1330,14 @@ let sample=null,aiBusy=false,aiLog=null;
 const ROCKS=[[61,37],[10,11]];
 function zonesOf(){return (state&&state.zones)||scenOf().zones;}
 function N(side){return (state&&state.names&&state.names[side])||(side==='cs'?'City States':'Nords');}
+function PN(side){const v=state&&state.players&&state.players[side];return v?String(v).slice(0,24):'';}
+function WHO(side){const p=PN(side);return p?p+' ('+N(side)+')':N(side);}
+let pnDraft={};function savedName(){try{return localStorage.getItem('conquest-player-name')||'';}catch(e){return '';}}
+function nameInput(side,label,editable){const w=bEl('label',{className:'pn-in'});w.append(bEl('span',{className:'tf-l',textContent:label}));
+  const i=bEl('input',{type:'text',id:'pn-'+side,maxLength:24,value:pnDraft[side]!=null?pnDraft[side]:PN(side),placeholder:editable?'Type a name':'No name yet'});i.disabled=!editable;i.setAttribute('autocomplete','nickname');
+  const commit=()=>{const v=i.value.trim().slice(0,24);delete pnDraft[side];if(v===PN(side))return;try{localStorage.setItem('conquest-player-name',v);}catch(e){}
+    if(PVP())db.doc('game/state').update({players:{[side]:v},updatedAt:Date.now()}).catch(()=>toast('The name could not be saved.'));else putState({players:Object.assign({},state.players||{},{[side]:v})});};
+  i.oninput=()=>{pnDraft[side]=i.value;};i.onchange=commit;i.onkeydown=e=>{if(e.key==='Enter')i.blur();};w.append(i);return w;}
 function logAI(t){if(aiLog&&t)aiLog.push(t);}
 async function putState(patch){const next=Object.assign({},state,patch,{updatedAt:Date.now()});await db.doc('game/state').set(next);state=next;render();}
 function drawUnitsFast(){const ug=$('units');ug.innerHTML='';all().filter(u=>u.onTable).forEach(u=>drawUnit(u,ug));}
@@ -2316,7 +2325,7 @@ function renderFrStrip(){const el=$('fr-strip');if(!el)return;el.innerHTML='';co
   if(!state||['setup','review'].includes(st)){el.hidden=true;return;}
   const sides=SBX()?['cs','nord']:PVP()?[ME,other(ME)]:[HU,AI];
   sides.forEach(side=>frFacs(side).forEach(f=>frSummary(side,f).forEach(t=>{const b=document.createElement('button');b.type='button';b.className=side;
-    const who=SBX()?(side==='cs'?'South':'North'):side===ME?'You':N(side);b.innerHTML='';const bb=document.createElement('b');bb.textContent=who+': ';b.append(bb,document.createTextNode(t));
+    const who=SBX()?(side==='cs'?'South':'North'):side===ME?(PN(side)||'You'):(PN(side)||N(side));b.innerHTML='';const bb=document.createElement('b');bb.textContent=who+': ';b.append(bb,document.createTextNode(t));
     b.title='Open the Faction rules panel';b.onclick=()=>{frOpen=true;renderTurnbar();const d=document.querySelector('#turnbar .fr-panel');if(d)d.scrollIntoView({block:'nearest',behavior:'smooth'});};el.appendChild(b);})));
   el.hidden=!el.children.length;}
 /* the Faction rules panel: trackers per side */
@@ -2372,9 +2381,9 @@ function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},s
   info.textContent='Play against a friend. Share this page with them from the Share menu, with permission to interact. Each of you takes an edge and builds or pastes your own army.';
   const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent='Seats';box.appendChild(h);
   ['cs','nord'].forEach(side=>{const row=document.createElement('div');row.className='row';const who=seats[side];const L=S0[side];
-    const t=document.createElement('span');t.className='read';t.textContent=SEATNAME[side]+': '+(who?(who===myId?'you':'taken'):'open')+(L?' · army ready: '+(L.faction||'army')+' ('+((L.units||[]).length)+' regiments)':who?' · no army yet':'');row.appendChild(t);
-    if(!who&&!me)row.appendChild(mk('Sit here',()=>db.doc('game/state').update({seats:{[side]:myId},updatedAt:Date.now()}).catch(()=>toast('That seat could not be taken. Try again.'))));
-    row.appendChild(colorPicker(side,'Colour',who===myId));
+    const t=document.createElement('span');t.className='read';t.textContent=SEATNAME[side]+': '+(who?(who===myId?'you'+(PN(side)?' ('+PN(side)+')':''):(PN(side)||'taken')):'open')+(L?' · army ready: '+(L.faction||'army')+' ('+((L.units||[]).length)+' regiments)':who?' · no army yet':'');row.appendChild(t);
+    if(!who&&!me)row.appendChild(mk('Sit here',()=>db.doc('game/state').update(Object.assign({seats:{[side]:myId},updatedAt:Date.now()},savedName()?{players:{[side]:savedName()}}:{})).catch(()=>toast('That seat could not be taken. Try again.'))));
+    if(who)row.appendChild(nameInput(side,'Name',who===myId));row.appendChild(colorPicker(side,'Colour',who===myId));
     if(who===myId)row.appendChild(mk('Leave this seat',()=>db.doc('game/state').update({seats:{[side]:null},updatedAt:Date.now()}).catch(()=>{}),true));
     box.appendChild(row);});add(box);
   if(!myId){add(ptext('Your identity is not available in this view, so you cannot take a seat here.','warn'));}
@@ -2401,7 +2410,7 @@ function renderSetup(tb,info,mk,add){
     const pts=lab('Points',Object.assign(document.createElement('input'),{type:'number',value:String(setupDraft.pts),min:'500',step:'50'}));pts.oninput=()=>setupDraft.pts=+pts.value||2000;
     const aif=lab("Claude's faction",Object.assign(document.createElement('input'),{type:'text',value:setupDraft.aiFaction,placeholder:'Leave empty to let Claude choose'}));aif.oninput=()=>setupDraft.aiFaction=aif.value;
     if(armyMode==='paste'){const ta=document.createElement('textarea');ta.rows=9;ta.value=setupDraft.list;ta.placeholder='Paste your list here: characters, regiments, stands, options and upgrades.';ta.oninput=()=>setupDraft.list=ta.value;lab('Your army list',ta).parentNode.classList.add('wide');}else{fac.parentNode.hidden=true;pts.parentNode.hidden=true;}
-    {const cr=bEl('div',{className:'tf-row col-row'});cr.append(colorPicker('cs','Your colour',true),colorPicker('nord',"Claude's colour",true));add(cr);}armyModePicker(add);add(f);if(armyMode==='build')armyBuilder(add,mk,()=>{toast('Army saved. Now press Build both armies.');},'Check the list');
+    {const cr=bEl('div',{className:'tf-row col-row'});if(!PN('cs')&&savedName()&&!state._pnTried){state._pnTried=1;putState({players:Object.assign({},state.players||{},{cs:savedName()})}).catch(()=>{});}cr.append(nameInput('cs','Your name',true),colorPicker('cs','Your colour',true),colorPicker('nord',"Claude's colour",true));add(cr);}armyModePicker(add);add(f);if(armyMode==='build')armyBuilder(add,mk,()=>{toast('Army saved. Now press Build both armies.');},'Check the list');
     add(mk('Build both armies',async()=>{const built=armyMode==='build'?bldToList():null;if(armyMode==='build'&&(!built||!built.units.length)){toast('Add at least one regiment to your army first.');return;}if(armyMode==='paste'&&!setupDraft.list.trim()){toast('Paste your army list first.');return;}if(!sample){toast('Claude is not available in this view, so the armies cannot be built here.');return;}
       aiBusy=true;aiStatus('Claude is reading your list…');render();
       try{const mine=built||await convertList(setupDraft.list,setupDraft.faction,setupDraft.pts);aiStatus('Claude is designing its army…');render();
@@ -2430,15 +2439,15 @@ function armyRulesBox(){const d=document.createElement('details');d.className='v
     const ch=document.createElement('div');ch.className='chips';list.forEach(r=>{const auto=AUTO_ARMY.test(r),c=chip(r,auto?'fx':'',fac);if(auto)c.textContent+=' · automatic';ch.appendChild(c);});d.appendChild(ch);});
   d.appendChild(ptext('Rules marked automatic are applied by the map. Apply the others yourselves: hover a rule to read it.'));return d;}
 function renderTurnbarPvp(tb,info,mk,add,step){const me=seatSide();
-  if(!me){info.textContent=`You are watching ${N('cs')} against ${N('nord')}. ${state.phase||''}`;return true;}
-  if(step==='reinforce'){const rt=state.reinfTurn||'cs';if(rt!==HU){info.textContent=`Round ${state.round} · Reinforcements. Waiting for ${N(rt)} to roll.`;return true;}
+  if(!me){info.textContent=`You are watching ${WHO('cs')} against ${WHO('nord')}. ${state.phase||''}`;return true;}
+  if(step==='reinforce'){const rt=state.reinfTurn||'cs';if(rt!==HU){info.textContent=`Round ${state.round} · Reinforcements. Waiting for ${WHO(rt)} to roll.`;return true;}
     const pool=reserves(HU).filter(u=>reinfRule(u.cls,state.round)!=='no');info.textContent=`Round ${state.round} · Reinforcements. Choose one regiment to arrive automatically, then roll for the rest.`;
     const sel=document.createElement('select');sel.id='tb-auto';sel.setAttribute('aria-label','Regiment arriving automatically');const o0=document.createElement('option');o0.value='';o0.textContent='No automatic arrival';sel.appendChild(o0);
     pool.filter(u=>reinfRule(u.cls,state.round)!=='auto').forEach(u=>{const o=document.createElement('option');o.value=u.id;o.textContent=u.name+' ('+u.cls+')';sel.appendChild(o);});add(sel);
     add(mk('Roll reinforcements',async()=>{aiBusy=true;render();try{const rep=await doReinforcements(sel.value||null);aiBusy=false;if(HU==='nord'){const prev=state.lastReinf||'';await startCommandPhase([{title:prev,lines:[]}].filter(r=>r.title).concat(rep));}else{await putState({lastReinf:rep.map(r=>r.title+': '+r.lines.join(', ')).join(' · '),lastTitle:'Reinforcements',lastText:rep.map(r=>r.title+': '+r.lines.join(', ')).join(' · ')});}}catch(e){aiBusy=false;toast('That could not be saved. Try again.');render();}}));return true;}
   if(step==='supremacy'){const rd=state.ready||{};
     if(rd.cs&&rd.nord){info.textContent=`Round ${state.round} · Both Command Stacks are locked. Roll off for Supremacy: lowest wins, and the side with fewer Command Cards subtracts 1.`;add(mk('Roll off for Supremacy',async()=>{aiBusy=true;render();try{aiBusy=false;await rollSupremacy();}catch(e){aiBusy=false;render();toast('That could not be saved. Try again.');}}));return true;}
-    if(rd[HU]){info.textContent=`Your Command Stack is locked. Waiting for ${N(AI)} to lock theirs.`;return true;}
+    if(rd[HU]){info.textContent=`Your Command Stack is locked. Waiting for ${WHO(AI)} to lock theirs.`;return true;}
     info.textContent=`Round ${state.round} · Command Phase: put your cards in order (top acts first), then lock the stack. Only you can see your order.`;
     const valid=defaultHumanStack();if(!huDraft||huDraft.length!==valid.length||!huDraft.every(c=>valid.includes(c)))huDraft=valid.slice();
     const box=document.createElement('ol');box.className='stackb';box.setAttribute('aria-label','Your Command Stack');
@@ -2448,16 +2457,17 @@ function renderTurnbarPvp(tb,info,mk,add,step){const me=seatSide();
       li.append(up,dn);box.appendChild(li);});
     add(box);add(mk('Lock my stack',async()=>{try{await savePS({huStack:huDraft.slice(),huHeld:null,huLastCard:null,strategicHeld:false,hammerUsed:false});huDraft=null;await db.doc('game/state').update({ready:{[HU]:true},updatedAt:Date.now()});}catch(e){toast('That could not be saved. Try again.');}}));return true;}
   if(step==='picks'){const sc=scenOf(),p=state.picks||{},first=state.first,order=[first,other(first)],who=order.find(s=>!p[s]);
-    if(who!==HU){info.textContent=`${sc.name}: waiting for ${N(who||AI)} to pick a zone.`+(p[HU]&&p[HU]!=='none'?` You picked ${p[HU]}.`:'');return true;}
+    if(who!==HU){info.textContent=`${sc.name}: waiting for ${WHO(who||AI)} to pick a zone.`+(p[HU]&&p[HU]!=='none'?` You picked ${p[HU]}.`:'');return true;}
     info.textContent=`${sc.name}: `+(sc.pick==='deny'?'pick a zone that scores nothing this round.':sc.pick==='secret'?'secretly pick a zone other than the centre; it scores nothing this round unless you both pick it.':'pick a 6″ zone with none of your regiments in it; Seizing it this round is worth +3.')+(p[AI]&&p[AI]!=='none'&&sc.pick!=='secret'?` ${N(AI)} picked ${p[AI]}.`:'');
     pickOptions(HU).forEach(n=>add(mk(n,()=>humanPick(n),true)));return true;}
-  if(step==='choose'){if(state.chooser!==HU){info.textContent=`${N(state.chooser||AI)} won Supremacy and are choosing who goes first.`;return true;}
+  if(step==='choose'){if(state.chooser!==HU){info.textContent=`${WHO(state.chooser||AI)} won Supremacy and are choosing who goes first.`;return true;}
     info.textContent='You won Supremacy. Who goes first?';add(mk('I go first',()=>chooseFirst(HU)));add(mk(N(AI)+' go first',()=>chooseFirst(AI),true));return true;}
   const hu=sideCardsLeft(HU),op=sideCardsLeft(AI),vd=document.createElement('details');vd.className='vc';const vs=document.createElement('summary');vs.textContent='Victory conditions';vd.append(vs,ptext(scenOf().vp+picksText()));
-  if(state.turn!==HU){info.textContent=`${scenOf().name} · Waiting for ${N(state.turn||AI)} to act. You have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${op}.`;add(vd);add(armyRulesBox());add(frPanel());return true;}
+  if(state.turn!==HU){info.textContent=`${scenOf().name} · Waiting for ${WHO(state.turn||AI)} to act. You have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${op}.`;add(vd);add(armyRulesBox());add(frPanel());return true;}
   const tp=humanTop();info.textContent=`${scenOf().name} · Your turn · ${tp?'next card: '+cardName(tp)+' · ':''}${huHeldOk()?'held in the Strategic Stack: '+cardName(PS().huHeld)+' · ':''}you have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${op}.`;add(mk('End turn',endTurn));add(vd);add(armyRulesBox());add(frPanel());return true;}
 
-function renderTurnbar(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHTML='';const step=state.step||'activations';const add=e=>tb.appendChild(e);
+function renderTurnbar(){const a=document.activeElement,tb0=$('turnbar'),fid=a&&a.id&&tb0&&tb0.contains(a)&&a.tagName==='INPUT'?a.id:null,ss=fid?a.selectionStart:0;renderTurnbar0();if(fid){const e=document.getElementById(fid);if(e&&!e.disabled){e.focus();try{e.setSelectionRange(ss,ss);}catch(err){}}}}
+function renderTurnbar0(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHTML='';const step=state.step||'activations';const add=e=>tb.appendChild(e);
   const info=document.createElement('span');info.className='read';info.id='tb-info';add(info);
   const mk=(t,fn,ghost)=>{const b=document.createElement('button');b.type='button';b.className='btn'+(ghost?' ghost':'');b.textContent=t;b.onclick=fn;b.disabled=aiBusy;return b;};
   if(aiBusy){info.textContent=$('ai-status').textContent||N(AI)+' are acting…';return;}
