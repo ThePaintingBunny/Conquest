@@ -365,7 +365,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="roster"><div class="side cs"><h2 id="h-cs">City States</h2><div id="r-cs"></div></div><div class="side nord"><h2 id="h-nord">Nords</h2><div id="r-nord"></div></div></div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-06 14:42 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-06 14:52 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1146,14 +1146,14 @@ $('board').addEventListener('pointerdown',ev=>{
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){const t=byId(id);if(t&&t.side!==ME){selId=act.id;act.cur.stage='combat';act.cur.target=t.id;openCombat({type:'volley',att:act.id,tgt:t.id,inAct:true});render();return;}}
   if(pick){const t=byId(id),a=byId(pick.att);if(t&&a&&t.side!==a.side){const p=pick;pick=null;openCombat({type:p.type,att:p.att,tgt:t.id,inAct:false});return;}}
   selId=id;
-  if(SBX()&&!act&&!pick&&!cb){const u=base(id);if(u&&u.onTable&&u.type!=='marker'){tfDrag={id,ox:ix(pt.x)-u.x,oy:iy(pt.y)-u.y,moved:false};$('board').setPointerCapture(ev.pointerId);}}
+  if(SBX()&&!pick&&!cb&&!(act&&act.id===id)){const u=base(id);if(u&&u.onTable&&u.type!=='marker'){tfDrag={id,ox:ix(pt.x)-u.x,oy:iy(pt.y)-u.y,moved:false};$('board').setPointerCapture(ev.pointerId);return;}}
   if(act&&act.id===id&&((act.entering&&!act.placed)||(act.cur&&(act.cur.moving||(act.cur.type==='charge'&&act.cur.stage==='adjust'))))){const u=byId(id);drag={ox:ix(pt.x)-u.x,oy:iy(pt.y)-u.y};$('board').setPointerCapture(ev.pointerId);}
   render();});
 $('board').addEventListener('pointermove',ev=>{const pt=svgPt(ev);
   if(ruler&&rA&&!rB){drawRuler([ix(pt.x),iy(pt.y)]);return;}
   if(tfDrag){const u=base(tfDrag.id);if(u){u.x=Math.max(0,Math.min(72,Math.round((ix(pt.x)-tfDrag.ox)*4)/4));u.y=Math.max(0,Math.min(48,Math.round((iy(pt.y)-tfDrag.oy)*4)/4));tfDrag.moved=true;drawUnitsFast();}return;}
   if(!drag)return;setPose({x:Math.round((ix(pt.x)-drag.ox)*8)/8,y:Math.round((iy(pt.y)-drag.oy)*8)/8});});
-$('board').addEventListener('pointerup',()=>{if(tfDrag){const d=tfDrag;tfDrag=null;if(d.moved)putState({units:state.units.slice()}).catch(()=>{});return;}drag=null;if(act&&act.cur&&(act.cur.type==='march'||act.cur.withdraw)&&act.cur.pending){const c=act.cur;if(c.pending.amt>0)c.segs.push(c.pending);c.pending=null;c.segStart={x:act.pose.x,y:act.pose.y,facing:act.pose.facing,files:act.pose.files};render();}});
+$('board').addEventListener('pointerup',()=>{if(tfDrag){const d=tfDrag;tfDrag=null;if(d.moved)putState({units:state.units.slice()}).catch(()=>{});else render();return;}drag=null;if(act&&act.cur&&(act.cur.type==='march'||act.cur.withdraw)&&act.cur.pending){const c=act.cur;if(c.pending.amt>0)c.segs.push(c.pending);c.pending=null;c.segStart={x:act.pose.x,y:act.pose.y,facing:act.pose.facing,files:act.pose.files};render();}});
 $('rot-l').onclick=()=>rot(-15);$('rot-r').onclick=()=>rot(15);$('rot-180').onclick=()=>rot(180);
 $('f-less').onclick=()=>form(-1);$('f-more').onclick=()=>form(1);
 $('done-act').onclick=finishAction;$('cancel-act').onclick=cancelAction;$('abort').onclick=abort;
@@ -2137,7 +2137,10 @@ function renderTestField(tb,info,mk,add){
   // selected regiment: conditions
   const u=base(selId);
   if(u&&u.type!=='marker'){const box=bEl('div',{className:'rev tf-sel'});
-    box.append(bEl('h3',{textContent:'Conditions · '+u.name+(u.charName?' + '+u.charName:'')+' ('+(u.side==='cs'?'South':'North')+')'}));
+    box.append(bEl('h3',{textContent:'Conditions · '+u.name+(u.charName?' + '+u.charName:'')}));
+    if(!(act&&act.id===u.id)){const r0=bEl('div',{className:'tf-row'});const sg2=bEl('div',{className:'grp'});sg2.setAttribute('role','group');sg2.setAttribute('aria-label','Belongs to');
+      [['cs','South (red)'],['nord','North (blue)']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t});b.setAttribute('aria-pressed',String(u.side===sd));b.onclick=()=>{if(u.side!==sd)tfSet(u.id,x=>({side:sd,facing:((x.facing||0)+180)%360}));};sg2.appendChild(b);});
+      r0.append(bEl('span',{className:'tf-l',textContent:'Belongs to'}),sg2);box.append(r0);}
     if(act&&act.id===u.id){box.append(ptext('Activating now: use the panel beside the map. Conditions unlock when the activation is saved or undone.'));add(box);}
     else{
     const r1=bEl('div',{className:'tf-row'});
@@ -2157,11 +2160,10 @@ function renderTestField(tb,info,mk,add){
     if(u.onTable){r3.append(mk('⟲ 15°',()=>tfSet(u.id,{facing:((u.facing||0)-15+360)%360}),true),mk('15° ⟳',()=>tfSet(u.id,{facing:((u.facing||0)+15)%360}),true),mk('Turn around',()=>tfSet(u.id,{facing:((u.facing||0)+180)%360}),true));
       r3.append(mk('Send to reserves',()=>tfSet(u.id,{onTable:false,arriving:true,activated:false}),true));}
     else r3.append(mk('Put it on the table',()=>{const p=tfSpot(u.side,0);tfSet(u.id,{onTable:true,arriving:false,x:p.x,y:Math.max(4,Math.min(44,p.y))});}));
-    r3.append(mk('Move to '+(u.side==='cs'?'North':'South'),()=>tfSet(u.id,x=>({side:other(x.side),facing:((x.facing||0)+180)%360})),true));
     if(u.charName)r3.append(mk('Remove the '+u.charName,()=>tfUnits(x=>x.id===u.id?tfDropChar(x):x),true));
     r3.append(mk('Remove from the field',()=>{if(selId===u.id)selId=null;tfUnits(x=>x.id===u.id?null:x);},true));r3.lastChild.classList.add('ab-danger');
     box.append(r3);
-    box.append(ptext(u.side===ME?'Drag it on the map to move it, Q and E to turn it. Activate it from the panel beside the map.':'This regiment belongs to the side you are not controlling. Switch control above to activate it, or charge it with one of yours.','hint'));
+    box.append(ptext('Drag any regiment that is not activating to move it, whichever side it belongs to; Q and E turn the selected one. '+(u.side===ME?'Activate it from the panel beside the map.':'It belongs to the side you are not controlling: switch control above to activate it, or charge it with one of yours.'),'hint'));
     add(box);}}
   else add(ptext('Select a regiment on the map or in the rosters to set its wounds, effects and facing.','hint'));
   // adding regiments: the army builder with its own draft
