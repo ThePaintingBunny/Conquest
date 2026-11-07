@@ -626,7 +626,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-07 15:22 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-07 15:35 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -818,6 +818,7 @@ const ACT={
   soar:{n:'On Soaring Winds',d:'March any way, through regiments and terrain'},
   sweep:{n:'Sweeping Step',d:'Two Marches through regiments, then a free Clash'},
   rooted:{n:'Rooted Might',d:'Seed Markers to friends within 8″'},
+  duel:{n:'Duel',d:'Challenge an enemy character in contact'},
   clash:{n:'Clash',d:'Fight the enemy in contact'},
   creform:{n:'Combat Reform',d:'Resolve test, then reshape'},
   inspire:{n:'Inspire',d:'+1 Clash this activation'},
@@ -1149,14 +1150,14 @@ async function charCommit(id,extra){extra=extra||{};charAct=null;
 let charAct=null;
 function charActivate(id){if(PVP()&&!myTurnPvp()){toast('It is not your turn.');return;}charAct={id,spell:0,target:null,rolls:null};selId=id;render();}
 function renderCharPanel(){const box=$('c-char');if(!charAct||selId!==charAct.id){box.hidden=true;return;}box.hidden=false;box.innerHTML='';
-  const u=byId(charAct.id),h=document.createElement('h3');h.textContent=u.charName+' activation';box.appendChild(h);charAbilBox(u,box);
+  const u=byId(charAct.id),h=document.createElement('h3');h.textContent=u.charName+' activation';box.appendChild(h);charAbilBox(u,box);duelBox(u,box);
   const row0=document.createElement('div');row0.className='row';const pass=document.createElement('button');pass.type='button';pass.className='btn ghost';pass.textContent='Pass (no action)';pass.onclick=()=>charCommit(charAct.id,{note:'No action.'});
   const cl=document.createElement('button');cl.type='button';cl.className='btn ghost';cl.textContent='Cancel';cl.onclick=()=>{charAct=null;render();};row0.append(pass,cl);
   const sps=spellsOf(u,true),lvl=magicLevel(u,true);
   if(sps.length&&lvl){if(!u.onTable){box.appendChild(ptext('Not on the table yet, so no spells can be cast.'));box.appendChild(row0);return;}
     const sh=document.createElement('p');sh.className='hint';sh.textContent='Spellcasting (uses the character’s action):';box.appendChild(sh);
     charAct.cast=charAct.cast||[];spellBox(box,u,true,charAct,res=>charCommit(charAct.id,{spell:res.spell,target:res.success?res.target:null,success:res.success,note:(res.success?'Cast ':'Tried to cast ')+res.spell+': '+res.line+'.'}));}
-  else box.appendChild(ptext(chAbil(u).length?'No spells. Use an ability above, or pass.':'This Character has no spells to cast. Note a Duel or other action in the box below if needed.'));
+  else box.appendChild(ptext(chAbil(u).length?'No spells. Use an ability above, or pass.':'This Character has no spells to cast. Challenge a Duel above if an enemy character is in contact, or pass.'));
   box.appendChild(row0);}
 function confirmEntry(){act.placed=true;act.entryPoint={edge:act.edge||'own',x:act.pose.x,y:act.pose.y};render();}
 function ownEntry(side,d){return side==='nord'?{y:-d/2,facing:0}:{y:48+d/2,facing:180};}
@@ -1384,7 +1385,7 @@ function renderArmies(){
       row.className='u'+(u.onTable?'':' off')+(u.destroyed?' dead':'')+(u.activated&&u.type!=='marker'?' done':'')+(u.id===selId?' sel':'');
       const ic=document.createElement('span');ic.className='u-ic';ic.textContent=u.type==='marker'?'◆':u.destroyed?'✕':u.activated?'✓':u.onTable?'•':'⧗';ic.title=u.type==='marker'?'Objective Marker':u.destroyed?'Destroyed':u.activated?'Activated this round':u.onTable?'Ready to activate':'Not on the table';
       const mid=document.createElement('span');mid.className='u-m';const n=document.createElement('span');n.className='n';n.textContent=u.name;mid.appendChild(n);
-      if(u.charName){const c=document.createElement('span');c.className='u-c';c.textContent='+ '+u.charName+(u.warlord?' ★':'')+(u.charActivated?' · activated':'');mid.appendChild(c);}
+      if(u.charName){const c=document.createElement('span');c.className='u-c';c.textContent='+ '+u.charName+(u.warlord?' ★':'')+(u.charWounds?' · '+u.charWounds+'/'+((u.charStats&&u.charStats.W)||'?')+' wounds':'')+(u.charActivated?' · activated':'');mid.appendChild(c);}
       const tags=document.createElement('span');tags.className='u-t';
       (u.effects||[]).forEach(e=>{const t=document.createElement('span');t.className='tg'+(/^Broken/.test(e)?' bad':/Inspired/.test(e)?' good':'');t.textContent=e.replace(/\s*\(.*\)$/,'');tags.appendChild(t);});
       if(!u.onTable&&!u.destroyed&&u.type!=='marker'){const t=document.createElement('span');t.className='tg';t.textContent=u.arriving?'Arriving':'Reserves';tags.appendChild(t);}
@@ -1456,7 +1457,7 @@ function hitMods(A,p,type,T){let base=type==='volley'?p.V:p.C,r6=false;const inF
   if(type==='clash'&&fxHas(A,/Aggression Directive/)&&base<4)base+=1;
   if((type==='clash'||type==='impact')&&!pike&&rh((A.rules||[]).concat(fx(A)),'Shock')&&(type==='impact'||fxHas(A,/charged/)))base+=1;
   const prey=!!(T&&supPrey(A.side)&&supPrey(A.side).id===T.id);
-  if(type==='clash'){const dread=engaged(A).some(e=>rh(RU(e),'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if((fxHas(A,/Inspired/)||prey)&&!fxHas(A,/^Hindered/)&&!fxHas(A,/Siphon Strength|Bane of Deeds/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
+  if(type==='clash'){const dread=engaged(A).some(e=>rh(RU(e),'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if((fxHas(A,/Inspired/)||prey)&&!fxHas(A,/^Hindered/)&&!fxHas(A,/^Refused a Duel/)&&!fxHas(A,/Siphon Strength|Bane of Deeds/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
   if(type==='volley'){const aim=(act&&act.id===A.id&&act.actions.some(a=>a.type==='aim'))||rh(p.rules,'Deadshot')||rh(RU(A),'Aimed Shot')||prey;if(aim){if(base+1>=5)r6=true;else base+=1;}}
   return {hitOn:Math.max(1,Math.min(6,base)),reroll6:r6};}
 function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=supportLost(A)?1:(rx(RU(A),'Support')||1);
@@ -1481,7 +1482,7 @@ function defInfo(T,A,g){const s=T.stats||{},front=(cb&&cb.type==='lethal')?!cb.f
   if(cb&&cb.type==='clash'&&rh(RU(A),'Trial of Will')){const mi=moraleInfo(T,A);if(mi.auto)D=Math.max(0,D-1);else if(mi.R<Math.max(D,E))return {D:mi.R,E:0,front,red:0,trial:true};}
   return {D,E,front,red};}
 function moraleInfo(T,A){const s=T.stats||{},R0=s.R,broken=(T.effects||[]).includes('Broken');const auto=R0==='–'||R0==null||rh(T.rules,'Automaton')||rh(T.rules,'Animate Vessel');
-  let R=+R0||0;const cR=+(T.charStats&&T.charStats.R)||0;if(!broken&&!rh(T.charRules||[],'Refined Beyond Nature'))R=Math.max(R,cR);const n=live(T),bonus=broken?0:(n>=10?3:n>=7?2:n>=4?1:0);R+=bonus+(fxHas(T,/^Cheerful/)?1:0);
+  let R=+R0||0;const cR=+(T.charStats&&T.charStats.R)||0;if(!broken&&!rh(T.charRules||[],'Refined Beyond Nature')&&!fxHas(T,/^Refused a Duel/))R=Math.max(R,cR);if(fxHas(T,/^Refused a Duel/)&&cR)R=Math.min(R,cR);const n=live(T),bonus=broken?0:(n>=10?3:n>=7?2:n>=4?1:0);R+=bonus+(fxHas(T,/^Cheerful/)?1:0);
   const self=A&&A.id===T.id;const terr=(self||rh(RU(T),'Fearless')||rh(RU(T),'Bravery'))?0:Math.max(rx((A.rules||[]).concat(fx(A)),'Terrifying'),animate(A)?1:0,(rh(RU(A),'Wrathful Momentum')&&uSize(T)===1)?1:0,(cb&&cb.type==='clash'&&rh(RU(A),'Endless Hunger')&&uSize(T)<uSize(A))?2:0,(cb&&cb.type==='impact'&&fxHas(A,/^Glorious Charge/))?1:0);R-=terr;const arc0=self?'front':cArc(T,[A.x,A.y]);if(phalanx(T)&&arc0==='front')R+=1;
   return {auto,R,bonus,terr,iron:rh(RU(T),'Iron Discipline'),arc:arc0,oblivious:rh(RU(T),'Oblivious'),indom:rx((T.rules||[]).concat(fx(T)),'Indomitable')};}
 function openCombat(o){if(o&&o.type==='volley'&&o.tgt&&o.att){const T0=byId(o.tgt),A0=byId(o.att);if(T0&&A0&&fx(T0).some(x=>/^Prowling/.test(x))&&polyDist(corners(A0),corners(T0))>=8){toast('That regiment is Prowling: it cannot be seen from 8″ or more.');return;}}cb=Object.assign({step:'att',groups:null,cover:false,owner:HU},o);if(cb.type==='volley'&&cb.tgt&&rh((byId(cb.tgt)||{}).rules||[],'Loose Formation'))cb.cover=true;if(cb.type==='volley'&&cb.tgt&&cb.att){const cv=tCover(byId(cb.att),byId(cb.tgt));if(cv){cb.cover=true;cb.coverWhy=cv;}const lo=tLos(byId(cb.att),byId(cb.tgt),true);if(lo){const AA=byId(cb.att);if(rh(RU(AA),'Arcing Fire')&&!AA.garrison&&((act&&act.id===AA.id&&act.actions.some(a=>a.type==='aim'))||rh(RU(AA),'Aimed Shot'))){cb.arcing=true;setTimeout(()=>toast('Arcing Fire: no clear shot, so it fires at −1 Volley (a friendly regiment must see the target).'),30);}else setTimeout(()=>toast('Check Line of Sight: '+lo+' is in the way.'),30);}}if(cb.type==='freform'){cb.hits=0;cb.wounds=cb.preWounds;cb.step=cb.noMorale?'done':'mor';cb.extra=0;cb.groups=[];}else if(cb.type==='lethal'){cb.hits=cb.lethalHits;cb.step='def';cb.groups=[{label:cb.lethalLabel||'Lethal Demise',n:cb.lethalHits,nUse:cb.lethalHits,hits:cb.lethalHits,ones:0,red:cb.lethalRed||0,rolls:null}];}else if(cb.tgt)cb.groups=buildGroups(cb.type,byId(cb.att),byId(cb.tgt));renderCombat();renderCard();maybeAutoAI();try{$('combat').scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}}
@@ -1519,6 +1520,7 @@ function moraleSources(T,mi){const S=[],A=byId(cb.att)||base(cb.att)||{},iron=rh
   if(!iron&&(mi.arc==='left'||mi.arc==='right'))S.push({k:'succ',src:'flank attack'});
   if(!iron&&(cb.groups||[]).some(g=>g.forceMor&&g.hits))S.push({k:'succ',src:(A.charName||'character')+' (re-roll successful Morale)'});
   if(upgOf(T,/Glimmer of Faith/))S.push({k:'fail',src:'Glimmer of Faith'});
+  if(fxHas(T,/^Refused a Duel/))S.push({k:'succ',face:1,src:'Refused a Duel'});
   if(fxHas(T,/Pheromantic Drive/))S.push({k:'fail',face:6,src:'Pheromantic Drive'});
   {const wl=supWl(T.side),S0=supOf(T.side);if(S0&&S0.k==='Army of Lions'&&wl&&wl.onTable&&/Infantry/.test(T.cls||'')&&polyDist(corners(T),corners(wl))<=10)S.push({k:'fail',face:6,src:'Army of Lions'});}
   return S;}
@@ -1543,6 +1545,7 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;if(cbQueu
   $('cb-title').textContent=(cb.dieFight?'Die Fighting! ':'')+(cb.selfTitle||LBL[cb.type])+': '+(A.short||A.name)+(T?' against '+(T.short||T.name):'');
   if(!T){body.appendChild(ptext('Choose which engaged enemy regiment to attack.'));const row=document.createElement('div');row.className='row';(cb.choices||[]).forEach(id=>{const e=byId(id);const b=document.createElement('button');b.type='button';b.className='btn ghost';b.dataset.who='O';b.textContent=e.short||e.name;b.onclick=()=>{cb.tgt=id;if(cb.type!=='lethal')cb.groups=buildGroups(cb.type,A,byId(id));renderCombat();};row.appendChild(b);});body.appendChild(row);return;}
   const sA=N(A.side),sT=N(T.side),arc=arcOf(T,[A.x,A.y]);
+  if(cb.type==='duel'){renderDuel(body);return;}
   if(cb.selfText){body.appendChild(ptext(cb.selfText));}
   else if(cb.type==='freform'){body.appendChild(ptext(`The Combat Reform test failed, so ${T.short||T.name} suffers ${cb.preWounds} wound${cb.preWounds>1?'s':''}, one for each stand in contact with the enemy. Test Morale for them, record, then finish the reform.`));}
   else if(cb.type==='lethal'){body.appendChild(ptext(`${cb.lethalLost} ${A.short||A.name} stand${cb.lethalLost>1?'s were':' was'} destroyed while in contact, so ${T.short||T.name} suffers ${cb.lethalHits} automatic Hits (Lethal Demise ${cb.lethalX} each). They hit the front arc, use no other special rules, and the wounds cause no Morale Tests.`));}
@@ -1582,7 +1585,7 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;if(cbQueu
   const tot=(cb.wounds||0)+(cb.extra||0);cb.total=tot;if(cb.type==='freform'&&cb.mi&&cb.mi.auto)cb.extra=0;const lost=woundState(T,(T.wounds||0)+tot).lost-woundState(T).lost;
   const s4=stepBox('Result');s4.appendChild(ptext(`${T.short||T.name} takes ${tot} wound${tot===1?'':'s'}`+(lost?`, about ${lost} stand${lost>1?'s':''} removed`:'')+'.','tot'));
   s4.appendChild(ptext('Recording saves every roll and the wounds to the board. Claude checks casualty removal and Broken.'));s4.appendChild(cbtn('Record result',recordCombat,'O'));body.appendChild(s4);}
-async function recordCombat(){if(!cb)return;const S={att:cb.att,tgt:cb.tgt,type:cb.type,groups:(cb.groups||[]).map(g=>({rolls:g.rolls})),mark:cb.mark,healFriend:cb.healFriend};const before=JSON.parse(JSON.stringify(base(cb.tgt)||{}));const c0=cb;await recordCombat0();if(cb===c0)return;try{await srAfterCombat(S,before);}catch(e){console.error(e);}}
+async function recordCombat(){if(!cb)return;if(cb.type==='duel')return recordDuel();const S={att:cb.att,tgt:cb.tgt,type:cb.type,groups:(cb.groups||[]).map(g=>({rolls:g.rolls})),mark:cb.mark,healFriend:cb.healFriend};const before=JSON.parse(JSON.stringify(base(cb.tgt)||{}));const c0=cb;await recordCombat0();if(cb===c0)return;try{await srAfterCombat(S,before);}catch(e){console.error(e);}}
 async function recordCombat0(){if(!db||!state){toast('The board is read-only in this view.');return;}if(PVP()&&cb&&cb.owner!==HU)return;
   if(cb.blessUsedA||cb.blessUsedT)state=Object.assign({},state,{units:state.units.map(u=>(u.id===cb.att&&cb.blessUsedA)||(u.id===cb.tgt&&cb.blessUsedT)?Object.assign({},u,{blessedR:state.round||1}):u)});
   const A=base(cb.att),T=base(cb.tgt),tot=cb.total||0,LBL={clash:'Clash',impact:'Impact Attacks',volley:'Volley',lethal:'Lethal Demise',freform:'Fighting Reform'};
@@ -1965,6 +1968,7 @@ async function exWithdraw(){const why=canDo('withdraw');if(why)return 'could not
   if(amt>0.05){await aiSeg('fwd',amt);finishAction();return `withdraws ${amt.toFixed(1)}″`;}wdFail();return 'tries to withdraw but has no room';}
 async function autoResolve(){let guard=0;while(cb&&guard++<60){
   if(!cb.tgt){const id=(cb.choices||[])[0];if(!id){cb=null;break;}cb.tgt=id;if(cb.type!=='lethal')cb.groups=buildGroups(cb.type,byId(cb.att),byId(id));}
+  if(cb.type==='duel'){renderCombat();await sleep(800);if(!cb)break;const T=base(cb.tgt),A=base(cb.att);if(cb.step==='offer'){if(T.side===AI||duelRefuseWhy(T))duelDecide(T.side===AI?aiAcceptDuel(T,A):true);else break;}else if(cb.step==='roll'){duelResolve();}else{await recordDuel();break;}continue;}
   renderCombat();await sleep(cb.step==='done'?900:750);const T=byId(cb.tgt)||base(cb.tgt);
   if(cb.step==='att'){const parry=hitParry(T);if(cb.groups.some(g=>g.blessable)&&blessOk(base(cb.att))&&(cb.blessA||base(cb.att).side===AI)){cb.blessA=true;cb.blessUsedA=true;cb.groups.forEach(g=>{if(g.blessable)g.blessed=true;});}cb.groups.forEach(g=>rollHits(g,g.nUse??g.n,parry));cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';}
   else if(cb.step==='def'){if((cb.type==='clash'||cb.type==='impact')&&blessOk(T)&&T.side!==AI&&!PVP()&&cb.blessT==null){await new Promise(res=>{cb.blessWait=res;renderCombat();});cb.blessWait=null;}
@@ -2000,10 +2004,11 @@ async function planActivation(u,source){const brief={activeRegiment:u.id,source,
   try{const r=await askJSON(prompt,'default');if(r&&Array.isArray(r.plan))return {plan:r.plan,narration:String(r.narration||''),by:'claude'};}catch(e){if(e&&e.code==='not_granted')aiNote('Claude was not allowed to play, so the map used simple tactics.');}
   return {plan:heuristicPlan(u),narration:'',by:'bot'};}
 async function planCharacter(u){const sp=spellsOf(u,true).filter(s=>magicLevel(u,true)>0&&spellTargets(u,s).length),AB=chAbil(u).filter(a=>!chWhy(u,a)).map(a=>({name:a.n,kind:a.kind==='draw'?'draw event (free, before acting)':'action (uses the character action)',effect:a.d,targets:chTargets(u,a).map(t=>t.id)}));
+  {const DT=duelTargets(u);if(DT.length)AB.push({name:'Duel',kind:'action (uses the character action)',effect:'Challenge an enemy character in contact: both strike at once and wounds only hit the characters. The enemy may refuse (its regiment then cannot Seize, loses Inspiration and uses its lowest Resolve this round). Your odds per target (above 1 favours you): '+DT.map(t=>t.id+' '+duelOdds(u,t).toFixed(2)).join(', '),targets:DT.map(t=>t.id)});}
   if((!sp.length&&!AB.length)||!u.onTable)return {char:'pass'};
   if(AB.length){const prompt=`You are Claude, commanding the ${N(AI)} army in Conquest: The Last Argument of Kings. Your character ${u.charName} (with ${u.name}) is activating. It may first use any of its Draw Events, then take ONE action: cast a spell, use an ability, or pass.\nSpells (Magic Level ${magicLevel(u,true)}; each success is a die at or under Attunement; 2 successes needed, more for Scaling spells on big regiments): ${JSON.stringify(sp.map(s=>({name:s.name,range:s.range||'Self',attunement:s.att,scaling:s.scaling,targets:spellTargets(u,s).map(t=>t.id),text:s.text})))}\nAbilities: ${JSON.stringify(AB)}\nBOARD: ${JSON.stringify(boardFor(u.id))}\nReply with JSON only: {"draws":[{"ability":"<draw event name>","target":"<unit id>"}],"char":"pass"|"cast"|"ability","spell":"<name if cast>","ability":"<name if ability>","target":"<unit id>","narration":"one sentence"}.`;
     try{const r=await askJSON(prompt,'default');if(r&&r.char)return r;}catch(e){}
-    const dr=AB.filter(a=>/draw/.test(a.kind)).map(a=>({ability:a.name,target:a.targets[0]}));return {draws:dr,char:'pass'};}
+    const dr=AB.filter(a=>/draw/.test(a.kind)).map(a=>({ability:a.name,target:a.targets[0]}));const bD=duelTargets(u).sort((a,b)=>duelOdds(u,b)-duelOdds(u,a))[0];return bD&&duelOdds(u,bD)>=1.2?{draws:dr,char:'ability',ability:'Duel',target:bD.id}:{draws:dr,char:'pass'};}
   const prompt=`You are Claude, commanding the ${N(AI)} army in Conquest: The Last Argument of Kings. Your character ${u.charName} (with ${u.name}) is activating and may cast one spell or pass.\nSpells (Magic Level ${magicLevel(u,true)}; each success is a die at or under Attunement; 2 successes needed, more for Scaling spells on big regiments): ${JSON.stringify(sp.map(s=>({name:s.name,range:s.range||'Self',attunement:s.att,scaling:s.scaling,targets:spellTargets(u,s).map(t=>t.id),text:s.text})))}\nBOARD: ${JSON.stringify(boardFor(u.id))}\nReply with JSON only: {"char":"pass"} or {"char":"cast","spell":"<name>","target":"<unit id>","narration":"one sentence"}.`;
   try{const r=await askJSON(prompt,'default');if(r&&r.char)return r;}catch(e){}return {char:'pass'};}
 let aiNotes=[];function aiNote(t){if(!aiNotes.includes(t))aiNotes.push(t);}
@@ -2036,6 +2041,7 @@ async function runAITurn(){if(PVP())return;if(aiBusy||!state||!db)return;if(act)
     if(card[0]==='c'){const u=byId(id);aiStatus(`${N(AI)}: the ${u.charName} is deciding…`);const d=await planCharacter(u);const cl=[];
       for(const x of (Array.isArray(d.draws)?d.draws:[]).slice(0,3)){const a=chAbil(byId(id)).find(q=>q.kind==='draw'&&q.n.toLowerCase()===String(x.ability||'').toLowerCase());if(a){const r=await useAbil(id,a.n,x.target);if(r)cl.push(r);}}
       let line;if(d.char==='cast'){const r=await aiCastSpell(byId(id),true,d.spell,d.target);if(r){line=`the ${u.charName} ${r}`;await charCommit(id,{spell:d.spell,note:r+'.'});}else line=await aiCast(id,d.spell,d.target);}
+      else if(d.char==='duel'||(d.char==='ability'&&/^duel$/i.test(String(d.ability||'')))){line=`the ${u.charName}: `+await aiDuel(id,d.target);}
       else if(d.char==='ability'){const a=chAbil(byId(id)).find(q=>q.kind==='action'&&q.n.toLowerCase()===String(d.ability||'').toLowerCase());if(a){const r=await useAbil(id,a.n,d.target);await charCommit(id,{note:'Used '+a.n+'.'});line=r;}else{await charCommit(id,{note:'No action.'});line=`the ${u.charName} takes no action`;}}
       else{await charCommit(id,{note:'No action.'});line=`the ${u.charName} takes no action`;}
       report.push({title:u.charName,lines:cl.concat([line]),narration:String(d.narration||'')});
@@ -3446,7 +3452,7 @@ function srFirstMarch(u){let b=0;if(act&&act.id===u.id){b+=act.srFirstMarch||0;i
 function srChargeBonus(u,t){let b=0;const F=fx(u);F.forEach(x=>{const k=x.match(/^Charge \+(\d+)″/);if(k)b+=+k[1];});
   if(t){if(rh(u.rules,'Hubris')&&t.type==='monster')b+=3;if(rh(u.rules,'Arrogance')&&(t.type==='monster'||t.charName))b+=3;if(fx(t).some(x=>/^Marked \(Designate Target\)/.test(x)))b+=2;}
   if(srHas(u,/^Divine Purpose/)&&act&&act.id===u.id&&!act.dpUsed)b+=2;return b+srMarchMod(u);}
-function srSeizeStands(u,z,k){if(srHas(u,/^Prowling/))return 0;let v=seizeVal(u);if((u.effects||[]).includes('Broken')&&hasGrant(u,'Dominating Presence (its Seize count cannot be reduced)'))v=frBase(u)==='Tontorr'?6:3;let s=k*v;
+function srSeizeStands(u,z,k){if(srHas(u,/^Prowling/)||srHas(u,/^Refused a Duel/))return 0;let v=seizeVal(u);if((u.effects||[]).includes('Broken')&&hasGrant(u,'Dominating Presence (its Seize count cannot be reduced)'))v=frBase(u)==='Tontorr'?6:3;let s=k*v;
   if(u.charName&&rh(u.charRules||[],'Powerful Presence')&&!/Light/.test(u.cls||'')&&standsOf(u).some(st=>st.kind==='char'&&inZone(st.poly,z)))s+=3-v;return s;}
 /* combat helpers */
 function cArc(t,p){return rh(RU(t),'Acute Senses')?'front':arcOf(t,p);}
@@ -3534,9 +3540,11 @@ function srActions(u,out,used,eng,blocked){if(!act||act.cur)return;const R=RU(u)
   if(rh(R,'On Soaring Winds'))out.push({type:'soar',why:blocked('march')});
   if(rh(R,'Sweeping Step'))out.push({type:'sweep',why:used.length?'Only as the first action':blocked('march')});
   if(rh(R,'Rooted Might'))out.push({type:'rooted',why:blocked('rooted')});
+  if(!u.charName&&canDuel(u)&&duelTargets(u).length){const arr=rh(u.rules||[],'Arrogance');out.push({type:'duel',why:act.actions.some(a=>a.type==='duel')?'Already used this activation':arr?'':blocked('duel'),free:arr});}
   if(srHas(u,/^Primal Cacophony/))out.forEach(o=>{if(o.type==='rally'||o.type==='crally')o.why='Primal Cacophony: cannot Rally';});}
 function srStartAction(type){const u=byId(act.id);const st={x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files};
   if(!srFearsome(u,type))return true;
+  if(type==='duel'){const T=duelTargets(u);act.cur={type:'duel',free:rh(u.rules||[],'Arrogance'),start:st,budget:0,moving:false,reshape:false};openCombat({type:'duel',att:act.id,tgt:T.length===1?T[0].id:null,choices:T.map(e=>e.id),inAct:true,step:'offer',selfTitle:'Duel'});render();return true;}
   if(type==='xclash'){act.cur={type:'clash',xclash:true,free:true,start:st,budget:0,moving:false,reshape:false};const eng=engaged(u);if(eng.length===1)openCombat({type:'clash',att:act.id,tgt:eng[0].id,inAct:true});else openCombat({type:'clash',att:act.id,tgt:null,choices:eng.map(e=>e.id),inAct:true});render();return true;}
   if(type==='xvolley'){act.cur={type:'volley',xvolley:true,free:true,stage:'target',start:st,budget:0,moving:false,reshape:false};render();toast('Free Volley: click the enemy regiment you are shooting at.');return true;}
   if(type==='soar'||type==='sweep'){act.cur={type:'march',soar:true,sweep:type==='sweep',start:st,budget:(u.m||0)*(type==='sweep'?2:1),moving:true,reshape:false,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null};render();toast(type==='sweep'?'Sweeping Step: two Marches through regiments; then a free Clash against one you passed through. The activation then ends.':'On Soaring Winds: March in any direction, ignoring regiments and terrain, even while engaged.');return true;}
@@ -3591,7 +3599,92 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,aiDuel,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+/* ================= Duels (core rules, Characters chapter) =================
+   A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
+   The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
+   Accepted: both strike simultaneously (Quicksilver Strike first), To Hit on Clash, Defense/Evasion, then Resolve tests. Wounds only hit the characters. */
+const DUEL_REFUSED='Refused a Duel (cannot Seize, lowest Resolve, loses Inspiration, re-rolls Resolve tests of 1)';
+function isMChar(u){return !!u&&u.type==='monster'&&!u.charName&&(!!u.warlordMonster||((frEncy(u)||{}).kind==='char'));}
+function duelist(u){if(!u||u.destroyed)return null;
+  if(u.charName){const s=u.charStats||{},R=(u.charRules||[]).slice();if(cdirOf(u)==='Precision Armament')R.push('Cleave (+3)');
+    return {uid:u.id,name:u.charName,C:+s.C||0,A:(+s.A||0)+(cdirOf(u)==='Greetings to a Fellow General'?5:0),D:+s.D||0,E:Math.max(0,(+s.E||0)-(cdirOf(u)==='Greetings to a Fellow General'?1:0)),R:s.R==null||s.R==='–'?null:+s.R,W:+s.W||4,wounds:+u.charWounds||0,rules:R,mono:false,
+      rider:rh(R,'Rider')||upgOf(u,/Rider|Apex Master/),monster:false,up:u};}
+  if(isMChar(u)||rh(u.rules||[],'Arrogance')){const s=u.stats||{};return {uid:u.id,name:u.short||u.name,C:+s.C||0,A:+s.A||0,D:+s.D||0,E:+s.E||0,R:s.R==null||s.R==='–'?null:+s.R,W:+s.W||4,wounds:+u.wounds||0,rules:RU(u),mono:true,rider:false,monster:u.type==='monster',up:u};}
+  return null;}
+function canDuel(u){return !!duelist(u)&&(!!u.charName||isMChar(u)||rh(u.rules||[],'Arrogance'));}
+function duelTargets(u){if(!u||!u.onTable)return [];return engaged(u).filter(e=>e.side!==u.side&&!e.destroyed&&(e.charName||isMChar(e)));}
+function duelRefuseWhy(T){if((T.effects||[]).includes('Broken'))return 'Its regiment is Broken, so it cannot refuse';if(T.duelRefusedR===(state.round||1))return 'It already refused a Duel this round';return '';}
+function duelNoPenalty(T){return rh(RU(T),'Bodyguard')||rh(RU(T),'Bodyguards')||rh(T.charRules||[],'Refined Beyond Nature');}
+/* expected wounds X deals to Y, for Claude's choices */
+function duelExp(X,Y){const ph=Math.min(5,Math.max(1,X.C))/6,phR=rh(X.rules,'Flurry')&&!rh(Y.rules,'Parry')?ph+(1-ph)*ph:ph;const red=Math.max(0,rx(X.rules,'Cleave')-rx(Y.rules,'Hardened'));
+  const D=rh(X.rules,'Smite')?0:Math.max(0,Y.D+(rh(Y.rules,'Shield')&&!rh(X.rules,'Linebreaker')?1:0)-red),ps=Math.min(5,Math.max(D,Y.E))/6;return X.A*phR*(1-ps);}
+function duelOdds(a,b){const X=duelist(a),Y=duelist(b);if(!X||!Y)return 0;const dealt=duelExp(X,Y)/Math.max(1,Y.W-Y.wounds),took=duelExp(Y,X)/Math.max(1,X.W-X.wounds);return took?dealt/took:dealt?9:1;}
+/* one side's strike */
+function duelStrike(X,Y){const res={rolls:[],hits:0,drolls:[],wounds:0,mrolls:[],extra:0,notes:[]};
+  const slainBig=rh(Y.rules,'Slain Bigger')&&(X.monster||X.rider);const E=slainBig?Math.max(Y.E,Math.min(3,Y.E+3)):Y.E;if(slainBig)res.notes.push('Slain Bigger: +3 Evasion and Fearless');
+  const hitOn=Math.min(6,Math.max(1,X.C)),isHit=v=>v===1||(v<=hitOn&&v!==6);
+  const HS=[];if(!rh(Y.rules,'Parry')){if(rh(X.rules,'Flurry'))HS.push({k:'fail',src:'Flurry'});if(upgOf(X.up,/Eccentric Fighting Style/))HS.push({k:'fail',src:'Eccentric Fighting Style'});}
+  const PH=rrPlan(HS);let ones=0;for(let i=0;i<X.A;i++){let v=d6(),re=false,first=null;if(rrDie(v,isHit,PH)){first=v;v=d6();re=true;}const h=isHit(v);if(h){res.hits++;if(v===1)ones++;}res.rolls.push({v,hit:h,re,first});}
+  if(rh(X.rules,'Relentless Blows'))res.hits+=ones;
+  const red=Math.max(0,rx(X.rules,'Cleave')-rx(Y.rules,'Hardened'));let D=Math.max(0,Y.D+(rh(Y.rules,'Shield')&&!rh(X.rules,'Linebreaker')?1:0)-red);if(rh(X.rules,'Smite'))D=0;
+  const flawN=rh(X.rules,'Flawless Strikes')?ones:0,deadly=rh(X.rules,'Deadly Blades');
+  const DS=[];if(rh(Y.rules,'Untouchable'))DS.push({k:'fail',face:6,src:'Untouchable'});if(upgOf(X.up,/Kiss of the Dilosaur|Caledburn|Eccentric Fighting Style/))DS.push({k:'succ',src:'re-roll successful Defense'});const PD=rrPlan(DS);
+  let fails=0,dbl=0;for(let i=0;i<res.hits;i++){const flaw=i<flawN,ok=x=>x!==6&&((!flaw&&x<=D)||x<=E);let v=d6(),re=false,first=null;if(rrDie(v,ok,PD)){first=v;v=d6();re=true;}const s=ok(v);res.drolls.push({v,save:s,re,first});if(!s){fails++;if(deadly&&v===6)dbl++;}}
+  const ten=Math.min(rx(Y.rules,'Tenacious'),fails);res.wounds=fails-ten+dbl;res.D=D;res.E=E;res.hitOn=hitOn;
+  const noRes=Y.R==null||rh(Y.rules,'Refined Beyond Nature')||rh(Y.rules,'Automaton');
+  if(res.wounds&&!noRes){const fearless=slainBig||rh(Y.rules,'Fearless')||rh(Y.rules,'Bravery');const R=Y.R-(fearless?0:rx(X.rules,'Terrifying'));const okR=v=>v===1||(v<=R&&v!==6);
+    const MS=[];if(upgOf(X.up,/Kiss of the Dilosaur|Chthonic Flame/))MS.push({k:'succ',src:'re-roll successful Resolve'});const PM=rrPlan(MS);let mf=0;
+    for(let i=0;i<res.wounds;i++){let v=d6(),re=false,first=null;if(rrDie(v,okR,PM)){first=v;v=d6();re=true;}const p=okR(v);res.mrolls.push({v,pass:p,re,first});if(!p)mf++;}
+    mf=Math.max(0,mf-rx(Y.rules,'Indomitable'));res.extra=rh(Y.rules,'Oblivious')?Math.ceil(mf/2):mf;res.R=R;}
+  res.total=res.wounds+res.extra;return res;}
+function duelResolve(){const A=duelist(base(cb.att)),T=duelist(base(cb.tgt));const qa=rh(A.rules,'Quicksilver Strike')||rh(A.rules,'Quicksilver Strikes'),qt=rh(T.rules,'Quicksilver Strike')||rh(T.rules,'Quicksilver Strikes');
+  let ra=null,rt=null;if(qa&&!qt){ra=duelStrike(A,T);if(T.wounds+ra.total<T.W)rt=duelStrike(T,A);}else if(qt&&!qa){rt=duelStrike(T,A);if(A.wounds+rt.total<A.W)ra=duelStrike(A,T);}else{ra=duelStrike(A,T);rt=duelStrike(T,A);}
+  cb.duel={a:ra,t:rt,qa,qt};cb.step='done';}
+function duelDecide(accept){if(!cb||cb.type!=='duel'||cb.step!=='offer')return;if(accept){cb.step='roll';}else{cb.refused=true;cb.step='done';}renderCombat();}
+function aiAcceptDuel(Tu,Au){if(duelRefuseWhy(Tu))return true;const o=duelOdds(Tu,Au);return o>=0.8||(duelNoPenalty(Tu)?false:o>=0.5);}
+function slayChar(u){if(!u)return u;if(isMChar(u)||(!u.charName))return Object.assign({},u,{onTable:false,destroyed:true,status:'Destroyed (Duel)',destroyedRound:state.round});
+  const x=Object.assign({},u,u.type==='monster'?{}:{stands:Math.max(1,(u.stands||2)-1),files:Math.min(u.files||1,Math.max(1,(u.stands||2)-1))},{charSlain:u.charName});
+  if(u.order)x.order=(u.order||[]).filter(t=>t!=='c');['char','charName','charStats','charRules','warlord','spells','charActivated','charWounds'].forEach(k=>delete x[k]);return x;}
+function duelWound(u,D,n){if(!n)return u;if(D.mono){const AL=allocate(u,n);return Object.assign({},u,{wounds:AL.w,auxWounds:AL.aw},AL.dead?{onTable:false,destroyed:true,status:'Destroyed (Duel)',destroyedRound:state.round}:{});}
+  const w=(+u.charWounds||0)+n;return w>=D.W?slayChar(Object.assign({},u,{charWounds:w})):Object.assign({},u,{charWounds:w});}
+async function recordDuel(){if(!cb||cb.type!=='duel')return;const c0=cb,A=base(cb.att),T=base(cb.tgt),DA=duelist(A),DT=duelist(T),R=state.round||1;let units=state.units.slice(),text='';
+  const set=(id,f)=>{units=units.map(x=>x.id===id?f(x):x);};
+  if(cb.refused){const pen=!duelNoPenalty(T);set(T.id,x=>{let y=Object.assign({},x,{duelRefusedR:R});if(pen)y=grantU(y,DUEL_REFUSED,[]);return y;});
+    if(rh(A.rules||[],'Arrogance'))set(A.id,x=>grantU(x,'Arrogance: Flurry (Duel refused)',['Flurry']));
+    text=`${DT.name} refuses the Duel with ${DA.name}`+(pen?`: until the end of the round ${T.short||T.name} cannot Seize, uses its lowest Resolve, loses Inspiration and re-rolls Resolve tests of 1.`:' (no penalty: '+(rh(T.charRules||[],'Refined Beyond Nature')?'Refined Beyond Nature':'Bodyguard')+').')+(rh(A.rules||[],'Arrogance')?` ${A.short||A.name} gains Flurry.`:'');}
+  else{const d=cb.duel,wa=d.t?d.t.total:0,wt=d.a?d.a.total:0;set(A.id,x=>duelWound(x,DA,wa));set(T.id,x=>duelWound(x,DT,wt));
+    const deadA=wa&&(DA.wounds+wa>=DA.W),deadT=wt&&(DT.wounds+wt>=DT.W);
+    text=`Duel: ${DA.name} deals ${wt} wound${wt===1?'':'s'}, ${DT.name} deals ${wa}.`+(deadT?` ${DT.name} is slain`+(DT.mono?'.':`; ${T.short||T.name} makes a free Clean Combat Reform.`):'')+(deadA?` ${DA.name} is slain`+(DA.mono?'.':`; ${A.short||A.name} makes a free Clean Combat Reform.`):'');}
+  await putState({units,lastTitle:N(A.side)+' · Duel',lastText:text});lastDuelLine=text;
+  await db.collection('events').doc('e'+Date.now()).set({at:Date.now(),kind:'duel',side:A.side,attacker:A.id,target:T.id,refused:!!c0.refused,duel:c0.duel||null}).catch(()=>{});
+  const inA=c0.inAct,charDuel=c0.charDuel;cb=null;renderCombat();
+  if(inA&&act&&act.cur){act.cur.combat={type:'duel',text};finishAction();}else if(charDuel){await charCommit(A.id,{note:text});}else render();toast('Duel recorded.');}
+let lastDuelLine='';
+function duelRows(box,r,who,X,Y){const s=stepBox(who);if(!r){s.appendChild(ptext(X.name+' was slain before striking (Quicksilver Strike).'));box.appendChild(s);return;}
+  s.appendChild(ptext(`${X.name}: ${X.A} attacks, hits on ${r.hitOn} or less → ${r.hits} hit${r.hits===1?'':'s'}`,'gl'));const d1=document.createElement('div');d1.className='drow';r.rolls.forEach(q=>d1.appendChild(dieMini(q.v,(q.hit?'hit':'miss')+(q.re?' re':''))));s.appendChild(d1);
+  if(r.hits){s.appendChild(ptext(`${Y.name} saves on Defense ${r.D} or Evasion ${r.E} → ${r.wounds} wound${r.wounds===1?'':'s'}`,'gl'));const d2=document.createElement('div');d2.className='drow';r.drolls.forEach(q=>d2.appendChild(dieMini(q.v,(q.save?'hit':'miss')+(q.re?' re':''))));s.appendChild(d2);}
+  if(r.mrolls.length){s.appendChild(ptext(`${Y.name} tests Resolve ${r.R} → ${r.extra} more`,'gl'));const d3=document.createElement('div');d3.className='drow';r.mrolls.forEach(q=>d3.appendChild(dieMini(q.v,(q.pass?'hit':'miss')+(q.re?' re':''))));s.appendChild(d3);}
+  r.notes.forEach(n=>s.appendChild(ptext(n)));s.appendChild(ptext(`${Y.name} suffers ${r.total} wound${r.total===1?'':'s'}`,'tot'));box.appendChild(s);}
+function renderDuel(body){const A=base(cb.att),T=base(cb.tgt),DA=duelist(A),DT=duelist(T);if(!DA||!DT){body.appendChild(ptext('One of the characters is no longer there.'));body.appendChild(cbtn('Close',()=>{cb=null;renderCombat();render();},'O'));return;}
+  const sA=N(A.side),sT=N(T.side);body.appendChild(ptext(`${DA.name} (${sA}) challenges ${DT.name} (${sT}). Both strike at the same time${DA&&(rh(DA.rules,'Quicksilver Strike')||rh(DT.rules,'Quicksilver Strike'))?' (Quicksilver Strike strikes first)':''}; wounds only hit the characters. ${DA.name}: ${DA.W-DA.wounds}/${DA.W} wounds left · ${DT.name}: ${DT.W-DT.wounds}/${DT.W}.`));
+  if(cb.step==='offer'){const why=duelRefuseWhy(T),np=duelNoPenalty(T);const s=stepBox(sT+' answers the challenge');
+    if(why){s.appendChild(ptext(why+'.'));s.appendChild(cbtn('Accept the Duel',()=>{duelDecide(true);maybeAutoAI();},'T'));}
+    else{s.appendChild(ptext(np?'Refusing costs nothing ('+(rh(T.charRules||[],'Refined Beyond Nature')?'Refined Beyond Nature':'Bodyguard')+').':'Refusing: until the end of the round its regiment cannot Seize, uses its lowest Resolve, loses Inspiration and re-rolls Resolve tests of 1.'));
+      const r=document.createElement('div');r.className='row';r.append(cbtn('Accept the Duel',()=>{duelDecide(true);maybeAutoAI();},'T'),cbtn('Refuse',()=>{duelDecide(false);maybeAutoAI();},'T'));s.appendChild(r);}
+    body.appendChild(s);if(!PVP()&&T.side===AI&&A.side!==AI&&!cb.aiAns){cb.aiAns=true;setTimeout(()=>{if(cb&&cb.type==='duel'&&cb.step==='offer'){const acc=aiAcceptDuel(T,A);toast(N(AI)+(acc?' accept the Duel.':' refuse the Duel.'));duelDecide(acc);}},700);}return;}
+  if(cb.step==='roll'){body.appendChild(cbtn('Roll the Duel ('+sA+')',()=>{duelResolve();renderCombat();},'A'));return;}
+  if(cb.refused){body.appendChild(ptext(DT.name+' refuses the Duel.','tot'));}
+  else{duelRows(body,cb.duel.a,'1 · '+DA.name+' strikes',DA,DT);duelRows(body,cb.duel.t,'2 · '+DT.name+' strikes',DT,DA);}
+  body.appendChild(cbtn('Record result',recordDuel,'O'));}
+/* the character activation panel */
+function duelBox(u,box){if(!charAct||!u||!u.onTable)return;const T=duelTargets(u);if(!T.length)return;const h=ptext('Duel (uses the character’s action): challenge an enemy character in a regiment in contact with yours.');box.appendChild(h);
+  const r=document.createElement('div');r.className='row';T.forEach(t=>{const D=duelist(t);const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Duel '+D.name+' ('+(t.short||t.name)+')';
+    b.onclick=()=>openCombat({type:'duel',att:u.id,tgt:t.id,inAct:false,charDuel:true,step:'offer',selfTitle:'Duel'});r.appendChild(b);});box.appendChild(r);}
+/* Claude */
+async function aiDuel(id,tid){const u=byId(id),C=duelTargets(u);const t=C.find(x=>x.id===tid)||C.sort((a,b)=>duelOdds(u,b)-duelOdds(u,a))[0];if(!t){await charCommit(id,{note:'No action.'});return `the ${u.charName} takes no action`;}
+  lastDuelLine='';openCombat({type:'duel',att:id,tgt:t.id,inAct:false,charDuel:true,step:'offer',selfTitle:'Duel'});for(let i=0;i<240&&cb&&cb.type==='duel';i++)await sleep(500);return lastDuelLine||`the ${u.charName} duels`;}
+
 function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},seats=state.seats||{};
   info.textContent='Play against a friend. Press Host an online game at the top, then send your opponent the invite link. Each of you takes an edge and builds or pastes your own army.';
   const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent='Seats';box.appendChild(h);
