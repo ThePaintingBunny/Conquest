@@ -808,6 +808,7 @@ const ACT={
   sweep:{n:'Sweeping Step',d:'Two Marches through regiments, then a free Clash'},
   rooted:{n:'Rooted Might',d:'Seed Markers to friends within 8″'},
   duel:{n:'Duel',d:'Challenge an enemy character in contact'},
+  assassin:{n:'Clash with the Mimetic Assassin',d:'Assassination Directive: once per game'},
   clash:{n:'Clash',d:'Fight the enemy in contact'},
   creform:{n:'Combat Reform',d:'Resolve test, then reshape'},
   inspire:{n:'Inspire',d:'+1 Clash this activation'},
@@ -1114,7 +1115,7 @@ function startActivation(id,source){
 /* Draw Events and start-of-activation effects */
 function drawEvents(u){const notes=[];
   const bas=(u.abilities||[]).map(a=>String(a[0]).match(/^Bastion\s*\((\d+)\)/)).find(Boolean);if(bas){act.extraFx.push('Bastion ('+bas[1]+')');notes.push('Bastion: +'+bas[1]+' Defense until the end of the round');}
-  let heal=0;const reg=(u.abilities||[]).concat(fx(u).map(x=>[x])).map(a=>String(a[0]).match(/^Regeneration\s*\(\+?(\d+)\)/)).find(Boolean);if(reg)heal+=+reg[1];
+  let heal=0;const reg=(u.abilities||[]).concat(fx(u).map(x=>[x])).concat(fodder6(u)&&(u.abilities||[]).some(a=>/^Regeneration/.test(a[0]))?[['Regeneration (+4)']]:[]).map(a=>String(a[0]).match(/^Regeneration\s*\(\+?(\d+)\)/)).filter(Boolean).sort((a,b)=>b[1]-a[1])[0];if(reg)heal+=+reg[1];
   const fh=frHeal(u);if(fh){heal+=fh;notes.push('Underspire Regeneration (+'+fh+')');}
   if((u.abilities||[]).some(a=>/^Biotic Renewal/.test(a[0]))){const v=d6(),h=u.type==='inf'?v:Math.ceil(v/2);heal+=h;notes.push('Biotic Renewal rolled '+v);}
   if(heal&&!canHeal(u)){notes.push('Primal Cacophony: it cannot Heal');heal=0;}
@@ -1834,7 +1835,7 @@ function resolvePoint(spec){if(spec&&typeof spec==='object'&&isFinite(+spec.x)&&
 function seizeVal(u){if((u.effects||[]).includes('Broken'))return 0;if((u.abilities||[]).some(a=>/Brazen Race/.test(a[0])))return 6;if(frBase(u)==='Tontorr')return 6;if(u.type==='monster')return 3;if(/Light/.test(u.cls||''))return 0;return 1;}
 function inZone(poly,z){return inside([z.x,z.y],poly)||poly.some((p,i)=>segDist([z.x,z.y],p,poly[(i+1)%poly.length])<z.r-1e-6);}
 function volleyRange(u){const m=(u.rules||[]).concat(u.modProfiles?Object.values(u.modProfiles).flatMap(x=>x.rules||[]):[]).join(', ').match(/Barrage\s*\((\d+)\)\s*(\d+)/);return m?{shots:+m[1],range:+m[2]+srRangeBonus(u)}:null;}
-function frontArcHas(u,t){return rh(RU(u),'Acute Senses')||corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)==='front');}
+function frontArcHas(u,t){return rh(RU(u),'Acute Senses')||(rh(RU(u),'Weapon Platform')&&corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)!=='rear'))||corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)==='front');}
 /* cards */
 function regCardLive(u){return u.type!=='marker'&&!u.destroyed&&(u.onTable||u.arriving)&&!u.dyingFight;}
 function huStackOn(){const P=state&&PS();return !!P&&Array.isArray(P.huStack)&&P.huStack.length>0&&(state.step||'activations')==='activations';}
@@ -1939,7 +1940,7 @@ async function exCharge(st){const why=canDo('charge');if(why)return 'could not c
   if(act.chargeFailed){await tweenPose(to,700);bannerHide();return `charges ${t.short||t.name} but falls short (rolled ${roll})`;}
   await tweenPose(to,1000);bannerHide();logAI(`charges ${t.short||t.name}${t.type==='marker'?'':' in the '+(c.face==='left'||c.face==='right'?'flank':c.face)} (rolled ${roll})`);finishAction();await autoResolve();
   return '';}
-async function exClash(st){const why=canDo('clash');if(why)return 'could not clash ('+why+')';startAction('clash');
+async function exClash(st){const why=canDo('clash');if(why)return 'could not clash ('+why+')';if(availableActions(byId(act.id)).some(a=>a.type==='assassin'&&!a.why))return exAssassin();startAction('clash');
   if(cb&&!cb.tgt){const ch=cb.choices||[];const id=ch.includes(String(st.target))?String(st.target):ch[0];cb.tgt=id;cb.groups=buildGroups('clash',byId(act.id),byId(id));}
   const t=byId(cb.tgt);logAI('clashes with '+(t?(t.short||t.name):'the enemy'));await autoResolve();return '';}
 async function exVolley(st){const why=canDo('volley');if(why)return 'could not volley ('+why+')';const u=byId(act.id),t=byId(String(st.target||'')),vr=volleyRange(u);
@@ -2073,10 +2074,12 @@ function reinfRule(cls,R){const c=/Light/.test(cls||'')?'L':/Heavy/.test(cls||''
   if(c==='L')return R>=3?'auto':'roll4';if(c==='M')return R<=1?'no':R===2?'roll2':R===3?'roll4':'auto';return R<=2?'no':R===3?'roll2':R===4?'roll4':'auto';}
 function reserves(side){return (state.units||[]).filter(u=>u.side===side&&!u.onTable&&!u.arriving&&!u.destroyed);}
 async function doReinforcements(humanAuto){const R=state.round,out=[];const units=(state.units||[]).map(u=>Object.assign({},u));
-  const roll=async(side,autoId)=>{const res=[];const pool=units.filter(u=>u.side===side&&!u.onTable&&!u.arriving&&!u.destroyed);
-    for(const u of pool){const rule=reinfRule(u.cls,R);if(rule!=='no'&&(hasRule(u,/^Flank/)||(u.char!=null&&rh(u.charRules,'Forward Force')&&u.type!=='monster'))){u.arriving=true;res.push(u.name+' arrives (Flank: kept out of the roll)');continue;}if(u.arriving)continue;if(u.id===autoId&&rule!=='no'){u.arriving=true;res.push(u.name+' arrives (chosen)');if(rh(u.rules,'Tidal Summons')){const w=pool.find(x=>x!==u&&!x.arriving&&rh(x.rules,'Water Elemental')&&reinfRule(x.cls,R)!=='no');if(w){w.arriving=true;res.push(w.name+' arrives (Tidal Summons)');}}continue;}
-      if(rule==='auto'){u.arriving=true;res.push(u.name+' arrives automatically');continue;}if(rule==='no')continue;const need=rule==='roll4'?4:2,v=d6();
-      banner(N(side)+' reinforcement: '+u.name,[{v,cls:v<=need?'hit':'miss'}],`needs ${need} or less`);await sleep(900);if(v<=need){u.arriving=true;res.push(`${u.name} arrives (rolled ${v})`);}else res.push(`${u.name} stays back (rolled ${v})`);}
+  if(R===1&&!PVP())units.forEach(u=>{if(u.side===AI&&privOk(u))u.cls=u.cls.replace(/Light/,'Medium');});
+  const roll=async(side,autoId)=>{const res=[];const pool=units.filter(u=>u.side===side&&!u.onTable&&!u.arriving&&!u.destroyed);const M=state.mm&&state.mm.r===R?state.mm:null,xId=M&&M.ans==='accept'?(M.pick||{})[side]:null;let rrL=M&&M.ans==='decline'&&M.by===side&&M.opt==='reroll'?1:0;
+    for(const u of pool){const rule=reinfRule(u.cls,R);if(rule!=='no'&&(hasRule(u,/^Flank/)||(u.char!=null&&rh(u.charRules,'Forward Force')&&u.type!=='monster'))){u.arriving=true;res.push(u.name+' arrives (Flank: kept out of the roll)');continue;}if(u.arriving)continue;if(xId&&u.id===xId&&rule!=='no'){u.arriving=true;Object.assign(u,grantU(u,'Master Manipulator (Vanguard (3))',['Vanguard (3)']));res.push(u.name+' arrives (Master Manipulator, Vanguard (3))');continue;}if(u.id===autoId&&rule!=='no'){u.arriving=true;res.push(u.name+' arrives (chosen)');if(rh(u.rules,'Tidal Summons')){const w=pool.find(x=>x!==u&&!x.arriving&&rh(x.rules,'Water Elemental')&&reinfRule(x.cls,R)!=='no');if(w){w.arriving=true;res.push(w.name+' arrives (Tidal Summons)');}}continue;}
+      if(rule==='auto'){u.arriving=true;res.push(u.name+' arrives automatically');continue;}if(rule==='no')continue;const need=rule==='roll4'?4:2;let v=d6();
+      banner(N(side)+' reinforcement: '+u.name,[{v,cls:v<=need?'hit':'miss'}],`needs ${need} or less`);await sleep(900);if(v>need&&rrL){rrL=0;const v1=v;v=d6();banner('Master Manipulator re-roll: '+u.name,[{v,cls:v<=need?'hit':'miss'}],'re-roll of '+v1);await sleep(900);}if(v<=need){u.arriving=true;res.push(`${u.name} arrives (rolled ${v})`);}else res.push(`${u.name} stays back (rolled ${v})`);}
+    if(M&&M.ans==='decline'&&M.by===side&&M.opt==='vanguard'&&M.vg){const t=units.find(x=>x.id===M.vg&&!x.onTable);if(t){Object.assign(t,grantU(t,'Master Manipulator (Vanguard (3))',['Vanguard (3)']));res.push(t.name+' gains Vanguard (3) (Master Manipulator)');}}
     return res;};
   const hl=await roll(HU,humanAuto);
   if(PVP()){bannerHide();const nxt=HU==='cs'?{reinfTurn:'nord'}:{reinfTurn:'done'};await putState(Object.assign({units},nxt));out.push({title:N(HU)+' reinforcements',lines:hl.length?hl:['none'],narration:''});return out;}
@@ -2109,6 +2112,7 @@ const GLOSS={
 'armor piercing':'Hits from its Volleys and spells lower the target’s Defense by X.',
 'aura of death':'At the start of each enemy regiment’s Draw Command Card step, that enemy takes X Hits per stand of this regiment in contact. No Morale Tests. Non-Monsters cap at 4 per stand.',
 'barrage':'Each stand adds X shots to a Volley. The range and any extra shooting rules follow in the second brackets.',
+'weapon platform':'Its stands count their flank arcs as front arc for Line of Sight and obstruction when it volleys.',
 'blessed':'Once per round, during a Clash or Charge, the regiment may re-roll all failed hit rolls or all failed Defense rolls. Declare it before rolling.',
 'bodyguards':'No penalty when an attached character declines a Duel (a Broken regiment still cannot decline).',
 'bodyguard':'No penalty when an attached character declines a Duel (a Broken regiment still cannot decline).',
@@ -2282,7 +2286,7 @@ const UNIT_SCHEMA=`{"faction":"<faction name>","armyRules":["<army-wide rules or
 }]}`;
 function encyLookup(fac,name){const n=String(name||'').replace(/\s+(I|II|III|IV|V|VI)$/,'').toLowerCase().replace(/[-\s]+/g,' ').replace(/s$/,'');const fs=ENCY.filter(f=>!fac||facOf(fac)===f.name);for(const f of (fs.length?fs:ENCY)){const u=f.units.find(z=>z.name.toLowerCase().replace(/[-\s]+/g,' ').replace(/s$/,'')===n);if(u)return u;}return null;}
 function buildUnits(side,list){const pre=side==='cs'?'h':'a';const out=[];(list.units||[]).forEach((x,i)=>{const typ=['inf','cav','brute','monster','chariot'].includes(x.type)?x.type:'inf';
-  const stands=Math.max(1,Math.round(+x.stands||1)),hasAux=!!(x.auxiliary&&x.auxiliary.stats),ch=x.character&&x.character.name?x.character:null,tot=stands+(hasAux?1:0)+(ch?1:0);
+  const stands=Math.max(1,Math.round(+x.stands||1)),hasAux=!!(x.auxiliary&&x.auxiliary.stats),ch0=x.character&&x.character.name?x.character:null,hold=!!(ch0&&/Mimetic Assassin/.test(ch0.name)),ch=hold?null:ch0,tot=stands+(hasAux?1:0)+(ch?1:0);
   const sw=typ==='monster'?4:2,sd=typ==='monster'?4:typ==='chariot'?4:2,files=typ==='monster'||typ==='chariot'?1:Math.min(tot,tot>=4?(tot>=8?4:3):tot);
   const rules=(x.rules||[]).map(String);const vg=+(((rules.join(', ').match(/Vanguard\s*\((\d+)\)/)||[])[1])||0);const ref=encyLookup(list.faction,x.name);
   const u={id:pre+'-'+(i+1),side,name:String(x.name||'Regiment '+(i+1)),short:String(x.short||x.name||'').slice(0,24),cls:String(x.cls||'Medium Infantry'),type:typ,m:+x.M||5,vanguard:vg,sw,sd,stands:tot,files,
@@ -2290,6 +2294,8 @@ function buildUnits(side,list){const pre=side==='cs'?'h':'a';const out=[];(list.
     fac:facOf(list.faction)||'',points:+x.points||0,bearer:ref&&ref.cmd?!!ref.cmd.bearer:!!x.standardBearer,leader:ref&&ref.cmd?!!ref.cmd.leader:(x.leader!==false),effects:[],wounds:0,auxWounds:0,activated:false,charActivated:false,onTable:false,arriving:false,x:36,y:24,facing:side==='cs'?180:0};
   if(x.mods&&x.modProfiles){u.mods=x.mods.map(String);u.modProfiles=x.modProfiles;}
   if(x.wb!=null){u.wb=+x.wb;u.wbChar=String(x.wbChar||'');}
+  if(x.vetRole)u.vetRole=true;
+  if(hold)u.assassinHold={name:String(ch0.name),stats:ch0.stats||{},rules:(ch0.rules||[]).map(String)};
   if(hasAux){u.aux=0;u.auxName=String(x.auxiliary.name||'Auxiliary');u.auxStats=x.auxiliary.stats;u.auxRules=(x.auxiliary.rules||[]).map(String);}
   if(ch){u.char=files>=3?2:Math.min(files-1,1);u.charName=String(ch.name);u.charStats=ch.stats||{};u.charRules=(ch.rules||[]).map(String);u.warlord=!!ch.warlord;
     u.spells=(ch.spells||[]).filter(s=>s&&s.name).map(s=>({name:String(s.name),range:+s.range||12,att:+s.att||3,targets:s.targets==='enemy'?'enemy':'friendly',scaling:!!s.scaling,effect:String(s.effect||s.name),text:String(s.text||'')}));}
@@ -2479,7 +2485,7 @@ function bldToList(){const f=bldFac();if(!f)return null;const units=[],count={};
         if(op.kind==='vet'&&op.detail&&ruleInfo(op.detail,f.name)&&!/[+]/.test(op.detail)){rules.push(op.detail);ab.push(['Veteran',op.detail]);return;}
         ab.push([op.name,(op.kind==='off'?'Officer':'Option')+(op.detail?': '+op.detail:'')+', '+op.cost+' pts']);});
       (r.custom||[]).forEach(x=>ab.push([x.name,'Upgrade, '+x.pts+' pts']));
-      const x=unitJson(u,{name:nameOf(u.name),points:rowPts(r),stands:u.kind==='char'?1:(r.stands||bldBase(u)),rules,abilities:ab,standardBearer:bearerDefault(u),auxiliary:aux},f);
+      const x=unitJson(u,{name:nameOf(u.name),points:rowPts(r),stands:u.kind==='char'?1:(r.stands||bldBase(u)),rules,abilities:ab,standardBearer:bearerDefault(u),auxiliary:aux},f);if(w.pbReg===ri)x.vetRole=true;
       if(w.joins===ri&&c.type!=='Monster')x.character=charJson(c,wl,w.custom,w);x.abilities=(x.abilities||[]).concat(upgAbilities(w).map(a=>['The '+c.name+': '+a[0],a[1]]));units.push(x);});});
   // number duplicate names
   const seen={};units.forEach(u=>{if(count[u.name]>1){seen[u.name]=(seen[u.name]||0)+1;u.name=u.name+' '+roman[seen[u.name]]||u.name;}});
@@ -2597,6 +2603,9 @@ function armyBuilder(add,mk,onUse,useLabel){wlFix();bldSave();const box=bEl('div
     const WR=wlRule(c),mustOther=!WR.must&&bld.wbs.some(x=>{const y=bldUnit(x.char);return y&&wlRule(y).must;});
     const wlb=abBtn(WR.no?'Can\u2019t be Warlord':isWL?'★ Warlord':'☆ Make Warlord',()=>{if(WR.no||mustOther)return;bld.warlord=wi;abRe();},'ab-tog'+(isWL?' on':'')+(WR.no?' ab-off':''));
     wlb.setAttribute('aria-pressed',String(isWL));if(WR.no||mustOther||WR.must){wlb.disabled=true;wlb.title=WR.no?WR.why:WR.must?WR.why:'Your '+bldUnit(bld.wbs[bld.warlord].char).name+' must be the Warlord.';}hl.append(wlb);
+    {const PB=(c.rules||[]).some(r=>/^Personal Bodyguard/.test(r))?'Personal Bodyguard':(c.rules||[]).some(r=>/^Personal Entourage/.test(r))?'Personal Entourage':'';if(PB){const opts=w.regs.map((r,ri)=>({r,ri})).filter(({r})=>r.unit&&(PB==='Personal Bodyguard'?/Infantry/.test((bldUnit(r.unit)||{}).type||''):/Household Knights/.test(r.unit)));
+      const sel=bEl('select',{className:'tf-in'});sel.setAttribute('aria-label',PB);sel.append(bEl('option',{value:'',textContent:'none'}));opts.forEach(({r,ri})=>sel.append(bEl('option',{value:String(ri),textContent:r.unit+' (regiment '+(ri+1)+')',selected:w.pbReg===ri})));sel.onchange=()=>{w.pbReg=sel.value===''?null:+sel.value;abRe();};
+      const lab=bEl('label',{className:'ab-wlnote',textContent:PB+' (gains [Veteran]): '});lab.append(sel);hl.append(lab);}}
     if(WR.must)hl.append(bEl('div',{className:'ab-wlnote',textContent:'Must be the Warlord · one per army'}));
     else if(WR.creeds)hl.append(bEl('div',{className:'ab-wlnote',textContent:'Warlord only in '+WR.creeds.join(' or ')+' Creed armies'}));
     const hr=bEl('div',{className:'ab-rr'});hr.append(bEl('span',{className:'ab-pts ab-pts-l',textContent:wbPts(w)+' pts'}),abBtn('Details',()=>enDetail(c,f.name),'ab-ghost ab-small ab-keep'),abBtn('Change character',()=>{abPick={wb:wi,chr:true};renderTurnbar();},'ab-ghost ab-small'),
@@ -2749,7 +2758,7 @@ function frFac(u){if(!u)return '';if(u.fac)return u.fac;const k=facOf(N(u.side))
 function frEncy(u,name){const f=ENCY.find(f=>f.name===frFac(u));return f&&f.units.find(x=>frN(x.name)===frN(name||frBase(u)));}
 function frRoles(u,char){const f=frFac(u),m=FROLES[f]||{};if(!char&&u.mods&&u.mods.length&&MODULAR[u.mods[0]])return [MODULAR[u.mods[0]].role];
   let r=(m[frN(char?u.charName:frBase(u))]||[]).slice();const e=frEncy(u,char?u.charName:null);const cm=e&&String(e.warband||'').match(/Court of (Fire|Air|Earth|Water)/);if(cm)r.push('Court of '+cm[1]);
-  if(f==='Weaver Courts'&&!char&&!r.some(x=>/^Court of/.test(x)))r.push('Court of '+(frG(u.side,'wc').court||'Spring'));return r;}
+  if(f==='Weaver Courts'&&!char&&!r.some(x=>/^Court of/.test(x)))r.push('Court of '+(frG(u.side,'wc').court||'Spring'));if(u.vetRole&&!char&&!r.includes('Veteran'))r.push('Veteran');return r;}
 function frFacs(side){return [...new Set((state.units||[]).filter(u=>u.side===side&&u.type!=='marker').map(frFac).filter(Boolean))];}
 function frG(side,k){return Object.assign({},((state.fr||{})[side]||{})[k]||{});}
 function frPatch(side,k,p){const fr=JSON.parse(JSON.stringify(state.fr||{}));fr[side]=fr[side]||{};fr[side][k]=Object.assign({},fr[side][k]||{},p);return fr;}
@@ -2816,7 +2825,7 @@ function frOptions0(u){const out=[];if(!u||!act||act.id!==u.id)return out;const 
     Object.keys(IDEAL).forEach(k=>{const match=R.includes(k)||RC.includes(k);add(k+(match?' · '+IDEAL[k][0]:''),async()=>{act.frIdeal=k;if(k==='Ka'&&rh(u.rules,'Honor Beyond Death')&&(base(u.id).effects||[]).includes('Broken'))await putState({units:state.units.map(x=>x.id===u.id?Object.assign({},x,{effects:x.effects.filter(e=>e!=='Broken')}):x),lastTitle:N(u.side)+' · Honor Beyond Death',lastText:'Activated by a Ka Ideal Card: it is no longer Broken.'});if(!match){render();return;}if(k==='Fu')act.frFu=true;await grant(u.id,'Ideal Card: '+k,IDEAL[k][1],IDEAL[k][2]||null,'Ideal Card '+k+': '+IDEAL[k][0]);},hasGrant(u,'Ideal Card: '+k)?'Already gained from this card this round':'',match?'pri':'');});}
   if(f==='Weaver Courts'&&fresh&&!act.frBloom){const s=+u.seeds||0,g=frG(u.side,'wc');
     [[1,'Command Stand +2 Attacks (and Barrage +2)'],[2,"the Warlord's Bloom effect"],[3,'the '+(g.season||'current Season')+' Court role']].forEach(([n,t])=>add('Bloom ('+n+' Seed'+(n>1?'s':'')+'): '+t,async()=>{act.frBloom=true;const br=n===1&&hasRule(u,/^Barrage/)?['Barrage (+2)']:[];await putState({units:state.units.map(x=>x.id===u.id?grantU(Object.assign({},x,{seeds:s-n}),'Bloom: '+t,br,null):x),lastTitle:N(u.side)+' · Bloom',lastText:'Bloom, spending '+n+' Seed Marker'+(n>1?'s':'')+': '+t+(n===1?' (apply the Command Stand Attacks yourself)':'')+'.'});await srAfterBloom(u,n);},s<n?'Needs '+n+' Seed Marker'+(n>1?'s':''):''));}
-  if(f==='Spires'&&STRAIN[frBase(u)]){const S=STRAIN[frBase(u)];add('Strain Expression: '+S[0]+' ('+(S[1].join(', ')||S[2])+'; Decay)',async()=>{act.frDecay=true;await grant(u.id,'Strain: '+S[0],S[1],S[3]||null,'Strain Expression, '+S[0]+': '+(S[1].concat(S[2]?[S[2]]:[]).join(', '))+'. Decay at the end of the activation.');await srAfterStrain(u);},act.frDecay?'Already used':!fresh?'Only before the first action':'');}
+  if(f==='Spires'&&srStrain(u)){const S=srStrain(u);add('Strain Expression: '+S[0]+' ('+(S[1].join(', ')||S[2])+'; Decay)',async()=>{act.frDecay=true;await grant(u.id,'Strain: '+S[0],S[1],S[3]||null,'Strain Expression, '+S[0]+': '+(S[1].concat(S[2]?[S[2]]:[]).join(', '))+'. Decay at the end of the activation.');await srAfterStrain(u);},act.frDecay?'Already used':!fresh?'Only before the first action':'');}
   if(f==='Dweghom'){const g=frG(u.side,'dw'),ep=+g.ep||0,F=FORGED[frBase(u)];
     if(F&&!act.frForged)F.forEach(([t,cost,rules,stats,note,heal])=>add('Forged by the Elements ('+cost+'): '+t,async()=>{act.frForged=true;const fr=frPatch(u.side,'dw',{ep:ep-cost});
       await putState({fr,units:state.units.map(x=>{if(x.id!==u.id)return x;let y=grantU(x,'Forged: '+t,rules,stats);if(heal)y=Object.assign({},y,{wounds:Math.max(0,(+y.wounds||0)-heal)});if(!hasGrant(y,'Awakened'))y=grantU(y,'Awakened',awakenRules(y));return y;}),lastTitle:N(u.side)+' · Forged by the Elements',lastText:t+(note?' ('+note+')':'')+'; Awakened. Elemental Power '+(ep-cost)+'.'});},ep<cost?'Needs '+cost+' Elemental Power':''));
@@ -2910,7 +2919,7 @@ function frBlock(side,f,mine){const box=bEl('div',{className:'fr-blk'}),R=state.
     else r.append(abBtn('Change',()=>putState({fr:frPatch(side,'wc',{season:null}),units:state.units.map(x=>x.side===side?ungrantU(x,src=>/^Season: /.test(src)):x)}),'ab-ghost ab-small'));box.append(r);
     const cs=bEl('select',{className:'tf-in'});cs.setAttribute('aria-label',"Warlord's Seasonal Court");SEASONS.forEach(s=>cs.append(bEl('option',{value:s,textContent:'Court of '+s,selected:(g.court||'Spring')===s})));cs.onchange=()=>frSet(side,'wc',{court:cs.value});
     box.append(frRow("Warlord's Seasonal Court:",cs),ptext('The Season advances at the end of every round and its effect is applied to regiments of the matching Court. Regiments gain a Seed Marker after a Clash or Volley (max 3) and spend them on Bloom in the activation panel.'));return lock(box);}
-  if(f==='Spires'){const g=frG(side,'sp');const r=frRow('Sect:');['Underspire','Directorate','Sovereign Lineage'].forEach(s=>r.append(abBtn((g.sect===s?'✓ ':'')+s,()=>frSet(side,'sp',{sect:s}),'ab-tog'+(g.sect===s?' on':''))));box.append(r);
+  if(f==='Spires'){const g=frG(side,'sp');(state.units||[]).filter(u=>u.side===side&&privOk(u)).forEach(u=>box.append(frRow('Privileged Observer · '+(u.short||u.name)+':',abBtn('Make it Medium (before the first Reinforcements)',()=>putState({units:state.units.map(x=>x.id===u.id?Object.assign({},x,{cls:x.cls.replace(/Light/,'Medium')}):x),lastTitle:N(side)+' · Privileged Observer',lastText:(u.short||u.name)+' becomes a Medium regiment.'}),'ab-tog'))));const r=frRow('Sect:');['Underspire','Directorate','Sovereign Lineage'].forEach(s=>r.append(abBtn((g.sect===s?'✓ ':'')+s,()=>frSet(side,'sp',{sect:s}),'ab-tog'+(g.sect===s?' on':''))));box.append(r);
     box.append(ptext(g.sect==='Underspire'?'Underspire: Drone and Clone regiments heal 2 at the start of each activation (applied); Drones may Heal while Broken and have Indomitable from their size.':g.sect==='Directorate'?'Directorate: once per round set the drawn card aside and draw the next; apply it with your Command Stack.':g.sect==='Sovereign Lineage'?'Sovereign Lineage: Husk regiments gain Inspired and Aimed Shot while attacking an enemy below starting strength.':'Pick the army’s Sect.'));
     box.append(ptext('Strain Expression is offered in the activation panel; Decay wounds are applied at the end of that activation.'));return lock(box);}
   if(f==='Dweghom'){const g=frG(side,'dw'),cr=dwCreed(side);const r=frRow('Creed:');['Ardent','Tempered','Clan','Ardent and Tempered'].forEach(c=>r.append(abBtn((cr===c?'✓ ':'')+c,()=>frSet(side,'dw',{creed:c}),'ab-tog'+(cr===c?' on':''))));
@@ -3421,8 +3430,8 @@ function dRules(u){const o=[];if(!state||!u||u.type==='marker')return o;let role
   if(rh(u.rules,'Life for Glory')||rh(u.rules,'no Resolve, cannot Break'))add('Cannot be Broken (Life for Glory)');
   if(act&&act.id===u.id&&u.type!=='monster'&&srFriends(u).some(f=>rh(f.rules,'Cheerful')&&srNear(f,u,8)))add('Cheerful (+1 Resolve)');
   if(rh(u.rules,'Just Desserts')){const s=(frG(u.side,'sp').sect||'');if(/Sovereign/.test(s))add('Hardened (1)');else if(/Directorate/.test(s))add('March +2 (Just Desserts)');else if(/Underspire/.test(s))add('Regeneration (2)');}
-  if(u.gorged){add('Gorged (+6 Attacks, Strain always on)');const S=STRAIN[frBase(u)];if(S)(S[1]||[]).forEach(r=>add(r));}
-  if(rh(u.rules,'Prowl')&&u.prowlLost!==srRound()&&!srEnemies(u).some(e=>srNear(e,u,8-1e-6)))add('Prowling (−2 March, does not Seize, unseen from 8″ or more)');
+  if(u.gorged){add('Gorged (+6 Attacks, Strain always on)');const S=srStrain(u);if(S)(S[1]||[]).forEach(r=>add(r));}
+  if(rh(u.rules,'Prowl')&&u.prowlLost!==srRound()&&!srEnemies(u).some(e=>srNear(e,u,8-1e-6)&&!tLos(e,u)))add('Prowling (−2 March, does not Seize, unseen from 8″ or more)');
   if(rh(u.rules,'Earthen Aegis')&&u.onTable&&terrainOf().some(t=>tHas(t,'Earth')&&polyDist(corners(u),[[t.x,t.y]])<=3+Math.max(t.rx||0,t.ry||0)))add('Regeneration (+4)','Ignores Dangerous terrain','Ignores Perilous terrain');
   if(rh(u.rules,'Water Elemental')&&srFriends(u).some(f=>rh(f.rules,'Dread Tide')&&srNear(f,u,8)))add('Terrifying (+1)');
   if(srEnemies(u).some(e=>rh(e.rules,'Primal Cacophony')&&(e.temp||[]).some(g=>/^Chant: /.test(g.src))&&srNear(e,u,12)))add('Primal Cacophony (cannot Heal, Rally or Entourage-activate)');
@@ -3515,6 +3524,7 @@ function sanitize(st){if(!st||!Array.isArray(st.units)||st.mode==='test'&&false)
   try{st.units=st.units.map(u=>{if(u.type==='marker')return u;let y=u;
       if((y.effects||[]).includes('Broken')&&(rh(y.rules,'In the Fold')&&srAllMods(y,/Origami/)||rh(y.rules,'Life for Glory')||hasGrant(y,'Awakened')))y=Object.assign({},y,{effects:y.effects.filter(e=>e!=='Broken')});
       if((rh(y.rules,'Shattered Perfection')||rh(y.rules,'Raging Elements'))&&!y.belowOnce&&belowStart(y))y=Object.assign({},y,{belowOnce:true});
+      if(rh(y.rules,'Prowl')&&y.onTable&&y.prowlLost!==(st.round||1)&&st.units.some(e=>e.side!==y.side&&e.onTable&&!e.destroyed&&e.type!=='marker'&&polyDist(corners(e),corners(y))<8-1e-6&&!tLos(e,y)))y=Object.assign({},y,{prowlLost:st.round||1});
       if(rh(y.rules,'Gorged')&&!y.gorged){if((y.wounds||0)>0&&!y.wasHurt)y=Object.assign({},y,{wasHurt:true});else if(y.wasHurt&&(y.wounds||0)===0&&!y.destroyed)y=Object.assign({},y,{gorged:true});}
       return y;});
     if(st.rlStart&&st.mode!=='test'&&['activations','picks','choose','supdecl','supremacy'].includes(st.step||'activations'))st.rl={cs:rlCompute('cs',st.units,st.rlStart.cs),nord:rlCompute('nord',st.units,st.rlStart.nord)};}
@@ -3529,10 +3539,12 @@ function srActions(u,out,used,eng,blocked){if(!act||act.cur)return;const R=RU(u)
   if(rh(R,'On Soaring Winds'))out.push({type:'soar',why:blocked('march')});
   if(rh(R,'Sweeping Step'))out.push({type:'sweep',why:used.length?'Only as the first action':blocked('march')});
   if(rh(R,'Rooted Might'))out.push({type:'rooted',why:blocked('rooted')});
+  if(assassinOk(u))out.push({type:'assassin',why:blocked('clash')});
   if(!u.charName&&canDuel(u)&&duelTargets(u).length){const arr=rh(u.rules||[],'Arrogance');out.push({type:'duel',why:act.actions.some(a=>a.type==='duel')?'Already used this activation':arr?'':blocked('duel'),free:arr});}
   if(srHas(u,/^Primal Cacophony/))out.forEach(o=>{if(o.type==='rally'||o.type==='crally')o.why='Primal Cacophony: cannot Rally';});}
 function srStartAction(type){const u=byId(act.id);const st={x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files};
   if(!srFearsome(u,type))return true;
+  if(type==='assassin')return srAssassin(u);
   if(type==='duel'){const T=duelTargets(u);act.cur={type:'duel',free:rh(u.rules||[],'Arrogance'),start:st,budget:0,moving:false,reshape:false};openCombat({type:'duel',att:act.id,tgt:T.length===1?T[0].id:null,choices:T.map(e=>e.id),inAct:true,step:'offer',selfTitle:'Duel'});render();return true;}
   if(type==='xclash'){act.cur={type:'clash',xclash:true,free:true,start:st,budget:0,moving:false,reshape:false};const eng=engaged(u);if(eng.length===1)openCombat({type:'clash',att:act.id,tgt:eng[0].id,inAct:true});else openCombat({type:'clash',att:act.id,tgt:null,choices:eng.map(e=>e.id),inAct:true});render();return true;}
   if(type==='xvolley'){act.cur={type:'volley',xvolley:true,free:true,stage:'target',start:st,budget:0,moving:false,reshape:false};render();toast('Free Volley: click the enemy regiment you are shooting at.');return true;}
@@ -3588,7 +3600,7 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,aiDuel,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
@@ -3674,6 +3686,54 @@ function duelBox(u,box){if(!charAct||!u||!u.onTable)return;const T=duelTargets(u
 async function aiDuel(id,tid){const u=byId(id),C=duelTargets(u);const t=C.find(x=>x.id===tid)||C.sort((a,b)=>duelOdds(u,b)-duelOdds(u,a))[0];if(!t){await charCommit(id,{note:'No action.'});return `the ${u.charName} takes no action`;}
   lastDuelLine='';openCombat({type:'duel',att:id,tgt:t.id,inAct:false,charDuel:true,step:'offer',selfTitle:'Duel'});for(let i=0;i<240&&cb&&cb.type==='duel';i++)await sleep(500);return lastDuelLine||`the ${u.charName} duels`;}
 
+/* ---- Master Manipulator (Merchant Prince): an Offer before Reinforcement Rolls ---- */
+function mmSides(){return ['cs','nord'].filter(s=>(state.units||[]).some(u=>u.side===s&&!u.destroyed&&/Merchant Prince/.test(u.charName||'')));}
+function mmCur(){const R=state.round||1;return state.mm&&state.mm.r===R?state.mm:null;}
+function mmBest(side){return reserves(side).filter(u=>reinfRule(u.cls,state.round||1)!=='no'&&reinfRule(u.cls,state.round||1)!=='auto').sort((a,b)=>(+b.points||0)-(+a.points||0))[0];}
+async function mmOffer(by){const R=state.round||1,o=other(by);let m={r:R,by,ans:null,pick:{}};
+  if(!PVP()&&o===AI){const acc=reserves(AI).length>=reserves(HU).length;m.ans=acc?'accept':'decline';if(acc){const b=mmBest(AI);m.pick[AI]=b?b.id:'none';}}
+  if(!PVP()&&by===AI){m.ans=null;}
+  await putState({mm:m,lastTitle:N(by)+' · Master Manipulator',lastText:'An Offer is made before Reinforcement Rolls.'+(m.ans?' '+N(o)+(m.ans==='accept'?' accept it.':' decline it.'):'')});}
+async function mmAnswer(ans){const m=Object.assign({},mmCur());m.ans=ans;m.pick=Object.assign({},m.pick||{});
+  if(!PVP()&&ans==='accept'){const b=mmBest(AI);m.pick[AI]=b?b.id:'none';}
+  if(!PVP()&&ans==='decline'&&m.by===AI)m.opt='reroll';
+  await putState({mm:m,lastTitle:'Master Manipulator',lastText:'The Offer is '+(ans==='accept'?'accepted: each player picks one more regiment that arrives automatically with Vanguard (3).':'declined.')});}
+function mmBar(add,mk,me,info){const S=mmSides();if(!S.length)return false;const R=state.round||1;let m=mmCur();
+  if(!m){let by=S.length===1?S[0]:(state.mmRoll&&state.mmRoll.r===R?state.mmRoll.by:null);
+    if(!by){const a=d6(),b=d6();by=a<=b?'cs':'nord';putState({mmRoll:{r:R,by},lastTitle:'Master Manipulator',lastText:'Both armies have a Merchant Prince: roll-off '+a+' against '+b+'; '+N(by)+' make the Offer.'});return true;}
+    if(by===me){info.textContent='Master Manipulator: before Reinforcement Rolls you may make your opponent an Offer. Accepted: both of you pick one more regiment that arrives automatically with Vanguard (3). Declined: you may re-roll one failed Reinforcement Roll, or give one reserve Vanguard (3).';
+      add(mk('Make the Offer',()=>mmOffer(me)));add(mk('No Offer this round',()=>putState({mm:{r:R,by:me,ans:'none'}}),true));return true;}
+    if(!PVP()&&by===AI){mmOffer(AI);return true;}
+    info.textContent='Waiting for '+WHO(by)+' to decide on the Master Manipulator Offer.';return true;}
+  if(m.ans==='none')return false;
+  if(!m.ans){if(m.by===me){info.textContent='Offer made. Waiting for '+WHO(other(me))+' to answer.';return true;}
+    info.textContent=WHO(m.by)+' make you an Offer (Master Manipulator). Accept: each player picks one more regiment that arrives automatically this round with Vanguard (3). Decline: they may re-roll one failed Reinforcement Roll or give one of their reserves Vanguard (3).';
+    add(mk('Accept the Offer',()=>mmAnswer('accept')));add(mk('Decline',()=>mmAnswer('decline'),true));return true;}
+  const pickSel=(lab,fn,skip)=>{const pool=reserves(me).filter(u=>reinfRule(u.cls,R)!=='no');const sel=document.createElement('select');sel.setAttribute('aria-label',lab);pool.forEach(u=>{const o=document.createElement('option');o.value=u.id;o.textContent=u.name+' ('+u.cls+')';sel.appendChild(o);});
+    if(!pool.length){skip();return null;}add(sel);add(mk('Confirm',()=>fn(sel.value)));return sel;};
+  if(m.ans==='accept'&&!(m.pick||{})[me]){info.textContent='Master Manipulator (accepted): pick one more regiment that arrives automatically this round with Vanguard (3).';
+    pickSel('Extra automatic arrival',id=>putState({mm:Object.assign({},m,{pick:Object.assign({},m.pick,{[me]:id})})}),()=>putState({mm:Object.assign({},m,{pick:Object.assign({},m.pick,{[me]:'none'})})}));return true;}
+  if(m.ans==='decline'&&m.by===me&&!m.opt){info.textContent='Master Manipulator (declined): choose your benefit.';add(mk('Re-roll one failed Reinforcement Roll',()=>putState({mm:Object.assign({},m,{opt:'reroll'})})));
+    pickSel('Regiment that gains Vanguard (3)',id=>putState({mm:Object.assign({},m,{opt:'vanguard',vg:id})}),()=>putState({mm:Object.assign({},m,{opt:'reroll'})}));return true;}
+  if(m.ans==='accept'&&PVP()&&!(m.pick||{})[other(me)]){info.textContent='Waiting for '+WHO(other(me))+' to pick their extra regiment.';return true;}
+  return false;}
+/* ---- Assassination Directive (Mimetic Assassin) ---- */
+function assassinHolder(side){return (state.units||[]).find(x=>x.side===side&&x.assassinHold&&!x.assassinUsed);}
+function assassinOk(u){return !!u&&/Infantry/.test(u.cls||'')&&!u.charName&&engaged(u).length&&!!assassinHolder(u.side);}
+function srAssassin(u){const H=assassinHolder(u.side),A=H.assassinHold,W=+(u.stats&&u.stats.W)||4,eng=engaged(u);const st={x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files};
+  act.cur={type:'clash',assassin:true,start:st,budget:0,moving:false,reshape:false};
+  (async()=>{const files=geom(u).files;await putState({units:state.units.map(x=>{if(x.id===H.id&&x.id!==u.id)x=Object.assign({},x,{assassinUsed:true});if(x.id!==u.id)return x;
+      return Object.assign({},x,x.id===H.id?{assassinUsed:true}:{},{charName:A.name,charStats:A.stats,charRules:A.rules,char:files>=3?Math.min(2,files-1):Math.min(files-1,1),stands:(x.stands||1)+1,wounds:(x.wounds||0)+W,charActivated:true});}),
+      lastTitle:N(u.side)+' · Assassination Directive',lastText:`The ${A.name} replaces a front-rank stand of ${u.short||u.name} (removed as a casualty; it does not count towards Broken or Shattered), strikes, and may Duel.`});
+    const ids=eng.map(e=>e.id);openCombat({type:'lethal',att:u.id,tgt:ids.length===1?ids[0]:null,choices:ids,inAct:false,lethalHits:W,lethalX:0,lethalLost:0,lethalLabel:'Assassination Directive',lethalRed:2,selfTitle:'Assassination Directive',selfText:`The ${A.name} strikes: ${W} Hits with Cleave (2) on one enemy regiment in contact. No Morale Tests.`});
+    const ch=eng.filter(e=>e.charName||isMChar(e));if(ch.length)srQueue({type:'duel',att:u.id,tgt:ch[0].id,inAct:false,step:'offer',selfTitle:'Duel (Assassination Directive)'});
+    srQueue({type:'clash',att:u.id,tgt:ids.length===1?ids[0]:null,choices:ids,inAct:true});render();})();return true;}
+async function exAssassin(){startAction('assassin');for(let i=0;i<400;i++){await sleep(400);if(!cb&&!cbQueue.length&&!(act&&act.cur))break;}return 'the Mimetic Assassin strikes from the ranks';}
+/* ---- Privileged Observer (Force Grown Drones) and Optimized Fodder ---- */
+function privOk(u){return frBase(u)==='Force Grown Drones'&&/Biomancer|Pheromancer/.test(u.charName||'')&&!/Medium/.test(u.cls||'')&&(state.round||1)===1&&!u.onTable;}
+function fodder6(u){return frBase(u)==='Force Grown Drones'&&rh(u.rules||[],'Optimized Fodder')&&((u.stands||0)-(u.char!=null?1:0)-(u.aux!=null?1:0))>=6;}
+function srStrain(u){const S=STRAIN[frBase(u)];if(S&&fodder6(u))return [S[0]+' (Optimized Fodder)',['Lethal Demise (2)'],'+1 March',{M:1}];return S;}
+
 function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},seats=state.seats||{};
   info.textContent='Play against a friend. Share this page with them from the Share menu, with permission to interact. Each of you takes an edge and builds or pastes your own army.';
   const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent='Seats';box.appendChild(h);
@@ -3737,7 +3797,7 @@ function armyRulesBox(){const d=document.createElement('details');d.className='v
   d.appendChild(ptext('Rules marked automatic are applied by the map. Apply the others yourselves: hover a rule to read it.'));return d;}
 function renderTurnbarPvp(tb,info,mk,add,step){const me=seatSide();
   if(!me){info.textContent=`You are watching ${WHO('cs')} against ${WHO('nord')}. ${state.phase||''}`;return true;}
-  if(step==='reinforce'){const rt=state.reinfTurn||'cs';if(rt!==HU){info.textContent=`Round ${state.round} · Reinforcements. Waiting for ${WHO(rt)} to roll.`;return true;}
+  if(step==='reinforce'){if(mmBar(add,mk,ME,info))return true;const rt=state.reinfTurn||'cs';if(rt!==HU){info.textContent=`Round ${state.round} · Reinforcements. Waiting for ${WHO(rt)} to roll.`;return true;}
     const pool=reserves(HU).filter(u=>reinfRule(u.cls,state.round)!=='no');info.textContent=`Round ${state.round} · Reinforcements. Choose one regiment to arrive automatically, then roll for the rest.`;
     const sel=document.createElement('select');sel.id='tb-auto';sel.setAttribute('aria-label','Regiment arriving automatically');const o0=document.createElement('option');o0.value='';o0.textContent='No automatic arrival';sel.appendChild(o0);
     pool.filter(u=>reinfRule(u.cls,state.round)!=='auto').forEach(u=>{const o=document.createElement('option');o.value=u.id;o.textContent=u.name+' ('+u.cls+')';sel.appendChild(o);});add(sel);
@@ -3775,7 +3835,7 @@ function renderTurnbar0(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHT
   const ng=mk(resetArm?'Click again to reset the game':'New game',newGame,true);ng.classList.add('ng');
   add(ng);
   if(PVP()&&renderTurnbarPvp(tb,info,mk,add,step))return;
-  if(step==='reinforce'){const pool=reserves(HU).filter(u=>reinfRule(u.cls,state.round)!=='no');info.textContent=`Round ${state.round} · Reinforcements. Choose one regiment to arrive automatically, then roll for the rest.`;
+  if(step==='reinforce'){if(mmBar(add,mk,HU,info))return;const pool=reserves(HU).filter(u=>reinfRule(u.cls,state.round)!=='no');info.textContent=`Round ${state.round} · Reinforcements. Choose one regiment to arrive automatically, then roll for the rest.`;
     const sel=document.createElement('select');sel.id='tb-auto';sel.setAttribute('aria-label','Regiment arriving automatically');const o0=document.createElement('option');o0.value='';o0.textContent='No automatic arrival';sel.appendChild(o0);
     pool.filter(u=>reinfRule(u.cls,state.round)!=='auto').forEach(u=>{const o=document.createElement('option');o.value=u.id;o.textContent=u.name+' ('+u.cls+')';sel.appendChild(o);});add(sel);
     add(mk('Roll reinforcements',async()=>{aiBusy=true;render();try{const rep=await doReinforcements(sel.value||null);aiBusy=false;await startCommandPhase(rep);}catch(e){aiBusy=false;toast('That could not be saved. Try again.');render();}}));return;}
