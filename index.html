@@ -105,7 +105,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1px s
 .report{background:var(--panel);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .report h2{font-family:var(--display);font-size:20px;margin:0}.air-h{margin:6px 0 0;font-weight:700}.air-n{margin:0;font-style:italic;color:var(--muted)}
 .stackb{flex:1 1 100%;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px}.stackb li{display:flex;align-items:center;gap:6px}.stackb li span{flex:1}.stackb .btn{padding:2px 10px;font-size:14px}
-.stackb li.dnd{border:1px solid transparent;border-radius:6px;padding:2px 4px}.stackb li.drag{opacity:.45}.stackb li.over{border-color:currentColor;border-style:dashed}.stackb .grip{cursor:grab;touch-action:none;user-select:none;padding:2px 8px;font-size:18px;line-height:1;opacity:.7}
+.stackb li.dnd{border:1px solid transparent;border-radius:6px;padding:2px 4px;cursor:grab;user-select:none}.stackb li.drag{opacity:.45}.stackb li.over{border-color:var(--brass,#c9a24a);background:rgba(201,162,74,.12)}.stackb li.ins-b{box-shadow:0 -3px 0 0 var(--brass,#c9a24a)}.stackb li.ins-a{box-shadow:0 3px 0 0 var(--brass,#c9a24a)}.stackb .grip{cursor:grab;touch-action:none;user-select:none;padding:2px 8px;font-size:18px;line-height:1;opacity:.7}
 .tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px}.tools .tool{font:inherit;font-weight:700;padding:6px 12px;border-radius:4px;border:1px solid var(--edge,#555);background:var(--plate,#222);color:inherit;cursor:pointer}.tools .tool[aria-pressed="true"]{border-color:var(--brass,#c9a24a);box-shadow:inset 0 0 0 1px var(--brass,#c9a24a)}.tools .hint{font-size:13px}
 #aibanner{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:60;max-width:min(560px,94vw);box-shadow:0 14px 40px rgba(0,0,0,.6)}#aibanner .md{width:44px;height:44px}
 #turn-note{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;padding:18px 28px;font-weight:800;font-size:22px;text-align:center;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .3s}#turn-note.on{opacity:1}
@@ -630,7 +630,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-07 21:34 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-07 22:18 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -851,15 +851,22 @@ function woundState(u,wounds){const rt=regTot(u);let w=wounds==null?(u.wounds||0
   for(const i of removalSeq(u)){const W=sW(u,i);if(w>=W){w-=W;l++;}else break;}return {lost:l,rem:l>=rt?0:w,max};}
 /* stand order: tokens r0 (command stand), r1.. (other regiment stands), a (auxiliary), c (character) */
 function removalSeq(u){const rt=regTot(u),out=[];if(Array.isArray(u.order)){u.order.slice().reverse().forEach(t=>{if(/^r\d+$/.test(t)&&t!=='r0'){const i=+t.slice(1);if(i<rt&&!out.includes(i))out.push(i);}});}
+  if(!Array.isArray(u.order)){const FS=u.slotBase&&u.slotFiles?{slots:u.slotBase}:fullSlots(u);FS.slots.slice().reverse().forEach(t=>{if(t&&/^r\d+$/.test(t)&&t!=='r0'){const i=+t.slice(1);if(i<rt&&!out.includes(i))out.push(i);}});}
   for(let i=rt-1;i>=1;i--)if(!out.includes(i))out.unshift(i);out.push(0);return out;}
+/* full-strength positions of every stand (command stand centre front, then the character, then the auxiliary) */
+function fullSlots(u){const rt=regTot(u),all=[];for(let i=0;i<rt;i++)all.push('r'+i);if(u.aux!=null&&u.auxStats)all.push('a');if(u.char!=null)all.push('c');const N0=all.length,fF=Math.max(1,Math.min(u.files||1,N0));
+  const SP=specials(Object.assign({},u,{auxWounds:0}),fF),full=new Array(N0).fill(null);const put=(k,t)=>{if(k!=null&&k<N0&&full[k]==null&&all.includes(t))full[k]=t;};put(SP.cmd,'r0');put(SP.aux,'a');put(SP.ch,'c');
+  const rest=all.filter(t=>!full.includes(t));for(let k=0;k<N0;k++)if(full[k]==null)full[k]=rest.shift();return {files:fF,slots:full};}
 function layout(u){const G=geom(u),n=live(u),rt=regTot(u),lost=lostOf(u),rs=removalSeq(u),dead=new Set(rs.slice(0,lost).map(i=>'r'+i));
   const alive=[];for(let i=0;i<rt;i++)if(!dead.has('r'+i))alive.push('r'+i);if(u.aux!=null&&u.auxStats&&!auxDead(u))alive.push('a');if(u.char!=null)alive.push('c');
   let seq;if(Array.isArray(u.order)){seq=u.order.filter(t=>alive.includes(t));alive.forEach(t=>{if(!seq.includes(t))seq.push(t);});
     const sp=t=>t==='r0'||t==='c'||t==='a';for(let k=G.files;k<seq.length;k++)if(sp(seq[k])){let j=Math.min(G.files,seq.length)-1;while(j>=0&&sp(seq[j]))j--;if(j>=0){[seq[j],seq[k]]=[seq[k],seq[j]];}}}
-  else{const all=[];for(let i=0;i<rt;i++)all.push('r'+i);if(u.aux!=null&&u.auxStats)all.push('a');if(u.char!=null)all.push('c');const N0=all.length,fF=Math.max(1,Math.min(u.files||1,N0));
-    if(G.files===fF&&n<N0){/* full-strength slots: survivors keep their place, casualties leave the rear */const SP=specials(u,fF),full=new Array(N0).fill(null);const put=(k,t)=>{if(k!=null&&k<N0&&full[k]==null&&all.includes(t))full[k]=t;};put(SP.cmd,'r0');put(SP.aux,'a');put(SP.ch,'c');
-      const rest=all.filter(t=>!full.includes(t));for(let k=0;k<N0;k++)if(full[k]==null)full[k]=rest.shift();
-      const out=[];full.forEach((t,k)=>{if(t&&alive.includes(t))out.push({pos:k,tok:t});});if(out.length&&out.length===alive.length&&Math.max(...out.map(o=>o.pos))<Math.ceil(n/fF)*fF)return out.slice(0,n).map(o=>({pos:o.pos,tok:o.tok,kind:o.tok==='a'?'aux':o.tok==='c'?'char':'reg',cmd:o.tok==='r0',ri:o.tok[0]==='r'?+o.tok.slice(1):null,mod:u.mods&&o.tok[0]==='r'?u.mods[+o.tok.slice(1)]:null}));}
+  else{const FS=u.slotBase&&u.slotFiles?{files:u.slotFiles,slots:u.slotBase}:fullSlots(u);
+    if(G.files===FS.files){/* every stand keeps its place; casualties leave the rear. If a character (or the command stand) is lost, the rear-most stand steps into its place */
+      const slots=FS.slots.map(t=>t&&alive.includes(t)?t:null);alive.forEach(t=>{if(!slots.includes(t))slots.push(t);});
+      for(let k=0;k<slots.length;k++){if(slots[k])continue;let last=-1;for(let m=slots.length-1;m>k;m--)if(slots[m]){last=m;break;}if(last<0)break;if(Math.floor(last/FS.files)>Math.floor(k/FS.files)){slots[k]=slots[last];slots[last]=null;}}
+      const out=[];slots.forEach((t,k)=>{if(t)out.push({pos:k,tok:t});});
+      if(out.length===alive.length&&Math.max(...out.map(o=>o.pos))<Math.ceil(n/FS.files)*FS.files)return out.map(o=>({pos:o.pos,tok:o.tok,kind:o.tok==='a'?'aux':o.tok==='c'?'char':'reg',cmd:o.tok==='r0',ri:o.tok[0]==='r'?+o.tok.slice(1):null,mod:u.mods&&o.tok[0]==='r'?u.mods[+o.tok.slice(1)]:null}));}
     const SP=specials(u,G.files);seq=new Array(n).fill(null);const put=(k,t)=>{if(k!=null&&k<n&&seq[k]==null&&alive.includes(t))seq[k]=t;};put(SP.cmd,'r0');put(SP.aux,'a');put(SP.ch,'c');
     const rest=alive.filter(t=>!seq.includes(t));for(let k=0;k<n;k++)if(seq[k]==null)seq[k]=rest.shift();seq=seq.filter(Boolean);}
   return seq.slice(0,n).map((t,k)=>({pos:k,tok:t,kind:t==='a'?'aux':t==='c'?'char':'reg',cmd:t==='r0',ri:t[0]==='r'?+t.slice(1):null,mod:u.mods&&t[0]==='r'?u.mods[+t.slice(1)]:null}));}
@@ -1094,6 +1101,9 @@ function setChargeTarget(t){const u=byId(act.id);if(fx(t).some(x=>/^Prowling/.te
   if(!arcOk){toast((t.short||t.name)+' is not in this regiment’s front arc.');return;}
   if(dist>chargeMax(u)+(armyHas(u.side,/Prophecy Unfulfilled/)&&engaged(t).length?2:0)+1e-6){toast(`Out of reach: ${(t.short||t.name)} is ${dist.toFixed(1)}″ away and the furthest this regiment can charge is ${chargeMax(u)}″.`);return;}
   Object.assign(act.cur,{stage:'roll',target:t.id,dist,pu:armyHas(u.side,/Prophecy Unfulfilled/)&&engaged(t).length>0});const lo=tLos(u,t,false);toast(lo?'Check Line of Sight: '+lo+' is in the way.':(t.garrison?'The target is in a building: no Impact Attacks against it.':''));render();}
+/* the Charge Roll happens in the game: one die (two, keep the highest, with Master of the Legions) */
+function chargeRollBtn(label,go,need){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=label;b.onclick=async()=>{b.disabled=true;const u=byId(act.id),two=u&&fxHas(u,/2D6 Charge/);
+  const d=[d6()].concat(two?[d6()]:[]),r=Math.max(...d);banner('Charge Roll'+(two?' (2D6, highest)':''),d.map(v=>({v,cls:v===r&&v>=need?'hit':v===r?'miss':''})),'needs '+need+' or more');await sleep((DSPEED[SET.diceSpeed]||1300)+700);bannerHide();go(r);};return b;}
 function resolveCharge(roll,reroll){const u=byId(act.id),c=act.cur;c.roll=roll;if(reroll)c.rerolled=true;
   const f=chargeFixed(u);const cd=(u.m||0)+(f!=null?f:roll+srChargeBonus(u,byId(c.target)))+(c.pu?2:0);c.cd=cd;
   if(cd>=c.dist-1e-6){c.success=true;placeCharge();c.stage='adjust';}
@@ -1137,11 +1147,13 @@ function startActivation(id,source,card){
 /* Draw Events and start-of-activation effects */
 function drawEvents(u){const notes=[];
   const bas=(u.abilities||[]).concat(fx(u).map(x=>[x])).map(a=>String(a[0]).match(/^Bastion\s*\((\d+)\)/)).find(Boolean);if(bas){act.extraFx.push('Bastion ('+bas[1]+')');notes.push('Bastion: +'+bas[1]+' Defense until the end of the round');}
-  let heal=0;const reg=(u.abilities||[]).concat(fx(u).map(x=>[x])).concat(fodder6(u)&&(u.abilities||[]).some(a=>/^Regeneration/.test(a[0]))?[['Regeneration (+4)']]:[]).map(a=>String(a[0]).match(/^Regeneration\s*\(\+?(\d+)\)/)).filter(Boolean).sort((a,b)=>b[1]-a[1])[0];if(reg)heal+=+reg[1];
+  let heal=0,cheal=0;const chPre=u.charName?'The '+u.charName+':':'\u0000';const reg=(u.abilities||[]).filter(a=>!String(a[0]).startsWith(chPre)).concat(fx(u).map(x=>[x])).concat(fodder6(u)&&(u.abilities||[]).some(a=>/^Regeneration/.test(a[0]))?[['Regeneration (+4)']]:[]).map(a=>String(a[0]).match(/^Regeneration\s*\(\+?(\d+)\)/)).filter(Boolean).sort((a,b)=>b[1]-a[1])[0];
+  if(u.charName){const cr=chRulesX(u).concat((u.abilities||[]).filter(a=>String(a[0]).startsWith(chPre)).map(a=>String(a[0]).slice(chPre.length).trim())).map(x=>String(x).match(/^Regeneration\s*\(\+?(\d+)\)/)).filter(Boolean).sort((a,b)=>b[1]-a[1])[0];if(cr)cheal=+cr[1];}if(reg)heal+=+reg[1];
   const fh=frHeal(u);if(fh){heal+=fh;notes.push('Underspire Regeneration (+'+fh+')');}
   if((u.abilities||[]).some(a=>/^Biotic Renewal/.test(a[0]))){const v=d6(),h=u.type==='inf'?v:Math.ceil(v/2);heal+=h;notes.push('Biotic Renewal rolled '+v);}
   if(heal&&!canHeal(u)){notes.push('Primal Cacophony: it cannot Heal');heal=0;}
-  if(heal&&((u.wounds||0)>0||(+u.charWounds||0)>0)){const h=Math.min(heal,u.wounds||0),hc=Math.min(heal-h,+u.charWounds||0);const units=(state.units||[]).map(x=>x.id!==u.id?x:Object.assign({},x,{wounds:(x.wounds||0)-h,charWounds:Math.max(0,(+x.charWounds||0)-hc)}));putState({units,lastTitle:N(u.side)+' · '+u.name,lastText:`Draw Event: heals ${h+hc} wound${h+hc>1?'s':''}${hc?' ('+hc+' on the '+u.charName+')':''}.`}).catch(()=>{});notes.push('heals '+(h+hc)+' wound'+(h+hc>1?'s':'')+(hc?' ('+hc+' on the '+u.charName+')':''));}
+  if(cheal&&!canHeal(u))cheal=0;
+  if((heal&&(u.wounds||0)>0)||(cheal&&(+u.charWounds||0)>0)){const h=Math.min(heal,u.wounds||0),hc=Math.min(cheal,+u.charWounds||0);const units=(state.units||[]).map(x=>x.id!==u.id?x:Object.assign({},x,{wounds:(x.wounds||0)-h,charWounds:Math.max(0,(+x.charWounds||0)-hc)}));putState({units,lastTitle:N(u.side)+' · '+u.name,lastText:`Draw Event: heals ${h+hc} wound${h+hc>1?'s':''}${hc?' ('+hc+' on the '+u.charName+')':''}.`}).catch(()=>{});notes.push('heals '+(h+hc)+' wound'+(h+hc>1?'s':'')+(hc?' ('+hc+' on the '+u.charName+')':''));}
   if(hasDraw(u,/^Double Time/))notes.push('Double Time: after two Marches, take a free third March');
   if(act&&act.id===u.id)act.drawNotes=notes.slice();if(notes.length)toast('Draw Events: '+notes.join(' · ')+'.');
   // Aura of Death from engaged enemies
@@ -1377,12 +1389,12 @@ function renderCard(){
     row.append(inp,lab,bf);chg.appendChild(row);}$('c-ctl').hidden=isChg;$('done-act').hidden=isChg&&c.stage!=='adjust';
   if(isChg){$('c-meter').hidden=true;const t=c.target?byId(c.target):null,M=u.m||0,jug=jugg(u);
     if(c.stage==='target'){$('c-cur-read').textContent=`Charge: click the enemy regiment you are declaring the Charge against. It must be in your front arc and within ${chargeMax(u)}″. Claude checks Line of Sight.`;}
-    if(c.stage==='roll'){const need=Math.max(1,Math.ceil(c.dist-M-1e-6));$('c-cur-read').textContent=jug?`Charge against ${t.short||t.name}, ${c.dist.toFixed(1)}″ away. Juggernaut: the Charge Distance is always ${M+5}″.`:`Charge against ${t.short||t.name}, ${c.dist.toFixed(1)}″ away. Charge Distance is ${M}″ plus the Charge Roll, so you need ${need} or more. Roll one die in the dice tray and enter the result.`;
-      chg.appendChild(jug?(()=>{const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Resolve charge';b.onclick=()=>resolveCharge(0);return b;})():rollPicker('Resolve charge',r=>resolveCharge(r)));
+    if(c.stage==='roll'){const need=Math.max(1,Math.ceil(c.dist-M-1e-6));$('c-cur-read').textContent=jug?`Charge against ${t.short||t.name}, ${c.dist.toFixed(1)}″ away. Juggernaut: the Charge Distance is always ${M+5}″.`:`Charge against ${t.short||t.name}, ${c.dist.toFixed(1)}″ away. Charge Distance is ${M}″ plus the Charge Roll, so you need ${need} or more on the Charge Roll.`;
+      chg.appendChild(jug?(()=>{const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Resolve charge';b.onclick=()=>resolveCharge(0);return b;})():chargeRollBtn('Roll the Charge',r=>resolveCharge(r),need));
       const ct=document.createElement('button');ct.type='button';ct.className='btn ghost';ct.textContent='Change target';ct.onclick=()=>{c.stage='target';c.target=null;render();toast('Click another enemy regiment.');};chg.appendChild(ct);
       const p=document.createElement('p');p.className='hint';p.textContent='You can also click a different enemy regiment to switch targets before rolling.';chg.appendChild(p);}
-    if(c.stage==='reroll'){$('c-cur-read').textContent=`Charge Roll ${c.roll} gives ${c.cd}″, short of ${c.dist.toFixed(1)}″. Unstoppable lets you re-roll the Charge Roll once. Roll again in the tray and enter it, or accept the failure.`;
-      chg.appendChild(rollPicker('Use the re-roll',r=>resolveCharge(r,true)));const b=document.createElement('button');b.type='button';b.className='btn ghost';b.textContent='Accept the failed charge';b.onclick=()=>{failCharge();render();};chg.appendChild(b);}
+    if(c.stage==='reroll'){$('c-cur-read').textContent=`Charge Roll ${c.roll} gives ${c.cd}″, short of ${c.dist.toFixed(1)}″. It may re-roll the Charge Roll once, or accept the failure.`;
+      chg.appendChild(chargeRollBtn('Re-roll the Charge',r=>resolveCharge(r,true),Math.max(1,Math.ceil(c.dist-M-1e-6))));const b=document.createElement('button');b.type='button';b.className='btn ghost';b.textContent='Accept the failed charge';b.onclick=()=>{failCharge();render();};chg.appendChild(b);}
     if(c.stage==='adjust'){$('c-cur-read').textContent=`Charge succeeds: ${c.roll?c.roll+' + ':''}${M}${jug?' + 5':''} = ${c.cd}″ against ${c.dist.toFixed(1)}″. The regiment is flush with the target’s ${c.face}. Drag along the contact face to line up stands, then Finish action. The regiment becomes Inspired; Claude resolves the Impact Attacks.`;}
     $('cancel-act').hidden=c.stage==='adjust';
   }else{$('cancel-act').hidden=false;}
@@ -2551,7 +2563,7 @@ function cmdText(u){const c=u&&u.cmd;if(!c)return '';return [c.leader?'Leader':'
 function unitJson(u,extra,f){const S=u.stats,n=v=>v==='-'?null:v;return Object.assign({name:u.name,short:u.name.slice(0,20),points:u.pts||0,cls:[u.cls||'Medium',u.type].join(' ').trim(),type:bldType(u.type),
   stands:bldBase(u),M:n(S.M)||(bldType(u.type)==='monster'?7:6),V:n(S.V)||0,C:n(S.C)||1,A:n(S.A)||1,W:n(S.W)||4,R:S.R==='-'?'–':S.R,D:n(S.D)||0,E:n(S.E)||0,rules:u.rules.slice(),abilities:u.draw.map(d=>[d,ruleInfo(d,f.name)||'Draw Event']),standardBearer:bearerDefault(u),leader:!!(u.cmd&&u.cmd.leader),auxiliary:null,character:null},extra||{});}
 function upgAbilities(w){return (w.upg||[]).map(n=>{const e=upgFind(n);return e?[n,e[4]+' ('+e[0]+', '+e[2]+' pts)']:[n,'Upgrade'];}).concat((w.custom||[]).map(x=>[x.name,'Upgrade, '+x.pts+' pts']));}
-function charJson(c,warlord,custom,w){const n=v=>v==='-'?null:v,S=c.stats;return {name:c.name,warlord,stats:{C:n(S.C)||1,A:n(S.A)||1,W:n(S.W)||4,R:S.R==='-'?0:S.R,D:n(S.D)||0,E:n(S.E)||0,V:n(S.V)||0},rules:c.rules.slice(),spells:[],upgrades:(w?upgAbilities(w):(custom||[]).map(x=>[x.name,x.pts+' pts'])).map(a=>a[0])};}
+function charJson(c,warlord,custom,w){const n=v=>v==='-'?null:v,S=c.stats;return {name:c.name,warlord,stats:{C:n(S.C)||1,A:n(S.A)||1,W:n(S.W)||4,R:S.R==='-'?0:S.R,D:n(S.D)||0,E:n(S.E)||0,V:n(S.V)||0},rules:c.rules.concat((c.draw||[]).filter(d=>!c.rules.includes(d))),spells:[],upgrades:(w?upgAbilities(w):(custom||[]).map(x=>[x.name,x.pts+' pts'])).map(a=>a[0])};}
 function bldToList(){const f=bldFac();if(!f)return null;const units=[],count={};units.push=function(...a){a.forEach(x=>{if(this.wbCur&&x){x.wb=this.wbCur[0];x.wbChar=this.wbCur[1];}});return Array.prototype.push.apply(this,a);};const roman=['','I','II','III','IV','V','VI'];
   const nameOf=u=>{count[u]=(count[u]||0)+1;return u;};
   bld.wbs.forEach((w,wi)=>{const c=bldUnit(w.char);if(!c)return;const wl=bld.warlord===wi;units.wbCur=[wi,c.name];
@@ -3064,7 +3076,7 @@ async function useAbil(cid,name,tid){const u=byId(cid),a=chAbil(u).find(x=>x.n==
   const src=(a.prac?'Practitioner: ':'')+(a.label||a.n);
   if(a.grant||a.label){units=units.map(x=>x.id===T.id?grantU(x,src,a.grant||[],null):x);line=a.n+' on '+nm(T);}
   if(a.order&&supAct(u.side,'Infantry Tactics')){units=units.map(x=>x.side===u.side&&x.onTable&&!x.destroyed&&x.type!=='monster'&&x.type!=='marker'?grantU(x,src,a.grant||[],null):x);line+=' (Infantry Tactics: every non-Monster regiment)';}
-  if(a.heal&&canHeal(T)){units=units.map(x=>{if(x.id!==T.id)return x;const h=Math.min(a.heal,+x.wounds||0),hc=Math.min(a.heal-h,+x.charWounds||0);return Object.assign({},x,{wounds:(+x.wounds||0)-h,charWounds:Math.max(0,(+x.charWounds||0)-hc)},a.once1?{ltb:state.round||1}:{});});line=a.n+': '+nm(T)+' heals '+a.heal;}
+  if(a.heal&&canHeal(T)){units=units.map(x=>{if(x.id!==T.id)return x;const h=Math.min(a.heal,+x.wounds||0);return Object.assign({},x,{wounds:(+x.wounds||0)-h},a.once1?{ltb:state.round||1}:{});});line=a.n+': '+nm(T)+' heals '+a.heal;}
   if(a.fn==='wound1'){units=hurt(units,T.id,1);line=a.n+': '+nm(T)+' suffers 1 wound';}
   if(a.cost)extra.fr=frPatch(u.side,'sk',{rm:(+frG(u.side,'sk').rm||0)-a.cost});
   if(a.fn==='drive'){const cp=corners(u);units=units.map(x=>{if(x.side!==u.side||!x.onTable||x.destroyed)return x;let y=x;if(x.id===u.id)y=grantU(y,src,['Tenacious (+1)'],null);
@@ -3709,7 +3721,7 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);try{await supOnAwaken(u);}catch(e){}if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
@@ -3753,8 +3765,8 @@ function duelResolve(){const A=duelist(base(cb.att)),T=duelist(base(cb.tgt));con
   cb.duel={a:ra,t:rt,qa,qt};cb.step='done';}
 function duelDecide(accept){if(!cb||cb.type!=='duel'||cb.step!=='offer')return;if(accept){cb.step='roll';}else{cb.refused=true;cb.step='done';}renderCombat();}
 function aiAcceptDuel(Tu,Au){if(duelRefuseWhy(Tu))return true;const o=duelOdds(Tu,Au);return o>=0.8||(duelNoPenalty(Tu)?false:o>=0.5);}
-function slayChar(u){if(!u)return u;if(isMChar(u)||(!u.charName))return Object.assign({},u,{onTable:false,destroyed:true,status:'Destroyed (Duel)',destroyedRound:state.round});
-  const x=Object.assign({},u,u.type==='monster'?{}:{stands:Math.max(1,(u.stands||2)-1),files:Math.min(u.files||1,Math.max(1,(u.stands||2)-1))},{charSlain:u.charName});
+function slayChar(u){if(!u)return u;const FS0=u.slotBase&&u.slotFiles?{files:u.slotFiles,slots:u.slotBase}:fullSlots(u);if(isMChar(u)||(!u.charName))return Object.assign({},u,{onTable:false,destroyed:true,status:'Destroyed (Duel)',destroyedRound:state.round});
+  const x=Object.assign({},u,u.type==='monster'?{}:{stands:Math.max(1,(u.stands||2)-1),files:Math.min(u.files||1,Math.max(1,(u.stands||2)-1))},{charSlain:u.charName,slotBase:FS0.slots.map(t=>t==='c'?null:t),slotFiles:FS0.files});
   if(u.order)x.order=(u.order||[]).filter(t=>t!=='c');['char','charName','charStats','charRules','warlord','spells','charActivated','charWounds'].forEach(k=>delete x[k]);return x;}
 function duelWound(u,D,n){if(!n)return u;if(D.mono){const AL=allocate(u,n);return Object.assign({},u,{wounds:AL.w,auxWounds:AL.aw},AL.dead?{onTable:false,destroyed:true,status:'Destroyed (Duel)',destroyedRound:state.round}:{});}
   const w=(+u.charWounds||0)+n;return w>=D.W?slayChar(Object.assign({},u,{charWounds:w})):Object.assign({},u,{charWounds:w});}
@@ -4167,16 +4179,17 @@ function renderTurnbarPvp(tb,info,mk,add,step){const me=seatSide();
   if(state.turn!==HU){info.textContent=`${scenOf().name} · Waiting for ${WHO(state.turn||AI)} to act. You have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${op}.`;add(vd);add(armyRulesBox());add(frPanel());return true;}
   {const sv=stackView();if(sv)add(sv);}const tp=humanTop();info.textContent=`${scenOf().name} · Your turn · ${tp?'next card: '+cardName(tp)+' · ':''}${huHeldOk()?'held in the Strategic Stack: '+cardName(PS().huHeld)+' · ':''}you have ${hu} card${hu===1?'':'s'} left, ${N(AI)} have ${op}.`;add(mk('End turn',endTurn));add(vd);add(armyRulesBox());add(frPanel());return true;}
 
-/* reorder the Command Stack by dragging (mouse) or by the grip (touch) */
-function stackDnD(box,arr){const items=Array.from(box.children);const move=(a,b)=>{if(a===b||a<0||b<0)return;const [x]=arr.splice(a,1);arr.splice(b,0,x);renderTurnbar();};
-  items.forEach((li,i)=>{li.dataset.i=i;li.classList.add('dnd');li.draggable=true;const g=document.createElement('span');g.className='grip';g.textContent='⠿';g.setAttribute('aria-hidden','true');li.insertBefore(g,li.firstChild);
-    li.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',String(i));li.classList.add('drag');});li.addEventListener('dragend',()=>li.classList.remove('drag'));
-    li.addEventListener('dragover',e=>{e.preventDefault();li.classList.add('over');});li.addEventListener('dragleave',()=>li.classList.remove('over'));
-    li.addEventListener('drop',e=>{e.preventDefault();li.classList.remove('over');move(+e.dataTransfer.getData('text/plain'),i);});
-    g.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;e.preventDefault();li.classList.add('drag');let tgt=null;
-      const mv=ev=>{const el=document.elementFromPoint(ev.clientX,ev.clientY),t=el&&el.closest('ol.stackb>li');tgt=t;items.forEach(x=>x.classList.toggle('over',x===t));};
-      const up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);li.classList.remove('drag');items.forEach(x=>x.classList.remove('over'));if(tgt)move(i,+tgt.dataset.i);};
-      window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);});});}
+/* reorder the Command Stack: drag a card onto another card to swap them, or between two cards to insert it there */
+function stackDnD(box,arr){const items=Array.from(box.children);let drag=null;
+  const clear=()=>items.forEach(x=>x.classList.remove('over','ins-b','ins-a'));
+  const where=(x,y)=>{const el=document.elementFromPoint(x,y),t=el&&el.closest('ol.stackb>li');if(!t)return null;const r=t.getBoundingClientRect(),f=(y-r.top)/r.height;return {t,i:+t.dataset.i,mode:f<.25?'before':f>.75?'after':'swap'};};
+  items.forEach((li,i)=>{li.dataset.i=i;li.classList.add('dnd');const g=document.createElement('span');g.className='grip';g.textContent='⠿';g.setAttribute('aria-hidden','true');li.insertBefore(g,li.firstChild);
+    const start=e=>{if(e.target.closest('button'))return;if(e.pointerType!=='mouse'&&!e.target.closest('.grip'))return;e.preventDefault();drag={i,w:null};li.classList.add('drag');
+      const mv=ev=>{const w=where(ev.clientX,ev.clientY);drag.w=w;clear();if(!w||w.i===i)return;w.t.classList.add(w.mode==='swap'?'over':w.mode==='before'?'ins-b':'ins-a');};
+      const up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);li.classList.remove('drag');clear();const w=drag&&drag.w;drag=null;if(!w||w.i===i)return;
+        if(w.mode==='swap'){[arr[i],arr[w.i]]=[arr[w.i],arr[i]];}else{const [x]=arr.splice(i,1);let to=w.i+(w.mode==='after'?1:0);if(i<to)to--;arr.splice(to,0,x);}renderTurnbar();};
+      window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);};
+    li.addEventListener('pointerdown',start);});}
 function stackView(){if(!huStackOn()&&!(PS()&&PS().huHeld))return null;const L=(PS().huStack||[]).filter(cardOk);const d=document.createElement('details');d.className='stackv';const sm=document.createElement('summary');sm.textContent='Your Command Stack ('+L.length+' left)';d.appendChild(sm);
   const ol=document.createElement('ol');L.forEach(c=>{const li=document.createElement('li');li.textContent=cardName(c);ol.appendChild(li);});d.appendChild(ol);
   if(huHeldOk()&&PS().huHeld)d.appendChild(ptext('Strategic Stack: '+cardName(PS().huHeld)));return d;}
