@@ -515,6 +515,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 [data-ui="steel"] .armies{background:linear-gradient(180deg,var(--plate2),var(--plate));border:1px solid var(--edge);border-top:2px solid var(--brass);border-radius:4px}
 [data-ui="steel"] .armies .u{border-bottom-color:#2A3036}
 
+.t-filter{display:flex;flex-direction:column;gap:6px;margin:6px 0}.t-filter .row{gap:6px;align-items:center}
 .t-ed{display:flex;flex-direction:column;gap:8px;border:1px dashed var(--gold);border-radius:6px;padding:10px;margin-top:6px}.t-ed .row{gap:6px}
 .tpiece{cursor:help}
 </style>
@@ -2198,7 +2199,18 @@ function terrWhy(p,list){const R=terrR(p);if(p.x-p.rx<0||p.x+p.rx>72||p.y-p.ry<0
   if(tHas(p,'Garrison')){if(p.x-p.rx<6||p.x+p.rx>66||p.y-p.ry<6||p.y+p.ry>42)return 'Buildings must be at least 6″ from the table edges.';if(list.filter(q=>q!==p&&tHas(q,'Garrison')).length>=2)return 'At most 2 buildings per battlefield.';}
   if((scenOf().markers||[]).some(m=>((m.x-p.x)/(p.rx+1.5))**2+((m.y-p.y)/(p.ry+1.5))**2<=1))return 'Terrain cannot cover an Objective Marker.';return '';}
 const TSIZE={small:[2.5,1.8],medium:[4,3],large:[5.5,4]};
-function genTerrain(){let best=[];for(let a=0;a<30;a++){const out=[],n=6+Math.floor(Math.random()*3);let tries=0;const types=['forest','forest','hill','hill','rocks','swamp','water','ruins','field','rubble','thorns','building'];
+let terrPref=(()=>{try{const v=JSON.parse(localStorage.getItem('conquest-terrain-filter')||'null');if(v&&Array.isArray(v.allow))return {allow:v.allow.filter(t=>TTYPES[t]),count:+v.count||0};}catch(e){}return {allow:Object.keys(TTYPES),count:0};})();
+function saveTerrPref(){try{localStorage.setItem('conquest-terrain-filter',JSON.stringify(terrPref));}catch(e){}}
+function terrFilterBox(){const box=document.createElement('div');box.className='t-filter';
+  const h=document.createElement('div');h.className='row';const lb=document.createElement('b');lb.textContent='Random terrain uses:';h.appendChild(lb);
+  const allB=abBtn('All',()=>{terrPref.allow=Object.keys(TTYPES);saveTerrPref();renderTurnbar();},'ab-ghost ab-small'),noneB=abBtn('None',()=>{terrPref.allow=[];saveTerrPref();renderTurnbar();},'ab-ghost ab-small');h.append(allB,noneB);
+  h.append(document.createTextNode(' Pieces:'),abStepper(terrPref.count||0,0,12,v=>{terrPref.count=v===1||v===2||v===3?(terrPref.count===0?4:0):v;saveTerrPref();renderTurnbar();},'number of terrain pieces'));
+  const cl=document.createElement('span');cl.className='hint';cl.textContent=terrPref.count?terrPref.count+' pieces':'0 = automatic (6 to 8)';h.appendChild(cl);box.appendChild(h);
+  const row=document.createElement('div');row.className='row';Object.entries(TTYPES).forEach(([k,d])=>{const on=terrPref.allow.includes(k);const b=abBtn((on?'✓ ':'')+d.name,()=>{terrPref.allow=on?terrPref.allow.filter(x=>x!==k):terrPref.allow.concat([k]);saveTerrPref();renderTurnbar();},'ab-tog'+(on?' on':''));b.setAttribute('aria-pressed',String(on));b.title=d.kw.join(', ')+' · Size '+d.size;row.appendChild(b);});
+  box.appendChild(row);if(!terrPref.allow.length)box.appendChild(ptext('Pick at least one terrain type for random maps.','warn'));
+  else if(terrPref.allow.length===1&&terrPref.allow[0]==='building')box.appendChild(ptext('Only buildings: at most 2 can be placed.','hint'));return box;}
+function genTerrain(){if(!terrPref.allow.length){toast('Pick at least one terrain type first.');return terrainOf();}
+  let best=[];for(let a=0;a<30;a++){const out=[],n=terrPref.count||6+Math.floor(Math.random()*3);let tries=0;const allT=terrPref.allow.length===Object.keys(TTYPES).length,types=terrPref.allow.flatMap(t=>allT&&(t==='forest'||t==='hill')?[t,t]:[t]);
   while(out.length<n&&tries++<3000){const type=types[Math.floor(Math.random()*types.length)],rx=+(2.5+Math.random()*4).toFixed(1),ry=+(Math.max(1.8,rx*(0.55+Math.random()*0.4))).toFixed(1);
     const big=type==='building',RX=big?2.6:rx,RY=big?2.2:ry,p={type,x:+(RX+Math.random()*(72-2*RX)).toFixed(1),y:+(RY+Math.random()*(48-2*RY)).toFixed(1),rx:RX,ry:RY,seed:Math.floor(Math.random()*1e9)};if(!terrWhy(p,out))out.push(p);}
   if(out.length>best.length)best=out;if(best.length>=n)break;}return best;}
@@ -2211,7 +2223,7 @@ function terrainPanel(add,mk){const box=document.createElement('div');box.classN
   const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','Terrain mode');
   [['random','Random'],['manual','Place it yourself']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String(terrMode===m));b.onclick=()=>{terrMode=m;renderTurnbar();};g.appendChild(b);});
   const row=document.createElement('div');row.className='row';row.appendChild(g);
-  if(terrMode==='random'){row.appendChild(mk('Shuffle terrain',()=>putState({terrain:genTerrain()}),true));box.appendChild(row);box.appendChild(ptext('Pieces are placed at random, at least 7″ apart, from all ten terrain types. Impassable rocks and buildings never sit on objective zones; at most 2 buildings. Hover a piece on the map to see its rules.'));}
+  if(terrMode==='random'){row.appendChild(mk('Shuffle terrain',()=>putState({terrain:genTerrain()}),true));box.appendChild(row);box.appendChild(terrFilterBox());box.appendChild(ptext('Pieces are placed at random, at least 7″ apart, using only the terrain types ticked below. Impassable rocks and buildings never sit on objective zones; at most 2 buildings. Hover a piece on the map to see its rules.'));}
   else{const mkSel=(lab,opts,val,fn)=>{const sl=document.createElement('select');sl.setAttribute('aria-label',lab);opts.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sl.appendChild(o);});sl.value=val;sl.onchange=()=>fn(sl.value);return sl;};
     row.appendChild(mkSel('Terrain type',Object.entries(TTYPES).map(([k,d])=>[k,d.name+' ('+d.kw.join(', ')+')']),terrType,v=>terrType=v));
     row.appendChild(mkSel('Terrain size',[['small','Small'],['medium','Medium'],['large','Large']],terrSize,v=>terrSize=v));
