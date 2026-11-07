@@ -612,7 +612,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-07 09:49 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-07 10:08 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -664,7 +664,11 @@ function tHas(t,k){return tInfo(t).kw.includes(k);}
 function tId(t){return String(t.seed||(t.x+'_'+t.y));}
 function inT(t,p,pad){pad=pad||0;return ((p[0]-t.x)/(t.rx+pad))**2+((p[1]-t.y)/(t.ry+pad))**2<=1;}
 function tBlocks(t,occ){return tHas(t,'Impassable')||(tHas(t,'Garrison')&&!occ);}
-function uSize(u){const c=u.cls||'';let s=/Monster|Titan/i.test(c)||u.type==='monster'?3:/Cavalry|Brute|Chariot/i.test(c)?2:1;const e=terrainOf().find(t=>tHas(t,'Elevated')&&inT(t,[u.x,u.y]));if(e)s+=tInfo(e).size;if(u.garrison){const g=terrainOf().find(t=>tId(t)===u.garrison);if(g)s=Math.max(s,tInfo(g).size);}return s;}
+function baseSize(u){const c=u.cls||'';let s=/Monster|Titan/i.test(c)||u.type==='monster'?3:/Cavalry|Brute|Chariot/i.test(c)?2:1;
+  const R=(u.rules||[]).concat(u.charRules||[]).concat((u.abilities||[]).map(a=>a[0]+': '+a[1])),fac=frFac(u);
+  for(const t of R){const x=String(t);let m=x.match(/\bSize\s*\(?\s*(\d)\s*\)?/i);if(!m){let d='';try{d=ruleInfo(x,fac)||'';}catch(e){}m=String(d).match(/count[s]?\s+as\s+Size\s+(\d)/i);}if(m)return {s:+m[1],why:x.replace(/\s*\(.*$/,'').replace(/:.*$/,'')};}
+  return {s,why:''};}
+function uSize(u){let s=baseSize(u).s;const e=terrainOf().find(t=>tHas(t,'Elevated')&&inT(t,[u.x,u.y]));if(e)s+=tInfo(e).size;if(u.garrison){const g=terrainOf().find(t=>tId(t)===u.garrison);if(g)s=Math.max(s,tInfo(g).size);}return s;}
 function tIgnore(u,k){const R=(u.rules||[]).concat(fx(u));if(rh(R,'Fly'))return true;if(k==='Hindering'&&(armyHas(u.side,/ignores Hindering/i)||frFac(u)==='Weaver Courts'||R.some(x=>/Ignores Hindering/i.test(x))))return true;return false;}
 function segHits(t,a,b){for(let k=0;k<=12;k++){const f=k/12;if(inT(t,[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]))return true;}return false;}
 /* which stands crossed which terrain during a move */
@@ -1230,7 +1234,7 @@ function renderCard(){
   ['c-stats','c-fx-sec','c-rules-sec','c-abil-sec','c-act-sec'].forEach(i=>$(i).hidden=!u);
   if(!u){$('c-name').textContent='Choose a regiment';$('c-meta').textContent='Click a regiment on the table or in the rosters below.';return;}
   $('c-name').textContent=u.name+(u.charName?' + '+u.charName:'');
-  $('c-meta').textContent=[u.cls,u.stands+(u.stands===1?' stand':' stands'),u.onTable?'on the table':(u.arriving?'arriving this round':'in reinforcements'),u.status&&u.onTable?u.status:'',u.wounds?u.wounds+' wounds taken'+(lostOf(u)?', '+lostOf(u)+' stands lost':''):''].filter(Boolean).join(' · ');
+  $('c-meta').textContent=[u.cls,(u.type!=='marker'?'Size '+uSize(u)+(baseSize(u).why?' ('+baseSize(u).why+')':''):''),u.stands+(u.stands===1?' stand':' stands'),u.onTable?'on the table':(u.arriving?'arriving this round':'in reinforcements'),u.status&&u.onTable?u.status:'',u.wounds?u.wounds+' wounds taken'+(lostOf(u)?', '+lostOf(u)+' stands lost':''):''].filter(Boolean).join(' · ');
   const st=$('c-stats');st.innerHTML='';const S0=u.stats||{};['M','V','C','A','W','R','D','E'].forEach(k=>{const k1=document.createElement('div');k1.className='k';k1.textContent=k;st.appendChild(k1);});
   ['M','V','C','A','W','R','D','E'].forEach(k=>{const v=document.createElement('div');v.className='v';v.textContent=S0[k]??'–';st.appendChild(v);});
   const fxs=fx(u),eng=engaged(u);const fb=$('c-fx');fb.innerHTML='';
