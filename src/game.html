@@ -1064,7 +1064,7 @@ function setChargeTarget(t){const u=byId(act.id);if(t.type==='marker'&&(state.ro
 function resolveCharge(roll,reroll){const u=byId(act.id),c=act.cur;c.roll=roll;if(reroll)c.rerolled=true;
   const f=chargeFixed(u);const cd=(u.m||0)+(f!=null?f:roll)+(c.pu?2:0);c.cd=cd;
   if(cd>=c.dist-1e-6){c.success=true;placeCharge();c.stage='adjust';}
-  else if((hasRule(u,/Unstoppable/)||u.bearer)&&!c.rerolled&&chargeFixed(u)==null){c.stage='reroll';}
+  else if((hasRule(u,/Unstoppable/)||u.bearer)&&!c.rerolled&&chargeFixed(u)==null&&!noChargeReroll(u)){c.stage='reroll';}
   else failCharge();
   render();}
 function failCharge(){const u=byId(act.id),c=act.cur;const a=(u.facing||0)*Math.PI/180,f=[Math.sin(a),Math.cos(a)];
@@ -1437,12 +1437,12 @@ function hitMods(A,p,type,T){let base=type==='volley'?p.V:p.C,r6=false;const inF
 function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=supportLost(A)?1:(rx(A.rules,'Support')||1);
   const tArc=arcOf(T,[A.x,A.y]),side=tArc==='left'||tArc==='right'||tArc==='rear',big=T.type==='monster'||T.type==='brute';
   const add=(key,label,n,p,extra)=>{if(n<=0)return;if(!groups[key]){const hm=hitMods(A,p,type,T),R=p.rules.concat(fx(A));
-    groups[key]=Object.assign({label,n:0,hitOn:hm.hitOn,reroll6:hm.reroll6,flurry:type!=='volley'&&rh(R,'Flurry'),
+    groups[key]=Object.assign({label,n:0,hitOn:hm.hitOn,reroll6:hm.reroll6,flurry:type==='clash'&&rh(R,'Flurry'),blessable:(type==='clash'||type==='impact')&&(rh(R,'Blessed')),eccentric:p.name===A.charName&&upgOf(A,/Eccentric Fighting Style/),forceDef:(p.name===A.charName&&(upgOf(A,/Caledburn|Eccentric Fighting Style/)||(type!=='impact'&&upgOf(A,/Kiss of the Dilosaur/))))?1:0,forceMor:p.name===A.charName&&upgOf(A,/Kiss of the Dilosaur|Chthonic Flame/),
       relentless:type==='volley'?(rh(R,'Rapid Volley')||hm.hitOn>=6):type==='clash'&&(rh(R,'Relentless Blows')||hm.hitOn>=6),
       red:type==='impact'?rx(R,'Brutal Impact'):type==='volley'?rx(R,'Armor Piercing'):rx(R,'Cleave'),smite:type==='clash'&&rh(R,'Smite'),
       flawless:(type==='clash'&&rh(R,'Flawless Strikes'))||(type==='volley'&&rh(R,'Precise Shot')),deadly:(type==='clash'&&rh(R,'Deadly Blades'))||(type==='volley'&&rh(R,'Deadly Shot')),
-      linebreaker:type!=='volley'&&rh(R,'Linebreaker'),fiend:type!=='impact'&&big&&rh(R,'Fiend Hunter'),opp:(type==='clash'||type==='volley')&&side&&(rh(R,'Opportunists')||rh(R,'Opportunist'))},extra||{});
-      const gg=groups[key];if(gg.fiend||gg.opp)gg.flurry=true;if(type==='volley'&&rh(R,'Torrential Fire'))gg.torrentOk=true;}
+      linebreaker:type!=='volley'&&rh(R,'Linebreaker'),fiend:big&&rh(R,'Fiend Hunter'),opp:(type==='clash'||type==='volley')&&side&&(rh(R,'Opportunists')||rh(R,'Opportunist'))},extra||{});
+      const gg=groups[key];if(type==='volley'&&rh(R,'Torrential Fire'))gg.torrentOk=true;}
     groups[key].n+=n;};
   st.forEach(s=>{const p=prof(A,s.kind,s.mod),nm=s.mod||(s.kind==='reg'?(A.short||A.name):p.name),K=s.kind+(s.mod?':'+s.mod:'');
     const ldr=s.cmd&&s.kind==='reg'&&A.leader!==false;
@@ -1460,20 +1460,52 @@ function openCombat(o){cb=Object.assign({step:'att',groups:null,cover:false,owne
 function maybeAutoAI(){if(PVP())return;if(cb&&!aiBusy&&!autoRunning){const A=base(cb.att);if(A&&A.side===AI&&cb.tgt){setTimeout(async()=>{if(autoRunning||aiBusy||!cb)return;autoRunning=true;try{await autoResolve();}finally{autoRunning=false;}},400);}}}
 let autoRunning=false;
 function closeCombat(){if(PVP()&&cb&&cb.owner!==HU)return;if(cb&&cb.inAct&&act&&act.cur&&(act.cur.type==='clash'||act.cur.type==='volley'))act.cur=null;cb=null;renderCombat();render();}
+
+/* ---------- re-roll stacking (core rules + Para Bellum FAQ) ----------
+   A die is re-rolled at most once. Opposing full re-rolls ("re-roll all fails" vs "re-roll all successes") cancel.
+   Opposing partial re-rolls (e.g. re-roll 6s vs re-roll 1s) cancel. A full re-roll beats an opposing partial one. */
+function rrPlan(src){const fF=src.filter(x=>x.k==='fail'&&!x.face),fP=src.filter(x=>x.k==='fail'&&x.face),sF=src.filter(x=>x.k==='succ'&&!x.face),sP=src.filter(x=>x.k==='succ'&&x.face);
+  const notes=[];let failAll=!!fF.length,succAll=!!sF.length,failF=fP.map(x=>x.face),succF=sP.map(x=>x.face);
+  if(failAll&&succAll){notes.push(fF.map(x=>x.src).join('/')+' and '+sF.map(x=>x.src).join('/')+' cancel out');failAll=succAll=false;failF=[];succF=[];}
+  else{if(failAll&&succF.length){notes.push(fF[0].src+' overrides '+sP.map(x=>x.src).join('/'));succF=[];}
+    if(succAll&&failF.length){notes.push(sF[0].src+' overrides '+fP.map(x=>x.src).join('/'));failF=[];}
+    if(failF.length&&succF.length){notes.push(fP.map(x=>x.src).join('/')+' and '+sP.map(x=>x.src).join('/')+' cancel out');failF=[];succF=[];}}
+  return {failAll,succAll,failF,succF,notes,any:failAll||succAll||failF.length||succF.length,
+    used:src.filter(x=>(x.k==='fail'&&(x.face?failF.includes(x.face):failAll))||(x.k==='succ'&&(x.face?succF.includes(x.face):succAll))).map(x=>x.src)};}
+function rrDie(v,ok,P){const good=ok(v);return good?(P.succAll||P.succF.includes(v)):(P.failAll||P.failF.includes(v));}
+function upgOf(u,re){return (u.abilities||[]).some(a=>re.test(String(a[0]||'')))||rh(u.charRules||[],re.source)||(u.effects||[]).some(e=>re.test(e));}
+function blessOk(u){return !!u&&u.blessedR!==(state.round||1)&&(rh((u.rules||[]).concat(fx(u)),'Blessed')||rh(u.charRules||[],'Blessed'));}
+function noChargeReroll(u){return fxHas(u,/Broken Ground|Snæstormur|no Charge re-roll/i);}
+function hitSources(g,parry){const S=[];if(!parry){if(g.flurry)S.push({k:'fail',src:'Flurry'});if(g.fiend)S.push({k:'fail',src:'Fiend Hunter'});if(g.opp)S.push({k:'fail',src:'Opportunists'});if(g.blessed)S.push({k:'fail',src:'Blessed'});if(g.eccentric)S.push({k:'fail',src:'Eccentric Fighting Style'});if(g.reroll6)S.push({k:'fail',face:6,src:'Inspired/Aim (re-roll 6s)'});}return S;}
 function rollHits(g,n,parry){const isHit=v=>v===1||(v<=g.hitOn&&v!==6);const rolls=[];for(let i=0;i<n;i++)rolls.push({v:d6(),re:false});
-  rolls.forEach(r=>{if(!isHit(r.v)&&!parry&&(g.flurry||(g.reroll6&&r.v===6))){r.first=r.v;r.v=d6();r.re=true;}});
+  const P=rrPlan(hitSources(g,parry));g.rrNotes=P.notes.concat(parry&&(g.flurry||g.fiend||g.opp||g.blessed||g.reroll6||g.eccentric)?['Parry: no hit re-rolls']:[]);
+  rolls.forEach(r=>{if(rrDie(r.v,isHit,P)){r.first=r.v;r.v=d6();r.re=true;}});
   let hits=0,ones=0;rolls.forEach(r=>{if(isHit(r.v)){hits++;r.hit=true;if(r.v===1)ones++;}});g.rolls=rolls;g.ones=ones;g.extra=(g.relentless?ones:0)+(g.torrent?Math.ceil(hits/2):0);g.hits=hits+g.extra;}
 function rollDef(T){const A=byId(cb.att);let fails=0,dbl=0;
   cb.groups.forEach(g=>{const di=defInfo(T,A,g);g.def=di;g.drolls=[];for(let i=0;i<(g.hits||0);i++){const flaw=g.flawless&&i<(g.ones||0),ok=x=>x!==6&&((!flaw&&x<=di.D)||x<=di.E);
-    let v=d6(),re=false,first=null;if(!ok(v)&&v===6&&rh((T.rules||[]).concat(fx(T)),'Untouchable')){first=v;v=d6();re=true;}const save=ok(v);g.drolls.push({v,save,re,first});if(!save){fails++;if(g.deadly&&v===6)dbl++;}}});
+    const SD=[];if(cb.blessT&&(cb.type==='clash'||cb.type==='impact'))SD.push({k:'fail',src:'Blessed'});if(rh((T.rules||[]).concat(fx(T)),'Untouchable'))SD.push({k:'fail',face:6,src:'Untouchable'});if(g.forceDef)SD.push({k:'succ',src:'re-roll successful Defense ('+(A.charName||'character')+')'});
+    const PD=rrPlan(SD);g.drrNotes=PD.notes;let v=d6(),re=false,first=null;if(rrDie(v,ok,PD)){first=v;v=d6();re=true;}const save=ok(v);g.drolls.push({v,save,re,first});if(!save){fails++;if(g.deadly&&v===6)dbl++;}}});
   let brit=0;if((rh(T.rules,'Brittle')||animate(T))&&A&&(cb.type==='clash'||cb.type==='impact')){const ar=arcOf(T,[A.x,A.y]);const k=ar==='rear'?4:ar==='left'||ar==='right'?2:0;cb.groups.forEach(g=>(g.drolls||[]).forEach(r=>{if(brit<k&&r.save){r.save=false;r.brittle=true;brit++;fails++;}}));}cb.brittle=brit;
   const ten=rx((T.rules||[]).concat(fx(T)),'Tenacious'),conv=Math.min(ten,fails);cb.tenacious=conv;cb.dbl=dbl;cb.wounds=fails-conv+dbl;}
-function rollMor(T){const mi=moraleInfo(T,byId(cb.att));cb.mi=mi;cb.mrolls=[];let fails=0;const ok=v=>v===1||(v<=mi.R&&v!==6);
-  for(let i=0;i<cb.wounds;i++){let v=d6(),re=false,first=null,pass=(mi.arc!=='rear'||mi.iron)&&ok(v);
-    if(pass&&(mi.arc==='left'||mi.arc==='right')&&!rh(T.rules,'Iron Discipline')){first=v;v=d6();re=true;pass=ok(v);}cb.mrolls.push({v,pass,re,first});if(!pass)fails++;}
+function moraleSources(T,mi){const S=[],A=byId(cb.att)||base(cb.att)||{},iron=rh(T.rules,'Iron Discipline');
+  if(!iron&&(mi.arc==='left'||mi.arc==='right'))S.push({k:'succ',src:'flank attack'});
+  if(!iron&&(cb.groups||[]).some(g=>g.forceMor&&g.hits))S.push({k:'succ',src:(A.charName||'character')+' (re-roll successful Morale)'});
+  if(upgOf(T,/Glimmer of Faith/))S.push({k:'fail',src:'Glimmer of Faith'});
+  if(fxHas(T,/Pheromantic Drive/))S.push({k:'fail',face:6,src:'Pheromantic Drive'});
+  {const wl=supWl(T.side),S0=supOf(T.side);if(S0&&S0.k==='Army of Lions'&&wl&&wl.onTable&&/Infantry/.test(T.cls||'')&&polyDist(corners(T),corners(wl))<=10)S.push({k:'fail',face:6,src:'Army of Lions'});}
+  return S;}
+function rollMor(T){const mi=moraleInfo(T,byId(cb.att));cb.mi=mi;cb.mrolls=[];let fails=0;const ok=v=>v===1||(v<=mi.R&&v!==6);const P=rrPlan(moraleSources(T,mi));cb.mrrNotes=P.notes;cb.mrrUsed=P.used;
+  for(let i=0;i<cb.wounds;i++){let v=d6(),re=false,first=null,auto=mi.arc==='rear'&&!mi.iron,pass=!auto&&ok(v);
+    if(!auto&&rrDie(v,ok,P)){first=v;v=d6();re=true;pass=ok(v);}cb.mrolls.push({v,pass,re,first});if(!pass)fails++;}
   const ind=Math.min(mi.indom,fails);fails-=ind;cb.indom=ind;cb.extra=mi.oblivious?Math.ceil(fails/2):fails;}
 function dieMini(v,cls){const d=document.createElement('span');d.className='md';d.setAttribute('role','img');d.setAttribute('aria-label','Die showing '+v);for(let i=0;i<9;i++){const p=document.createElement('i');if(PIPS[v]&&PIPS[v].includes(i))p.className='on';d.appendChild(p);}
   if(!(SET.diceAnim&&animateDie(d,v,cls||'')))(cls||'').split(' ').filter(Boolean).forEach(c=>d.classList.add(c));return d;}
+function hitParry(T){return (cb.type==='clash'||cb.type==='impact')&&rh(T.rules,'Parry');}
+function blessAsk(who,side){if(who==='T'&&cb.blessWait){const box=bEl('div',{className:'row bless-q'});box.append(ptext(`${side}: use Blessed? Re-roll all failed Defense rolls against this attack (once per round).`));
+    const go=v=>{cb.blessT=v;const r=cb.blessWait;cb.blessWait=null;if(r)r();};box.append(cbtn('Use Blessed',()=>go(true)),cbtn('Not now',()=>go(false)));return box;}
+  if(who==='T'&&cb.blessT==null&&!PVP()&&base(cb.tgt)&&base(cb.tgt).side===AI)cb.blessT=true;
+  const lab=document.createElement('label');lab.className='row hint bless-q';const x=document.createElement('input');x.type='checkbox';x.dataset.who=who;const k=who==='A'?'blessA':'blessT';x.checked=!!cb[k];x.onchange=()=>{cb[k]=x.checked;renderCombat();};
+  lab.append(x,document.createTextNode(who==='A'?`${side}: use Blessed? Re-roll all failed hit rolls in this roll (once per round, declared before rolling).`:`${side}: use Blessed? Re-roll all failed Defense rolls in this roll (once per round, declared before rolling).`));return lab;}
 function stepBox(t){const s=document.createElement('div');s.className='cstep';const h=document.createElement('h3');h.textContent=t;s.appendChild(h);return s;}
 function cbtn(t,fn,who){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=t;b.onclick=fn;if(who)b.dataset.who=who;return b;}
 function ptext(t,cls){const p=document.createElement('p');p.className=cls||'hint';p.style.margin='0';p.textContent=t;return p;}
@@ -1490,13 +1522,14 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;return;}b
   if(cb.type!=='lethal'&&cb.type!=='freform'){const s1=stepBox('1 · '+sA+' rolls to hit');
   if(cb.type==='volley'){const lab=document.createElement('label');lab.className='row hint';const x=document.createElement('input');x.type='checkbox';x.id='cb-cover';x.checked=cb.cover;x.disabled=cb.step!=='att';x.dataset.who='A';x.onchange=()=>{cb.cover=x.checked;renderCombat();};lab.append(x,document.createTextNode('Target is in Cover or has Loose Formation (shots halved)'+(cb.coverWhy?' · Cover: '+cb.coverWhy:'')));s1.appendChild(lab);}
   cb.groups.forEach(g=>{const row=document.createElement('div');row.className='grow';g.nUse=cb.type==='volley'&&cb.cover?Math.ceil(g.n/2):g.n;
-    const tags=['hits on '+g.hitOn+' or less'];if(g.reroll6)tags.push('re-roll 6s');if(g.flurry)tags.push('Flurry');if(g.relentless)tags.push(cb.type==='volley'?'Rapid Volley':'Relentless Blows');
+    const tags=['hits on '+g.hitOn+' or less'];if(g.reroll6)tags.push('re-roll 6s');if(g.flurry)tags.push('Flurry');if(g.fiend)tags.push('Fiend Hunter');if(g.opp)tags.push('Opportunists');if(g.blessed)tags.push('Blessed');if(g.eccentric)tags.push('Eccentric Fighting Style');(g.rrNotes||[]).forEach(t=>tags.push(t));if(g.relentless)tags.push(cb.type==='volley'?'Rapid Volley':'Relentless Blows');
     if(g.red)tags.push((cb.type==='impact'?'Brutal Impact':cb.type==='volley'?'Armor Piercing':'Cleave')+' '+g.red);if(g.smite)tags.push('Smite');if(g.flawless)tags.push(cb.type==='volley'?'Precise Shot':'Flawless Strikes');if(g.deadly)tags.push(cb.type==='volley'?'Deadly Shot':'Deadly Blades');if(g.linebreaker)tags.push('Linebreaker');
     const h=document.createElement('div');h.className='gl';const nm=document.createElement('b');nm.textContent=g.label+' ';const inp=document.createElement('input');inp.type='number';inp.min='0';inp.className='nin';inp.value=String(g.nUse);inp.disabled=cb.step!=='att';inp.dataset.who='A';inp.setAttribute('aria-label','Dice for '+g.label);
     inp.onchange=()=>{const v=Math.max(0,parseInt(inp.value,10)||0);g.n=cb.type==='volley'&&cb.cover?v*2:v;renderCombat();};h.append(nm,inp,document.createTextNode(' dice · '+tags.join(' · ')));row.appendChild(h);
     if(g.rolls){const dr=document.createElement('div');dr.className='drow';g.rolls.forEach(r=>dr.appendChild(dieMini(r.v,(r.hit?'hit':'miss')+(r.re?' re':''))));row.appendChild(dr);row.appendChild(ptext(g.hits+(g.hits===1?' hit':' hits')+(g.extra?` (${g.extra} extra from rolls of 1)`:'')));}
     s1.appendChild(row);});
-  if(cb.step==='att')s1.appendChild(cbtn('Roll to hit ('+sA+')',()=>{const parry=rh(T.rules,'Parry');cb.groups.forEach(g=>rollHits(g,g.nUse,parry));cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';renderCombat();},'A'));
+  if(cb.step==='att'&&cb.groups.some(g=>g.blessable)&&blessOk(base(cb.att)))s1.appendChild(blessAsk('A',sA));
+  if(cb.step==='att')s1.appendChild(cbtn('Roll to hit ('+sA+')',()=>{const parry=hitParry(T);if(cb.blessA){cb.groups.forEach(g=>{if(g.blessable)g.blessed=true;});cb.blessUsedA=true;}cb.groups.forEach(g=>rollHits(g,g.nUse,parry));cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';renderCombat();},'A'));
   else s1.appendChild(ptext('Total: '+cb.hits+(cb.hits===1?' hit':' hits'),'tot'));
   body.appendChild(s1);}if(cb.step==='att')return;
   if(cb.hits){const s2=stepBox('2 · '+sT+' rolls Defense');
@@ -1504,13 +1537,15 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;return;}b
       row.appendChild(ptext(`${g.hits} from ${g.label}: saves on Defense ${di.D} or Evasion ${di.E}, whichever is better`+(di.red?` (Defense lowered by ${di.red})`:'')+(di.front&&rh(T.rules,'Shield')&&!g.linebreaker?' · Shield +1':'')+(g.flawless?' · rolls of 1 to hit ignore Defense':''),'gl'));
       if(g.drolls){const dr=document.createElement('div');dr.className='drow';g.drolls.forEach(r=>dr.appendChild(dieMini(r.v,(r.save?'hit':'miss')+(r.re?' re':''))));row.appendChild(dr);}s2.appendChild(row);});
     const ten=rx((T.rules||[]).concat(fx(T)),'Tenacious');if(ten)s2.appendChild(ptext(`Tenacious (${ten}): up to ${ten} failed save${ten>1?'s count':' counts'} as a success.`));
-    if(cb.step==='def')s2.appendChild(cbtn('Roll Defense ('+sT+')',()=>{rollDef(T);cb.step=cb.type!=='volley'&&cb.type!=='lethal'&&cb.wounds?'mor':'done';renderCombat();},'T'));
+    cb.groups.forEach(g=>(g.drrNotes||[]).forEach(t=>s2.appendChild(ptext(t))));if(cb.groups.some(g=>g.forceDef&&g.hits))s2.appendChild(ptext((A.charName||'The character')+': '+sT+' must re-roll successful Defense against its hits.'));
+    if(cb.step==='def'&&(cb.type==='clash'||cb.type==='impact')&&blessOk(base(cb.tgt)))s2.appendChild(blessAsk('T',sT));
+    if(cb.step==='def'&&!cb.blessWait)s2.appendChild(cbtn('Roll Defense ('+sT+')',()=>{if(cb.blessT)cb.blessUsedT=true;rollDef(T);cb.step=cb.type!=='volley'&&cb.type!=='lethal'&&cb.wounds?'mor':'done';renderCombat();},'T'));
     else s2.appendChild(ptext(cb.wounds+(cb.wounds===1?' wound':' wounds')+(cb.tenacious?`, after Tenacious saved ${cb.tenacious}`:'')+(cb.dbl?` (${cb.dbl} extra from Deadly)`:'')+(cb.brittle?` (${cb.brittle} save${cb.brittle>1?'s':''} lost to Brittle)`:''),'tot'));
     body.appendChild(s2);}
   if(cb.step==='def')return;
   if(cb.type!=='volley'&&cb.type!=='lethal'&&cb.wounds){const mi=cb.mi||moraleInfo(T,A),s3=stepBox('3 · '+sT+' tests Morale');
     if(mi.auto){s3.appendChild(ptext('No Resolve: passes every Morale Test automatically.'));if(cb.step==='mor'){cb.extra=0;cb.step='done';}}
-    else{s3.appendChild(ptext(`${cb.wounds} dice, pass on ${mi.R} or less (includes +${mi.bonus} for regiment size${mi.terr?`, −${mi.terr} Terrifying`:''})`+(mi.arc==='rear'&&!mi.iron?'. Rear attack: every test fails.':(mi.arc==='left'||mi.arc==='right')?'. Flank attack: passed tests are re-rolled.':'.')+(mi.oblivious?' Oblivious: 1 wound per 2 failures.':'')+(mi.indom?` Indomitable (${mi.indom}).`:'')));
+    else{s3.appendChild(ptext(`${cb.wounds} dice, pass on ${mi.R} or less (includes +${mi.bonus} for regiment size${mi.terr?`, −${mi.terr} Terrifying`:''})`+(mi.arc==='rear'&&!mi.iron?'. Rear attack: every test fails.':'.')+(()=>{const P=rrPlan(moraleSources(T,mi));return (P.used.length?' Re-rolls: '+P.used.join(', ')+'.':'')+(P.notes.length?' '+P.notes.join('; ')+'.':'');})()+(mi.oblivious?' Oblivious: 1 wound per 2 failures.':'')+(mi.indom?` Indomitable (${mi.indom}).`:'')));
       if(cb.mrolls){const dr=document.createElement('div');dr.className='drow';cb.mrolls.forEach(r=>dr.appendChild(dieMini(r.v,(r.pass?'hit':'miss')+(r.re?' re':''))));s3.appendChild(dr);}
       if(cb.step==='mor')s3.appendChild(cbtn('Roll Morale ('+sT+')',()=>{rollMor(T);cb.step='done';renderCombat();},'T'));
       else s3.appendChild(ptext(cb.extra+(cb.extra===1?' extra wound':' extra wounds')+' from failed Morale','tot'));}
@@ -1520,6 +1555,7 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;return;}b
   const s4=stepBox('Result');s4.appendChild(ptext(`${T.short||T.name} takes ${tot} wound${tot===1?'':'s'}`+(lost?`, about ${lost} stand${lost>1?'s':''} removed`:'')+'.','tot'));
   s4.appendChild(ptext('Recording saves every roll and the wounds to the board. Claude checks casualty removal and Broken.'));s4.appendChild(cbtn('Record result',recordCombat,'O'));body.appendChild(s4);}
 async function recordCombat(){if(!db||!state){toast('The board is read-only in this view.');return;}if(PVP()&&cb&&cb.owner!==HU)return;
+  if(cb.blessUsedA||cb.blessUsedT)state=Object.assign({},state,{units:state.units.map(u=>(u.id===cb.att&&cb.blessUsedA)||(u.id===cb.tgt&&cb.blessUsedT)?Object.assign({},u,{blessedR:state.round||1}):u)});
   const A=base(cb.att),T=base(cb.tgt),tot=cb.total||0,LBL={clash:'Clash',impact:'Impact Attacks',volley:'Volley',lethal:'Lethal Demise',freform:'Fighting Reform'};
   const sum={type:cb.type,attacker:cb.att,target:cb.tgt,hits:cb.hits||0,wounds:cb.wounds||0,moraleExtra:cb.extra||0,total:tot,tenacious:cb.tenacious||0,moraleTarget:cb.mi?cb.mi.R:null,
     groups:cb.groups.map(g=>({label:g.label,dice:g.nUse,hitOn:g.hitOn,rolls:(g.rolls||[]).map(r=>r.re?[r.first,r.v]:r.v),hits:g.hits||0,defense:(g.drolls||[]).map(r=>r.re?[r.first,r.v]:r.v),saveD:g.def?g.def.D:null,saveE:g.def?g.def.E:null})),
@@ -1901,8 +1937,9 @@ async function exWithdraw(){const why=canDo('withdraw');if(why)return 'could not
 async function autoResolve(){let guard=0;while(cb&&guard++<60){
   if(!cb.tgt){const id=(cb.choices||[])[0];if(!id){cb=null;break;}cb.tgt=id;cb.groups=buildGroups(cb.type,byId(cb.att),byId(id));}
   renderCombat();await sleep(cb.step==='done'?900:750);const T=byId(cb.tgt)||base(cb.tgt);
-  if(cb.step==='att'){const parry=rh(T.rules,'Parry');cb.groups.forEach(g=>rollHits(g,g.nUse??g.n,parry));cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';}
-  else if(cb.step==='def'){rollDef(T);cb.step=cb.type!=='volley'&&cb.type!=='lethal'&&cb.wounds?'mor':'done';}
+  if(cb.step==='att'){const parry=hitParry(T);if(cb.groups.some(g=>g.blessable)&&blessOk(base(cb.att))&&(cb.blessA||base(cb.att).side===AI)){cb.blessA=true;cb.blessUsedA=true;cb.groups.forEach(g=>{if(g.blessable)g.blessed=true;});}cb.groups.forEach(g=>rollHits(g,g.nUse??g.n,parry));cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';}
+  else if(cb.step==='def'){if((cb.type==='clash'||cb.type==='impact')&&blessOk(T)&&T.side!==AI&&!PVP()&&cb.blessT==null){await new Promise(res=>{cb.blessWait=res;renderCombat();});cb.blessWait=null;}
+    if((cb.type==='clash'||cb.type==='impact')&&blessOk(T)&&(cb.blessT||T.side===AI)){cb.blessT=true;cb.blessUsedT=true;}rollDef(T);cb.step=cb.type!=='volley'&&cb.type!=='lethal'&&cb.wounds?'mor':'done';}
   else if(cb.step==='mor'){const mi=moraleInfo(T,byId(cb.att)||base(cb.att));if(mi.auto){cb.mi=mi;cb.extra=0;cb.step='done';}else{rollMor(T);cb.step='done';}}
   else{renderCombat();const cur=cb;await recordCombat();logAI(state.lastText);if(cb===cur)break;}}
   renderCombat();}
@@ -3260,7 +3297,9 @@ function supApply(units,side,S,choice){const g=S.d.g;if(!g)return units;const sr
     if(g.heal&&(y.wounds||0)>0)y=Object.assign({},y,{wounds:Math.max(0,(y.wounds||0)-g.heal)});return y;});}
 async function supActivate(side,choice){const S=supOf(side);if(!S||!S.can){toast(S?S.why:'No Supremacy Ability');return false;}
   const sup=Object.assign({},state.sup||{});sup[side]=Object.assign({},S.g,{n:(S.used||0)+1,round:state.round||1,choice:choice||'',chosen:(S.g.chosen||[]).concat(choice?[choice]:[])});
-  const units=supApply(state.units||[],side,S,choice);
+  let units=supApply(state.units||[],side,S,choice);
+  if(choice==='Snæstormur')units=units.map(u=>u.side!==side&&u.type!=='marker'&&!u.destroyed?grantU(u,'Snæstormur (−1 March, no Charge re-rolls)',[],{M:-1}):u);
+  if(choice==='Niflmire')units=units.map(u=>u.type!=='marker'&&!u.destroyed?grantU(u,'Niflmire (Barrage range halved)',[],null):u);
   await putState({sup,units,lastTitle:WHO(side)+' · Supremacy',lastText:`${S.wl.charName||'The Warlord'} activates ${S.k}${choice?' ('+choice+')':''}: ${S.d.a}`});return true;}
 function supPrey(side){const S=supOf(side);if(!S||!S.d.prey)return null;const id=S.g.prey,t=id&&(state.units||[]).find(x=>x.id===id);return t&&!t.destroyed?t:null;}
 function supPreyOpts(side){return (state.units||[]).filter(t=>t.side!==side&&t.type!=='marker'&&!t.destroyed).sort((a,b)=>(+b.points||0)-(+a.points||0));}
