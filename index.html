@@ -626,7 +626,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-07 14:12 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-07 14:29 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1441,8 +1441,9 @@ function hitMods(A,p,type,T){let base=type==='volley'?p.V:p.C,r6=false;const inF
   if(type==='clash'&&tWater(A))base=Math.max(1,base-1);
   if(type==='clash'&&fxHas(A,/Aggression Directive/)&&base<4)base+=1;
   if((type==='clash'||type==='impact')&&!pike&&rh((A.rules||[]).concat(fx(A)),'Shock')&&(type==='impact'||fxHas(A,/charged/)))base+=1;
-  if(type==='clash'){const dread=engaged(A).some(e=>rh(e.rules,'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if(fxHas(A,/Inspired/)&&!fxHas(A,/^Hindered/)&&!fxHas(A,/Siphon Strength|Bane of Deeds/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
-  if(type==='volley'){const aim=(act&&act.id===A.id&&act.actions.some(a=>a.type==='aim'))||rh(p.rules,'Deadshot');if(aim){if(base+1>=5)r6=true;else base+=1;}}
+  const prey=!!(T&&supPrey(A.side)&&supPrey(A.side).id===T.id);
+  if(type==='clash'){const dread=engaged(A).some(e=>rh(e.rules,'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if((fxHas(A,/Inspired/)||prey)&&!fxHas(A,/^Hindered/)&&!fxHas(A,/Siphon Strength|Bane of Deeds/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
+  if(type==='volley'){const aim=(act&&act.id===A.id&&act.actions.some(a=>a.type==='aim'))||rh(p.rules,'Deadshot')||prey;if(aim){if(base+1>=5)r6=true;else base+=1;}}
   return {hitOn:Math.max(1,Math.min(6,base)),reroll6:r6};}
 function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=supportLost(A)?1:(rx(A.rules,'Support')||1);
   const tArc=arcOf(T,[A.x,A.y]),side=tArc==='left'||tArc==='right'||tArc==='rear',big=T.type==='monster'||T.type==='brute';
@@ -1939,7 +1940,7 @@ function boardFor(activeId){return {round:state.round,scenario:{name:scenOf().na
   reinforcementLine:state.rl?.[AI]??null,zones:zoneControl().map(z=>({name:z.name,x:z.x,y:z.y,diameter:z.size,friendlyTo:z.friendly?(z.friendly===AI?'you':'enemy'):null,heldBy:z.holder?(z.holder===AI?'you':'enemy'):'nobody',stands:{you:z.tot[AI],enemy:z.tot[HU]}})),
   terrain:terrainOf().map(t=>{const I=tInfo(t);return {type:I.name,size:I.size,rules:I.kw,x:t.x,y:t.y,halfWidth:t.rx,halfDepth:t.ry,occupiedBy:(all().find(o=>o.garrison===tId(t))||{}).id||undefined};}),
   units:(state.units||[]).filter(u=>!u.destroyed&&(u.onTable||u.arriving||u.id===activeId)).map(u=>unitBrief(byId(u.id)||u))};}
-async function planActivation(u,source){const brief={activeRegiment:u.id,source,spells:regCaster(u)?spellsOf(u,false).map(s=>({name:s.name,range:s.range||'Self',attunement:s.att,scaling:s.scaling,free:!!regCaster(u).free,targets:spellTargets(u,s).map(t=>t.id),text:s.text})):undefined,magicLevel:regCaster(u)?magicLevel(u,false):undefined,factionOptions:aiFacOpts(u),factionState:frFacs(AI).flatMap(f=>frSummary(AI,f)),options:optionsFor(u),availableNow:u.onTable?availableActions(u).filter(a=>!a.why).map(a=>a.type):['enter, then march'],arrivedThisRound:!u.onTable||u.arrivedRound===state.round};
+async function planActivation(u,source){const brief={activeRegiment:u.id,source,prey:supPrey(AI)?{id:supPrey(AI).id,note:'The Big Game Hunt: your Clashes and Volleys against this regiment count as Inspired and Taking Aim'}:undefined,spells:regCaster(u)?spellsOf(u,false).map(s=>({name:s.name,range:s.range||'Self',attunement:s.att,scaling:s.scaling,free:!!regCaster(u).free,targets:spellTargets(u,s).map(t=>t.id),text:s.text})):undefined,magicLevel:regCaster(u)?magicLevel(u,false):undefined,factionOptions:aiFacOpts(u),factionState:frFacs(AI).flatMap(f=>frSummary(AI,f)),options:optionsFor(u),availableNow:u.onTable?availableActions(u).filter(a=>!a.why).map(a=>a.type):['enter, then march'],arrivedThisRound:!u.onTable||u.arrivedRound===state.round};
   const prompt=`You are Claude, commanding the ${N(AI)} army against a human player's ${N(HU)} in a tabletop wargame. Choose this activation's actions.\n\n${RULES}\n\n${PLAN_SCHEMA}\n\nBOARD (JSON):\n${JSON.stringify(boardFor(u.id))}\n\nTHIS ACTIVATION (JSON):\n${JSON.stringify(brief)}\n\nThink like a strong player: concentrate force, hit flanks and rears, use charges whose needed roll is small, take or contest zones, and do not walk into enemy front arcs needlessly. Reply with the JSON object only.`;
   try{const r=await askJSON(prompt,'default');if(r&&Array.isArray(r.plan))return {plan:r.plan,narration:String(r.narration||''),by:'claude'};}catch(e){if(e&&e.code==='not_granted')aiNote('Claude was not allowed to play, so the map used simple tactics.');}
   return {plan:heuristicPlan(u),narration:'',by:'bot'};}
@@ -2671,7 +2672,8 @@ function renderTestField(tb,info,mk,add){
 const frN=s=>String(s||'').toLowerCase().replace(/[^a-z]/g,'');
 const FROLES=(()=>{const R={
  'Nords':{'Blooded':'Character,Half-Bloods','Jarl':'Character,Mortals','Konungyr':'Character,Exalted','Shaman':'Character,Mortals','Volva':'Character,Mortals','Vargyr Lord':'Character,Half-Bloods','Jotnar Seidr':'Character,Jotun','Raiders':'Mortals','Bow Chosen':'Exalted','Stalkers':'Half-Bloods','Werewargs':'Half-Bloods','Huskarls':'Mortals','Ulfhednar':'Mortals','Trolls':'Half-Bloods','Valkyries':'Mortals','Fenr Beastpack':'Half-Bloods','Ugr':'Half-Bloods','Bearsarks':'Mortals','Steel Chosen':'Exalted','Goltr Beastpack':'Half-Bloods','Sea Jotnar':'Jotun','Mountain Jotnar':'Jotun','Ice Jotnar':'Jotun'},
- "W'adrhŭn":{'Matriarch Queen':'The Tribes','Chieftain':'The Tribes','Thunder Chieftain':'The Speakers','Predator':'The Speakers','Mounted Predator':'The Speakers','Winglord Predator':'The Speakers','Scion of Conquest':'The Cults,Cult of Conquest','Scion of War':'The Cults,Cult of War','Scion of Death':'The Cults,Cult of Death','Braves':'The Tribes','Blooded':'The Tribes','Hunters':'The Speakers','Veterans':'The Tribes','Chosen of Conquest':'The Cults,Cult of Conquest','Slingers':'The Tribes','Chosen of Death':'The Cults,Cult of Death','Chosen of Famine':'The Cults,Cult of Famine','Hunting Pack':'The Speakers','Warbred':'The Tribes','Raptor Riders':'The Speakers','Thunder Riders':'The Speakers','Chosen of War':'The Cults,Cult of War','Apex Predator':'The Speakers','Tontorr':'The Speakers','Quatl':'The Speakers','Drum Beast':'The Cults'},
+ 'Old Dominion':{'Xhiliarch':'Character,The Legion','Strategos':'Character,The Legion','Mounted Strategos':'Character,The Legion','Hierodeacon':'Character,The Fallen Pantheon','Archimandrite':'Character,The Creed','Fallen Divinity':'Character,The Fallen Pantheon','Theokrator':'Character,The Creed','Cultists':'The Creed','Hashashin':'The Creed','Kheres':'The Creed','Moroi':'The Creed','Legionnaires':'The Legion','Praetorian Guard':'The Legion','Athanatoi':'The Legion','Varangian Guard':'The Legion','Karyatids':'The Fallen Pantheon','Kanephors':'The Fallen Pantheon','Fallen Angels':'The Creed,The Legion','Tainted Heralds':'The Fallen Pantheon','Buccephaloi':'The Fallen Pantheon','Centaur Prodromoi':'The Fallen Pantheon,The Legion','Bone Golems':'The Creed','Centaur Kerykes':'The Fallen Pantheon,The Legion','Kataphraktoi':'The Legion','Unhallowed Sepulcher':'The Creed'},
+ "W'adrhŭn":{'Matriarch Queen':'The Tribes','Chieftain':'The Tribes','Thunder Chieftain':'The Speakers','Predator':'The Speakers','Mounted Predator':'The Speakers','Winglord Predator':'The Speakers','Scion of Conquest':'Scion,The Cults,Cult of Conquest','Scion of War':'Scion,The Cults,Cult of War','Scion of Death':'Scion,The Cults,Cult of Death','Braves':'The Tribes','Blooded':'The Tribes','Hunters':'The Speakers','Veterans':'The Tribes','Chosen of Conquest':'The Cults,Cult of Conquest','Slingers':'The Tribes','Chosen of Death':'The Cults,Cult of Death','Chosen of Famine':'The Cults,Cult of Famine','Hunting Pack':'The Speakers','Warbred':'The Tribes','Raptor Riders':'The Speakers','Thunder Riders':'The Speakers','Chosen of War':'The Cults,Cult of War','Apex Predator':'The Speakers','Tontorr':'The Speakers','Quatl':'The Speakers','Drum Beast':'The Cults'},
  'Yoroni':{'Daimyo':'Ka,Chi,Sui,Fu','Oyabun':'Chi','Kitsune Bakasu':'Fu','Kitsune Onmyoji':'Sui','Jorogumo Mahotsu':'Mu','Jorogumo Geisha':'Mu','Oni Ayakashi':'Ka','Kami Ayakashi':'Chi','Tengu Bushi':'Fu','Tengu Ayakashi':'Fu','Kappa Bushi':'Sui','Origami Warriors':'Mu','Domaru-damashi':'Mu','Shikigami':'Mu','Dai Yokai':'Ka,Chi,Fu,Sui,Mu','Genya no Yokai':'Ka,Chi,Fu,Sui,Mu','Oni Kishin Raiu':'Ka','Oni Kishin Kiba':'Ka'},
  'Weaver Courts':{'Mhor Sidhe':'Court of Autumn','Rhun Sidhe':'Court of Spring','Morrowen':'Court of Spring','Scathach Hunters':'Court of Autumn','Gemred Knights':'Court of Winter','Scaile Dancers':'Court of Summer'},
  'Hundred Kingdoms':{'Gilded Legion':'Veteran,Imperial','Steel Legion':'Veteran,Imperial','Hunter Cadre':'Veteran,Imperial','Sicarii':'Veteran,Theist','Order of the Sword':'The Orders,Veteran','Penitents of St Lazarus':'The Orders,Veteran','Martyrs of St Lazarus':'The Orders,Veteran','Order of the Ashen Dawn':'The Orders,Veteran','Order of the Crimson Tower':'The Orders,Veteran','Order of the Sealed Temple':'The Orders,Veteran'},
@@ -2879,7 +2881,7 @@ const CHAB={
   {n:'Catalytic Rupture',kind:'action',prac:'Biomancy',rng:12,tgt:'friend',fn:'rupture',d:'Enemies in contact with a friendly regiment within 12″ take Hits equal to the higher of 2D6, Armor Piercing (1), no Morale.'},
   {n:'Grant Virulence',kind:'action',prac:'Biomancy',rng:12,tgt:'enemy',fn:'virulence',d:'An enemy regiment within 12″ takes D6 Hits with Armor Piercing equal to 6 minus the roll, no Morale.'}],
  'High Clone Executor':[{n:'Symbiotic Command',kind:'action',rng:12,tgt:'friend',req:'Clone',label:'Double Time (Symbiotic Command)',d:'A friendly Clone regiment within 12″ gains the Double Time Draw Event this round.'}],
- 'Matriarch Queen':[{n:'To The Last Breath',kind:'draw',rng:10,tgt:'friend',req:'nonmonster',heal:4,d:'A friendly non-Monster regiment within 10″ heals 4 wounds.'}],
+ 'Matriarch Queen':[{n:'To The Last Breath',kind:'draw',rng:10,tgt:'friend',req:'nonmonster',heal:4,once1:true,d:'A friendly non-Monster regiment within 10″ heals 4 wounds (each regiment once per round).'}],
  'Hierodeacon':[{n:'Dark Shepherd',kind:'draw',rng:12,tgt:'friend',fn:'shepherd',d:'A friendly regiment within 12″ takes wounds to finish off its most wounded stand. No Morale.'}],
  'Theokrator':[{n:'Exploitation of Divine Vanity',kind:'draw',tgt:'self',fn:'vanity',d:'Its regiment takes 3 wounds for 1 Dark Power token and a boon such as Aura of Death (+10).'}],
  'Mahabharati Sardar':[{n:'Elemental Assault: Untouchable',kind:'draw',rng:12,tgt:'friend',grant:['Untouchable'],cost:3,d:'Spend 3 Ritual Markers: a friendly Mortal regiment gains Untouchable.'},{n:'Elemental Assault: Relentless Blows',kind:'draw',rng:12,tgt:'friend',grant:['Relentless Blows'],cost:3,d:'Spend 3 Ritual Markers: a friendly Mortal regiment gains Relentless Blows.'}],
@@ -2888,7 +2890,7 @@ const CHAB={
  'Hold Raegh':[{n:'Preternatural Focus',kind:'draw',rng:10,tgt:'friend',fn:'awaken',d:'A friendly regiment within 10″ becomes Awakened.'}],
  'Lost Ancestor':[{n:'Unassailable Authority',kind:'draw',tgt:'self',fn:'awaken',d:'Its regiment becomes Awakened.'}]};
 function chAbil(u){return u&&u.charName?(CHAB[u.charName]||[]):[];}
-function chTargets(u,a){if(a.tgt==='self')return [u];const cp=corners(u);return all().filter(t=>t.onTable&&!t.destroyed&&t.type!=='marker'&&(a.tgt==='enemy'?t.side!==u.side:t.side===u.side)&&polyDist(cp,corners(t))<=(a.rng||12)+1e-6&&
+function chTargets(u,a){if(a.tgt==='self')return [u];const cp=corners(u);return all().filter(t=>t.onTable&&!t.destroyed&&t.type!=='marker'&&(a.tgt==='enemy'?t.side!==u.side:t.side===u.side)&&polyDist(cp,corners(t))<=(a.rng||12)+1e-6&&(!a.once1||t.ltb!==(state.round||1))&&
   (!a.req||(a.req==='monster'?t.type==='monster':a.req==='nonmonster'?t.type!=='monster':a.req==='Infantry'?/Infantry/.test(t.cls||''):frRoles(t).includes(a.req))));}
 function chWhy(u,a){if(!u.onTable)return 'Not on the table';if(a.cost&&(+frG(u.side,'sk').rm||0)<a.cost)return 'Needs '+a.cost+' Ritual Markers';if(!chTargets(u,a).length)return 'No legal target in range';return '';}
 function autoDefend(T,hits,ap){const D=Math.max(0,(+(T.stats&&T.stats.D)||0)-(ap||0)),r=[];let w=0;for(let i=0;i<hits;i++){const d=d6();r.push(d);if(d>D||d===6)w++;}return {w,rolls:r};}
@@ -2899,7 +2901,7 @@ async function useAbil(cid,name,tid){const u=byId(cid),a=chAbil(u).find(x=>x.n==
   if(a.prac&&(T.temp||[]).some(g=>/^Practitioner/.test(g.src)))return a.n+': '+nm(T)+' was already the target of a Practitioner action this round';
   const src=(a.prac?'Practitioner: ':'')+(a.label||a.n);
   if(a.grant||a.label){units=units.map(x=>x.id===T.id?grantU(x,src,a.grant||[],null):x);line=a.n+' on '+nm(T);}
-  if(a.heal){units=units.map(x=>x.id===T.id?Object.assign({},x,{wounds:Math.max(0,(+x.wounds||0)-a.heal)}):x);line=a.n+': '+nm(T)+' heals '+a.heal;}
+  if(a.heal){units=units.map(x=>x.id===T.id?Object.assign({},x,{wounds:Math.max(0,(+x.wounds||0)-a.heal)},a.once1?{ltb:state.round||1}:{}):x);line=a.n+': '+nm(T)+' heals '+a.heal;}
   if(a.cost)extra.fr=frPatch(u.side,'sk',{rm:(+frG(u.side,'sk').rm||0)-a.cost});
   if(a.fn==='drive'){const cp=corners(u);units=units.map(x=>{if(x.side!==u.side||!x.onTable||x.destroyed)return x;let y=x;if(x.id===u.id)y=grantU(y,src,['Tenacious (+1)'],null);
       else if(polyDist(cp,corners(x))<=12&&frRoles(x).some(r=>r==='Drone'||r==='Clone'))y=grantU(y,'Pheromantic Drive (re-roll failed Resolve 6s)',[],null);return y;});line='Pheromantic Drive around '+nm(u);}
@@ -2991,9 +2993,9 @@ const SPELLDB={
 "Crucible's Fire":{r:0,a:4,t:'self',g:['Aura of Death (7)'],d:'Its regiment gains Aura of Death (7) this round.'},
 'Cacophony':{r:12,a:4,t:'enemy',h:[1,0],d:'One Hit per success.'},
 'Crescendo':{r:0,a:4,t:'self',x:'crescendo',d:'Add a Conquest Chant Marker to the Sequence and reorder the top 3 cards of your Command Stack.'},
-'Dissonance':{r:12,a:3,t:'friend',lbl:'Dissonance (when it Chants, engaged enemies lose Inspired)',d:'When the regiment Chants this round, engaged enemies lose Inspired.'},
+'Dissonance':{r:12,a:4,t:'friend',lbl:'Dissonance (when it Chants, engaged enemies lose Inspired)',d:'When the regiment Chants this round, engaged enemies lose Inspired.'},
 'Discordance':{r:12,a:4,s:1,t:'enemy',lbl:'Discordance (cannot Seize)',d:'An enemy regiment cannot Seize Objective Zones this round.'},
-'Resonance':{r:12,a:4,t:'zone',d:'Enemy regiments in range of a target Objective Zone gain Decay (2) this round.'},
+'Resonance':{r:12,a:3,s:1,t:'enemy',q:'inzone',g:['Decay'],d:'An enemy regiment within range of an Objective Zone gains Decay this round.'},
 'Dark Supplication':{r:0,a:2,t:'self',x:'supplication',d:'Add 1 token to the Dark Power or Fallen Pantheon pool.'},
 'Undying Devotion':{r:12,a:3,t:'friend',q:'name:Cultists|Hashashin',lbl:'Undying Devotion (Fallen Pantheon; destroyed stands add tokens)',d:'A friendly Cultists or Hashashin regiment gains the Fallen Pantheon role; each stand destroyed adds a Power token.'},
 'Blackflame Coruscation':{r:12,a:3,s:1,t:'enemy',h:[1,0],x:'blackflame',d:'One Hit per success plus Hits equal to your highest Empowerment Tier.'},
@@ -3111,7 +3113,7 @@ function spellTargets(u,sp){const S=sp.db||{},cp=corners(u);if(S.t==='self'||S.t
   let C=all().filter(t=>t.onTable&&!t.destroyed&&t.type!=='marker'&&(S.t==='any'?true:(sp.targets==='enemy'?t.side!==u.side:t.side===u.side))&&polyDist(cp,corners(t))<=(sp.range||12)+1e-6);
   if(eng.length&&hits&&sp.targets==='enemy')C=eng;
   const q=S.q;if(q)C=C.filter(t=>q==='nonmonster'?t.type!=='monster':q==='Infantry'?/Infantry/.test(t.cls||''):q==='Brute'?/Brute/.test(t.cls||''):q==='Automaton'?rh(t.rules,'Automaton'):q==='modular'?!!t.mods:
-    q.startsWith('name:')?new RegExp(q.slice(5)).test(t.name):q.startsWith('fx:')?fx(t).some(e=>e.startsWith(q.slice(3))):frRoles(t).includes(q)||(t.charName&&frRoles(t,true).includes(q)));
+    q==='inzone'?zonesOf().some(z=>standsOf(t).some(st=>inZone(st.poly,z))):q.startsWith('name:')?new RegExp(q.slice(5)).test(t.name):q.startsWith('fx:')?fx(t).some(e=>e.startsWith(q.slice(3))):frRoles(t).includes(q)||(t.charName&&frRoles(t,true).includes(q)));
   if(!hits)C=C.filter(t=>!hasSpell(t,sp.name));
   if(sp.req==='automaton')C=C.filter(t=>rh(t.rules,'Automaton'));if(sp.req==='nonmonster')C=C.filter(t=>t.type!=='monster');return C;}
 function spellNeed(sp,T){const S=sp.db||{};if(S.a===null)return 0;const n=live(T);return (S.need||2)+(sp.scaling?(n>=10?3:n>=7?2:n>=4?1:0)+(T.type==='monster'?1:0):0);}
@@ -3191,11 +3193,7 @@ async function aiCastSpell(u,asChar,spellName,targetId){const sps=spellsOf(u,asC
 /* ---------- Supremacy Abilities (the Warlord's) ---------- */
 /* t: when the passive part works; p: passive part; a: Activated part (once per battle unless every/uses);
    g: what the map applies automatically when activated (who gets which rules/stats until the end of the round) */
-/* Old Dominion roles, read from the warbands their characters lead (Legion: Strategos/Xhiliarch; Fallen Pantheon: Fallen Divinity; the rest Creed) */
-const ODROLE={'Athanatoi':'The Legion','Legionnaires':'The Legion','Centaur Prodromoi':'The Legion','Kataphraktoi':'The Legion','Praetorian Guard':'The Legion','Varangian Guard':'The Legion',
- 'Buccephaloi':'The Fallen Pantheon','Centaur Kerykes':'The Fallen Pantheon','Kanephors':'The Fallen Pantheon','Karyatids':'The Fallen Pantheon','Tainted Heralds':'The Fallen Pantheon',
- 'Cultists':'The Creed','Kheres':'The Creed','Bone Golems':'The Creed','Moroi':'The Creed','Hashashin':'The Creed','Unhallowed Sepulcher':'The Creed','Fallen Angels':'The Creed'};
-function supRoles(u){const r=frRoles(u).slice();if(frFac(u)==='Old Dominion'){const o=ODROLE[frBase(u)];if(o)r.push(o);const wl=supWl(u.side);if(/Hierodeacon/.test((wl&&wl.charName)||'')&&/Cultists|Hashashin/.test(frBase(u)))r.push('The Fallen Pantheon');}return r;}
+function supRoles(u){const r=frRoles(u).slice();if(frFac(u)==='Old Dominion'){const wl=supWl(u.side);if(/Hierodeacon/.test((wl&&wl.charName)||'')&&/Cultists|Hashashin/.test(frBase(u)))r.push('The Fallen Pantheon');}return r;}
 const INF=u=>/Infantry/.test(u.cls||''),CAV=u=>/Cavalry/.test(u.cls||''),ROLE=(...r)=>u=>supRoles(u).some(x=>r.includes(x)),ANY=()=>true;
 const SUP={
  'Driven by Carnage':{c:/Blooded/,t:'Always Active',p:'Friendly Half-Bloods heal 1 wound per enemy stand they destroy with Clash Actions or Impact Attacks (after Morale Tests). When its regiment destroys an enemy regiment with a Clash or Charge it may make an out-of-sequence Reform or Combat Reform.',a:'Until the end of the round, any Half-Bloods regiment that destroys an enemy regiment with a Clash or Impact Attacks may make an out-of-sequence Reform or Combat Reform, and the healing is doubled.',g:{who:ROLE('Half-Bloods'),note:'Driven by Carnage doubled'}},
@@ -3210,10 +3208,11 @@ const SUP={
  'Hammer and Anvil':{c:/Ipparchos/,t:'Always Active',p:'Once per round an Infantry or Cavalry regiment makes a free Reform as its last action (no change to ranks or files). Battlefield: Infantry or Cavalry activated from the Strategic Stack gains Shock.',a:''},
  'Bringing Back the Children of Fire':{c:/Promethean|Oracle/,t:'Always Active',p:'Friendly Titan regiments gain Priest (+3). A Titan activated from the Strategic Stack counts as 6 stands for Seizing Objective Zones this round.',a:''},
  'The Matriarch Walks':{c:/Matriarch/,t:'Always Active',p:'A regiment that Chants any Cult’s Battlecry loses Broken at once.',a:'Once per battle, after your first activation (and any Entourage) this round, draw the next Command Card and activate it straight away (it cannot Entourage).'},
- 'Concentrated Assault':{c:/^Chieftain/,t:'Always Active',p:'The Chieftain’s Crushing Force covers the whole table, and its Tempo affects every friendly Tribes regiment.',a:''},
+ 'Concentrated Assault':{c:/^Chieftain/,t:'Always Active',p:'The Chieftain’s Crushing Force covers the whole table, and its Tempo becomes Vanguard (4) for every friendly Tribes regiment in the army.',a:''},
+ 'The Big Game Hunt':{c:/Predator/,t:'Always Active',prey:true,p:'At the end of the first Supremacy Phase mark one enemy regiment (even one in Reinforcements) as your Prey. Friendly regiments always count as Inspired and as having Taken Aim when they Clash or Volley against it. When it is destroyed, pick a new Prey.',a:''},
  'Thunderous Assault':{c:/Thunder Chieftain/,t:'Battlefield',p:'All friendly Speakers regiments gain Shock.',a:''},
  'Visions of Conquest':{c:/Scion of Conquest/,t:'Always Active',p:'A regiment that Chants the Cult of Conquest Battlecry also gets the Dissonance spell’s effects this round; any regiment adding a Chant Marker may add a Conquest marker instead.',a:'Until the end of the round, instead of drawing from your Command Stack, pick any card from it to play.'},
- 'Visions of War':{c:/Scion of War/,t:'Always Active',p:'A regiment that Chants the Cult of War Battlecry also gains Tenacious (1) this round.',a:''},
+ 'Visions of War':{c:/Scion of War/,t:'Always Active',p:'A regiment that Chants the Cult of War Battlecry also gains Tenacious (1) this round.',a:'Until the end of the round, friendly regiments gain Hardened (1).',g:{who:ANY,rules:['Hardened (1)']}},
  'Visions of Death':{c:/Scion of Death/,t:'Always Active',p:'Infantry that Chants the Cult of Death Battlecry: its Command Stand gets +3 Attacks this round.',a:''},
  'Obdurate Bone and Stone':{c:/Xhiliarch/,t:'Always Active',p:'Dark Power can reach Tier IV. Legion Medium regiments gain Vanguard (2), Heavy ones Vanguard (4). Once per round: +X Charge distance for a Legion charge, or +X Attacks for the Warlord’s regiment in a Clash or the Warlord in a Duel (X = Dark Power Tier).',a:''},
  'Master of the Legions':{c:/^Strategos/,t:'Always Active',every:true,p:'Dark Power can reach Tier IV. The Activated part can be used at the end of every Supremacy Phase.',a:'Up to two friendly Legion regiments on the table each gain one benefit until the end of the round: Dark Power Tier +1, its Memory of Old activates, 2D6 pick highest for Charge distance, or loses Brittle.'},
@@ -3274,16 +3273,24 @@ async function supActivate(side,choice){const S=supOf(side);if(!S||!S.can){toast
   const sup=Object.assign({},state.sup||{});sup[side]=Object.assign({},S.g,{n:(S.used||0)+1,round:state.round||1,choice:choice||'',chosen:(S.g.chosen||[]).concat(choice?[choice]:[])});
   const units=supApply(state.units||[],side,S,choice);
   await putState({sup,units,lastTitle:WHO(side)+' · Supremacy',lastText:`${S.wl.charName||'The Warlord'} activates ${S.k}${choice?' ('+choice+')':''}: ${S.d.a}`});return true;}
-function supChip(side){const S=supOf(side);if(!S)return '';return S.k+(S.active?' · active this round':S.d.a?(S.d.every?' · every round':S.can?' · ready':' · '+(S.used?'used':'not on the table')):' · passive');}
+function supPrey(side){const S=supOf(side);if(!S||!S.d.prey)return null;const id=S.g.prey,t=id&&(state.units||[]).find(x=>x.id===id);return t&&!t.destroyed?t:null;}
+function supPreyOpts(side){return (state.units||[]).filter(t=>t.side!==side&&t.type!=='marker'&&!t.destroyed).sort((a,b)=>(+b.points||0)-(+a.points||0));}
+function supNeedPrey(side){const S=supOf(side);return !!(S&&S.d.prey&&!supPrey(side)&&supPreyOpts(side).length);}
+function supSetPrey(side,id){const S=supOf(side);if(!S)return;const t=byId(id);const sup=Object.assign({},state.sup||{});sup[side]=Object.assign({},sup[side]||{},{prey:id});return putState({sup,lastTitle:WHO(side)+' · The Big Game Hunt',lastText:'Prey marked: '+(t?(t.short||t.name):id)+'. Friendly Clashes and Volleys against it count as Inspired and Taking Aim.'});}
+function supPreySel(side,lead){const r=bEl('div',{className:'tf-row'});const sel=document.createElement('select');sel.setAttribute('aria-label','Prey');const cur=supPrey(side);
+  const o0=document.createElement('option');o0.value='';o0.textContent=cur?'Prey: '+(cur.short||cur.name):'Choose the Prey…';sel.append(o0);supPreyOpts(side).forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=(t.short||t.name)+(t.onTable?'':' (off the table)');sel.append(o);});
+  sel.onchange=()=>{if(sel.value)Promise.resolve(supSetPrey(side,sel.value)).then(()=>{if(state.step==='supdecl')supNext();});};r.append(bEl('span',{className:'tf-l',textContent:lead||'The Big Game Hunt'}),sel);return r;}
+function supChip(side){const S=supOf(side);if(!S)return '';if(S.d.prey){const t=supPrey(side);return S.k+' · '+(t?'Prey: '+(t.short||t.name):'no Prey marked');}return S.k+(S.active?' · active this round':S.d.a?(S.d.every?' · every round':S.can?' · ready':' · '+(S.used?'used':'not on the table')):' · passive');}
 /* the Supremacy step: after the First Player is set, First Player declares, then the other */
-function supNeeded(){return ['cs','nord'].some(s=>{const S=supOf(s);return S&&S.can;});}
+function supNeeded(){return ['cs','nord'].some(s=>{const S=supOf(s);return S&&(S.can||supNeedPrey(s));});}
 function supAiWant(side){const S=supOf(side);if(!S||!S.can||S.d.unknown)return false;if(S.d.every)return true;const R=state.round||1;
   const mine=(state.units||[]).filter(u=>u.side===side&&u.type!=='marker'&&!u.destroyed),on=mine.filter(u=>u.onTable).length;
   if(state.aiSupWant===true&&R>=2)return true;if(state.aiSupWant===false&&R<5)return false;return R>=4||(R>=3&&on>=mine.length*0.6);}
 async function supStart(first){if(!supNeeded())return false;await putState({step:'supdecl',first,supDone:{},phase:'Round '+state.round+' · Supremacy Abilities'});await supNext();return true;}
 async function supNext(){const first=state.first,order=[first,other(first)],done=state.supDone||{};const who=order.find(s=>!done[s]);
   if(!who){await afterSupremacy0(first);return;}
-  const S=supOf(who);if(!S||!S.can){await putState({supDone:Object.assign({},done,{[who]:'skip'})});return supNext();}
+  const S=supOf(who);if(S&&supNeedPrey(who)){if(!PVP()&&who===AI){await supSetPrey(AI,supPreyOpts(AI)[0].id);return supNext();}render();return;}
+  if(!S||!S.can){await putState({supDone:Object.assign({},done,{[who]:'skip'})});return supNext();}
   if(!PVP()&&who===AI){let ch='';if(S.d.cho){const used=S.g.chosen||[];ch=S.d.cho.find(c=>!used.includes(c)&&c!=='Hregg')||S.d.cho.find(c=>!used.includes(c))||'';}
     if(supAiWant(AI))await supActivate(AI,ch);await putState({supDone:Object.assign({},state.supDone||{},{[AI]:'done'})});return supNext();}
   render();}
@@ -3291,6 +3298,7 @@ async function supDecide(side,yes,choice){if(yes){const ok=await supActivate(sid
 function supBar(add,info,mk,me){const first=state.first,order=[first,other(first)],done=state.supDone||{},who=order.find(s=>!done[s]);
   const theirs=order.filter(s=>done[s]==='done').map(s=>WHO(s)+' activated '+supOf(s).k).join(' · ');
   if(who!==me){info.textContent=`Supremacy Abilities: waiting for ${WHO(who||other(me))} to decide.`+(theirs?' '+theirs+'.':'');return;}
+  if(supNeedPrey(me)){info.textContent='The Big Game Hunt: mark an enemy regiment as your Prey. Your Clashes and Volleys against it count as Inspired and Taking Aim.';add(supPreySel(me,'Prey'));return;}
   const S=supOf(me);info.textContent=`Supremacy Abilities (${who===first?'First Player declares first':'the First Player has declared'}). Activate ${S.k}?`+(theirs?' '+theirs+'.':'');
   add(ptext(S.d.a+(S.d.every?' (every round)':S.d.uses?` (${S.d.uses-S.used} left)`:' (once per battle)')+(S.d.g&&!S.d.g.note?' The map applies it.':' The map shows it as a reminder on the strip; apply it at the table.')));
   if(S.d.cho)S.d.cho.filter(c=>!(S.g.chosen||[]).includes(c)).forEach(c=>add(mk('Activate: '+c,()=>supDecide(me,true,c))));else add(mk('Activate '+S.k,()=>supDecide(me,true)));
@@ -3300,6 +3308,7 @@ function supBlock(side,mine){const S=supOf(side);if(!S)return null;const box=bEl
   box.append(ptext((S.wl.charName||'Warlord')+' · '+S.k));
   if(S.d.p)box.append(ptext((S.d.t?S.d.t+': ':'')+S.d.p));
   if(S.d.a)box.append(ptext('Activated'+(S.d.every?' (every round)':S.d.uses?' ('+S.d.uses+' times)':' (once per battle)')+': '+S.d.a+(S.active?' — active this round'+(S.choice?' ('+S.choice+')':'')+'.':S.used&&!S.d.every?' — used.':'')));
+  if(S.d.prey&&mine&&(SBX()||!supPrey(side)))box.append(supPreySel(side,supPrey(side)?'Change the Prey':'Prey'));else if(S.d.prey)box.append(ptext(supPrey(side)?'Prey: '+(supPrey(side).short||supPrey(side).name):'No Prey marked.'));
   if(mine&&SBX()&&(S.d.a||S.d.unknown)){const r=bEl('div',{className:'fr-opts'});
     if(S.can){(S.d.cho?S.d.cho.filter(c=>!(S.g.chosen||[]).includes(c)):['']).forEach(c=>r.append(abBtn('Activate'+(c?': '+c:''),()=>supActivate(side,c),'ab-tog')));}
     else r.append(bEl('span',{className:'hint',textContent:S.why}));
