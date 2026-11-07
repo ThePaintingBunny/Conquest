@@ -792,6 +792,7 @@ const ACT={
   clash:{n:'Clash',d:'Fight the enemy in contact'},
   creform:{n:'Combat Reform',d:'Resolve test, then reshape'},
   inspire:{n:'Inspire',d:'+1 Clash this activation'},
+  cast:{n:'Spellcasting',d:'Cast one of its spells'},
   occupy:{n:'Occupy building',d:'Move into it; ends the activation'},
   leave:{n:'Leave building',d:'Takes both actions; ends the activation'},
   memory:{n:'Memories of Old',d:'Gain its Memory until the end of the round'},
@@ -919,6 +920,7 @@ function availableActions(u){
     if(/Light|Medium/.test(u.cls||''))can('withdraw',blocked('withdraw'));
     if(broken)can('crally',blocked('crally'));
   }
+  {const RC=regCaster(u);if(RC&&u.onTable&&magicLevel(u,false)&&spellsOf(u,false).length){const why=act.actions.some(a=>a.type==='cast')?'Already cast this activation':RC.free?'':blocked('cast');out.push({type:'cast',why,free:!!RC.free});}}
   if(memOf(u)){can('memory',hasGrant(base(u.id),'Memories of Old')?'Already active this round':blocked('memory'));}
   if(fx(u).some(x=>/Fluid Formation/.test(x))&&!act.actions.some(a=>a.type==='fluid')&&!act.cur){const ok=used.length===0||cap;const narrow=geom(u).files<=3;out.push({type:'fluid',why:!narrow?'Needs 3 or fewer stands in the front rank':ok?'':'Only before the first action or after the last',free:true});}
   if((state.army?.[base(act.id).side]||[]).some(x=>/Hammer and Anvil/.test(x))&&/Infantry|Cavalry/.test(u.cls||'')&&!PS().hammerUsed&&!act.actions.some(a=>a.type==='hammer')&&!act.cur){out.push({type:'hammer',why:'',free:true});}
@@ -959,7 +961,7 @@ function wdTurn(){const c=act.cur,u=byId(act.id);if(!u||!u.onTable||u.destroyed)
   Object.assign(c,{stage:'march',start:st,budget:u.m||0,moving:true,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null,withdraw:true});render();
   toast(`The regiment turns to face away (${fac}°). March it now; it cannot end within 1″ of an enemy.`);}
 function wdFail(){const c=act.cur;if(!c||c.type!=='withdraw')return;Object.assign(act.pose,{x:c.origin.x,y:c.origin.y,facing:c.origin.facing,files:c.origin.files});c.failed=true;c.start=Object.assign({},c.origin);finishAction();}
-function startAction(type){
+function startAction(type){if(type==='cast'&&act&&!act.cur){const u0=byId(act.id),RC=regCaster(u0)||{};act.cur={type:'cast',moving:false,reshape:false,free:!!RC.free,spell:0,target:null,rolls:null,cast:[],start:{x:u0.x,y:u0.y,facing:u0.facing||0,files:geom(u0).files}};render();return;}
   const u=byId(act.id);const st={x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files};
   if(type==='fadv'){act.cur={type:'march',start:st,budget:u.m||0,moving:true,reshape:false,free:true,noSide:true,fadv:true,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null};render();return;}
   if(type==='dtmarch'){act.cur={type:'march',start:st,budget:u.m||0,moving:true,reshape:false,free:true,dt:true,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null};render();return;}
@@ -987,7 +989,7 @@ function finishAction(){
   const u=byId(act.id),c=act.cur;const entry={type:c.type,free:['fluid','hammer'].includes(c.type)||!!c.free,fadv:!!c.fadv,from:c.start,to:{x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files}};
   if(c.moving)entry.dist=+curCost(act.pose).cost.toFixed(2);
   if(c.type==='charge'){entry.target=c.target;entry.dist=+c.dist.toFixed(2);entry.result='success';entry.face=c.face;entry.chargeDistance=c.cd;if(c.rerolled)entry.rerolled=true;if(!act.extraFx.includes('Inspired (charged)'))act.extraFx.push('Inspired (charged)');}if(c.roll!=null)entry.roll=c.roll;if(c.type==='withdraw'){entry.clean=c.clean;entry.resolve=c.R;entry.woundDie=c.wd;entry.wounds=c.wounds;entry.result=c.failed?'failed':'withdrew';entry.from=c.origin||c.start;}if(c.type==='creform'){entry.clean=c.clean;entry.resolve=c.R;entry.contact=crContact(c);}if(c.firstMarch&&u.vanguard)entry.vanguard=u.vanguard;if(c.dt)entry.dt=true;
-  if(c.combat)entry.combat=c.combat;
+  if(c.combat)entry.combat=c.combat;if(c.type==='cast'&&c.res){entry.spell=c.res.spell;entry.spellTarget=c.res.target;entry.success=c.res.success;}
   if(c.segs)entry.segs=c.segs.map(s=>({mode:s.mode,amt:+s.amt.toFixed(2),cost:+s.cost.toFixed(2)}));
   if(c.type==='inspire'&&!act.extraFx.includes('Inspired (Inspire action)'))act.extraFx.push('Inspired (Inspire action)');
   if(c.type==='occupy'){const t=tGarrisonNear(base(act.id))[0];if(t){act.occupyT=tId(t);Object.assign(act.pose,{x:t.x,y:t.y});entry.to={x:t.x,y:t.y,facing:u.facing||0,files:geom(u).files};entry.building=tInfo(t).name;toast('The regiment occupies the '+tInfo(t).name.toLowerCase()+': +'+tInfo(t).def+' Defense and 360° sight. Its activation ends.');}}
@@ -1087,33 +1089,14 @@ let charAct=null;
 function charActivate(id){if(PVP()&&!myTurnPvp()){toast('It is not your turn.');return;}charAct={id,spell:0,target:null,rolls:null};selId=id;render();}
 function renderCharPanel(){const box=$('c-char');if(!charAct||selId!==charAct.id){box.hidden=true;return;}box.hidden=false;box.innerHTML='';
   const u=byId(charAct.id),h=document.createElement('h3');h.textContent=u.charName+' activation';box.appendChild(h);charAbilBox(u,box);
-  const spells=u.spells||[],pr=rx(u.charRules,'Priest')||rx(u.charRules,'Wizard');
   const row0=document.createElement('div');row0.className='row';const pass=document.createElement('button');pass.type='button';pass.className='btn ghost';pass.textContent='Pass (no action)';pass.onclick=()=>charCommit(charAct.id,{note:'No action.'});
   const cl=document.createElement('button');cl.type='button';cl.className='btn ghost';cl.textContent='Cancel';cl.onclick=()=>{charAct=null;render();};row0.append(pass,cl);
-  if(!spells.length||!pr){box.appendChild(ptext(chAbil(u).length?'No spells. Use an ability above, or pass.':'This Character has no spells to cast. Note a Duel or other action in the box below if needed.'));box.appendChild(row0);return;}
-  if(!u.onTable){box.appendChild(ptext('Not on the table yet, so no spells can be cast.'));box.appendChild(row0);return;}
-  const sel=document.createElement('select');sel.id='spell-sel';sel.setAttribute('aria-label','Spell');spells.forEach((s,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=`${s.name} (${s.range}\u2033, Attunement ${s.att}${s.scaling?', Scaling':''})`;sel.appendChild(o);});
-  sel.value=String(charAct.spell||0);sel.onchange=()=>{charAct.spell=+sel.value;charAct.target=null;charAct.rolls=null;render();};box.appendChild(sel);
-  const sp=spells[charAct.spell||0];box.appendChild(ptext(sp.text));
-  const cp=corners(u),ok=t=>sp.req==='automaton'?rh(t.rules,'Automaton'):sp.req==='nonmonster'?t.type!=='monster':true;
-  const cands=all().filter(t=>t.onTable&&!t.destroyed&&(sp.targets==='enemy'?t.side!==u.side:t.side===u.side)&&polyDist(cp,corners(t))<=sp.range+1e-6&&ok(t));
-  if(!cands.length){box.appendChild(ptext('No legal target in range.'));box.appendChild(row0);return;}
-  if(!charAct.target||!cands.some(c=>c.id===charAct.target))charAct.target=cands[0].id;
-  const ts=document.createElement('select');ts.id='spell-target';ts.setAttribute('aria-label','Spell target');cands.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=(c.short||c.name)+' \u00b7 '+polyDist(cp,corners(c)).toFixed(1)+'\u2033';ts.appendChild(o);});
-  ts.value=charAct.target;ts.onchange=()=>{charAct.target=ts.value;charAct.rolls=null;render();};box.appendChild(ts);
-  const T=byId(charAct.target);
-  const talos=all().filter(t=>t.onTable&&t.side===u.side&&(t.abilities||[]).some(a=>/Blood of the Forge God/.test(a[0]))&&polyDist(cp,corners(t))<=10).length;
-  const caster=t=>rx(t.rules,'Priest')||rx(t.rules,'Wizard')||(t.charName&&(rx(t.charRules,'Priest')||rx(t.charRules,'Wizard')));
-  const interf=all().some(t=>t.onTable&&t.side!==u.side&&caster(t)&&(polyDist(cp,corners(t))<=10||polyDist(corners(T),corners(t))<=10));
-  const att=sp.att-(interf?1:0),dice=pr+talos,n=live(T);
-  const need=2+(sp.scaling?(n>=10?3:n>=7?2:n>=4?1:0)+(T.type==='monster'?1:0):0),devout=rh(T.rules,'Devout');
-  box.appendChild(ptext(`${dice} dice (Priest ${pr}${talos?' +'+talos+' from Blood of the Forge God':''}), success on ${att} or less${interf?' (\u22121 Attunement: enemy spellcaster within 10\u2033)':''}. Needs ${need} successes${devout?'; Devout turns one failed die into a success':''}.`));
-  if(!charAct.rolls){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Cast '+sp.name;b.onclick=()=>{charAct.rolls=Array.from({length:dice},d6);render();};box.appendChild(b);box.appendChild(row0);return;}
-  const dr=document.createElement('div');dr.className='drow';let succ=0;charAct.rolls.forEach(v=>{const s=v===1||(v<=att&&v!==6);if(s)succ++;dr.appendChild(dieMini(v,s?'hit':'miss'));});box.appendChild(dr);
-  if(devout&&succ<dice)succ++;const won=succ>=need;
-  box.appendChild(ptext(`${succ} success${succ===1?'':'es'}${devout?' (with Devout)':''}: ${won?'the spell is cast.':'the spell fails.'}`,'tot'));
-  const ap=document.createElement('button');ap.type='button';ap.className='btn';ap.textContent=won?'Apply and end activation':'End activation';
-  ap.onclick=()=>charCommit(charAct.id,{spell:sp.name,target:won?T.id:null,effect:won?sp.effect:null,rolls:charAct.rolls,success:won,note:`Cast ${sp.name} on ${T.short||T.name}: ${charAct.rolls.join(', ')} (${succ} successes, needed ${need}), ${won?'success':'failed'}.`});box.appendChild(ap);}
+  const sps=spellsOf(u,true),lvl=magicLevel(u,true);
+  if(sps.length&&lvl){if(!u.onTable){box.appendChild(ptext('Not on the table yet, so no spells can be cast.'));box.appendChild(row0);return;}
+    const sh=document.createElement('p');sh.className='hint';sh.textContent='Spellcasting (uses the character’s action):';box.appendChild(sh);
+    charAct.cast=charAct.cast||[];spellBox(box,u,true,charAct,res=>charCommit(charAct.id,{spell:res.spell,target:res.success?res.target:null,success:res.success,note:(res.success?'Cast ':'Tried to cast ')+res.spell+': '+res.line+'.'}));}
+  else box.appendChild(ptext(chAbil(u).length?'No spells. Use an ability above, or pass.':'This Character has no spells to cast. Note a Duel or other action in the box below if needed.'));
+  box.appendChild(row0);}
 function confirmEntry(){act.placed=true;act.entryPoint={edge:act.edge||'own',x:act.pose.x,y:act.pose.y};render();}
 function ownEntry(side,d){return side==='nord'?{y:-d/2,facing:0}:{y:48+d/2,facing:180};}
 function rlLine(side){side=side||(act?base(act.id).side:HU);const v=state.rl&&state.rl[side];return v!=null?v:(side==='nord'?0:48);}
@@ -1295,6 +1278,7 @@ function renderCard(){
     $('f-less').disabled=$('f-more').disabled=!c.reshape||c.type==='hammer';
   }
   const chg=$('c-chg');chg.innerHTML='';const isChg=!!(c&&c.type==='charge');
+  if(c&&c.type==='cast'){$('c-cur-read').textContent='Spellcasting: choose a spell and a target, then roll.';$('c-meter').hidden=true;spellBox(chg,byId(act.id),false,c,res=>{c.res=res;toast(res.line);finishAction();});}
   if(c&&(c.type==='march'||c.withdraw)&&c.segs)renderMarchUI(c,chg);
   if(c&&c.type==='withdraw'&&c.stage==='march'){const bb=document.createElement('button');bb.type='button';bb.className='btn ghost';bb.textContent='Withdraw fails (no legal March)';bb.title='Return the regiment to where it started; the wounds stay';bb.onclick=wdFail;chg.appendChild(bb);}
   if(c&&c.type==='creform'&&!(cb&&cb.type==='freform')&&crPrim(c)){const e=crPrim(c),bb=document.createElement('button');bb.type='button';bb.className='btn ghost';bb.textContent='Face '+(e.short||e.name);bb.title='Turn so the front rank sits flush against the side of the enemy you are touching';bb.onclick=crFace;chg.appendChild(bb);}
@@ -1316,6 +1300,7 @@ function renderCard(){
     if(c.stage==='adjust'){$('c-cur-read').textContent=`Charge succeeds: ${c.roll?c.roll+' + ':''}${M}${jug?' + 5':''} = ${c.cd}″ against ${c.dist.toFixed(1)}″. The regiment is flush with the target’s ${c.face}. Drag along the contact face to line up stands, then Finish action. The regiment becomes Inspired; Claude resolves the Impact Attacks.`;}
     $('cancel-act').hidden=c.stage==='adjust';
   }else{$('cancel-act').hidden=false;}
+  if(c&&c.type==='cast'){$('c-ctl').hidden=true;$('done-act').hidden=true;}
   if(c&&(c.type==='volley'||c.type==='clash')){$('c-ctl').hidden=true;$('done-act').hidden=true;$('c-meter').hidden=true;$('c-cur-read').textContent=c.type==='volley'&&c.stage==='target'?'Volley: click the enemy regiment you are shooting at. Claude checks Line of Sight and range.':ACT[c.type].n+': roll it in the combat panel under the map.';}
   act.actions.forEach((a,i)=>{const li=document.createElement('li');let t='';if(a.dist!=null)t+=`${a.dist.toFixed(1)}″`;if(a.roll!=null)t+=(t?', ':'')+`rolled ${a.roll}`;if(a.vanguard)t+=(t?', ':'')+`Vanguard ${a.vanguard}`;const ck=document.createElement('span');ck.className='ck';ck.textContent='✓';const nm=document.createElement('b');nm.textContent=ACT[a.type].n+(a.free?' (free)':'');li.append(ck,nm);if(t){const sm=document.createElement('small');sm.textContent=t;li.append(sm);}$('c-log').appendChild(li);});
   const w=[];if(act.entering&&act.placed){const G=geom(Object.assign({},base(act.id),act.pose));if(act.pose.y+G.d/2>48.01)w.push('Not every stand is on the table yet; it needs another March.');}
@@ -1405,7 +1390,7 @@ function hitMods(A,p,type,T){let base=type==='volley'?p.V:p.C,r6=false;const inF
   if(type==='clash'&&tWater(A))base=Math.max(1,base-1);
   if(type==='clash'&&fxHas(A,/Aggression Directive/)&&base<4)base+=1;
   if((type==='clash'||type==='impact')&&!pike&&rh((A.rules||[]).concat(fx(A)),'Shock')&&(type==='impact'||fxHas(A,/charged/)))base+=1;
-  if(type==='clash'){const dread=engaged(A).some(e=>rh(e.rules,'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if(fxHas(A,/Inspired/)&&!fxHas(A,/^Hindered/)&&!fxHas(A,/Siphon Strength/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
+  if(type==='clash'){const dread=engaged(A).some(e=>rh(e.rules,'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if(fxHas(A,/Inspired/)&&!fxHas(A,/^Hindered/)&&!fxHas(A,/Siphon Strength|Bane of Deeds/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
   if(type==='volley'){const aim=(act&&act.id===A.id&&act.actions.some(a=>a.type==='aim'))||rh(p.rules,'Deadshot');if(aim){if(base+1>=5)r6=true;else base+=1;}}
   return {hitOn:Math.max(1,Math.min(6,base)),reroll6:r6};}
 function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=supportLost(A)?1:(rx(A.rules,'Support')||1);
@@ -1798,6 +1783,7 @@ Steps (in order, at most 2 non-free actions; an arriving regiment's FIRST step i
 {"do":"clash","target":"<enemy id in contact, optional>"}
 {"do":"volley","target":"<enemy id>"}
 {"do":"inspire"} {"do":"aim"} {"do":"rally"} {"do":"combat_rally"} {"do":"combat_reform"} {"do":"withdraw"}
+{"do":"cast","spell":"<spell name>","target":"<unit id>"}  // Spellcasting regiments only (see spells in THIS ACTIVATION); some casters cast for free
 {"do":"memory"}  // Old Dominion Memories of Old as an action (if listed in availableNow)
 {"do":"occupy"} {"do":"leave"}  // move into / out of a building (Garrison terrain); each ends the activation
 {"do":"faction","option":"<exact text from factionOptions>"}  // faction rules and Draw Events (Chant, Ideal Card, Bloom, Strain Expression, Forged by the Elements, Memories of Old as a Draw Event, Elemental Conduit, Awaken...). Draw Events must come BEFORE the first action. Use them whenever they help; most are free.
@@ -1858,6 +1844,9 @@ async function exClash(st){const why=canDo('clash');if(why)return 'could not cla
 async function exVolley(st){const why=canDo('volley');if(why)return 'could not volley ('+why+')';const u=byId(act.id),t=byId(String(st.target||'')),vr=volleyRange(u);
   if(!t||!t.onTable||!vr)return 'could not volley (no target)';if(!frontArcHas(u,t)||polyDist(corners(u),corners(t))>vr.range)return 'could not volley at '+(t.short||t.name)+' (out of arc or range)';
   startAction('volley');act.cur.stage='combat';act.cur.target=t.id;logAI('looses a volley at '+(t.short||t.name));openCombat({type:'volley',att:act.id,tgt:t.id,inAct:true});await autoResolve();return '';}
+
+async function exRegCast(st){const why=canDo('cast');if(why)return 'could not cast ('+why+')';const u=byId(act.id);const r=await aiCastSpell(u,false,st.spell,st.target);if(!r)return 'could not cast '+(st.spell||'');
+  const RC=regCaster(u)||{},s0={x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files};act.actions.push({type:'cast',free:!!RC.free,from:s0,to:s0,spell:st.spell});render();await sleep(300);return r;}
 async function exSimple(type,done){const why=canDo(type);if(why)return `could not ${ACT[type].n.toLowerCase()} (${why})`;startAction(type);await sleep(400);return done;}
 async function exCReform(){const why=canDo('creform');if(why)return 'could not combat reform ('+why+')';startAction('creform');if(cb)await autoResolve();
   if(!act||!act.cur)return 'combat reforms';const st0=Object.assign({},act.pose);crFace();const to=Object.assign({},act.pose);Object.assign(act.pose,{x:st0.x,y:st0.y,facing:st0.facing});await tweenPose(to,700);
@@ -1896,16 +1885,16 @@ function boardFor(activeId){return {round:state.round,scenario:{name:scenOf().na
   reinforcementLine:state.rl?.[AI]??null,zones:zoneControl().map(z=>({name:z.name,x:z.x,y:z.y,diameter:z.size,friendlyTo:z.friendly?(z.friendly===AI?'you':'enemy'):null,heldBy:z.holder?(z.holder===AI?'you':'enemy'):'nobody',stands:{you:z.tot[AI],enemy:z.tot[HU]}})),
   terrain:terrainOf().map(t=>{const I=tInfo(t);return {type:I.name,size:I.size,rules:I.kw,x:t.x,y:t.y,halfWidth:t.rx,halfDepth:t.ry,occupiedBy:(all().find(o=>o.garrison===tId(t))||{}).id||undefined};}),
   units:(state.units||[]).filter(u=>!u.destroyed&&(u.onTable||u.arriving||u.id===activeId)).map(u=>unitBrief(byId(u.id)||u))};}
-async function planActivation(u,source){const brief={activeRegiment:u.id,source,factionOptions:aiFacOpts(u),factionState:frFacs(AI).flatMap(f=>frSummary(AI,f)),options:optionsFor(u),availableNow:u.onTable?availableActions(u).filter(a=>!a.why).map(a=>a.type):['enter, then march'],arrivedThisRound:!u.onTable||u.arrivedRound===state.round};
+async function planActivation(u,source){const brief={activeRegiment:u.id,source,spells:regCaster(u)?spellsOf(u,false).map(s=>({name:s.name,range:s.range||'Self',attunement:s.att,scaling:s.scaling,free:!!regCaster(u).free,targets:spellTargets(u,s).map(t=>t.id),text:s.text})):undefined,magicLevel:regCaster(u)?magicLevel(u,false):undefined,factionOptions:aiFacOpts(u),factionState:frFacs(AI).flatMap(f=>frSummary(AI,f)),options:optionsFor(u),availableNow:u.onTable?availableActions(u).filter(a=>!a.why).map(a=>a.type):['enter, then march'],arrivedThisRound:!u.onTable||u.arrivedRound===state.round};
   const prompt=`You are Claude, commanding the ${N(AI)} army against a human player's ${N(HU)} in a tabletop wargame. Choose this activation's actions.\n\n${RULES}\n\n${PLAN_SCHEMA}\n\nBOARD (JSON):\n${JSON.stringify(boardFor(u.id))}\n\nTHIS ACTIVATION (JSON):\n${JSON.stringify(brief)}\n\nThink like a strong player: concentrate force, hit flanks and rears, use charges whose needed roll is small, take or contest zones, and do not walk into enemy front arcs needlessly. Reply with the JSON object only.`;
   try{const r=await askJSON(prompt,'default');if(r&&Array.isArray(r.plan))return {plan:r.plan,narration:String(r.narration||''),by:'claude'};}catch(e){if(e&&e.code==='not_granted')aiNote('Claude was not allowed to play, so the map used simple tactics.');}
   return {plan:heuristicPlan(u),narration:'',by:'bot'};}
-async function planCharacter(u){const sp=(u.spells||[]),AB=chAbil(u).filter(a=>!chWhy(u,a)).map(a=>({name:a.n,kind:a.kind==='draw'?'draw event (free, before acting)':'action (uses the character action)',effect:a.d,targets:chTargets(u,a).map(t=>t.id)}));
+async function planCharacter(u){const sp=spellsOf(u,true).filter(s=>magicLevel(u,true)>0&&spellTargets(u,s).length),AB=chAbil(u).filter(a=>!chWhy(u,a)).map(a=>({name:a.n,kind:a.kind==='draw'?'draw event (free, before acting)':'action (uses the character action)',effect:a.d,targets:chTargets(u,a).map(t=>t.id)}));
   if((!sp.length&&!AB.length)||!u.onTable)return {char:'pass'};
-  if(AB.length){const prompt=`You are Claude, commanding the ${N(AI)} army in Conquest: The Last Argument of Kings. Your character ${u.charName} (with ${u.name}) is activating. It may first use any of its Draw Events, then take ONE action: cast a spell, use an ability, or pass.\nSpells: ${JSON.stringify(sp.map(s=>({name:s.name,range:s.range,targets:s.targets||'friendly',text:s.text})))}\nAbilities: ${JSON.stringify(AB)}\nBOARD: ${JSON.stringify(boardFor(u.id))}\nReply with JSON only: {"draws":[{"ability":"<draw event name>","target":"<unit id>"}],"char":"pass"|"cast"|"ability","spell":"<name if cast>","ability":"<name if ability>","target":"<unit id>","narration":"one sentence"}.`;
+  if(AB.length){const prompt=`You are Claude, commanding the ${N(AI)} army in Conquest: The Last Argument of Kings. Your character ${u.charName} (with ${u.name}) is activating. It may first use any of its Draw Events, then take ONE action: cast a spell, use an ability, or pass.\nSpells (Magic Level ${magicLevel(u,true)}; each success is a die at or under Attunement; 2 successes needed, more for Scaling spells on big regiments): ${JSON.stringify(sp.map(s=>({name:s.name,range:s.range||'Self',attunement:s.att,scaling:s.scaling,targets:spellTargets(u,s).map(t=>t.id),text:s.text})))}\nAbilities: ${JSON.stringify(AB)}\nBOARD: ${JSON.stringify(boardFor(u.id))}\nReply with JSON only: {"draws":[{"ability":"<draw event name>","target":"<unit id>"}],"char":"pass"|"cast"|"ability","spell":"<name if cast>","ability":"<name if ability>","target":"<unit id>","narration":"one sentence"}.`;
     try{const r=await askJSON(prompt,'default');if(r&&r.char)return r;}catch(e){}
     const dr=AB.filter(a=>/draw/.test(a.kind)).map(a=>({ability:a.name,target:a.targets[0]}));return {draws:dr,char:'pass'};}
-  const prompt=`You are Claude, commanding the ${N(AI)} army in Conquest: The Last Argument of Kings. Your character ${u.charName} (with ${u.name}) is activating and may cast one spell or pass.\nSpells: ${JSON.stringify(sp.map(s=>({name:s.name,range:s.range,targets:s.targets||'friendly',text:s.text})))}\nBOARD: ${JSON.stringify(boardFor(u.id))}\nReply with JSON only: {"char":"pass"} or {"char":"cast","spell":"<name>","target":"<unit id>","narration":"one sentence"}.`;
+  const prompt=`You are Claude, commanding the ${N(AI)} army in Conquest: The Last Argument of Kings. Your character ${u.charName} (with ${u.name}) is activating and may cast one spell or pass.\nSpells (Magic Level ${magicLevel(u,true)}; each success is a die at or under Attunement; 2 successes needed, more for Scaling spells on big regiments): ${JSON.stringify(sp.map(s=>({name:s.name,range:s.range||'Self',attunement:s.att,scaling:s.scaling,targets:spellTargets(u,s).map(t=>t.id),text:s.text})))}\nBOARD: ${JSON.stringify(boardFor(u.id))}\nReply with JSON only: {"char":"pass"} or {"char":"cast","spell":"<name>","target":"<unit id>","narration":"one sentence"}.`;
   try{const r=await askJSON(prompt,'default');if(r&&r.char)return r;}catch(e){}return {char:'pass'};}
 let aiNotes=[];function aiNote(t){if(!aiNotes.includes(t))aiNotes.push(t);}
 async function planRound(){const cards=defaultStack();
@@ -1921,7 +1910,7 @@ async function aiRegiment(id,source,report){const u0=base(id);startActivation(id
     try{switch(st.do){case 'enter':if(act.entering&&!act.placed)r=await exEnter(st);break;case 'march':r=await exMarch(st);break;case 'reform':r=await exReform(st);break;case 'charge':r=await exCharge(st);break;
       case 'clash':r=await exClash(st);break;case 'volley':r=await exVolley(st);break;case 'inspire':r=await exSimple('inspire','inspires its warriors');break;case 'aim':r=await exSimple('aim','takes aim');break;
       case 'rally':r=await exSimple('rally','rallies');break;case 'combat_rally':r=await exSimple('crally','rallies in combat');break;case 'combat_reform':r=await exCReform();break;case 'withdraw':r=await exWithdraw();break;
-      case 'faction':r=await exFaction(st);break;case 'memory':r=await exSimple('memory','recalls its Memory of Old');break;case 'occupy':r=await exSimple('occupy','occupies the building');break;case 'leave':r=await exSimple('leave','leaves the building');break;default:r='';}}
+      case 'faction':r=await exFaction(st);break;case 'cast':r=await exRegCast(st);break;case 'memory':r=await exSimple('memory','recalls its Memory of Old');break;case 'occupy':r=await exSimple('occupy','occupies the building');break;case 'leave':r=await exSimple('leave','leaves the building');break;default:r='';}}
     catch(e){r='could not '+st.do;if(act&&act.cur){try{cancelAction()}catch(_){act.cur=null}}cb=null;renderCombat();}
     if(r)lines.splice(lines.length,0,r);await sleep(300);}
   aiLog=null;
@@ -1936,7 +1925,7 @@ async function runAITurn(){if(PVP())return;if(aiBusy||!state||!db)return;if(act)
     const id=card.slice(2);
     if(card[0]==='c'){const u=byId(id);aiStatus(`${N(AI)}: the ${u.charName} is deciding…`);const d=await planCharacter(u);const cl=[];
       for(const x of (Array.isArray(d.draws)?d.draws:[]).slice(0,3)){const a=chAbil(byId(id)).find(q=>q.kind==='draw'&&q.n.toLowerCase()===String(x.ability||'').toLowerCase());if(a){const r=await useAbil(id,a.n,x.target);if(r)cl.push(r);}}
-      let line;if(d.char==='cast')line=await aiCast(id,d.spell,d.target);
+      let line;if(d.char==='cast'){const r=await aiCastSpell(byId(id),true,d.spell,d.target);if(r){line=`the ${u.charName} ${r}`;await charCommit(id,{spell:d.spell,note:r+'.'});}else line=await aiCast(id,d.spell,d.target);}
       else if(d.char==='ability'){const a=chAbil(byId(id)).find(q=>q.kind==='action'&&q.n.toLowerCase()===String(d.ability||'').toLowerCase());if(a){const r=await useAbil(id,a.n,d.target);await charCommit(id,{note:'Used '+a.n+'.'});line=r;}else{await charCommit(id,{note:'No action.'});line=`the ${u.charName} takes no action`;}}
       else{await charCommit(id,{note:'No action.'});line=`the ${u.charName} takes no action`;}
       report.push({title:u.charName,lines:cl.concat([line]),narration:String(d.narration||'')});
@@ -2530,7 +2519,7 @@ function armyBuilder(add,mk,onUse,useLabel){wlFix();bldSave();const box=bEl('div
   const probs=bldProblems();const foot=bEl('div',{className:'ab-foot'});
   if(probs.length)foot.append(abIssues(probs.slice(0,6).concat(probs.length>6?['…and '+(probs.length-6)+' more']:[]),''));
   if(bld.wbs.length)foot.append(mk(probs.length?useLabel+' anyway':useLabel,()=>{const L=bldToList();if(!L||!L.units.length){toast('Add at least one regiment.');return;}onUse(L);}));
-  foot.append(bEl('p',{className:'ab-note',textContent:'Officer and upgrade effects beyond stat changes are listed on the regiment for you to apply. Spells for casters can be added in the review step.'}));
+  foot.append(bEl('p',{className:'ab-note',textContent:'Officer and upgrade effects beyond stat changes are listed on the regiment for you to apply. Spellcasters know their spells automatically; casters that choose a school or court pick it when casting.'}));
   box.append(foot);add(box);}
 function armyModePicker(add){const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','How to enter your army');
   [['build','Build it here'],['paste','Paste a list (Claude reads it)']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String(armyMode===m));b.onclick=()=>{armyMode=m;renderTurnbar();};g.appendChild(b);});add(g);}
@@ -2911,6 +2900,236 @@ async function aiAutoFaction(u,lines){let L=[];try{L=frOptions(u);}catch(e){retu
   const f=frFac(u);
   if(f==="W'adrhŭn"&&!act.frMarker){const own=(frRoles(u).find(r=>/^Cult of/.test(r))||'').replace('Cult of ','')||'War';const it=L.find(x=>!x.head&&x.label===own);if(it){await Promise.resolve(it.fn());lines.push('adds a '+own+' Chant Marker');}}
   if(f==='Yoroni'&&!act.frIdeal){const it=L.find(x=>!x.head&&x.cls==='pri'&&!x.why)||L.find(x=>!x.head&&/^(Ka|Chi|Fu|Sui|Mu)\b/.test(x.label));if(it){await Promise.resolve(it.fn());lines.push('is activated by Ideal Card '+it.label.split(' ')[0]);}}}
+
+function hasSpell(t,name){return !!t&&(t.temp||[]).some(g=>g.src==='Spell: '+name||g.src.startsWith('Spell: '+name+' ·'));}
+
+/* ---------- spells: data from the 2026 army lists ---------- */
+/* fields: r range (0 = Self), a attunement (null = automatically cast, 'D' = target's Defense), s Scaling, t target (enemy/friend/self/any/zone/terrain),
+   q requirement, h [hits per success, AP], hf [fixed hits, AP], nm no Morale, heal 's' per success or a number, g rules gained, st stat changes, cap stat caps,
+   lbl label shown on the target, need successes needed, d effect text */
+const SPELLDB={
+'Blurred Vision':{r:12,a:3,s:1,t:'friend',lbl:'Blurred Vision (counts as in Cover)',d:'A friendly regiment counts as in Cover terrain this round.'},
+'Mist Weave':{r:12,a:3,t:'friend',st:{E:1},cap:{E:2},d:'A friendly regiment gets +1 Evasion (max 2) this round.'},
+'Reshape Destiny':{r:0,a:3,t:'self',lbl:'Reshape Destiny (Aura 12″: chargers gain Unstoppable)',d:'Aura: friendly regiments declaring a Charge within 12″ gain Unstoppable this round.'},
+'Hoarfrost':{r:12,a:4,t:'enemy',h:[1,1],d:'One Hit per success, Armor Piercing (1).'},
+'Dominate':{r:12,a:3,t:'enemy',st:{R:-1},d:'An enemy regiment gets −1 Resolve this round.'},
+'Enrage':{r:0,a:3,t:'self',lbl:'Enrage',x:'enrage',d:'Friendly regiments within 12″ immediately Rally or Combat Rally out of sequence.'},
+'Aspect of Fenrir':{r:12,a:3,s:1,t:'friend',g:['Unyielding'],d:'A friendly regiment gains Unyielding this round.'},
+'Fruit of the Golden Tree':{r:12,a:3,t:'friend',q:'Infantry',heal:'s',d:'A friendly Infantry regiment heals 1 wound per success.'},
+'Glory of Valhalla':{r:12,a:3,t:'friend',g:['Indomitable (2)'],d:'A friendly regiment gains Indomitable (2) this round.'},
+"Hela's Caress":{r:12,a:4,t:'enemy',h:[1,0],d:'One Hit per success.'},
+"Warbringer's Light":{r:12,a:3,s:1,t:'friend',g:['Blessed'],d:'A friendly regiment gains Blessed this round.'},
+'Ice Armor':{r:0,a:3,t:'self',st:{D:1},d:'Its regiment gets +1 Defense this round.'},
+'Rime Storm':{r:12,a:3,t:'enemy',h:[2,0],d:'Two Hits per success.'},
+'Encase':{r:12,a:3,s:1,t:'enemy',st:{M:-2},d:'An enemy regiment gets −2 March this round.'},
+'Aggression Directive':{r:12,a:4,t:'friend',q:'Automaton',st:{C:1},cap:{C:4},d:'A friendly Automaton regiment gets +1 Clash (max 4) this round.'},
+'Clockwork Parade':{r:12,a:3,t:'friend',lbl:'Clockwork Parade (Charge distance = March +5″)',d:'A friendly regiment’s Charge distance is its March +5″ this round, ignoring the Phalanx limit.'},
+'Iron Stride':{r:8,a:2,t:'friend',g:['Ignores Hindering'],d:'A friendly regiment ignores Hindering terrain this round.'},
+'Torque':{r:12,a:4,t:'friend',q:'nonmonster',g:['Untouchable'],d:'A friendly non-Monster regiment gains Untouchable this round.'},
+'Othismos':{r:0,a:3,t:'self',g:['Indomitable (3)'],lbl:'Othismos (Command Stand counts as 3 for Seizing)',d:'Its regiment gains Indomitable (3); its Command Stand counts as two extra stands for Seizing.'},
+'Molon Labe':{r:0,a:3,t:'self',heal:'s',d:'Its regiment heals 1 wound per success.'},
+'Temper Resolve':{r:0,a:4,t:'self',lbl:'Temper Resolve (8″: re-roll Defense and Morale 6s)',d:'It and non-Monster regiments within 8″ re-roll Defense and Morale rolls of 6 this round.'},
+'Quench Blades':{r:0,a:4,t:'self',lbl:'Quench Blades (8″: re-roll hits of 6, +1 Clash max 4)',d:'Friendly regiments within 8″ re-roll Hit rolls of 6 and get +1 Clash (max 4) this round.'},
+'Trident Strike':{r:6,a:4,t:'enemy',h:[1,0],d:'One Hit per success.'},
+"Crucible's Fire":{r:0,a:4,t:'self',g:['Aura of Death (7)'],d:'Its regiment gains Aura of Death (7) this round.'},
+'Cacophony':{r:12,a:4,t:'enemy',h:[1,0],d:'One Hit per success.'},
+'Crescendo':{r:0,a:4,t:'self',x:'crescendo',d:'Add a Conquest Chant Marker to the Sequence and reorder the top 3 cards of your Command Stack.'},
+'Dissonance':{r:12,a:3,t:'friend',lbl:'Dissonance (when it Chants, engaged enemies lose Inspired)',d:'When the regiment Chants this round, engaged enemies lose Inspired.'},
+'Discordance':{r:12,a:4,s:1,t:'enemy',lbl:'Discordance (cannot Seize)',d:'An enemy regiment cannot Seize Objective Zones this round.'},
+'Resonance':{r:12,a:4,t:'zone',d:'Enemy regiments in range of a target Objective Zone gain Decay (2) this round.'},
+'Dark Supplication':{r:0,a:2,t:'self',x:'supplication',d:'Add 1 token to the Dark Power or Fallen Pantheon pool.'},
+'Undying Devotion':{r:12,a:3,t:'friend',q:'name:Cultists|Hashashin',lbl:'Undying Devotion (Fallen Pantheon; destroyed stands add tokens)',d:'A friendly Cultists or Hashashin regiment gains the Fallen Pantheon role; each stand destroyed adds a Power token.'},
+'Blackflame Coruscation':{r:12,a:3,s:1,t:'enemy',h:[1,0],x:'blackflame',d:'One Hit per success plus Hits equal to your highest Empowerment Tier.'},
+'Benediction of the Black Sun':{r:12,a:3,s:1,t:'friend',q:'Brute',g:['Blessed'],d:'A friendly Brute regiment gains Blessed this round.'},
+'Unholy Baptism':{r:12,a:3,t:'enemy',h:[1,1],d:'One Hit per success, Armor Piercing (1).'},
+"Hazlia's Touch":{r:12,a:3,t:'friend',x:'hazlia',d:'A friendly regiment heals wounds equal to the Dark Power Tier (+1 for Creed or Legion regiments).'},
+'Dark Immolation':{r:12,a:3,t:'friend',g:['Aura of Death (+1)'],d:'A friendly regiment gains the Creed role and Aura of Death (+1) this round.'},
+'Blasphemous Power':{r:12,a:3,s:1,t:'friend',lbl:'Blasphemous Power (counts as Dark Power Tier +1)',d:'A friendly regiment counts as one Dark Power Tier higher this round (at the top Tier it gains Flurry and Decay).'},
+'Insanity':{r:14,a:3,t:'enemy',h:[2,0],nm:1,d:'Two Hits per success, Defense rolled against its lowest Resolve; no Morale Tests.'},
+'Translocation':{r:0,a:3,s:1,t:'self',lbl:'Translocation (free 8″ March through anything)',d:'Its regiment makes a free 8″ March, ignoring regiments and terrain, sideways or backwards at no penalty. Not while engaged.'},
+'Drain Will':{r:12,a:3,s:1,t:'enemy',st:{D:-1},d:'An enemy regiment gets −1 Defense this round.'},
+'Immolation':{r:0,a:3,s:1,t:'self',g:['Aura of Death (+1)'],d:'Its regiment gains Aura of Death (+1).'},
+'Burn to Cinders':{r:12,a:4,t:'enemy',h:[1,0],lbl:'Inflamed',d:'One Hit per success; the target becomes Inflamed.'},
+'Cauterize':{r:12,a:3,t:'enemy',lbl:'Inflamed, cannot be Healed',d:'The target cannot be healed this round and becomes Inflamed.'},
+'Ignite':{r:12,a:3,t:'enemy',q:'fx:Inflamed',hf:[5,0],nm:1,d:'An Inflamed enemy takes 5 Hits (no Morale) and loses Inflamed; regiments within 6″ become Inflamed.'},
+'Searing Sandstorm':{r:0,a:3,t:'self',lbl:'Searing Sandstorm (Tenacious (1) against Volleys)',d:'When volleyed this round it gains Tenacious (1) and becomes Inflamed.'},
+'Molten Blades':{r:12,a:3,t:'friend',q:'Court of Fire',g:['Cleave (+1)','Deadly Blades'],d:'A friendly Court of Fire regiment gains Cleave (1) and Deadly Blades this round.'},
+'Wreathed in Fire':{r:12,a:3,t:'friend',q:'Court of Fire',g:['Untouchable'],d:'A friendly Court of Fire regiment gains Untouchable this round.'},
+'Blood to Water':{r:12,a:3,t:'enemy',h:[1,0],x:'bloodwater',d:'One Hit per success; if engaged with a Court of Water regiment, extra Hits equal to its Resolve (2 without one).'},
+'Lammelar Flow':{r:12,a:3,s:1,t:'friend',q:'Court of Water',g:['Aimed Shot'],d:'A friendly Court of Water regiment gains Aimed Shot this round.'},
+'Swirling Embrace':{r:12,a:3,t:'friend',q:'Court of Water',g:['Untouchable'],d:'A friendly Court of Water regiment gains Untouchable this round.'},
+'Induced Hypoxia':{r:12,a:3,t:'enemy',lbl:'Induced Hypoxia (uses its lowest Resolve)',d:'An enemy regiment uses its lowest unmodified Resolve this round.'},
+'Flowing Stride':{r:12,a:3,t:'friend',q:'Court of Water',g:['Ignores Hindering'],d:'A friendly Court of Water regiment ignores Hindering terrain this round.'},
+'Water to Blood':{r:12,a:3,t:'friend',q:'Mortals',heal:5,d:'A friendly Mortal regiment heals 5 wounds.'},
+'Lifting Winds':{r:0,a:4,t:'self',x:'liftwinds',d:'Friendly Court of Air regiments within 12″ gain Unstoppable this round.'},
+'Lightning Bolt':{r:12,a:3,t:'enemy',h:[1,0],x:'lightning',d:'One Hit per success; if engaged with a Court of Air regiment, extra Hits equal to its Defense.'},
+'Homing Winds':{r:12,a:3,t:'friend',q:'Court of Air',lbl:'Homing Winds (re-roll Volley hits of 6)',d:'A friendly Court of Air regiment re-rolls failed Volley hit rolls of 6 this round.'},
+'Air Step':{r:12,a:3,t:'friend',q:'Court of Air',lbl:'Air Step (free 2″ March in any direction)',d:'A friendly unengaged Court of Air regiment makes a free 2″ March in any direction.'},
+'Cyclone':{r:12,a:3,t:'enemy',h:[1,0],lbl:'Cyclone (0 stands for Seizing if engaged with Court of Air)',d:'One Hit per success; if engaged with a Court of Air regiment in the Victory Phase it counts as 0 stands for Seizing.'},
+'Wind Kissed Blades':{r:12,a:3,t:'friend',q:'Court of Air',g:['Counter-Attack','Parry'],d:'A friendly Court of Air regiment gains Counter-Attack and Parry this round.'},
+'Sunder (the Land)':{r:12,a:3,t:'zone',need:3,d:'Needs 3 successes. A target Objective Zone becomes Hindering terrain this round.'},
+'Stabilize (the Pattern)':{r:0,a:3,t:'self',lbl:'Stabilize (Aura 8″: Elementals ignore Aura of Death and Decay)',d:'Friendly Elemental regiments within 8″ suffer no Aura of Death or Decay this round.'},
+'Overwhelm (the Form)':{r:12,a:3,s:1,t:'friend',q:'Court of Earth',g:['Trample (+2)'],d:'A friendly Court of Earth Elemental gains Trample (+2) this round.'},
+'Reinforce (the Pattern)':{r:12,a:3,s:1,t:'friend',q:'Court of Earth',lbl:'Reinforce (no Charge or Reform; ignores Impact and Trample)',d:'A friendly Court of Earth regiment cannot Charge or Reform and ignores Impact and Trample Hits this round.'},
+'Hurl (the Earth)':{r:12,a:3,t:'enemy',hf:[4,1],d:'4 Hits, Armor Piercing (1).'},
+'Reincarnate (the Self)':{r:12,a:4,t:'friend',heal:3,d:'A friendly regiment heals 3 wounds.'},
+'Iron Soul of Discipline':{r:0,a:3,t:'self',g:['Untouchable'],x:'ironsoul',d:'Its regiment gains Untouchable (and Tenacious (1) if below starting strength) this round.'},
+'Blossom in the Wind':{r:14,a:3,t:'enemy',lbl:'Blossom in the Wind (no Unstoppable, Charge roll 2D6 lowest)',d:'An enemy loses Unstoppable and rolls 2D6, lowest, for Charge distance (−1 March inside zonal terrain).'},
+'Hesitation, Bane of Deeds':{r:14,a:3,s:1,t:'enemy',lbl:'Bane of Deeds (no Inspiration this round)',d:'An enemy cannot benefit from Inspired this round (−1 Clash if no friend within 8″).'},
+'Misery of Failure Envisioned':{r:14,a:3,t:'enemy',st:{R:-1},d:'An enemy gets −1 Resolve (−2 if it has not activated) this round.'},
+'Repose in Healing Spring':{r:12,a:4,t:'friend',q:'modular',heal:3,d:'A friendly Modular regiment heals 3 wounds.'},
+'Honor, a Void of Self':{r:12,a:4,t:'enemy',lbl:'Honor, a Void of Self (no Entourage activation)',d:'An enemy cannot activate as part of an Entourage this round.'},
+'Witness of the Void':{r:12,a:4,t:'friend',st:{D:1},cap:{D:4},d:'A friendly regiment gets +1 Defense (max 4) this round.'},
+'Dancing Shadows':{r:12,a:4,t:'friend',g:['Counter-Attack','Parry'],d:'A friendly regiment gains Counter-Attack and Parry this round.'},
+'Disseminate':{r:0,a:3,t:'self',lbl:'Disseminate (next card activates in Summer)',d:'Your next Command Card activates as if in Summer this round.'},
+'Dehydrate':{r:16,a:3,t:'enemy',st:{M:-1},lbl:'Dehydrate (no Charge re-rolls)',d:'An enemy gets −1 March and cannot re-roll Charge distance this round.'},
+'Heat Haze':{r:16,a:4,t:'enemy',h:[1,0],d:'One Hit per success.'},
+'Propagate':{r:16,a:4,t:'friend',x:'propagate',d:'Move a Seed Marker from a friendly regiment to up to three friendly regiments within 8″ (one each).'},
+'Dark of Winter':{r:0,a:3,t:'self',lbl:'Dark of Winter (next card activates in Winter)',d:'Your next Command Card activates as if in Winter this round.'},
+'Armor of Rime':{r:16,a:2,s:1,t:'enemy',lbl:'Armor of Rime (always counts as moving through Hindering)',d:'An enemy always counts as moving through Hindering terrain; others cannot move through it this round.'},
+'Mouldering Bloom':{r:16,a:3,t:'enemy',h:[1,1],d:'One Hit per success, Armor Piercing (1).'},
+'Heart of Winter':{r:16,a:3,s:1,t:'enemy',st:{R:-1},d:'An enemy gets −1 Resolve; one friendly Court of Winter regiment within 12″ gains Hardened (1).'},
+'Kindle Courage':{r:12,a:3,s:1,t:'friend',g:['Oblivious'],d:'A friendly regiment gains Oblivious this round.'},
+'Fire Dart':{r:16,a:4,t:'enemy',h:[1,1],d:'One Hit per success, Armor Piercing (1).'},
+'Earth to Mud':{r:16,a:3,s:1,t:'enemy',lbl:'Earth to Mud (Charge only as first action; max 2 actions)',d:'An enemy can only Charge as its first action and has at most 2 actions this round.'},
+'Stone Spikes':{r:12,a:3,t:'friend',q:'Infantry',g:['Pike Formation'],d:'A friendly Infantry regiment gains Pike Formation this round.'},
+"Ninuah's Tears":{r:12,a:4,t:'any',q:'Infantry',heal:'s',d:'An Infantry regiment heals 1 wound per success.'},
+'Call Fog':{r:12,a:3,t:'friend',q:'Infantry',lbl:'Call Fog (counts as in Cover against Volleys)',d:'A friendly Infantry regiment counts as in Cover against Volleys this round.'},
+'Seeking Winds':{r:12,a:4,s:1,t:'friend',g:['Sureshot'],d:'A friendly regiment gains Sureshot this round.'},
+'Guide':{r:12,a:4,s:1,t:'friend',st:{V:1},cap:{V:4},d:'A friendly regiment gets +1 Volley (max 4) this round.'},
+'Elemental Vortex':{r:12,a:4,t:'friend',lbl:'Elemental Vortex (enemy spells at it: −2 successes)',d:'Enemy spells targeting it count two fewer successes this round.'},
+'Elemental Missile':{r:12,a:null,t:'enemy',hf:[3,0],d:'Automatically cast: 3 Hits.'},
+'Divine Sanction':{r:12,a:3,s:1,t:'friend',q:'Theist',g:['Cleave (+1)'],d:'A friendly Theist regiment gains Cleave (+1) this round.'},
+'Fervour':{r:12,a:3,s:1,t:'friend',q:'Theist',g:['Flurry'],d:'A friendly Theist regiment gains Flurry this round.'},
+'Heavenly Blessing':{r:0,a:3,s:1,t:'self',g:['Blessed'],d:'Its regiment gains Blessed this round.'},
+'Holy Fire':{r:12,a:3,t:'enemy',h:[2,0],d:'Two Hits per success.'},
+"Saint's Favour":{r:12,a:3,t:'friend',st:{E:1},cap:{E:3},d:'A friendly regiment gets +1 Evasion (max 3) this round.'},
+'Coruscation':{r:16,a:4,t:'enemy',h:[1,0],d:'One Hit per success.'},
+'Fireball':{r:12,a:3,t:'enemy',h:[1,2],d:'One Hit per success, Armor Piercing (2).'},
+'Flamewall':{r:12,a:3,t:'enemy',h:[1,0],x:'flamewall',d:'One Hit per success; with 4+ successes the target counts as in Hindering terrain this round.'},
+'Magmatic Seep':{r:12,a:3,t:'terrain',d:'A piece of zonal terrain is Erupting this round and loses Cover for the rest of the game.'},
+'Pyroclast':{r:10,a:3,t:'enemy',h:[1,1],d:'One Hit per success, Armor Piercing (1); may target enemies near Erupting terrain at any range as Flank Hits.'},
+'Eruption':{r:12,a:3,t:'terrain',d:'Zonal terrain Erupts: stands in it take a flank Hit with AP (1); garrisons take 2 Hits and lose Garrison benefits.'},
+'Roots of Stone':{r:12,a:4,s:1,t:'any',x:'roots',d:'A friendly regiment gains Counter-Attack and Parry, or an enemy gets −2 March, this round.'},
+'Broken Ground':{r:12,a:3,t:'enemy',lbl:'Broken Ground (no Juggernaut or Charge re-rolls; failed Charge hurts)',d:'An enemy loses Juggernaut and cannot re-roll Charge distance; a failed Charge costs wounds equal to the die.'},
+'Rock Shaping':{r:12,a:4,t:'enemy',h:[1,0],x:'rockshape',d:'One Hit per success, then add 1 Elemental Power.'},
+'Unmake Armor':{r:12,a:'D',s:1,t:'enemy',st:{D:-1},lbl:'Unmake Armor (loses Hardened)',d:'Attunement equals the target’s Defense. It gets −1 Defense and loses Hardened this round.'},
+'Temper Plate':{r:12,a:3,t:'friend',g:['Indomitable (1)','Tenacious (1)'],d:'A friendly regiment gains Indomitable (1) and Tenacious (1) this round.'},
+'Hone Blades':{r:12,a:3,s:1,t:'friend',x:'hone',d:'A friendly regiment re-rolls failed Clash hits of 6 (Tempered regiments gain Deadly Blades instead).'},
+'Fear':{r:12,a:3,s:1,t:'enemy',lbl:'Fear (Charge roll 2D6 lowest; re-roll passed Morale 1s)',d:'An enemy rolls 2D6, lowest, for Charge distance and re-rolls successful Morale rolls of 1 this round.'},
+'Dismay':{r:12,a:3,s:1,t:'enemy',lbl:'Dismay (re-roll passed Morale 1s; cannot refuse Duels)',d:'An enemy re-rolls successful Morale rolls of 1; its characters cannot deny Duels.'},
+'Rancor':{r:8,a:3,t:'friend',q:'Ardent',g:['Juggernaut'],d:'A friendly Ardent regiment gains Juggernaut this round.'},
+'Resolve':{r:12,a:3,t:'friend',q:'Ardent',x:'resolve',d:'A friendly Ardent regiment gains Indomitable (1 per 2 successes, max 3) this round.'},
+'Litanies of Battle':{r:12,a:null,t:'friend',g:['Dread'],d:'Automatically cast: a friendly regiment gains Dread this round.'},
+'Songs of the Descent':{r:10,a:null,t:'enemy',x:'songs',d:'Automatically cast: 1 Hit plus 1 per Awakened friendly regiment within 12″ (max 6).'}};
+const SK_COURTS={Fire:['Burn to Cinders','Cauterize','Ignite','Searing Sandstorm','Molten Blades','Wreathed in Fire'],Air:['Lifting Winds','Lightning Bolt','Homing Winds','Air Step','Cyclone','Wind Kissed Blades'],
+  Earth:['Sunder (the Land)','Stabilize (the Pattern)','Overwhelm (the Form)','Reinforce (the Pattern)','Hurl (the Earth)','Reincarnate (the Self)'],Water:['Blood to Water','Lammelar Flow','Swirling Embrace','Induced Hypoxia','Flowing Stride','Water to Blood']};
+const DW_SCHOOLS={Fire:['Coruscation','Fireball','Flamewall'],Magma:['Magmatic Seep','Pyroclast','Eruption'],Earth:['Broken Ground','Roots of Stone','Rock Shaping']};
+const HK_SCHOOLS={Fire:['Kindle Courage','Fire Dart'],Earth:['Earth to Mud','Stone Spikes'],Water:["Ninuah's Tears",'Call Fog'],Air:['Seeking Winds','Guide']};
+/* who knows what: fixed spells plus, for casters that choose, a school or court */
+const CASTERS={
+ 'Shaman':{f:['Blurred Vision','Mist Weave','Enrage','Reshape Destiny','Hoarfrost','Dominate']},'Volva':{f:['Fruit of the Golden Tree',"Warbringer's Light","Hela's Caress",'Glory of Valhalla','Aspect of Fenrir']},
+ 'Ice Jotnar':{f:['Encase','Rime Storm','Ice Armor'],reg:1,free:1},'Mechanist':{f:['Aggression Directive','Clockwork Parade','Iron Stride','Torque']},
+ 'Sacred Band':{f:['Othismos','Molon Labe'],reg:1,free:1},'Promethean':{f:['Temper Resolve','Quench Blades'],reg:1},'Hephaestian':{f:['Trident Strike',"Crucible's Fire"],reg:1},
+ 'Scion of Conquest':{f:['Crescendo','Discordance','Dissonance','Resonance','Cacophony']},
+ 'Hierodeacon':{f:['Dark Supplication','Blackflame Coruscation','Benediction of the Black Sun','Undying Devotion']},'Archimandrite':{f:["Hazlia's Touch",'Dark Immolation','Blasphemous Power','Unholy Baptism']},'Theokrator':{f:["Hazlia's Touch",'Dark Immolation','Blasphemous Power','Unholy Baptism']},
+ 'Kheres':{f:['Insanity','Drain Will'],reg:1,free:1,lvl:'2xstands'},'Moroi':{f:['Immolation','Translocation'],reg:1,free:1,lvl:'2xstands'},
+ 'Maharajah':{sch:SK_COURTS,label:'Court'},'Sorcerer':{sch:SK_COURTS,label:'Court'},'Raj':{sch:SK_COURTS,label:'Court'},
+ 'Trinavarta Chandavat':{f:['Lifting Winds','Lightning Bolt'],reg:1},'Marid Sahar':{f:['Blood to Water'],reg:1,free:1},'Marid Apsara':{f:['Blood to Water','Flowing Stride','Swirling Embrace'],reg:1},
+ 'Kitsune Onmyoji':{f:['Iron Soul of Discipline','Hesitation, Bane of Deeds','Blossom in the Wind','Misery of Failure Envisioned']},'Jorogumo Mahotsu':{f:['Repose in Healing Spring','Honor, a Void of Self','Dancing Shadows','Witness of the Void']},
+ 'Seanchas Sidhe':{sch:{Summer:['Disseminate','Dehydrate','Heat Haze','Propagate'],Winter:['Dark of Winter','Armor of Rime','Mouldering Bloom','Heart of Winter']},label:'Court'},
+ 'Chapter Mage':{f:['Elemental Vortex','Elemental Missile'],sch:HK_SCHOOLS,label:'School'},'Theist Priest':{f:["Saint's Favour",'Divine Sanction','Heavenly Blessing','Holy Fire','Fervour']},
+ 'Ardent Kerawegh':{f:['Fear','Dismay','Rancor','Resolve','Litanies of Battle']},'Tempered Sorcerer':{sch:DW_SCHOOLS,label:'School'},'Tempered Steelshaper':{f:['Hone Blades','Temper Plate','Unmake Armor']},
+ 'Lost Ancestor':{f:['Litanies of Battle','Songs of the Descent'],sch:DW_SCHOOLS,label:'School'}};
+function casterKey(u,asChar){const n=asChar?u.charName:frBase(u);return CASTERS[n]?n:null;}
+function spellSchool(u,asChar){const k=casterKey(u,asChar),C=CASTERS[k];if(!C||!C.sch)return null;const key=asChar?'cschool':'school';const v=u[key];if(v&&C.sch[v])return v;
+  if(asChar&&k&&SK_COURTS===C.sch){const r=frRoles(u,true).find(x=>/^Court of/.test(x));if(r&&C.sch[r.replace('Court of ','')])return r.replace('Court of ','');}return Object.keys(C.sch)[0];}
+function spellsOf(u,asChar){if(asChar&&(u.spells||[]).length&&!casterKey(u,true))return u.spells;const k=casterKey(u,asChar);if(!k)return asChar?(u.spells||[]):[];const C=CASTERS[k],sc=spellSchool(u,asChar);
+  const names=(C.f||[]).concat(sc?C.sch[sc]:[]);return names.filter(n=>SPELLDB[n]).map(n=>{const S=SPELLDB[n];return {name:n,range:S.r,att:S.a,scaling:!!S.s,targets:S.t==='enemy'?'enemy':S.t==='friend'?'friendly':S.t,text:S.d,db:S};});}
+function magicLevel(u,asChar){const k=casterKey(u,asChar);if(k&&CASTERS[k].lvl==='2xstands')return Math.min(12,2*live(u));const R=asChar?u.charRules:u.rules;return rx(R||[],'Priest')||rx(R||[],'Wizard')||0;}
+function regCaster(u){const k=casterKey(u,false);return k&&CASTERS[k].reg?CASTERS[k]:null;}
+/* legal targets for a spell */
+function spellTargets(u,sp){const S=sp.db||{},cp=corners(u);if(S.t==='self'||S.t==='zone'||S.t==='terrain'||sp.range===0)return [u];
+  const eng=engaged(u).map(byId).filter(Boolean),hits=S.h||S.hf||/Hit/.test(sp.text||'');
+  let C=all().filter(t=>t.onTable&&!t.destroyed&&t.type!=='marker'&&(S.t==='any'?true:(sp.targets==='enemy'?t.side!==u.side:t.side===u.side))&&polyDist(cp,corners(t))<=(sp.range||12)+1e-6);
+  if(eng.length&&hits&&sp.targets==='enemy')C=eng;
+  const q=S.q;if(q)C=C.filter(t=>q==='nonmonster'?t.type!=='monster':q==='Infantry'?/Infantry/.test(t.cls||''):q==='Brute'?/Brute/.test(t.cls||''):q==='Automaton'?rh(t.rules,'Automaton'):q==='modular'?!!t.mods:
+    q.startsWith('name:')?new RegExp(q.slice(5)).test(t.name):q.startsWith('fx:')?fx(t).some(e=>e.startsWith(q.slice(3))):frRoles(t).includes(q)||(t.charName&&frRoles(t,true).includes(q)));
+  if(!hits)C=C.filter(t=>!hasSpell(t,sp.name));
+  if(sp.req==='automaton')C=C.filter(t=>rh(t.rules,'Automaton'));if(sp.req==='nonmonster')C=C.filter(t=>t.type!=='monster');return C;}
+function spellNeed(sp,T){const S=sp.db||{};if(S.a===null)return 0;const n=live(T);return (S.need||2)+(sp.scaling?(n>=10?3:n>=7?2:n>=4?1:0)+(T.type==='monster'?1:0):0);}
+/* Hits from a spell: Defense rolls, then Morale */
+function spellHitRes(T,hits,ap,noMorale){if(rh(T.rules,'Loose Formation'))hits=Math.ceil(hits/2);const D=Math.max(0,(+T.stats.D||0)-(ap||0)),E=+T.stats.E||0,sv=Math.max(D,E);
+  const dr=[];let w=0;for(let i=0;i<hits;i++){const d=d6();dr.push(d);if(!(d<=sv&&d!==6)||d===6)w++;}
+  let mw=0;const mr=[];const R=+T.stats.R||0,auto=noMorale||rh(T.rules,'Fearless')||animate(T)||rh(T.rules,'Oblivious');
+  if(w&&!auto&&R>0){for(let i=0;i<w;i++){const d=d6();mr.push(d);if(d>R||d===6)mw++;}}
+  return {hits,w:w+mw,txt:`${hits} Hits${ap?' (AP '+ap+')':''}: Defense ${dr.join(',')} → ${w} wound${w===1?'':'s'}`+(mr.length?`; Morale ${mr.join(',')} → +${mw}`:auto&&w?'; no Morale':'')};}
+/* apply a successful spell */
+async function resolveSpell(cid,sp,tid,succ,asChar){const u=byId(cid),T=byId(tid)||u,S=sp.db||{},nm=t=>t.short||t.name,src='Spell: '+sp.name;let units=state.units.slice(),parts=[],extra={};
+  const doHits=(t,n,ap,noM)=>{if(n<=0)return;const R=spellHitRes(byId(t.id)||t,n,ap,noM||S.nm);units=hurt(units,t.id,R.w);parts.push(nm(t)+': '+R.txt);};
+  if(!sp.db){units=units.map(x=>x.id===T.id?grantU(x,src+(sp.effect&&sp.effect!==sp.name?' ('+String(sp.effect).slice(0,60)+')':''),[],null):x);parts.push('effect noted on '+nm(T));}
+  if(S.h)doHits(T,S.h[0]*succ,S.h[1]);if(S.hf)doHits(T,S.hf[0],S.hf[1]);
+  if(S.heal){const n=S.heal==='s'?succ:S.heal;units=units.map(x=>x.id===T.id?Object.assign({},x,{wounds:Math.max(0,(+x.wounds||0)-n)}):x);parts.push(nm(T)+' heals '+n);}
+  if((S.g||S.st||S.lbl)&&!S.h&&!S.hf){units=units.map(x=>x.id===T.id?grantU(x,S.lbl?src+' · '+S.lbl:src,S.g||[],S.st||null):x);if(S.cap&&S.st)units=units.map(x=>{if(x.id!==T.id)return x;const st=Object.assign({},x.stats);Object.entries(S.cap).forEach(([k,m])=>{if(+st[k]>m){const d=+st[k]-m;st[k]=m;const g=(x.temp||[]).find(gg=>gg.src.startsWith(src));if(g&&g.d)g.d[k]=(g.d[k]||0)-d;}});return Object.assign({},x,{stats:st});});parts.push(nm(T)+': '+(S.lbl||(S.g||[]).join(', ')||Object.entries(S.st||{}).map(([k,v])=>(v>0?'+':'')+v+' '+k).join(', ')));}
+  else if(S.lbl&&(S.h||S.hf))units=units.map(x=>x.id===T.id&&!x.destroyed?grantU(x,src+' · '+S.lbl,[],null):x);
+  switch(S.x){
+   case 'enrage':{const cp=corners(u);units=units.map(x=>x.side===u.side&&x.onTable&&polyDist(cp,corners(x))<=12?Object.assign({},x,{effects:(x.effects||[]).filter(e=>e!=='Broken')}):x);parts.push('friendly regiments within 12″ Rally (Broken removed)');break;}
+   case 'crescendo':{const g=frG(u.side,'wa');extra.fr=frPatch(u.side,'wa',{seq:(g.seq||[]).concat(['Conquest']).slice(-3)});parts.push('adds a Conquest Chant Marker');break;}
+   case 'supplication':{const g=frG(u.side,'od');extra.fr=frPatch(u.side,'od',{dark:(+g.dark||0)+1});parts.push('+1 Dark Power');break;}
+   case 'blackflame':{doHits(T,Math.max(odTier(u.side,'dark'),odTier(u.side,'pant')),0);break;}
+   case 'hazlia':{const t=odTier(u.side,'dark'),n=t+(/Legion|Creed/.test(frRoles(T).join())?1:0);units=units.map(x=>x.id===T.id?Object.assign({},x,{wounds:Math.max(0,(+x.wounds||0)-n)}):x);parts.push(nm(T)+' heals '+n);break;}
+   case 'bloodwater':{if(engaged(T).map(byId).some(e=>e&&frRoles(e).includes('Court of Water')))doHits(T,+T.stats.R||2,0);break;}
+   case 'lightning':{if(engaged(T).map(byId).some(e=>e&&frRoles(e).includes('Court of Air')))doHits(T,+T.stats.D||0,0);break;}
+   case 'liftwinds':{const cp=corners(u);units=units.map(x=>x.side===u.side&&x.onTable&&polyDist(cp,corners(x))<=12&&frRoles(byId(x.id)||x).includes('Court of Air')?grantU(x,src,['Unstoppable'],null):x);parts.push('Court of Air regiments within 12″ gain Unstoppable');break;}
+   case 'ironsoul':{units=units.map(x=>x.id===T.id?grantU(x,src,['Untouchable'].concat(live(T)<(T.stands||0)?['Tenacious (1)']:[]),null):x);parts.push(nm(T)+' gains Untouchable');break;}
+   case 'propagate':{parts.push('move the Seed Markers yourself (Seed −1 on '+nm(T)+', +1 on up to three friends within 8″)');break;}
+   case 'flamewall':{if(succ>=4)units=units.map(x=>x.id===T.id&&!x.destroyed?grantU(x,src+' · in Hindering terrain',[],null):x);break;}
+   case 'roots':{units=units.map(x=>x.id!==T.id?x:T.side===u.side?grantU(x,src,['Counter-Attack','Parry'],null):grantU(x,src,[],{M:-2}));parts.push(T.side===u.side?nm(T)+' gains Counter-Attack and Parry':nm(T)+' −2 March');break;}
+   case 'rockshape':{const g=frG(u.side,'dw');extra.fr=frPatch(u.side,'dw',{ep:Math.min(10,(+g.ep||0)+1)});parts.push('+1 Elemental Power');break;}
+   case 'hone':{const tp=frRoles(T).includes('Tempered');units=units.map(x=>x.id===T.id?grantU(x,src+(tp?'':' · re-roll Clash hits of 6'),tp?['Deadly Blades']:[],null):x);parts.push(nm(T)+(tp?' gains Deadly Blades':' re-rolls Clash hits of 6'));break;}
+   case 'resolve':{const n=Math.min(3,Math.floor(succ/2));if(n)units=units.map(x=>x.id===T.id?grantU(x,src,['Indomitable ('+n+')'],null):x);parts.push(nm(T)+' gains Indomitable ('+n+')');break;}
+   case 'songs':{const cp=corners(u),n=Math.min(6,all().filter(x=>x.side===u.side&&x.onTable&&hasGrant(x,'Awakened')&&polyDist(cp,corners(x))<=12).length);doHits(T,1+n,0);break;}}
+  if(S.t==='zone'||S.t==='terrain')parts.push('apply it to the chosen '+(S.t==='zone'?'Objective Zone':'terrain piece')+' yourself: '+sp.text);
+  if(!hasSpell(units.find(x=>x.id===T.id)||{},sp.name)&&!(S.h||S.hf))units=units.map(x=>x.id===T.id?grantU(x,src,[],null):x);
+  await putState(Object.assign({units,lastTitle:N(u.side)+' · '+sp.name,lastText:parts.join('; ')+'.'},extra));return parts.join('; ');}
+/* the casting panel, shared by characters and spellcasting regiments */
+function spellBox(box,u,asChar,ctx,onDone){const sps=spellsOf(u,asChar),lvl=magicLevel(u,asChar);const ck=casterKey(u,asChar),C=CASTERS[ck]||{};
+  if(C.sch){const r=document.createElement('div');r.className='row';const lb=document.createElement('span');lb.className='tf-l';lb.textContent=(C.label||'School')+':';const s=document.createElement('select');s.setAttribute('aria-label',C.label||'School');
+    Object.keys(C.sch).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;s.appendChild(o);});s.value=spellSchool(u,asChar);s.onchange=()=>{putState({units:state.units.map(x=>x.id===u.id?Object.assign({},x,{[asChar?'cschool':'school']:s.value}):x)});ctx.spell=0;ctx.rolls=null;};r.append(lb,s);box.appendChild(r);}
+  if(!sps.length||!lvl){box.appendChild(ptext('No spells to cast.'));return false;}
+  const castSoFar=ctx.cast||[];const sel=document.createElement('select');sel.setAttribute('aria-label','Spell');sps.forEach((s,i)=>{const o=document.createElement('option');o.value=String(i);const S=s.db||{};
+    o.textContent=`${s.name} (${s.range===0?'Self':s.range+'″'}, ${S.a===null?'automatic':'Attunement '+(S.a==='D'?'= Defense':s.att)}${s.scaling?', Scaling':''})`;sel.appendChild(o);});
+  sel.value=String(ctx.spell||0);sel.onchange=()=>{ctx.spell=+sel.value;ctx.target=null;ctx.rolls=null;render();};box.appendChild(sel);
+  const sp=sps[ctx.spell||0];if(!sp)return false;box.appendChild(ptext(sp.text||''));
+  if(castSoFar.includes(sp.name)){box.appendChild(ptext('Already cast this activation.','warn'));return false;}
+  const cands=spellTargets(u,sp);if(!cands.length){box.appendChild(ptext('No legal target in range.'));return false;}
+  if(!ctx.target||!cands.some(c=>c.id===ctx.target))ctx.target=cands[0].id;
+  if(cands.length>1||cands[0].id!==u.id){const ts=document.createElement('select');ts.setAttribute('aria-label','Spell target');const cp=corners(u);cands.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=(c.short||c.name)+(c.side!==u.side?' (enemy)':'')+' · '+polyDist(cp,corners(c)).toFixed(1)+'″';ts.appendChild(o);});
+    ts.value=ctx.target;ts.onchange=()=>{ctx.target=ts.value;ctx.rolls=null;render();};box.appendChild(ts);}
+  const T=byId(ctx.target),S=sp.db||{};
+  const caster=t=>rx(t.rules,'Priest')||rx(t.rules,'Wizard')||(t.charName&&(rx(t.charRules,'Priest')||rx(t.charRules,'Wizard')))||(CASTERS[frBase(t)]&&CASTERS[frBase(t)].reg);
+  const cp=corners(u),interf=all().some(t=>t.onTable&&t.side!==u.side&&caster(t)&&(polyDist(cp,corners(t))<=10||polyDist(corners(T),corners(t))<=10));
+  const talos=all().filter(t=>t.onTable&&t.side===u.side&&(t.abilities||[]).some(a=>/Blood of the Forge God/.test(a[0]))&&polyDist(cp,corners(t))<=10).length;
+  const auto=S.a===null||(rh(T.rules,'Gifted Mortals')&&T.side===u.side&&asChar);const att=(S.a==='D'?(+T.stats.D||0):sp.att)-(interf?1:0),dice=lvl+talos,need=spellNeed(sp,T);
+  const devout=rh(T.rules,'Devout')||(T.charName&&rh(T.charRules||[],'Devout')),vortex=T.side!==u.side&&fx(T).some(e=>/Elemental Vortex/.test(e));
+  const go=succ=>{ctx.done=true;resolveSpell(u.id,sp,T.id,succ,asChar).then(line=>onDone({spell:sp.name,target:T.id,line,success:true}));};
+  if(auto){box.appendChild(ptext(rh(T.rules,'Gifted Mortals')?'Gifted Mortals: the spell succeeds automatically.':'This spell is cast automatically.'));const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Cast '+sp.name;b.onclick=()=>{b.disabled=true;go(Math.max(need,2));};box.appendChild(b);return true;}
+  box.appendChild(ptext(`${dice} dice (Magic Level ${lvl}${talos?' +'+talos+' Blood of the Forge God':''}), success on ${att} or less${interf?' (−1: enemy spellcaster within 10″)':''}. Needs ${need} successes${devout&&T.side===u.side?'; Devout turns one failed die into a success':''}${vortex?'; Elemental Vortex removes 2 successes':''}.`));
+  if(!ctx.rolls){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Cast '+sp.name;b.onclick=()=>{ctx.rolls=Array.from({length:dice},d6);render();};box.appendChild(b);return true;}
+  const dr=document.createElement('div');dr.className='drow';let succ=0;ctx.rolls.forEach(v=>{const s=v===1||(v<=att&&v!==6);if(s)succ++;dr.appendChild(dieMini(v,s?'hit':'miss'));});box.appendChild(dr);
+  if(devout&&T.side===u.side&&succ<dice)succ++;if(vortex)succ=Math.max(0,succ-2);const won=succ>=need;
+  box.appendChild(ptext(`${succ} success${succ===1?'':'es'}: ${won?'the spell is cast.':'the spell fails.'}`,'tot'));
+  const ap=document.createElement('button');ap.type='button';ap.className='btn';ap.textContent=won?'Apply '+sp.name:'Spell failed: continue';
+  ap.onclick=()=>{ap.disabled=true;if(won)go(succ);else onDone({spell:sp.name,target:T.id,line:sp.name+' failed ('+succ+'/'+need+')',success:false});};box.appendChild(ap);return true;}
+/* Claude casting: pick and resolve without the panel */
+async function aiCastSpell(u,asChar,spellName,targetId){const sps=spellsOf(u,asChar),lvl=magicLevel(u,asChar);const sp=sps.find(s=>s.name.toLowerCase()===String(spellName||'').toLowerCase())||null;if(!sp||!lvl)return null;
+  const C=spellTargets(u,sp);const T=C.find(t=>t.id===targetId)||C[0];if(!T)return sp.name+': no target';const S=sp.db||{},need=spellNeed(sp,T);
+  const caster=t=>rx(t.rules,'Priest')||rx(t.rules,'Wizard')||(t.charName&&(rx(t.charRules,'Priest')||rx(t.charRules,'Wizard')))||(CASTERS[frBase(t)]&&CASTERS[frBase(t)].reg);
+  const cp=corners(u),interf=all().some(t=>t.onTable&&t.side!==u.side&&caster(t)&&(polyDist(cp,corners(t))<=10||polyDist(corners(T),corners(t))<=10));
+  let succ;if(S.a===null||(rh(T.rules,'Gifted Mortals')&&T.side===u.side&&asChar))succ=Math.max(need,2);else{const att=(S.a==='D'?(+T.stats.D||0):sp.att)-(interf?1:0),rolls=Array.from({length:lvl},d6);succ=rolls.filter(v=>v===1||(v<=att&&v!==6)).length;
+    if(T.side===u.side&&(rh(T.rules,'Devout')||(T.charName&&rh(T.charRules||[],'Devout')))&&succ<lvl)succ++;if(T.side!==u.side&&fx(T).some(e=>/Elemental Vortex/.test(e)))succ=Math.max(0,succ-2);
+    banner(`${asChar?u.charName:(u.short||u.name)} casts ${sp.name} on ${T.short||T.name}`,rolls.map(v=>({v,cls:v===1||(v<=att&&v!==6)?'hit':'miss'})),`${succ} successes, needs ${need}`);await sleep(1400);bannerHide();}
+  if(succ<need)return `${sp.name} on ${T.short||T.name} fails (${succ}/${need})`;const line=await resolveSpell(u.id,sp,T.id,succ,asChar);return `casts ${sp.name}: ${line}`;}
 
 function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},seats=state.seats||{};
   info.textContent='Play against a friend. Share this page with them from the Share menu, with permission to interact. Each of you takes an edge and builds or pastes your own army.';
