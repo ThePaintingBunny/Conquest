@@ -808,6 +808,7 @@ const ACT={
   sweep:{n:'Sweeping Step',d:'Two Marches through regiments, then a free Clash'},
   rooted:{n:'Rooted Might',d:'Seed Markers to friends within 8″'},
   duel:{n:'Duel',d:'Challenge an enemy character in contact'},
+  xreform:{n:'Free Reform',d:'Out of sequence, after destroying a regiment'},
   assassin:{n:'Clash with the Mimetic Assassin',d:'Assassination Directive: once per game'},
   clash:{n:'Clash',d:'Fight the enemy in contact'},
   creform:{n:'Combat Reform',d:'Resolve test, then reshape'},
@@ -1109,7 +1110,7 @@ function startActivation(id,source){
   const entering=!u.onTable;
   act={id,source,entering,placed:false,actions:[],cur:null,arrivedThisRound:!!u.arrivedRound&&u.arrivedRound===state.round,
     pose:entering?Object.assign({onTable:true,x:36,files:G.files},ownEntry(u.side,G.d)):{x:u.x,y:u.y,facing:u.facing||0,files:G.files},
-    extraFx:(source==='strategic'||(source==='entourage'&&ordersU(u)))?(hasRule(u,/Automaton/)?[]:[source==='entourage'?'Inspired (Direct Orders)':'Inspired (Strategic Stack)']).concat(u.strategicFx||[]).concat((/Infantry|Cavalry/.test(u.cls||'')&&(state.units||[]).some(x=>x.charName==='Ipparchos'&&x.onTable&&!x.destroyed))?['Shock (Hammer and Anvil)']:[]):[]};
+    extraFx:(source==='strategic'||(source==='entourage'&&ordersU(u)))?(hasRule(u,/Automaton/)?[]:[source==='entourage'?'Inspired (Direct Orders)':'Inspired (Strategic Stack)']).concat(u.strategicFx||[]).concat((/Infantry|Cavalry/.test(u.cls||'')&&(state.units||[]).some(x=>x.charName==='Ipparchos'&&x.onTable&&!x.destroyed))?['Shock (Hammer and Anvil)']:[]).concat(source==='strategic'&&supOn(u.side,'Bringing Back the Children of Fire')&&frRoles(u).includes('Titan')?['Children of Fire (counts as 6 stands for Seizing)']:[]):[]};
   selId=id;rightTab='reg';render();drawEvents(u);
 }
 /* Draw Events and start-of-activation effects */
@@ -1140,13 +1141,13 @@ async function charCommit(id,extra){extra=extra||{};charAct=null;
 let charAct=null;
 function charActivate(id){if(PVP()&&!myTurnPvp()){toast('It is not your turn.');return;}charAct={id,spell:0,target:null,rolls:null};selId=id;render();}
 function renderCharPanel(){const box=$('c-char');if(!charAct||selId!==charAct.id){box.hidden=true;return;}box.hidden=false;box.innerHTML='';
-  const u=byId(charAct.id),h=document.createElement('h3');h.textContent=u.charName+' activation';box.appendChild(h);charAbilBox(u,box);duelBox(u,box);
+  const u=byId(charAct.id),h=document.createElement('h3');h.textContent=u.charName+' activation';box.appendChild(h);charAbilBox(u,box);duelBox(u,box);supCharBox(u,box);
   const row0=document.createElement('div');row0.className='row';const pass=document.createElement('button');pass.type='button';pass.className='btn ghost';pass.textContent='Pass (no action)';pass.onclick=()=>charCommit(charAct.id,{note:'No action.'});
   const cl=document.createElement('button');cl.type='button';cl.className='btn ghost';cl.textContent='Cancel';cl.onclick=()=>{charAct=null;render();};row0.append(pass,cl);
   const sps=spellsOf(u,true),lvl=magicLevel(u,true);
   if(sps.length&&lvl){if(!u.onTable){box.appendChild(ptext('Not on the table yet, so no spells can be cast.'));box.appendChild(row0);return;}
     const sh=document.createElement('p');sh.className='hint';sh.textContent='Spellcasting (uses the character’s action):';box.appendChild(sh);
-    charAct.cast=charAct.cast||[];spellBox(box,u,true,charAct,res=>charCommit(charAct.id,{spell:res.spell,target:res.success?res.target:null,success:res.success,note:(res.success?'Cast ':'Tried to cast ')+res.spell+': '+res.line+'.'}));}
+    charAct.cast=charAct.cast||[];spellBox(box,u,true,charAct,res=>srCharCast(res));}
   else box.appendChild(ptext(chAbil(u).length?'No spells. Use an ability above, or pass.':'This Character has no spells to cast. Challenge a Duel above if an enemy character is in contact, or pass.'));
   box.appendChild(row0);}
 function confirmEntry(){act.placed=true;act.entryPoint={edge:act.edge||'own',x:act.pose.x,y:act.pose.y};render();}
@@ -1278,10 +1279,10 @@ function renderCard(){
   if(!inAct){
     $('c-act-h').textContent='Activation';$('c-cur').hidden=true;
     if(u.activated){const p=document.createElement('p');p.className='hint';p.textContent=u.name+' has already activated this round.'+(u.charName?(u.charActivated?' The '+u.charName+' has activated too.':' The '+u.charName+' still has their own card to play.'):'');startBox.appendChild(p);
-      if(u.charName&&!u.charActivated&&(!huStackOn()||(humanTop()==='c:'+u.id&&state.turn===HU))){const b3=document.createElement('button');b3.type='button';b3.className='btn';b3.textContent='Activate the '+u.charName;b3.onclick=()=>charActivate(u.id);startBox.appendChild(b3);}
+      if(u.charName&&!u.charActivated&&(!huStackOn()||((humanTop()==='c:'+u.id||vocOk('c:'+u.id))&&state.turn===HU))){const b3=document.createElement('button');b3.type='button';b3.className='btn';b3.textContent='Activate the '+u.charName;b3.onclick=()=>charActivate(u.id);startBox.appendChild(b3);}
       return;}
     if(!u.onTable&&!u.arriving){const p=document.createElement('p');p.className='hint';p.textContent='Still in reinforcements this round.';startBox.appendChild(p);return;}
-    if(huStackOn()){const top=humanTop(),held=huHeldOk()&&PS().huHeld==='u:'+u.id,myTurn=state.turn===HU;const row=document.createElement('div');row.className='row';
+    if(huStackOn()){const top=vocOk('u:'+u.id)?'u:'+u.id:humanTop(),held=huHeldOk()&&PS().huHeld==='u:'+u.id,myTurn=state.turn===HU;const row=document.createElement('div');row.className='row';
       const why=!myTurn?'It is not your turn.':'';
       if(top==='u:'+u.id){const ent=PS().huLastCard==='c:'+u.id&&!noEntourage(u);const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=ent?'Activate as Entourage':'Activate';b.disabled=!!why;b.onclick=()=>startActivation(u.id,ent?'entourage':'command');row.appendChild(b);}
       if(top==='c:'+u.id){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Activate the '+u.charName;b.disabled=!!why;b.onclick=()=>charActivate(u.id);row.appendChild(b);}
@@ -1415,7 +1416,7 @@ $('strat-btn').onclick=async()=>{
   if(!db||!state)return;if(PS().strategicHeld||PS().strategicUsedRound===state.round||act)return;if(PVP()&&state.turn!==HU){toast('It is not your turn.');return;}
   let held={};if(huStackOn()){const top=humanTop();if(!top||top[0]!=='u'){toast('Only a regiment card can go into the Strategic Stack, and it must be your top card.');return;}held={huStack:PS().huStack.filter(c=>c!==top),huHeld:top,huLastCard:null};}
   const sp=Object.assign(held,{strategicHeld:true,strategicUsedRound:state.round});if(PVP())await savePS(sp);
-  const next=Object.assign({},state,PVP()?{}:sp,{moves:[],lastTitle:N(HU)+' · Strategic Stack',lastText:'A Command Card was placed face down in the Strategic Stack.',updatedBy:HU,updatedAt:Date.now()});
+  const next=Object.assign({},state,PVP()?{}:sp,{moves:[],lastTitle:N(HU)+' · Strategic Stack',lastText:'A Command Card was placed face down in the Strategic Stack.',updatedBy:HU,updatedAt:Date.now()},srGodflesh(HU,held.huHeld));
   try{await db.doc('game/state').set(sanitize(next));state=next;render();await db.collection('events').doc('e'+Date.now()).set({at:Date.now(),side:HU,kind:'strategic-store'});toast('Card placed in the Strategic Stack. Press End turn to pass the turn.');}
   catch(e){toast('That could not be saved. Try again in a moment.');}
 };
@@ -1430,6 +1431,7 @@ function prof(u,kind,mod){const s=u.stats||{};let p={C:+s.C||0,A:+s.A||0,V:+s.V|
   if(kind==='aux'&&u.auxStats){p=Object.assign(p,u.auxStats);p.rules=(u.auxRules||[]).slice();p.name=u.auxName||'Auxiliary';}
   if(kind==='char'&&u.charStats){p=Object.assign(p,u.charStats);p.rules=(u.charRules||[]).slice();p.name=u.charName;if((u.effects||[]).some(x=>/Greetings to a Fellow General/.test(x)))p.A+=5;}
   if(kind==='reg'){const d=srStat(u,'reg');p.C+=d.C;p.A+=d.A;}
+  if(supOn(u.side,'Army of Lions')&&srIsWl(u)&&p.C<4)p.C+=1;
   return p;}
 function standsOf(u){const G=geom(u),a=(u.facing||0)*Math.PI/180,f=[Math.sin(a),Math.cos(a)],r=[Math.cos(a),-Math.sin(a)],n=live(u),out=[];
   layout(u).forEach(L=>{const rr=Math.floor(L.pos/G.files),fi=L.pos%G.files,cmd=L.cmd,aux=L.kind==='aux',ch=L.kind==='char',mod=L.mod;
@@ -1447,7 +1449,7 @@ function hitMods(A,p,type,T){let base=type==='volley'?p.V:p.C,r6=false;const inF
   if(type==='clash'&&fxHas(A,/Aggression Directive/)&&base<4)base+=1;
   if((type==='clash'||type==='impact')&&!pike&&rh((A.rules||[]).concat(fx(A)),'Shock')&&(type==='impact'||fxHas(A,/charged/)))base+=1;
   const prey=!!(T&&supPrey(A.side)&&supPrey(A.side).id===T.id);
-  if(type==='clash'){const dread=engaged(A).some(e=>rh(RU(e),'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if((fxHas(A,/Inspired/)||prey)&&!fxHas(A,/^Hindered/)&&!fxHas(A,/^Refused a Duel/)&&!fxHas(A,/Siphon Strength|Bane of Deeds/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
+  if(type==='clash'){const dread=engaged(A).some(e=>rh(RU(e),'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if((fxHas(A,/Inspired/)||prey)&&!fxHas(A,/^Hindered/)&&!fxHas(A,/^Refused a Duel/)&&!fxHas(A,/^Dissonance \(no Inspiration/)&&!fxHas(A,/Siphon Strength|Bane of Deeds/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
   if(type==='volley'){const aim=(act&&act.id===A.id&&act.actions.some(a=>a.type==='aim'))||rh(p.rules,'Deadshot')||rh(RU(A),'Aimed Shot')||prey;if(aim){if(base+1>=5)r6=true;else base+=1;}}
   return {hitOn:Math.max(1,Math.min(6,base)),reroll6:r6};}
 function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=supportLost(A)?1:(rx(RU(A),'Support')||1);
@@ -1456,18 +1458,18 @@ function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=
     groups[key]=Object.assign({label,n:0,hitOn:hm.hitOn,reroll6:hm.reroll6,flurry:type==='clash'&&rh(R,'Flurry'),blessable:(type==='clash'||type==='impact')&&(rh(R,'Blessed')),eccentric:p.name===A.charName&&upgOf(A,/Eccentric Fighting Style/),forceDef:(p.name===A.charName&&(upgOf(A,/Caledburn|Eccentric Fighting Style/)||(type!=='impact'&&upgOf(A,/Kiss of the Dilosaur/))))?1:0,forceMor:p.name===A.charName&&upgOf(A,/Kiss of the Dilosaur|Chthonic Flame/),
       relentless:type==='volley'?(rh(R,'Rapid Volley')||hm.hitOn>=6):type==='clash'&&(rh(R,'Relentless Blows')||hm.hitOn>=6),
       red:(type==='impact'?rx(R,'Brutal Impact'):type==='volley'?rx(R,'Armor Piercing'):rx(R,'Cleave'))+(type==='volley'&&side&&rh(R,'Sowing Shot')?1:0)+(type==='clash'&&p.name===A.charName&&fxHas(A,/^Precision Armament/)?3:0),smite:type==='clash'&&rh(R,'Smite'),
-      flawless:(type==='clash'&&rh(R,'Flawless Strikes'))||(type==='volley'&&rh(R,'Precise Shot')),deadly:(type==='clash'&&rh(R,'Deadly Blades'))||(type==='volley'&&rh(R,'Deadly Shot')),
+      flawless:(type==='clash'&&rh(R,'Flawless Strikes'))||(type==='volley'&&rh(R,'Precise Shot')),deadly:(type==='clash'&&rh(R,'Deadly Blades'))||(type==='volley'&&rh(R,'Deadly Shot'))||((type==='clash'||type==='volley')&&(fxHas(A,/^Reigning Season \(Deadly Blades and Deadly Shots\)$/)||(fxHas(A,/^Reigning Season \(Deadly/)&&!T.activated))),
       linebreaker:type!=='volley'&&rh(R,'Linebreaker'),fiend:big&&rh(R,'Fiend Hunter'),opp:(type==='clash'||type==='volley')&&side&&(rh(R,'Opportunists')||rh(R,'Opportunist'))},extra||{});
-      const gg=groups[key];gg.blade=fxHas(A,/^Blade Masters/);gg.exploit=type==='volley'&&side&&rh(R,'Exploit Flanks')&&(()=>{const vr=volleyRange(A);return !vr||polyDist(corners(A),Tc)<=vr.range/2+1e-6;})();gg.rel2=type==='clash'&&rh(R,'Fury of the Tempest')&&srAirNow(A.side);gg.wrath=(type==='clash'||type==='impact')&&rh(R,'Wrathful Momentum');gg.marked=(type==='clash'||type==='impact')&&fxHas(T,/^Marked \(Designate Target\)/);if(type==='volley'&&rh(R,'Torrential Fire'))gg.torrentOk=true;}
+      const gg=groups[key];gg.lambs=fxHas(A,/^Supremacy: Lambs to the Slaughter/);gg.pt=type==='clash'&&fxHas(A,/^Professional Troops/);gg.crop=(type==='clash'||type==='impact')&&fxHas(A,/^Crop Rotation/);gg.blade=fxHas(A,/^Blade Masters/);gg.exploit=type==='volley'&&side&&rh(R,'Exploit Flanks')&&(()=>{const vr=volleyRange(A);return !vr||polyDist(corners(A),Tc)<=vr.range/2+1e-6;})();gg.rel2=type==='clash'&&rh(R,'Fury of the Tempest')&&srAirNow(A.side);gg.wrath=(type==='clash'||type==='impact')&&rh(R,'Wrathful Momentum');gg.marked=(type==='clash'||type==='impact')&&fxHas(T,/^Marked \(Designate Target\)/);if(type==='volley'&&rh(R,'Torrential Fire'))gg.torrentOk=true;}
     groups[key].n+=n;};
   st.forEach(s=>{const p=prof(A,s.kind,s.mod),nm=s.mod||(s.kind==='reg'?(A.short||A.name):p.name),K=s.kind+(s.mod?':'+s.mod:'');
     const ldr=s.cmd&&s.kind==='reg'&&A.leader!==false;
-    if(type==='clash'){const eng=polyDist(s.poly,Tc)<=0.35||!!(cb&&cb.forceContact&&s.rank===0),ie=eng&&rh(RU(T),'Inherited Excellence')&&arcOf(T,[A.x,A.y])==='front'?1:0;add(K+(eng?'e':'s')+(ldr&&eng?'L':''),(ldr&&eng?'Leader':nm)+(eng?' (engaged)':' (supporting)')+(ldr&&eng?', +1 Attack':''),eng?Math.max(0,p.A+(ldr?1:0)-ie+(s.kind==='reg'&&rh(A.rules,'Brute Force')?Math.max(0,(+A.stats.C||0)-Math.max(+T.stats.C||0,+(T.charStats&&T.charStats.C)||0,+(T.auxStats&&T.auxStats.C)||0)):0)):(s.kind==='char'?1:sup),p);}
+    if(type==='clash'){const eng=polyDist(s.poly,Tc)<=0.35||!!(cb&&cb.forceContact&&s.rank===0),ie=eng&&rh(RU(T),'Inherited Excellence')&&arcOf(T,[A.x,A.y])==='front'?1:0;add(K+(eng?'e':'s')+(ldr&&eng?'L':''),(ldr&&eng?'Leader':nm)+(eng?' (engaged)':' (supporting)')+(ldr&&eng?', +1 Attack':''),eng?Math.max(0,p.A+(ldr?1:0)+(s.cmd&&s.kind==='reg'&&fxHas(A,/^Visions of Death/)?3:0)-ie+(s.kind==='reg'&&rh(A.rules,'Brute Force')?Math.max(0,(+A.stats.C||0)-Math.max(+T.stats.C||0,+(T.charStats&&T.charStats.C)||0,+(T.auxStats&&T.auxStats.C)||0)):0)):(s.kind==='char'?1:sup),p);}
     if(type==='impact'&&!rh(p.rules,'Loose Formation'))add(K,nm+' impacts',Math.max(0,rx(p.rules,'Impact')-(rh(RU(T),'Pike Formation')&&arcOf(T,[A.x,A.y])==='front'?3:0)),p);
     if(type==='volley'&&s.rank===0){const bx=rx(p.rules,'Barrage');if(bx){const rng=+((p.rules.join(', ').match(/Barrage\s*\(\d+\)\s*(\d+)/)||[])[1])||0;const eff=rh(p.rules.concat(fx(A)),'Longshot')||(rng&&polyDist(s.poly,Tc)<=rng/2);add(K,nm+' shots',bx+(eff?1:0)+(ldr?1:0),p);if(eff&&groups[K]&&groups[K].torrentOk)groups[K].torrent=true;}}});
   return Object.values(groups).map(g=>Object.assign(g,{rolls:null}));}
 function defInfo(T,A,g){const s=T.stats||{},front=(cb&&cb.type==='lethal')?!cb.flank:cArc(T,[A.x,A.y])==='front';let D=+s.D||0;if(front&&rh(RU(T),'Shield')&&!g.linebreaker&&!(T.garrison))D+=1;if(front&&phalanx(T))D+=1;const bas=drawVal(T,/^Bastion\s*\((\d+)\)/);if(bas&&!g.linebreaker)D+=bas;
-  const red=Math.max(0,g.red-rx((T.rules||[]).concat(fx(T)),'Hardened'));D=Math.max(0,D-red);if(g.smite)D=0;let E=+s.E||0;
+  const red=Math.max(0,g.red-rx((T.rules||[]).concat(fx(T)),'Hardened'));D=Math.max(0,D-red);if(g.smite)D=0;let E=supEvasion(T,+s.E||0);
   if(cb&&cb.type==='volley'&&rh(RU(A),'Hypercatalytic Discharge'))E=0;
   if(cb&&cb.type==='clash'&&rh(RU(A),'Trial of Will')){const mi=moraleInfo(T,A);if(mi.auto)D=Math.max(0,D-1);else if(mi.R<Math.max(D,E))return {D:mi.R,E:0,front,red:0,trial:true};}
   return {D,E,front,red};}
@@ -1495,16 +1497,17 @@ function rrDie(v,ok,P){const good=ok(v);return good?(P.succAll||P.succF.includes
 function upgOf(u,re){return (u.abilities||[]).some(a=>re.test(String(a[0]||'')))||rh(u.charRules||[],re.source)||(u.effects||[]).some(e=>re.test(e));}
 function blessOk(u){return !!u&&u.blessedR!==(state.round||1)&&(rh((u.rules||[]).concat(fx(u)),'Blessed')||rh(u.charRules||[],'Blessed'));}
 function noChargeReroll(u){return fxHas(u,/Broken Ground|Snæstormur|no Charge re-roll/i);}
-function hitSources(g,parry){const S=[];if(!parry){if(g.flurry)S.push({k:'fail',src:'Flurry'});if(g.fiend)S.push({k:'fail',src:'Fiend Hunter'});if(g.opp)S.push({k:'fail',src:'Opportunists'});if(g.blessed)S.push({k:'fail',src:'Blessed'});if(g.eccentric)S.push({k:'fail',src:'Eccentric Fighting Style'});if(g.reroll6)S.push({k:'fail',face:6,src:'Inspired/Aim (re-roll 6s)'});if(g.wrath)S.push({k:'fail',face:6,src:'Wrathful Momentum'});if(g.marked)S.push({k:'fail',src:'Designate Target (Marked)'});}return S;}
+function hitSources(g,parry){const S=[];if(!parry){if(g.flurry)S.push({k:'fail',src:'Flurry'});if(g.fiend)S.push({k:'fail',src:'Fiend Hunter'});if(g.opp)S.push({k:'fail',src:'Opportunists'});if(g.blessed)S.push({k:'fail',src:'Blessed'});if(g.eccentric)S.push({k:'fail',src:'Eccentric Fighting Style'});if(g.reroll6)S.push({k:'fail',face:6,src:'Inspired/Aim (re-roll 6s)'});if(g.wrath)S.push({k:'fail',face:6,src:'Wrathful Momentum'});if(g.pt)S.push({k:'fail',face:6,src:'Professional Troops'});if(g.crop)S.push({k:'fail',face:6,src:'Crop Rotation'});if(g.marked)S.push({k:'fail',src:'Designate Target (Marked)'});}return S;}
 function rollHits(g,n,parry){const isHit=v=>v===1||(v<=g.hitOn&&v!==6);const rolls=[];for(let i=0;i<n;i++)rolls.push({v:d6(),re:false});
   const P=rrPlan(hitSources(g,parry));g.rrNotes=P.notes.concat(parry&&(g.flurry||g.fiend||g.opp||g.blessed||g.reroll6||g.eccentric)?['Parry: no hit re-rolls']:[]);
   rolls.forEach(r=>{if(rrDie(r.v,isHit,P)){r.first=r.v;r.v=d6();r.re=true;}});
+  if(g.lambs)rolls.forEach(r=>{if(r.v===6){r.six=true;r.v=1;}});
   let hits=0,ones=0;rolls.forEach(r=>{if(isHit(r.v)){hits++;r.hit=true;if(r.v===1)ones++;}});g.rolls=rolls;g.ones=ones;const twos=rolls.filter(r=>r.hit&&r.v===2).length;g.flawN=ones+(g.blade?twos:0);g.extra=(g.relentless?ones+(g.rel2?twos:0):0)+(g.torrent?Math.ceil(hits/2):0);g.hits=hits+g.extra;}
 function rollDef(T){const A=byId(cb.att)||base(cb.att);let fails=0,dbl=0;
   cb.groups.forEach(g=>{const di=defInfo(T,A,g);g.def=di;g.drolls=[];for(let i=0;i<(g.hits||0);i++){const flaw=g.flawless&&i<(g.flawN!=null?g.flawN:(g.ones||0)),ok=x=>x!==6&&((!flaw&&x<=di.D)||x<=di.E);
-    const SD=[];if(cb.blessT&&(cb.type==='clash'||cb.type==='impact'))SD.push({k:'fail',src:'Blessed'});if(rh((T.rules||[]).concat(fx(T)),'Untouchable')||(cb.type==='volley'&&rh(RU(T),'Unstable Alloys')))SD.push({k:'fail',face:6,src:'Untouchable'});if(g.exploit)SD.push({k:'succ',face:1,src:'Exploit Flanks'});if(g.forceDef)SD.push({k:'succ',src:'re-roll successful Defense ('+(A.charName||'character')+')'});
+    const SD=[];if(cb.blessT&&(cb.type==='clash'||cb.type==='impact'))SD.push({k:'fail',src:'Blessed'});if(rh((T.rules||[]).concat(fx(T)),'Untouchable')||(cb.type==='volley'&&rh(RU(T),'Unstable Alloys')))SD.push({k:'fail',face:6,src:'Untouchable'});if(g.exploit)SD.push({k:'succ',face:1,src:'Exploit Flanks'});if(cb.type==='clash'&&fxHas(T,/^Professional Troops/))SD.push({k:'fail',face:6,src:'Professional Troops'});if(g.forceDef)SD.push({k:'succ',src:'re-roll successful Defense ('+(A.charName||'character')+')'});
     const PD=rrPlan(SD);g.drrNotes=PD.notes;let v=d6(),re=false,first=null;if(rrDie(v,ok,PD)){first=v;v=d6();re=true;}const save=ok(v);g.drolls.push({v,save,re,first});if(!save){fails++;if((g.deadly||(cb.type==='impact'&&act&&act.resoundT===cb.tgt&&act.id===cb.att))&&v===6)dbl++;}}});
-  let brit=0;if((rh(RU(T),'Brittle')||animate(T))&&A&&(cb.type==='clash'||cb.type==='impact')){const ar=arcOf(T,[A.x,A.y]);const k=ar==='rear'?4:ar==='left'||ar==='right'?2:0;cb.groups.forEach(g=>(g.drolls||[]).forEach(r=>{if(brit<k&&r.save){r.save=false;r.brittle=true;brit++;fails++;}}));}cb.brittle=brit;
+  let brit=0;if((rh(RU(T),'Brittle')||animate(T))&&!fxHas(T,/^Loses Brittle/)&&A&&(cb.type==='clash'||cb.type==='impact')){const ar=arcOf(T,[A.x,A.y]);const k=ar==='rear'?4:ar==='left'||ar==='right'?2:0;cb.groups.forEach(g=>(g.drolls||[]).forEach(r=>{if(brit<k&&r.save){r.save=false;r.brittle=true;brit++;fails++;}}));}cb.brittle=brit;
   const ten=rx((T.rules||[]).concat(fx(T)),'Tenacious')+(cb.type==='volley'&&rh(RU(T),'Visage')?1:0),conv=Math.min(ten,fails);cb.tenacious=conv;cb.dbl=dbl;cb.wounds=fails-conv+dbl;}
 function moraleSources(T,mi){const S=[],A=byId(cb.att)||base(cb.att)||{},iron=rh(RU(T),'Iron Discipline');
   if(!iron&&(mi.arc==='left'||mi.arc==='right'))S.push({k:'succ',src:'flank attack'});
@@ -1550,7 +1553,7 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;if(cbQueu
     if(g.rolls){const dr=document.createElement('div');dr.className='drow';g.rolls.forEach(r=>dr.appendChild(dieMini(r.v,(r.hit?'hit':'miss')+(r.re?' re':''))));row.appendChild(dr);row.appendChild(ptext(g.hits+(g.hits===1?' hit':' hits')+(g.extra?` (${g.extra} extra from rolls of 1)`:'')));}
     s1.appendChild(row);});
   if(cb.step==='att'&&cb.groups.some(g=>g.blessable)&&blessOk(base(cb.att)))s1.appendChild(blessAsk('A',sA));
-  if(cb.step==='att')s1.appendChild(cbtn('Roll to hit ('+sA+')',()=>{const parry=hitParry(T);if(cb.blessA){cb.groups.forEach(g=>{if(g.blessable)g.blessed=true;});cb.blessUsedA=true;}cb.groups.forEach(g=>rollHits(g,g.nUse,parry));cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';renderCombat();},'A'));
+  if(cb.step==='att')s1.appendChild(cbtn('Roll to hit ('+sA+')',()=>{const parry=hitParry(T);if(cb.blessA){cb.groups.forEach(g=>{if(g.blessable)g.blessed=true;});cb.blessUsedA=true;}cb.groups.forEach(g=>rollHits(g,g.nUse,parry));glimApply();cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';renderCombat();},'A'));
   else s1.appendChild(ptext('Total: '+cb.hits+(cb.hits===1?' hit':' hits'),'tot'));
   body.appendChild(s1);}if(cb.step==='att')return;
   if(cb.hits){const s2=stepBox('2 · '+sT+' rolls Defense');
@@ -1575,7 +1578,7 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;if(cbQueu
   const tot=(cb.wounds||0)+(cb.extra||0);cb.total=tot;if(cb.type==='freform'&&cb.mi&&cb.mi.auto)cb.extra=0;const lost=woundState(T,(T.wounds||0)+tot).lost-woundState(T).lost;
   const s4=stepBox('Result');s4.appendChild(ptext(`${T.short||T.name} takes ${tot} wound${tot===1?'':'s'}`+(lost?`, about ${lost} stand${lost>1?'s':''} removed`:'')+'.','tot'));
   s4.appendChild(ptext('Recording saves every roll and the wounds to the board. Claude checks casualty removal and Broken.'));s4.appendChild(cbtn('Record result',recordCombat,'O'));body.appendChild(s4);}
-async function recordCombat(){if(!cb)return;if(cb.type==='duel')return recordDuel();const S={att:cb.att,tgt:cb.tgt,type:cb.type,groups:(cb.groups||[]).map(g=>({rolls:g.rolls})),mark:cb.mark,healFriend:cb.healFriend};const before=JSON.parse(JSON.stringify(base(cb.tgt)||{}));const c0=cb;await recordCombat0();if(cb===c0)return;try{await srAfterCombat(S,before);}catch(e){console.error(e);}}
+async function recordCombat(){if(!cb)return;if(cb.type==='duel')return recordDuel();const S={att:cb.att,tgt:cb.tgt,type:cb.type,groups:(cb.groups||[]).map(g=>({rolls:g.rolls})),mark:cb.mark,healFriend:cb.healFriend};const before=JSON.parse(JSON.stringify(base(cb.tgt)||{}));const c0=cb;await recordCombat0();if(cb===c0)return;try{await srAfterCombat(S,before);}catch(e){console.error(e);}try{await supAfterCombat(S,before);}catch(e){console.error(e);}}
 async function recordCombat0(){if(!db||!state){toast('The board is read-only in this view.');return;}if(PVP()&&cb&&cb.owner!==HU)return;
   if(cb.blessUsedA||cb.blessUsedT)state=Object.assign({},state,{units:state.units.map(u=>(u.id===cb.att&&cb.blessUsedA)||(u.id===cb.tgt&&cb.blessUsedT)?Object.assign({},u,{blessedR:state.round||1}):u)});
   const A=base(cb.att),T=base(cb.tgt),tot=cb.total||0,LBL={clash:'Clash',impact:'Impact Attacks',volley:'Volley',lethal:'Lethal Demise',freform:'Fighting Reform'};
@@ -1834,7 +1837,7 @@ function resolvePoint(spec){if(spec&&typeof spec==='object'&&isFinite(+spec.x)&&
   const z=zonesOf().find(z=>z.name.toLowerCase()===zn.toLowerCase());if(z)return {x:z.x,y:z.y,kind:'zone'};return null;}
 function seizeVal(u){if((u.effects||[]).includes('Broken'))return 0;if((u.abilities||[]).some(a=>/Brazen Race/.test(a[0])))return 6;if(frBase(u)==='Tontorr')return 6;if(u.type==='monster')return 3;if(/Light/.test(u.cls||''))return 0;return 1;}
 function inZone(poly,z){return inside([z.x,z.y],poly)||poly.some((p,i)=>segDist([z.x,z.y],p,poly[(i+1)%poly.length])<z.r-1e-6);}
-function volleyRange(u){const m=(u.rules||[]).concat(u.modProfiles?Object.values(u.modProfiles).flatMap(x=>x.rules||[]):[]).join(', ').match(/Barrage\s*\((\d+)\)\s*(\d+)/);return m?{shots:+m[1],range:+m[2]+srRangeBonus(u)}:null;}
+function volleyRange(u){const m=(u.rules||[]).concat(u.modProfiles?Object.values(u.modProfiles).flatMap(x=>x.rules||[]):[]).join(', ').match(/Barrage\s*\((\d+)\)\s*(\d+)/);return m?{shots:+m[1],range:(+m[2]+srRangeBonus(u))*(['cs','nord'].some(s=>supAct(s,'Skývald')&&supOf(s).choice==='Niflmire')?0.5:1)}:null;}
 function frontArcHas(u,t){return rh(RU(u),'Acute Senses')||(rh(RU(u),'Weapon Platform')&&corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)!=='rear'))||corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)==='front');}
 /* cards */
 function regCardLive(u){return u.type!=='marker'&&!u.destroyed&&(u.onTable||u.arriving)&&!u.dyingFight;}
@@ -1960,7 +1963,7 @@ async function autoResolve(){let guard=0;while(cb&&guard++<60){
   if(!cb.tgt){const id=(cb.choices||[])[0];if(!id){cb=null;break;}cb.tgt=id;if(cb.type!=='lethal')cb.groups=buildGroups(cb.type,byId(cb.att),byId(id));}
   if(cb.type==='duel'){renderCombat();await sleep(800);if(!cb)break;const T=base(cb.tgt),A=base(cb.att);if(cb.step==='offer'){if(T.side===AI||duelRefuseWhy(T))duelDecide(T.side===AI?aiAcceptDuel(T,A):true);else break;}else if(cb.step==='roll'){duelResolve();}else{await recordDuel();break;}continue;}
   renderCombat();await sleep(cb.step==='done'?900:750);const T=byId(cb.tgt)||base(cb.tgt);
-  if(cb.step==='att'){const parry=hitParry(T);if(cb.groups.some(g=>g.blessable)&&blessOk(base(cb.att))&&(cb.blessA||base(cb.att).side===AI)){cb.blessA=true;cb.blessUsedA=true;cb.groups.forEach(g=>{if(g.blessable)g.blessed=true;});}cb.groups.forEach(g=>rollHits(g,g.nUse??g.n,parry));cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';}
+  if(cb.step==='att'){const parry=hitParry(T);if(cb.groups.some(g=>g.blessable)&&blessOk(base(cb.att))&&(cb.blessA||base(cb.att).side===AI)){cb.blessA=true;cb.blessUsedA=true;cb.groups.forEach(g=>{if(g.blessable)g.blessed=true;});}cb.groups.forEach(g=>rollHits(g,g.nUse??g.n,parry));glimApply();cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';}
   else if(cb.step==='def'){if((cb.type==='clash'||cb.type==='impact')&&blessOk(T)&&T.side!==AI&&!PVP()&&cb.blessT==null){await new Promise(res=>{cb.blessWait=res;renderCombat();});cb.blessWait=null;}
     if((cb.type==='clash'||cb.type==='impact')&&blessOk(T)&&(cb.blessT||T.side===AI)){cb.blessT=true;cb.blessUsedT=true;}rollDef(T);cb.step=cb.type!=='volley'&&cb.type!=='lethal'&&cb.wounds?'mor':'done';}
   else if(cb.step==='mor'){const mi=moraleInfo(T,byId(cb.att)||base(cb.att));if(mi.auto){cb.mi=mi;cb.extra=0;cb.step='done';}else{rollMor(T);cb.step='done';}}
@@ -2030,7 +2033,7 @@ async function runAITurn(){if(PVP())return;if(aiBusy||!state||!db)return;if(act)
     const id=card.slice(2);
     if(card[0]==='c'){const u=byId(id);aiStatus(`${N(AI)}: the ${u.charName} is deciding…`);const d=await planCharacter(u);const cl=[];
       for(const x of (Array.isArray(d.draws)?d.draws:[]).slice(0,3)){const a=chAbil(byId(id)).find(q=>q.kind==='draw'&&q.n.toLowerCase()===String(x.ability||'').toLowerCase());if(a){const r=await useAbil(id,a.n,x.target);if(r)cl.push(r);}}
-      let line;if(d.char==='cast'){const r=await aiCastSpell(byId(id),true,d.spell,d.target);if(r){line=`the ${u.charName} ${r}`;await charCommit(id,{spell:d.spell,note:r+'.'});}else line=await aiCast(id,d.spell,d.target);}
+      let line;if(d.char==='cast'){const r=await aiCastSpell(byId(id),true,d.spell,d.target);if(r){const r2=await srAiExtra(byId(id),d.spell);line=`the ${u.charName} ${r}`+r2;await charCommit(id,{spell:d.spell,note:r+r2+'.'});}else line=await aiCast(id,d.spell,d.target);}
       else if(d.char==='duel'||(d.char==='ability'&&/^duel$/i.test(String(d.ability||'')))){line=`the ${u.charName}: `+await aiDuel(id,d.target);}
       else if(d.char==='ability'){const a=chAbil(byId(id)).find(q=>q.kind==='action'&&q.n.toLowerCase()===String(d.ability||'').toLowerCase());if(a){const r=await useAbil(id,a.n,d.target);await charCommit(id,{note:'Used '+a.n+'.'});line=r;}else{await charCommit(id,{note:'No action.'});line=`the ${u.charName} takes no action`;}}
       else{await charCommit(id,{note:'No action.'});line=`the ${u.charName} takes no action`;}
@@ -2040,6 +2043,7 @@ async function runAITurn(){if(PVP())return;if(aiBusy||!state||!db)return;if(act)
   catch(e){report.push({title:'Problem',lines:['The '+N(AI)+' turn stopped early: '+((e&&e.message)||e)],narration:''});act=null;cb=null;}
   aiBusy=false;bannerHide();aiStatus('');showReport(report);await afterAITurn(report);}
 async function afterAITurn(report){const hu=humanCardsLeft(),ai=aiCardsLeft();
+  if(mwExtra(AI)&&ai>0){await putState({sup:supMemo(AI,{mwR:srRnd()})});await sleep(800);return runAITurn();}
   if(hu>0){await putState({turn:HU,phase:'Round '+state.round+' · Your turn'});return;}
   if(ai>0){await sleep(1500);return runAITurn();}
   await endRound();}
@@ -2051,10 +2055,11 @@ function showReport(report){const box=$('ai-report');if(!report.length){box.hidd
   try{box.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}}
 /* ---------- the human ends a turn ---------- */
 async function endTurn(){if(!db||!state)return;if(aiBusy)return;if(act){toast('Finish or undo the current activation first.');return;}if(charAct){toast('Finish the character activation first.');return;}
-  if(PVP()){if(state.turn!==HU){toast('It is not your turn.');return;}const op=sideCardsLeft(AI),mine=sideCardsLeft(HU);
+  if(PVP()){if(state.turn!==HU){toast('It is not your turn.');return;}if(mwExtra(HU)&&sideCardsLeft(HU)>0){await putState({sup:supMemo(HU,{mwR:srRnd()})});toast('The Matriarch Walks: activate your next card straight away.');return;}const op=sideCardsLeft(AI),mine=sideCardsLeft(HU);
     if(op>0){await putState({turn:AI,phase:'Round '+state.round+' · '+N(AI)+' to act'});return;}
     if(mine>0){toast(N(AI)+' have no cards left this round, so keep activating until you are done.');return;}
     await endRound();return;}
+  if(mwExtra(HU)&&humanCardsLeft()>0){await putState({sup:supMemo(HU,{mwR:srRnd()})});toast('The Matriarch Walks: activate your next card straight away.');return;}
   const ai=aiCardsLeft(),hu=humanCardsLeft();
   if(ai>0){await putState({turn:AI});return runAITurn();}
   if(hu>0){toast(N(AI)+' have no cards left this round, so keep activating until you are done.');return;}
@@ -2076,9 +2081,11 @@ function reserves(side){return (state.units||[]).filter(u=>u.side===side&&!u.onT
 async function doReinforcements(humanAuto){const R=state.round,out=[];const units=(state.units||[]).map(u=>Object.assign({},u));
   if(R===1&&!PVP())units.forEach(u=>{if(u.side===AI&&privOk(u))u.cls=u.cls.replace(/Light/,'Medium');});
   const roll=async(side,autoId)=>{const res=[];const pool=units.filter(u=>u.side===side&&!u.onTable&&!u.arriving&&!u.destroyed);const M=state.mm&&state.mm.r===R?state.mm:null,xId=M&&M.ans==='accept'?(M.pick||{})[side]:null;let rrL=M&&M.ans==='decline'&&M.by===side&&M.opt==='reroll'?1:0;
-    for(const u of pool){const rule=reinfRule(u.cls,R);if(rule!=='no'&&(hasRule(u,/^Flank/)||(u.char!=null&&rh(u.charRules,'Forward Force')&&u.type!=='monster'))){u.arriving=true;res.push(u.name+' arrives (Flank: kept out of the roll)');continue;}if(u.arriving)continue;if(xId&&u.id===xId&&rule!=='no'){u.arriving=true;Object.assign(u,grantU(u,'Master Manipulator (Vanguard (3))',['Vanguard (3)']));res.push(u.name+' arrives (Master Manipulator, Vanguard (3))');continue;}if(u.id===autoId&&rule!=='no'){u.arriving=true;res.push(u.name+' arrives (chosen)');if(rh(u.rules,'Tidal Summons')){const w=pool.find(x=>x!==u&&!x.arriving&&rh(x.rules,'Water Elemental')&&reinfRule(x.cls,R)!=='no');if(w){w.arriving=true;res.push(w.name+' arrives (Tidal Summons)');}}continue;}
-      if(rule==='auto'){u.arriving=true;res.push(u.name+' arrives automatically');continue;}if(rule==='no')continue;const need=rule==='roll4'?4:2;let v=d6();
+    for(const u of pool){const rule=reinfRule(u.cls,R);if(rule!=='no'&&(hasRule(u,/^Flank/)||(u.char!=null&&(rh(u.charRules,'Forward Force')||supForwardForce(u))&&u.type!=='monster'))){u.arriving=true;res.push(u.name+' arrives (Flank: kept out of the roll)');continue;}if(u.arriving)continue;if(xId&&u.id===xId&&rule!=='no'){u.arriving=true;Object.assign(u,grantU(u,'Master Manipulator (Vanguard (3))',['Vanguard (3)']));res.push(u.name+' arrives (Master Manipulator, Vanguard (3))');continue;}if(u.id===autoId&&rule!=='no'){u.arriving=true;res.push(u.name+' arrives (chosen)');{const t2=supTactical(side,pool,autoId);if(t2){t2.arriving=true;res.push(t2.name+' arrives (Tactical Superiority)');}}if(rh(u.rules,'Tidal Summons')){const w=pool.find(x=>x!==u&&!x.arriving&&rh(x.rules,'Water Elemental')&&reinfRule(x.cls,R)!=='no');if(w){w.arriving=true;res.push(w.name+' arrives (Tidal Summons)');}}continue;}
+      if(rule==='auto'){u.arriving=true;res.push(u.name+' arrives automatically');continue;}if(rule==='no')continue;const need=supReinfNeed(u,rule==='roll4'?4:2);let v=d6();
       banner(N(side)+' reinforcement: '+u.name,[{v,cls:v<=need?'hit':'miss'}],`needs ${need} or less`);await sleep(900);if(v>need&&rrL){rrL=0;const v1=v;v=d6();banner('Master Manipulator re-roll: '+u.name,[{v,cls:v<=need?'hit':'miss'}],'re-roll of '+v1);await sleep(900);}if(v<=need){u.arriving=true;res.push(`${u.name} arrives (rolled ${v})`);}else res.push(`${u.name} stays back (rolled ${v})`);}
+    if(supK(side)==='Infantry Tactics'&&!supMem(side).itUsed){const F=pool.filter(u=>!u.arriving&&reinfRule(u.cls,R)!=='no'&&reinfRule(u.cls,R)!=='auto');if(F.length>=2||(F.length&&R>=4)){state.sup=supMemo(side,{itUsed:true});res.push('Infantry Tactics: re-roll every failed Reinforcement Roll (once per game)');for(const u of F){const need=supReinfNeed(u,reinfRule(u.cls,R)==='roll4'?4:2),v=d6();banner('Infantry Tactics re-roll: '+u.name,[{v,cls:v<=need?'hit':'miss'}],'needs '+need+' or less');await sleep(700);if(v<=need){u.arriving=true;res.push(u.name+' arrives (re-rolled '+v+')');}else res.push(u.name+' stays back (re-rolled '+v+')');}}}
+    supAfterReinf(side,units,res);
     if(M&&M.ans==='decline'&&M.by===side&&M.opt==='vanguard'&&M.vg){const t=units.find(x=>x.id===M.vg&&!x.onTable);if(t){Object.assign(t,grantU(t,'Master Manipulator (Vanguard (3))',['Vanguard (3)']));res.push(t.name+' gains Vanguard (3) (Master Manipulator)');}}
     return res;};
   const hl=await roll(HU,humanAuto);
@@ -2094,11 +2101,11 @@ async function startCommandPhase(rep){if(PVP()){await putState({step:'supremacy'
   if(P.intent)rep.push({title:N(AI)+' plan',lines:[],narration:P.intent});showReport(rep);$('air-title').textContent='Round '+state.round;}
 async function rollSupremacyPvp(){const cc=cardsTotal('cs'),cn=cardsTotal('nord');let a,b,ma,mb,n=0;
   do{a=d6();b=d6();ma=Math.max(0,a-(cc<cn?1:0));mb=Math.max(0,b-(cn<cc?1:0));banner('Supremacy roll-off',[{v:a,cls:ma<=mb?'hit':'miss'},{v:b,cls:mb<=ma?'hit':'miss'}],`${N('cs')} ${a}${cc<cn?' − 1':''} · ${N('nord')} ${b}${cn<cc?' − 1':''} (fewer Command Cards subtracts 1; lowest wins)`);await sleep(1500);n++;}while(ma===mb&&n<10);
-  bannerHide();const win=ma<mb?'cs':'nord';
+  bannerHide();let win=ma<mb?'cs':'nord';totAdd({cs:a,nord:b});
   await putState({step:'choose',chooser:win,phase:'Round '+state.round+' · '+N(win)+' won Supremacy',lastTitle:'Supremacy',lastText:`${N('cs')} rolled ${a}${cc<cn?' (−1)':''}, ${N('nord')} rolled ${b}${cn<cc?' (−1)':''}. Lowest wins: ${N(win)} choose who goes first.`});}
 async function rollSupremacy(){if(PVP())return rollSupremacyPvp();const ch=cardsTotal(HU),ca=cardsTotal(AI);let a,b,ma,mb,n=0;
   do{a=d6();b=d6();ma=Math.max(0,a-(ch<ca?1:0));mb=Math.max(0,b-(ca<ch?1:0));banner('Supremacy roll-off',[{v:a,cls:ma<=mb?'hit':'miss'},{v:b,cls:mb<=ma?'hit':'miss'}],`${N(HU)} ${a}${ch<ca?' − 1':''} · ${N(AI)} ${b}${ca<ch?' − 1':''} (fewer Command Cards subtracts 1; lowest wins)`);await sleep(1500);n++;}while(ma===mb&&n<10);
-  bannerHide();const huWins=ma<mb;
+  bannerHide();let huWins=ma<mb;totAdd({[HU]:a,[AI]:b});{const h=aolTry(HU),q=aolTry(AI),hp=h&&h.isP,ap=q&&q.isP;if(hp&&!ap){huWins=true;state.sup=supMemo(HU,{aolUsed:true});toast('Army of Lions: your top card is a Polemarch, so you win the Supremacy roll-off.');}else if(ap&&!hp){huWins=false;state.sup=supMemo(AI,{aolUsed:true});toast('Army of Lions: '+N(AI)+' reveal a Polemarch and win the Supremacy roll-off.');}}
   if(huWins){await putState({step:'choose',phase:'Round '+state.round+' · You won Supremacy',lastTitle:'Supremacy',lastText:`${N(HU)} ${ma} against ${N(AI)} ${mb}: you choose who goes first.`});return;}
   const first=state.aiFirst!==false?AI:HU;await putState({lastTitle:'Supremacy',lastText:`${N(AI)} ${mb} against ${N(HU)} ${ma}: ${N(AI)} win and ${first===AI?'go first':'let you go first'}.`});
   await afterSupremacy(first);}
@@ -2807,10 +2814,11 @@ function frAfterAct(a,units){const out={units,fr:null,notes:[]};const i=units.fi
   if((f==='Spires'&&a.frDecay)||(!a.frDecay&&RU(u).some(x=>/^Decay\b/.test(x)))){const n=decayN(u);const AL=allocate(u,n);u=Object.assign({},u,{wounds:AL.w,auxWounds:AL.aw},AL.dead?{onTable:false,destroyed:true,status:'Destroyed',destroyedRound:state.round}:{});out.notes.push('Decay: '+n+' wounds'+(AL.dead?', destroyed':''));}
   if(f==='Weaver Courts'&&a.actions.some(x=>x.type==='clash'||x.type==='volley')){const s=Math.min(3,(+u.seeds||0)+1);if(s!==(+u.seeds||0))out.notes.push('gains a Seed Marker ('+s+')');u=Object.assign({},u,{seeds:s});}
   if(f==='Dweghom'&&frRoles(u).includes('Forged')&&!a.frForged){const g=frG(u.side,'dw'),ep=Math.min(10,(+g.ep||0)+1);out.fr=frPatch(u.side,'dw',{ep});out.notes.push('Forged: +1 Elemental Power ('+ep+')');}
+  {const L=supLeadByExample(units,a);if(L){out.notes.push(L);state.sup=supMemo(u.side,{lbR:srRnd()});}}
   if(!out.fr&&frG(u.side,'sk').airNow)out.fr=frPatch(u.side,'sk',{airNow:false});
   units[i]=u;return out;}
 /* options shown during an activation */
-function frOptions(u){return frOptions0(u).concat(srOptions(u));}
+function frOptions(u){return frOptions0(u).concat(srOptions(u)).concat(supOptions(u));}
 function frOptions0(u){const out=[];if(!u||!act||act.id!==u.id)return out;const f=frFac(u),fresh=!act.actions.length&&!act.cur,add=(label,fn,why,cls)=>out.push({label,fn,why,cls});
   if(f==='Old Dominion'){const m=memOf(u);if(m&&odTier(u.side,'dark')>=2&&animate(u))add('Memories of Old as a Draw Event: '+m.text,()=>grant(u.id,'Memories of Old',m.rules,null,'Memories of Old (Draw Event, Dark Power Tier II): '+m.text),hasGrant(u,'Memories of Old')?'Already used this round':!fresh?'Only before the first action':'');}
   if(f==="W'adrhŭn"){const g=frG(u.side,'wa'),seq=(g.seq||[]).slice(),own=(frRoles(u).find(r=>/^Cult of/.test(r))||'').replace('Cult of ','');
@@ -2819,13 +2827,13 @@ function frOptions0(u){const out=[];if(!u||!act||act.id!==u.id)return out;const 
     if(act.frMarker&&!act.frMarker2&&(srDrum(u)||(u.abilities||[]).some(a=>/Aberration/.test(a[0])))){const dr=srDrum(u);out.push({head:'Add a second Chant Marker ('+(dr?'Drum Beat':'Aberration: its own cult')+')'});Object.keys(CULTS).filter(c=>dr||c===own).forEach(c=>add(c,()=>{act.frMarker2=true;const s2=(frG(u.side,'wa').seq||[]).concat([c]);frSet(u.side,'wa',{seq:s2.slice(-3)},{lastTitle:N(u.side)+' · War Chant',lastText:'Second Chant Marker: '+c});},'',own===c?'pri':''));}
     if(seq.length===3){const cnt=c=>seq.filter(x=>x===c).length,cq=cnt('Conquest');
       Object.keys(CULTS).forEach(c=>{const ok=c==='Conquest'?cq>=2:cnt(c)+cq>=2;if(!ok)return;if(/^Chosen of /.test(frBase(u))&&own&&c!==own)return;const C=CULTS[c];
-        add('Chant the Battlecry: '+c+' ('+C[0]+')',async()=>{const ok2=await grant(u.id,'Chant: '+c,C[1]?[C[1]]:[],c==='Conquest'?{E:2}:null,'Chants the Battlecry of '+c+': '+C[0]);if(ok2){const CB=srChantBonus(u.id);if(CB&&CB.units)await putState({units:CB.units,lastText:(state.lastText||'')+(CB.notes.length?' Chant bonus: '+CB.notes.join(', ')+'.':'')});await frSet(u.side,'wa',{seq:[]});}},rh(u.rules,'Swarm')?'Swarm: it cannot Chant':hasGrant(u,'Chant: '+c)?'Already chanted':!fresh?'Only before the first action':'');});}}
+        add('Chant the Battlecry: '+c+' ('+C[0]+')',async()=>{const ok2=await grant(u.id,'Chant: '+c,C[1]?[C[1]]:[],c==='Conquest'?{E:2}:null,'Chants the Battlecry of '+c+': '+C[0]);if(ok2){const CB=srChantBonus(u.id);if(CB&&CB.units)await putState({units:CB.units,lastText:(state.lastText||'')+(CB.notes.length?' Chant bonus: '+CB.notes.join(', ')+'.':'')});{const SC=supOnChant(base(u.id),c);if(SC.notes.length)await putState({units:SC.units,lastText:(state.lastText||'')+' '+SC.notes.join('; ')+'.'});}await frSet(u.side,'wa',{seq:[]});}},rh(u.rules,'Swarm')?'Swarm: it cannot Chant':hasGrant(u,'Chant: '+c)?'Already chanted':!fresh?'Only before the first action':'');});}}
   if(f==='Sorcerer Kings'&&hasDraw(u,/^Elemental Conduit/)){const g=frG(u.side,'sk');add('Elemental Conduit: +1 Ritual Marker',()=>{act.frConduit=true;frSet(u.side,'sk',{rm:(+g.rm||0)+1},{lastTitle:N(u.side)+' · Ritual',lastText:'Elemental Conduit adds a Ritual Marker to '+(g.ritual||'the Ritual')+'.'});},!g.ritual?'No Ritual is being prepared (see Faction rules)':act.frConduit?'Already used':'');}
   if(f==='Yoroni'&&!act.frIdeal){const R=frRoles(u),RC=u.charName?frRoles(u,true):[];out.push({head:'Which Ideal Card activated it?'});
-    Object.keys(IDEAL).forEach(k=>{const match=R.includes(k)||RC.includes(k);add(k+(match?' · '+IDEAL[k][0]:''),async()=>{act.frIdeal=k;if(k==='Ka'&&rh(u.rules,'Honor Beyond Death')&&(base(u.id).effects||[]).includes('Broken'))await putState({units:state.units.map(x=>x.id===u.id?Object.assign({},x,{effects:x.effects.filter(e=>e!=='Broken')}):x),lastTitle:N(u.side)+' · Honor Beyond Death',lastText:'Activated by a Ka Ideal Card: it is no longer Broken.'});if(!match){render();return;}if(k==='Fu')act.frFu=true;await grant(u.id,'Ideal Card: '+k,IDEAL[k][1],IDEAL[k][2]||null,'Ideal Card '+k+': '+IDEAL[k][0]);},hasGrant(u,'Ideal Card: '+k)?'Already gained from this card this round':'',match?'pri':'');});}
+    Object.keys(IDEAL).forEach(k=>{const match=R.includes(k)||RC.includes(k)||supIdealMatch(u,k);add(k+(match?' · '+IDEAL[k][0]:''),async()=>{act.frIdeal=k;if(k==='Ka'&&rh(u.rules,'Honor Beyond Death')&&(base(u.id).effects||[]).includes('Broken'))await putState({units:state.units.map(x=>x.id===u.id?Object.assign({},x,{effects:x.effects.filter(e=>e!=='Broken')}):x),lastTitle:N(u.side)+' · Honor Beyond Death',lastText:'Activated by a Ka Ideal Card: it is no longer Broken.'});if(!match){render();return;}if(k==='Fu')act.frFu=true;await grant(u.id,'Ideal Card: '+k,IDEAL[k][1],IDEAL[k][2]||null,'Ideal Card '+k+': '+IDEAL[k][0]);},hasGrant(u,'Ideal Card: '+k)?'Already gained from this card this round':'',match?'pri':'');});}
   if(f==='Weaver Courts'&&fresh&&!act.frBloom){const s=+u.seeds||0,g=frG(u.side,'wc');
-    [[1,'Command Stand +2 Attacks (and Barrage +2)'],[2,"the Warlord's Bloom effect"],[3,'the '+(g.season||'current Season')+' Court role']].forEach(([n,t])=>add('Bloom ('+n+' Seed'+(n>1?'s':'')+'): '+t,async()=>{act.frBloom=true;const br=n===1&&hasRule(u,/^Barrage/)?['Barrage (+2)']:[];await putState({units:state.units.map(x=>x.id===u.id?grantU(Object.assign({},x,{seeds:s-n}),'Bloom: '+t,br,null):x),lastTitle:N(u.side)+' · Bloom',lastText:'Bloom, spending '+n+' Seed Marker'+(n>1?'s':'')+': '+t+(n===1?' (apply the Command Stand Attacks yourself)':'')+'.'});await srAfterBloom(u,n);},s<n?'Needs '+n+' Seed Marker'+(n>1?'s':''):''));}
-  if(f==='Spires'&&srStrain(u)){const S=srStrain(u);add('Strain Expression: '+S[0]+' ('+(S[1].join(', ')||S[2])+'; Decay)',async()=>{act.frDecay=true;await grant(u.id,'Strain: '+S[0],S[1],S[3]||null,'Strain Expression, '+S[0]+': '+(S[1].concat(S[2]?[S[2]]:[]).join(', '))+'. Decay at the end of the activation.');await srAfterStrain(u);},act.frDecay?'Already used':!fresh?'Only before the first action':'');}
+    [[1,'Command Stand +2 Attacks (and Barrage +2)'],[2,"the Warlord's Bloom effect"],[3,'the '+(seasonNow(u.side)||'current Season')+' Court role']].forEach(([n,t])=>add('Bloom ('+n+' Seed'+(n>1?'s':'')+'): '+t,async()=>{act.frBloom=true;const br=n===1&&hasRule(u,/^Barrage/)?['Barrage (+2)']:[];await putState({units:state.units.map(x=>x.id===u.id?grantU(Object.assign({},x,{seeds:s-n}),'Bloom: '+t,br,null):x),lastTitle:N(u.side)+' · Bloom',lastText:'Bloom, spending '+n+' Seed Marker'+(n>1?'s':'')+': '+t+(n===1?' (apply the Command Stand Attacks yourself)':'')+'.'});await srAfterBloom(u,n);if(n===2)await supApplyBloom(u);},s<n?'Needs '+n+' Seed Marker'+(n>1?'s':''):''));}
+  if(f==='Spires'&&srStrain(u)){const S=srStrain(u);add('Strain Expression: '+S[0]+' ('+(S[1].join(', ')||S[2])+'; Decay)',async()=>{act.frDecay=true;await grant(u.id,'Strain: '+S[0],S[1],S[3]||null,'Strain Expression, '+S[0]+': '+(S[1].concat(S[2]?[S[2]]:[]).join(', '))+'. Decay at the end of the activation.');await srAfterStrain(u);if(supK(u.side)==='Ruthless Competence'&&/Infantry/.test(u.cls||''))await grant(u.id,'March +1 (Ruthless Competence)',[]);},act.frDecay?'Already used':!fresh?'Only before the first action':'');}
   if(f==='Dweghom'){const g=frG(u.side,'dw'),ep=+g.ep||0,F=FORGED[frBase(u)];
     if(F&&!act.frForged)F.forEach(([t,cost,rules,stats,note,heal])=>add('Forged by the Elements ('+cost+'): '+t,async()=>{act.frForged=true;const fr=frPatch(u.side,'dw',{ep:ep-cost});
       await putState({fr,units:state.units.map(x=>{if(x.id!==u.id)return x;let y=grantU(x,'Forged: '+t,rules,stats);if(heal)y=Object.assign({},y,{wounds:Math.max(0,(+y.wounds||0)-heal)});if(!hasGrant(y,'Awakened'))y=grantU(y,'Awakened',awakenRules(y));return y;}),lastTitle:N(u.side)+' · Forged by the Elements',lastText:t+(note?' ('+note+')':'')+'; Awakened. Elemental Power '+(ep-cost)+'.'});},ep<cost?'Needs '+cost+' Elemental Power':''));
@@ -2936,6 +2944,7 @@ function frRoundEnd(units,nextRound){let fr=JSON.parse(JSON.stringify(state.fr||
 
 /* ---------- character Draw Events and ability actions (Practitioners etc.) ---------- */
 const CHAB={
+'Aristarch':[{n:'Battlefield Order: Arms of Steel',kind:'draw',rng:12,tgt:'friend',req:'Infantry',grant:['Untouchable'],label:'Arms of Steel (Untouchable)',order:true,d:'A friendly Infantry regiment within 12″ gains Untouchable until the end of the round.'},{n:'Battlefield Order: Hearts of Iron',kind:'draw',rng:12,tgt:'friend',req:'Infantry',grant:['Bravery'],label:'Hearts of Iron (Bravery)',order:true,d:'A friendly Infantry regiment within 12″ gains Bravery until the end of the round.'}],
 'Lineage Prideborne':[{n:'Snapshot',kind:'action',rng:u=>{const m=(u.charRules||[]).join(', ').match(/Barrage\s*\(\d+\)\s*\(?(\d+)/);return m?+m[1]:16;},tgt:'enemy',fn:'wound1',d:'An enemy regiment in sight and in Barrage range suffers 1 wound. No Resolve tests.'}],
 'Lineage Highborne':[{n:'Mighty Swing',kind:'action',rng:0.4,tgt:'enemy',fn:'wound1',d:'An enemy regiment engaged with its regiment suffers 1 wound. No Resolve tests.'}],
  'Pheromancer':[{n:'Suppress Higher Functions',kind:'draw',rng:12,tgt:'friend',grant:['Fearless'],d:'A friendly regiment within 12″ gains Fearless this round.'},
@@ -2969,6 +2978,7 @@ async function useAbil(cid,name,tid){const u=byId(cid),a=chAbil(u).find(x=>x.n==
   if(a.prac&&(T.temp||[]).some(g=>/^Practitioner/.test(g.src)))return a.n+': '+nm(T)+' was already the target of a Practitioner action this round';
   const src=(a.prac?'Practitioner: ':'')+(a.label||a.n);
   if(a.grant||a.label){units=units.map(x=>x.id===T.id?grantU(x,src,a.grant||[],null):x);line=a.n+' on '+nm(T);}
+  if(a.order&&supAct(u.side,'Infantry Tactics')){units=units.map(x=>x.side===u.side&&x.onTable&&!x.destroyed&&x.type!=='monster'&&x.type!=='marker'?grantU(x,src,a.grant||[],null):x);line+=' (Infantry Tactics: every non-Monster regiment)';}
   if(a.heal&&canHeal(T)){units=units.map(x=>x.id===T.id?Object.assign({},x,{wounds:Math.max(0,(+x.wounds||0)-a.heal)},a.once1?{ltb:state.round||1}:{}):x);line=a.n+': '+nm(T)+' heals '+a.heal;}
   if(a.fn==='wound1'){units=hurt(units,T.id,1);line=a.n+': '+nm(T)+' suffers 1 wound';}
   if(a.cost)extra.fr=frPatch(u.side,'sk',{rm:(+frG(u.side,'sk').rm||0)-a.cost});
@@ -2985,7 +2995,7 @@ async function useAbil(cid,name,tid){const u=byId(cid),a=chAbil(u).find(x=>x.n==
   if(a.prac)units=units.map(x=>x.id===T.id&&!(x.temp||[]).some(g=>g.src===src)?grantU(x,src,[],null):x);
   await putState(Object.assign({units,lastTitle:N(u.side)+' · '+u.charName,lastText:line+'. No Morale Tests.'},extra));toast(line+'.');return line;}
 function charAbilBox(u,box){const L=chAbil(u);if(!L.length||!charAct)return;charAct.used=charAct.used||[];
-  const mk2=(a)=>{const row=document.createElement('div');row.className='dn';const why=chWhy(u,a)||(charAct.used.includes(a.n)?'Already used':'')||(a.kind==='action'&&charAct.acted?'The character already used its action':'');
+  const mk2=(a)=>{const row=document.createElement('div');row.className='dn';const why=chWhy(u,a)||(charAct.used.includes(a.n)?'Already used':'')||(a.order&&charAct.used.some(n=>/^Battlefield Order/.test(n))?'One Battlefield Order per activation':'')||(a.kind==='action'&&charAct.acted?'The character already used its action':'');
     const C=why?[]:chTargets(u,a);const t=document.createElement('div');t.style.flex='1';const b=document.createElement('b');b.textContent=a.n+(a.prac?' ('+a.prac+')':'');t.append(b,document.createTextNode(': '+a.d));
     const ctl=document.createElement('div');ctl.className='row';let sel=null;if(C.length>1){sel=document.createElement('select');sel.setAttribute('aria-label','Target for '+a.n);C.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=(c.short||c.name)+(c.side!==u.side?' (enemy)':'');sel.appendChild(o);});ctl.appendChild(sel);}
     const go=document.createElement('button');go.type='button';go.className='btn ghost';go.textContent=why?why:'Use'+(C.length===1&&a.tgt!=='self'?' on '+(C[0].short||C[0].name):'');go.disabled=!!why;
@@ -2998,7 +3008,7 @@ function charAbilBox(u,box){const L=chAbil(u);if(!L.length||!charAct)return;char
 function frRoundOptions(side){const o=frRoundOptions0(side);(state.units||[]).filter(u=>u.side===side&&srAlive(u)&&/Eidolon/.test(u.charName||'')&&!cdirOf(u)).forEach(u=>Object.keys(CDIR).forEach(k=>o.push({id:'cdir'+u.id+':'+k,label:'Combat Directive (Eidolon with '+(u.short||u.name)+'): '+k,def:k==='Precision Armament'})));return o;}
 function frRoundOptions0(side){const out=[],R=state.round||1,facs=frFacs(side);
   if(facs.includes('Old Dominion')&&frG(side,'od').soma!==R){out.push({id:'soma:dark',label:'Blasphemous Soma: +1 Dark Power',def:true});out.push({id:'soma:pant',label:'Blasphemous Soma: +1 Fallen Pantheon'});}
-  if(facs.includes('Nords')){const g=frG(side,'no'),wl=(state.units||[]).find(u=>u.side===side&&u.warlord),multi=wl&&/Jarl|Konungyr/.test(wl.charName||'');if(g.round!==R&&(!g.used||multi))Object.keys(TACTICS).forEach(t=>out.push({id:'tactic:'+t,label:'Tribal Tactic '+t+' ('+TACTICS[t].join(', ')+' for Mortals, Exalted and character-led regiments this round; once per game)'}));}
+  if(facs.includes('Nords')){const g=frG(side,'no'),raid=supK(side)==='Raid Tactics!',ruler=supK(side)==='Ruler of Manheim';if(g.round!==R&&(!g.used||(raid&&(+g.used||0)<3)||ruler))Object.keys(TACTICS).filter(t=>!(ruler&&g.round===R-1&&g.tactic===t)&&!(raid&&(g.usedL||[]).includes(t))).forEach(t=>out.push({id:'tactic:'+t,label:'Tribal Tactic '+t+' ('+TACTICS[t].join(', ')+' for Mortals, Exalted and character-led regiments this round; once per game)'}));}
   if(facs.includes('Sorcerer Kings')&&!frG(side,'sk').ritual)Object.entries(RITUALS).forEach(([c,L])=>L.forEach(([n,t],i)=>out.push({id:'ritual:'+n,label:'Prepare Ritual '+n+' ('+c+', needs '+t+' markers)',def:i===0&&c==='Court of Fire'})));
   if(facs.includes('Weaver Courts')&&!frG(side,'wc').season)SEASONS.forEach(s=>out.push({id:'season:'+s,label:'Start the Cycle of Seasons in '+s+' ('+SEASONFX[s][0]+')',def:s==='Summer'}));
   if(facs.includes('Spires')&&!frG(side,'sp').sect)['Underspire','Directorate','Sovereign Lineage'].forEach(s=>out.push({id:'sect:'+s,label:'Sect: '+s,def:s==='Underspire'}));
@@ -3006,7 +3016,7 @@ function frRoundOptions0(side){const out=[],R=state.round||1,facs=frFacs(side);
   return out;}
 async function applyRoundOption(side,id){{const m=String(id).match(/^cdir(.+?):(.+)$/);if(m){if(CDIR[m[2]])return cdirSet(m[1],m[2]);return;}}const [k,v]=String(id).split(/:(.*)/s),R=state.round||1;
   if(k==='soma'){const g=frG(side,'od');return frSet(side,'od',v==='pant'?{pant:(+g.pant||0)+1,soma:R}:{dark:(+g.dark||0)+1,soma:R});}
-  if(k==='tactic'&&TACTICS[v]){const g=frG(side,'no');const units=state.units.map(u=>{if(u.side!==side||u.type==='marker'||frFac(u)!=='Nords')return u;const r=frRoles(u);if(!(r.includes('Mortals')||r.includes('Exalted')||u.charName))return u;return grantU(u,'Tribal Tactic: '+v,TACTICS[v]);});return putState({units,fr:frPatch(side,'no',{tactic:v,round:R,used:(+g.used||0)+1})});}
+  if(k==='tactic'&&TACTICS[v]){const g=frG(side,'no');const units=state.units.map(u=>{if(u.side!==side||u.type==='marker'||frFac(u)!=='Nords')return u;const r=frRoles(u);if(!(r.includes('Mortals')||r.includes('Exalted')||u.charName))return u;return grantU(u,'Tribal Tactic: '+v,TACTICS[v]);});return putState({units,fr:frPatch(side,'no',{tactic:v,round:R,used:(+g.used||0)+1,usedL:(g.usedL||[]).concat([v])})});}
   if(k==='ritual'){const th=(Object.values(RITUALS).flat().find(x=>x[0]===v)||[0,7])[1],g=frG(side,'sk'),dis=g.dis!==R;return frSet(side,'sk',{ritual:v,th,rm:dis?Math.min(R,5):0,dis:dis?R:g.dis});}
   if(k==='season'&&SEASONS.includes(v))return putState({fr:frPatch(side,'wc',{season:v,round:R}),units:frSeasonUnits(state.units,side,v)});
   if(k==='sect')return frSet(side,'sp',{sect:v});
@@ -3171,17 +3181,18 @@ const CASTERS={
  'Ardent Kerawegh':{f:['Fear','Dismay','Rancor','Resolve','Litanies of Battle']},'Tempered Sorcerer':{sch:DW_SCHOOLS,label:'School'},'Tempered Steelshaper':{f:['Hone Blades','Temper Plate','Unmake Armor']},
  'Lost Ancestor':{f:['Litanies of Battle','Songs of the Descent'],sch:DW_SCHOOLS,label:'School'}};
 function casterKey(u,asChar){const n=asChar?u.charName:frBase(u);return CASTERS[n]?n:null;}
-function spellSchool(u,asChar){const k=casterKey(u,asChar),C=CASTERS[k];if(!C||!C.sch)return null;const key=asChar?'cschool':'school';const v=u[key];if(v&&C.sch[v])return v;
+function spellSchool(u,asChar){if(asChar&&supK(u.side)==='Omnipotence'){const w=supWl(u.side);if(w&&w.id!==u.id&&w.charName)return spellSchool(w,true);}const k=casterKey(u,asChar),C=CASTERS[k];if(!C||!C.sch)return null;const key=asChar?'cschool':'school';const v=u[key];if(v&&C.sch[v])return v;
   if(asChar&&k&&SK_COURTS===C.sch){const r=frRoles(u,true).find(x=>/^Court of/.test(x));if(r&&C.sch[r.replace('Court of ','')])return r.replace('Court of ','');}return Object.keys(C.sch)[0];}
 function spellsOf(u,asChar){if(asChar&&(u.spells||[]).length&&!casterKey(u,true))return u.spells;const k=casterKey(u,asChar);if(!k)return asChar?(u.spells||[]):[];const C=CASTERS[k],sc=spellSchool(u,asChar);
   const names=(C.f||[]).concat(sc?C.sch[sc]:[]);return names.filter(n=>SPELLDB[n]).map(n=>{const S=SPELLDB[n];return {name:n,range:S.r,att:S.a,scaling:!!S.s,targets:S.t==='enemy'?'enemy':S.t==='friend'?'friendly':S.t,text:S.d,db:S};});}
-function magicLevel(u,asChar){const k=casterKey(u,asChar);if(k&&CASTERS[k].lvl==='2xstands')return Math.min(12,2*live(u));const R=asChar?u.charRules:u.rules;return rx(R||[],'Priest')||rx(R||[],'Wizard')||0;}
+function magicLevel(u,asChar){const k=casterKey(u,asChar);if(k&&CASTERS[k].lvl==='2xstands')return Math.min(12,2*live(u));const R=asChar?u.charRules:RU(u);return rx(R||[],'Priest')||rx(R||[],'Wizard')||0;}
 function regCaster(u){const k=casterKey(u,false);return k&&CASTERS[k].reg?CASTERS[k]:null;}
 /* legal targets for a spell */
 function spellTargets(u,sp){const S=sp.db||{},cp=corners(u);if(S.t==='self'||S.t==='zone'||S.t==='terrain'||sp.range===0)return [u];
   const eng=engaged(u).map(byId).filter(Boolean),hits=S.h||S.hf||/Hit/.test(sp.text||'');
   let C=all().filter(t=>t.onTable&&!t.destroyed&&t.type!=='marker'&&(S.t==='any'?true:(sp.targets==='enemy'?t.side!==u.side:t.side===u.side))&&polyDist(cp,corners(t))<=(sp.range||12)+srRangeAdd(u)+1e-6);
   C=C.concat(srTether(u,sp,C));
+  if(u.warlord&&supAct(u.side,'Divine Protection')&&sp.targets!=='enemy'&&sp.range!==0)C=all().filter(t=>t.onTable&&!t.destroyed&&t.type!=='marker'&&t.side===u.side);
   if(eng.length&&hits&&sp.targets==='enemy')C=eng;
   const q=S.q;if(q)C=C.filter(t=>q==='nonmonster'?t.type!=='monster':q==='Infantry'?/Infantry/.test(t.cls||''):q==='Brute'?/Brute/.test(t.cls||''):q==='Automaton'?rh(t.rules,'Automaton'):q==='modular'?!!t.mods:
     q==='inzone'?zonesOf().some(z=>standsOf(t).some(st=>inZone(st.poly,z))):q.startsWith('name:')?new RegExp(q.slice(5)).test(t.name):q.startsWith('fx:')?fx(t).some(e=>e.startsWith(q.slice(3))):frRoles(t).includes(q)||(t.charName&&frRoles(t,true).includes(q)));
@@ -3195,7 +3206,8 @@ function spellHitRes(T,hits,ap,noMorale){if(rh(RU(T),'Loose Formation'))hits=Mat
   if(w&&!auto&&R>0){for(let i=0;i<w;i++){const d=d6();mr.push(d);if(d>R||d===6)mw++;}}
   return {hits,w:w+mw,txt:`${hits} Hits${ap?' (AP '+ap+')':''}: Defense ${dr.join(',')} → ${w} wound${w===1?'':'s'}`+(mr.length?`; Morale ${mr.join(',')} → +${mw}`:auto&&w?'; no Morale':'')};}
 /* apply a successful spell */
-async function resolveSpell(cid,sp,tid,succ,asChar){const r=await resolveSpell0(cid,sp,tid,succ,asChar);try{await srAfterSpell(cid,sp,tid,asChar);}catch(e){}return r;}
+async function resolveSpell(cid,sp,tid,succ,asChar){lastSpellSucc=succ;const r=await resolveSpell0(cid,sp,tid,succ,asChar);try{await srAfterSpell(cid,sp,tid,asChar);}catch(e){}
+  try{const u=base(cid),T=base(tid);if(asChar&&u&&T&&supAct(u.side,'The Spirit Shines')&&(frRoles(u,true).includes('Theist')||/Theist|Priest/.test(u.charName||''))&&T.side===u.side&&supRoles(T).includes('Theist')){for(const x of state.units.filter(x=>x.side===u.side&&x.id!==T.id&&srAlive(x)&&supRoles(x).includes('Theist')))await resolveSpell0(cid,sp,x.id,succ,asChar);}}catch(e){}return r;}
 async function resolveSpell0(cid,sp,tid,succ,asChar){const u=byId(cid),T=byId(tid)||u,S=sp.db||{},nm=t=>t.short||t.name,src='Spell: '+sp.name;let units=state.units.slice(),parts=[],extra={};
   const doHits=(t,n,ap,noM)=>{if(n<=0)return;const R=spellHitRes(byId(t.id)||t,n,ap,noM||S.nm);units=hurt(units,t.id,R.w);parts.push(nm(t)+': '+R.txt);};
   if(!sp.db){units=units.map(x=>x.id===T.id?grantU(x,src+(sp.effect&&sp.effect!==sp.name?' ('+String(sp.effect).slice(0,60)+')':''),[],null):x);parts.push('effect noted on '+nm(T));}
@@ -3241,7 +3253,7 @@ function spellBox(box,u,asChar,ctx,onDone){const sps=spellsOf(u,asChar),lvl=magi
   const caster=t=>rx(t.rules,'Priest')||rx(t.rules,'Wizard')||(t.charName&&(rx(t.charRules,'Priest')||rx(t.charRules,'Wizard')))||(CASTERS[frBase(t)]&&CASTERS[frBase(t)].reg);
   const cp=corners(u),interf=all().some(t=>t.onTable&&t.side!==u.side&&caster(t)&&(polyDist(cp,corners(t))<=10||polyDist(corners(T),corners(t))<=10));
   const talos=all().filter(t=>t.onTable&&t.side===u.side&&(t.abilities||[]).some(a=>/Blood of the Forge God/.test(a[0]))&&polyDist(cp,corners(t))<=10).length;
-  const auto=S.a===null||(rh(T.rules,'Gifted Mortals')&&T.side===u.side&&asChar);const att=(S.a==='D'?(+T.stats.D||0):sp.att)-(interf?1:0),dice=lvl+talos+srSpellDice(u,asChar),need=srNeed(u,asChar,spellNeed(sp,T));
+  const auto=S.a===null||(rh(T.rules,'Gifted Mortals')&&T.side===u.side&&asChar)||(asChar&&charAct&&charAct.autoWin);const att=(S.a==='D'?(+T.stats.D||0):sp.att)-(interf?1:0),dice=lvl+talos+srSpellDice(u,asChar),need=srNeed(u,asChar,spellNeed(sp,T));
   const devout=rh(T.rules,'Devout')||(T.charName&&rh(T.charRules||[],'Devout')),vortex=T.side!==u.side&&fx(T).some(e=>/Elemental Vortex/.test(e));
   const go=succ=>{ctx.done=true;resolveSpell(u.id,sp,T.id,succ,asChar).then(line=>onDone({spell:sp.name,target:T.id,line,success:true}));};
   if(auto){box.appendChild(ptext(rh(T.rules,'Gifted Mortals')?'Gifted Mortals: the spell succeeds automatically.':'This spell is cast automatically.'));const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Cast '+sp.name;b.onclick=()=>{b.disabled=true;go(Math.max(need,2));};box.appendChild(b);return true;}
@@ -3271,12 +3283,12 @@ const SUP={
  'Driven by Carnage':{c:/Blooded/,t:'Always Active',p:'Friendly Half-Bloods heal 1 wound per enemy stand they destroy with Clash Actions or Impact Attacks (after Morale Tests). When its regiment destroys an enemy regiment with a Clash or Charge it may make an out-of-sequence Reform or Combat Reform.',a:'Until the end of the round, any Half-Bloods regiment that destroys an enemy regiment with a Clash or Impact Attacks may make an out-of-sequence Reform or Combat Reform, and the healing is doubled.',g:{who:ROLE('Half-Bloods'),note:'Driven by Carnage doubled'}},
  'Wild Beasts':{c:/Vargyr/,t:'Always Active',p:'Friendly Half-Bloods may make Impact Attacks when charging through or within Hindering terrain.',a:'Until the end of the round, friendly Half-Bloods regiments gain Shock and Fury.',g:{who:ROLE('Half-Bloods'),rules:['Shock','Fury']}},
  'Raid Tactics!':{c:/Jarl/,t:'Always Active',p:'Use the Activated part of Tribal Tactics three times per game, a different tactic each time. Mortal and Exalted regiments get +1 to Reinforcement Rolls and cannot be Shattered.',a:'Until the end of the round, friendly Mortal and Exalted regiments gain Fearless, Juggernaut and Inspired.',g:{who:ROLE('Mortals','Exalted'),rules:['Fearless','Juggernaut','Inspired']}},
- 'Ruler of Manheim':{c:/Konungyr/,t:'Always Active',p:'Use the Activated part of Tribal Tactics at the end of every Supremacy Phase (not the same tactic as last round). Mortal and Exalted regiments cannot be Shattered.',a:'Until the end of the round, all friendly regiments and characters count as having chosen every Tribal Tactic.',g:{who:ANY,note:'all Tribal Tactics'}},
+ 'Ruler of Manheim':{c:/Konungyr/,t:'Always Active',p:'Use the Activated part of Tribal Tactics at the end of every Supremacy Phase (not the same tactic as last round). Mortal and Exalted regiments cannot be Shattered.',a:'Until the end of the round, all friendly regiments and characters count as having chosen every Tribal Tactic.',g:{who:ANY,rules:u=>[...new Set(Object.values(TACTICS).flat())]}},
  'Skývald':{c:/Shaman/,t:'Always Active',uses:2,p:'The Shaman and its regiment ignore Water, Hindering, Perilous and Dangerous terrain effects.',a:'Twice per game, each time a different effect: Niflmire (all Barrage ranges halved this round), Hregg (one enemy regiment takes 5 unavoidable wounds, no Morale Tests) or Snæstormur (enemy regiments −1 March and no Charge re-rolls this round).',cho:['Niflmire','Hregg','Snæstormur']},
  'Divine Protection':{c:/Volva/,t:'Always Active',p:'Friendly regiments get +1 Evasion (max 2).',a:'Until the end of the round the Warlord may target friendly regiments with spells regardless of Line of Sight, range or Engagement (Self spells unaffected).'},
  'Carrier of the Godflesh':{c:/Mechanist/,t:'Battlefield',p:'When you put a card in the Strategic Stack, reveal it and pick a regiment on the table that card could activate: it gains Hardened (+1) (max 2) until the end of the round.',a:''},
  'Army of Lions':{c:/Polemarch/,t:'Always Active',p:'Its regiment (with Auxiliary Stand and Character) gets +1 Clash (max 4) and Tenacious (1). Friendly Infantry within 10″ of the Warlord may re-roll failed unmodified Morale Rolls of 6.',a:'Once per game before the Supremacy roll-off, reveal the top card of your Command Stack: if it is a Polemarch you may win this round’s roll-off automatically (two Polemarchs cancel out).'},
- 'Infantry Tactics':{c:/Aristarch/,t:'Always Active',p:'Once per game, at the start of a Reinforcement Phase, re-roll all failed Reinforcement Rolls.',a:'Until the end of the round, the chosen Battlefield Order affects all friendly non-Monster regiments on the table.',g:{who:u=>u.type!=='monster'&&!/Monster/.test(u.cls||''),note:'Battlefield Order for all'}},
+ 'Infantry Tactics':{c:/Aristarch/,t:'Always Active',p:'Once per game, at the start of a Reinforcement Phase, re-roll all failed Reinforcement Rolls.',a:'Until the end of the round, the chosen Battlefield Order affects all friendly non-Monster regiments on the table.'},
  'Hammer and Anvil':{c:/Ipparchos/,t:'Always Active',p:'Once per round an Infantry or Cavalry regiment makes a free Reform as its last action (no change to ranks or files). Battlefield: Infantry or Cavalry activated from the Strategic Stack gains Shock.',a:''},
  'Bringing Back the Children of Fire':{c:/Promethean|Oracle/,t:'Always Active',p:'Friendly Titan regiments gain Priest (+3). A Titan activated from the Strategic Stack counts as 6 stands for Seizing Objective Zones this round.',a:''},
  'The Matriarch Walks':{c:/Matriarch/,t:'Always Active',p:'A regiment that Chants any Cult’s Battlecry loses Broken at once.',a:'Once per battle, after your first activation (and any Entourage) this round, draw the next Command Card and activate it straight away (it cannot Entourage).'},
@@ -3356,25 +3368,25 @@ function supPreySel(side,lead){const r=bEl('div',{className:'tf-row'});const sel
   sel.onchange=()=>{if(sel.value)Promise.resolve(supSetPrey(side,sel.value)).then(()=>{if(state.step==='supdecl')supNext();});};r.append(bEl('span',{className:'tf-l',textContent:lead||'The Big Game Hunt'}),sel);return r;}
 function supChip(side){const S=supOf(side);if(!S)return '';if(S.d.prey){const t=supPrey(side);return S.k+' · '+(t?'Prey: '+(t.short||t.name):'no Prey marked');}return S.k+(S.active?' · active this round':S.d.a?(S.d.every?' · every round':S.can?' · ready':' · '+(S.used?'used':'not on the table')):' · passive');}
 /* the Supremacy step: after the First Player is set, First Player declares, then the other */
-function supNeeded(){return ['cs','nord'].some(s=>{const S=supOf(s);return S&&(S.can||supNeedPrey(s));});}
+function supNeeded(){return ['cs','nord'].some(s=>{const S=supOf(s);return S&&(S.can||supNeedPrey(s)||supChoiceNeeded(s));});}
 function supAiWant(side){const S=supOf(side);if(!S||!S.can||S.d.unknown)return false;if(S.d.every)return true;const R=state.round||1;
   const mine=(state.units||[]).filter(u=>u.side===side&&u.type!=='marker'&&!u.destroyed),on=mine.filter(u=>u.onTable).length;
   if(state.aiSupWant===true&&R>=2)return true;if(state.aiSupWant===false&&R<5)return false;return R>=4||(R>=3&&on>=mine.length*0.6);}
 async function supStart(first){if(!supNeeded())return false;await putState({step:'supdecl',first,supDone:{},phase:'Round '+state.round+' · Supremacy Abilities'});await supNext();return true;}
 async function supNext(){const first=state.first,order=[first,other(first)],done=state.supDone||{};const who=order.find(s=>!done[s]);
-  if(!who){await afterSupremacy0(first);return;}
+  if(!who){for(const s0 of [first,other(first)]){if(supChoiceNeeded(s0)){if(!PVP()&&s0===AI)await supAiChoice(s0);else{render();return;}}}await afterSupremacy0(first);return;}
   const S=supOf(who);if(S&&supNeedPrey(who)){if(!PVP()&&who===AI){await supSetPrey(AI,supPreyOpts(AI)[0].id);return supNext();}render();return;}
   if(!S||!S.can){await putState({supDone:Object.assign({},done,{[who]:'skip'})});return supNext();}
   if(!PVP()&&who===AI){let ch='';if(S.d.cho){const used=S.g.chosen||[];ch=S.d.cho.find(c=>!used.includes(c)&&c!=='Hregg')||S.d.cho.find(c=>!used.includes(c))||'';}
     if(supAiWant(AI))await supActivate(AI,ch);await putState({supDone:Object.assign({},state.supDone||{},{[AI]:'done'})});return supNext();}
   render();}
 async function supDecide(side,yes,choice){if(yes){const ok=await supActivate(side,choice);if(!ok)return;}await putState({supDone:Object.assign({},state.supDone||{},{[side]:yes?'done':'pass'})});await supNext();}
-function supBar(add,info,mk,me){const first=state.first,order=[first,other(first)],done=state.supDone||{},who=order.find(s=>!done[s]);
+function supBar(add,info,mk,me){{const fo=[state.first,other(state.first)],dn=state.supDone||{};if(!fo.find(s=>!dn[s])){const mk2=(t,f,g)=>mk(t,()=>Promise.resolve(f()).then(()=>{if(state.step==='supdecl')supNext();}),g);if(supChoiceNeeded(me)&&supChoiceBar(add,mk2,me,info))return;info.textContent='Waiting for '+WHO(other(me))+' to finish their Supremacy choices.';return;}}const first=state.first,order=[first,other(first)],done=state.supDone||{},who=order.find(s=>!done[s]);
   const theirs=order.filter(s=>done[s]==='done').map(s=>WHO(s)+' activated '+supOf(s).k).join(' · ');
   if(who!==me){info.textContent=`Supremacy Abilities: waiting for ${WHO(who||other(me))} to decide.`+(theirs?' '+theirs+'.':'');return;}
   if(supNeedPrey(me)){info.textContent='The Big Game Hunt: mark an enemy regiment as your Prey. Your Clashes and Volleys against it count as Inspired and Taking Aim.';add(supPreySel(me,'Prey'));return;}
   const S=supOf(me);info.textContent=`Supremacy Abilities (${who===first?'First Player declares first':'the First Player has declared'}). Activate ${S.k}?`+(theirs?' '+theirs+'.':'');
-  add(ptext(S.d.a+(S.d.every?' (every round)':S.d.uses?` (${S.d.uses-S.used} left)`:' (once per battle)')+(S.d.g&&!S.d.g.note?' The map applies it.':' The map shows it as a reminder on the strip; apply it at the table.')));
+  add(ptext(S.d.a+(S.d.every?' (every round)':S.d.uses?` (${S.d.uses-S.used} left)`:' (once per battle)')+' The map applies it.'));
   if(S.d.cho)S.d.cho.filter(c=>!(S.g.chosen||[]).includes(c)).forEach(c=>add(mk('Activate: '+c,()=>supDecide(me,true,c))));else add(mk('Activate '+S.k,()=>supDecide(me,true)));
   add(mk('Not this round',()=>supDecide(me,false),true));}
 /* full text in the Faction rules panel and the character's card */
@@ -3382,6 +3394,7 @@ function supBlock(side,mine){const S=supOf(side);if(!S)return null;const box=bEl
   box.append(ptext((S.wl.charName||'Warlord')+' · '+S.k));
   if(S.d.p)box.append(ptext((S.d.t?S.d.t+': ':'')+S.d.p));
   if(S.d.a)box.append(ptext('Activated'+(S.d.every?' (every round)':S.d.uses?' ('+S.d.uses+' times)':' (once per battle)')+': '+S.d.a+(S.active?' — active this round'+(S.choice?' ('+S.choice+')':'')+'.':S.used&&!S.d.every?' — used.':'')));
+  supTrackers(side,box,mine);
   if(S.d.prey&&mine&&(SBX()||!supPrey(side)))box.append(supPreySel(side,supPrey(side)?'Change the Prey':'Prey'));else if(S.d.prey)box.append(ptext(supPrey(side)?'Prey: '+(supPrey(side).short||supPrey(side).name):'No Prey marked.'));
   if(mine&&SBX()&&(S.d.a||S.d.unknown)){const r=bEl('div',{className:'fr-opts'});
     if(S.can){(S.d.cho?S.d.cho.filter(c=>!(S.g.chosen||[]).includes(c)):['']).forEach(c=>r.append(abBtn('Activate'+(c?': '+c:''),()=>supActivate(side,c),'ab-tog')));}
@@ -3435,6 +3448,8 @@ function dRules(u){const o=[];if(!state||!u||u.type==='marker')return o;let role
   if(rh(u.rules,'Earthen Aegis')&&u.onTable&&terrainOf().some(t=>tHas(t,'Earth')&&polyDist(corners(u),[[t.x,t.y]])<=3+Math.max(t.rx||0,t.ry||0)))add('Regeneration (+4)','Ignores Dangerous terrain','Ignores Perilous terrain');
   if(rh(u.rules,'Water Elemental')&&srFriends(u).some(f=>rh(f.rules,'Dread Tide')&&srNear(f,u,8)))add('Terrifying (+1)');
   if(srEnemies(u).some(e=>rh(e.rules,'Primal Cacophony')&&(e.temp||[]).some(g=>/^Chant: /.test(g.src))&&srNear(e,u,12)))add('Primal Cacophony (cannot Heal, Rally or Entourage-activate)');
+  try{supDR(u).forEach(x=>add(x));}catch(e){}
+  if(supOn(u.side,'Bringing Back the Children of Fire')&&roles.includes('Titan'))add('Priest (+3)');
   return o;}
 function srHas(u,re){return fx(u).some(x=>re.test(x));}
 function canHeal(u){return !srHas(u,/^Primal Cacophony/);}
@@ -3450,7 +3465,7 @@ function srFirstMarch(u){let b=0;if(act&&act.id===u.id){b+=act.srFirstMarch||0;i
 function srChargeBonus(u,t){let b=0;const F=fx(u);F.forEach(x=>{const k=x.match(/^Charge \+(\d+)″/);if(k)b+=+k[1];});
   if(t){if(rh(u.rules,'Hubris')&&t.type==='monster')b+=3;if(rh(u.rules,'Arrogance')&&(t.type==='monster'||t.charName))b+=3;if(fx(t).some(x=>/^Marked \(Designate Target\)/.test(x)))b+=2;}
   if(srHas(u,/^Divine Purpose/)&&act&&act.id===u.id&&!act.dpUsed)b+=2;return b+srMarchMod(u);}
-function srSeizeStands(u,z,k){if(srHas(u,/^Prowling/)||srHas(u,/^Refused a Duel/))return 0;let v=seizeVal(u);if((u.effects||[]).includes('Broken')&&hasGrant(u,'Dominating Presence (its Seize count cannot be reduced)'))v=frBase(u)==='Tontorr'?6:3;let s=k*v;
+function srSeizeStands(u,z,k){if(srHas(u,/^Prowling/)||srHas(u,/^Refused a Duel/))return 0;if(srHas(u,/^Children of Fire/))return 6;let v=seizeVal(u);if((u.effects||[]).includes('Broken')&&hasGrant(u,'Dominating Presence (its Seize count cannot be reduced)'))v=frBase(u)==='Tontorr'?6:3;let s=k*v;
   if(u.charName&&rh(u.charRules||[],'Powerful Presence')&&!/Light/.test(u.cls||'')&&standsOf(u).some(st=>st.kind==='char'&&inZone(st.poly,z)))s+=3-v;return s;}
 /* combat helpers */
 function cArc(t,p){return rh(RU(t),'Acute Senses')?'front':arcOf(t,p);}
@@ -3521,8 +3536,8 @@ function rlCompute(side,units,startV){const ok=u=>u.onTable&&!u.destroyed&&u.typ
   if(startV!=null)line=cs?Math.max(line,startV):Math.min(line,startV);return +Math.max(0,Math.min(48,line)).toFixed(2);}
 /* ---- state sanity on every save: cannot-be-Broken, first-time triggers, Reinforcement Lines ---- */
 function sanitize(st){if(!st||!Array.isArray(st.units)||st.mode==='test'&&false)return st;const keep=state;state=st;
-  try{st.units=st.units.map(u=>{if(u.type==='marker')return u;let y=u;
-      if((y.effects||[]).includes('Broken')&&(rh(y.rules,'In the Fold')&&srAllMods(y,/Origami/)||rh(y.rules,'Life for Glory')||hasGrant(y,'Awakened')))y=Object.assign({},y,{effects:y.effects.filter(e=>e!=='Broken')});
+  try{supParagon(st);st.units=st.units.map(u=>{if(u.type==='marker')return u;let y=u;
+      if((y.effects||[]).includes('Broken')&&(rh(y.rules,'In the Fold')&&srAllMods(y,/Origami/)||rh(y.rules,'Life for Glory')||hasGrant(y,'Awakened')||srHas(y,/^Cannot be Broken/)))y=Object.assign({},y,{effects:y.effects.filter(e=>e!=='Broken')});
       if((rh(y.rules,'Shattered Perfection')||rh(y.rules,'Raging Elements'))&&!y.belowOnce&&belowStart(y))y=Object.assign({},y,{belowOnce:true});
       if(rh(y.rules,'Prowl')&&y.onTable&&y.prowlLost!==(st.round||1)&&st.units.some(e=>e.side!==y.side&&e.onTable&&!e.destroyed&&e.type!=='marker'&&polyDist(corners(e),corners(y))<8-1e-6&&!tLos(e,y)))y=Object.assign({},y,{prowlLost:st.round||1});
       if(rh(y.rules,'Gorged')&&!y.gorged){if((y.wounds||0)>0&&!y.wasHurt)y=Object.assign({},y,{wasHurt:true});else if(y.wasHurt&&(y.wounds||0)===0&&!y.destroyed)y=Object.assign({},y,{gorged:true});}
@@ -3539,18 +3554,20 @@ function srActions(u,out,used,eng,blocked){if(!act||act.cur)return;const R=RU(u)
   if(rh(R,'On Soaring Winds'))out.push({type:'soar',why:blocked('march')});
   if(rh(R,'Sweeping Step'))out.push({type:'sweep',why:used.length?'Only as the first action':blocked('march')});
   if(rh(R,'Rooted Might'))out.push({type:'rooted',why:blocked('rooted')});
+  if(act.freeReform&&!act.actions.some(a=>a.type==='xreform'))out.push({type:'xreform',why:eng.length?'Not while engaged':'',free:true});
   if(assassinOk(u))out.push({type:'assassin',why:blocked('clash')});
   if(!u.charName&&canDuel(u)&&duelTargets(u).length){const arr=rh(u.rules||[],'Arrogance');out.push({type:'duel',why:act.actions.some(a=>a.type==='duel')?'Already used this activation':arr?'':blocked('duel'),free:arr});}
   if(srHas(u,/^Primal Cacophony/))out.forEach(o=>{if(o.type==='rally'||o.type==='crally')o.why='Primal Cacophony: cannot Rally';});}
 function srStartAction(type){const u=byId(act.id);const st={x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files};
   if(!srFearsome(u,type))return true;
   if(type==='assassin')return srAssassin(u);
+  if(type==='xreform'){act.cur={type:'reform',xreform:true,free:true,start:st,budget:0,roll:null,moving:false,reshape:true};render();return true;}
   if(type==='duel'){const T=duelTargets(u);act.cur={type:'duel',free:rh(u.rules||[],'Arrogance'),start:st,budget:0,moving:false,reshape:false};openCombat({type:'duel',att:act.id,tgt:T.length===1?T[0].id:null,choices:T.map(e=>e.id),inAct:true,step:'offer',selfTitle:'Duel'});render();return true;}
   if(type==='xclash'){act.cur={type:'clash',xclash:true,free:true,start:st,budget:0,moving:false,reshape:false};const eng=engaged(u);if(eng.length===1)openCombat({type:'clash',att:act.id,tgt:eng[0].id,inAct:true});else openCombat({type:'clash',att:act.id,tgt:null,choices:eng.map(e=>e.id),inAct:true});render();return true;}
   if(type==='xvolley'){act.cur={type:'volley',xvolley:true,free:true,stage:'target',start:st,budget:0,moving:false,reshape:false};render();toast('Free Volley: click the enemy regiment you are shooting at.');return true;}
   if(type==='soar'||type==='sweep'){act.cur={type:'march',soar:true,sweep:type==='sweep',start:st,budget:(u.m||0)*(type==='sweep'?2:1),moving:true,reshape:false,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null};render();toast(type==='sweep'?'Sweeping Step: two Marches through regiments; then a free Clash against one you passed through. The activation then ends.':'On Soaring Winds: March in any direction, ignoring regiments and terrain, even while engaged.');return true;}
   return false;}
-function srFinishAction(u,c,entry){if(c.xclash)entry.type='xclash';if(c.xvolley)entry.type='xvolley';if(c.soar&&!c.sweep)entry.type='soar';
+function srFinishAction(u,c,entry){if(c.xclash)entry.type='xclash';if(c.xreform)entry.type='xreform';if(c.xvolley)entry.type='xvolley';if(c.soar&&!c.sweep)entry.type='soar';
   if(c.sweep){entry.type='sweep';act.sweepDone=true;const E=srCrossed(u,entry);if(E.length){setTimeout(()=>openCombat({type:'clash',att:act.id,tgt:E.length===1?E[0].id:null,choices:E.map(e=>e.id),inAct:false,forceContact:true,selfTitle:'Sweeping Step'}),80);}else toast('Sweeping Step: it passed through no enemy, so there is no free Clash.');}
   if(c.type==='rooted'){const ids=srFriends(u).filter(x=>srNear(x,u,8)&&frFac(x)==='Weaver Courts').map(x=>x.id);putState({units:state.units.map(x=>ids.includes(x.id)?Object.assign({},x,{seeds:Math.min(3,(+x.seeds||0)+1)}):x),lastTitle:N(u.side)+' · Rooted Might',lastText:ids.length+' friendly regiment'+(ids.length===1?'':'s')+' within 8″ gain a Seed Marker.'}).catch(()=>{});}
   if(c.type==='march'&&!c.soar)srAfterMarch(base(act.id),entry);}
@@ -3598,9 +3615,9 @@ async function srAfterBloom(u,n){if(n<3)return;const r=srRound();const S=srFrien
 async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indiscriminate Omnivore')&&!x.gorged&&srNear(x,u,12)&&(x.wounds||0)>0&&canHeal(x))[0];
   if(B)await putState({units:state.units.map(x=>x.id===B.id?Object.assign({},x,{wounds:Math.max(0,(x.wounds||0)-2)}):x),lastTitle:N(u.side)+' · Indiscriminate Omnivore',lastText:(B.short||B.name)+' heals 2 wounds.'});}
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
-async function awaken(id,why){await awaken0(id,why);const u=base(id);if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
+async function awaken(id,why){await awaken0(id,why);const u=base(id);try{await supOnAwaken(u);}catch(e){}if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
@@ -3733,6 +3750,175 @@ async function exAssassin(){startAction('assassin');for(let i=0;i<400;i++){await
 function privOk(u){return frBase(u)==='Force Grown Drones'&&/Biomancer|Pheromancer/.test(u.charName||'')&&!/Medium/.test(u.cls||'')&&(state.round||1)===1&&!u.onTable;}
 function fodder6(u){return frBase(u)==='Force Grown Drones'&&rh(u.rules||[],'Optimized Fodder')&&((u.stands||0)-(u.char!=null?1:0)-(u.aux!=null?1:0))>=6;}
 function srStrain(u){const S=STRAIN[frBase(u)];if(S&&fodder6(u))return [S[0]+' (Optimized Fodder)',['Lethal Demise (2)'],'+1 March',{M:1}];return S;}
+
+/* ================= Supremacy Abilities: every passive and activated part wired into the game ================= */
+function supK(side){const S=supOf(side);return S?S.k:'';}
+function supOn(side,k){const S=supOf(side);return !!S&&S.k===k&&(S.d.t!=='Battlefield'||S.on);}
+function supAct(side,k){const S=supOf(side);return !!S&&S.k===k&&S.active;}
+function srIsWl(u){const w=supWl(u.side);return !!w&&w.id===u.id&&!w.destroyed&&!!w.charName;}
+function srRnd(){return state.round||1;}
+function supMemo(side,patch){const sup=Object.assign({},state.sup||{});sup[side]=Object.assign({},sup[side]||{},patch);return sup;}
+function supMem(side){return (state.sup||{})[side]||{};}
+/* passive rules a regiment has from its army's Supremacy */
+function supDR(u){const o=[];if(!u||u.type==='marker')return o;const side=u.side,k=supK(side);if(!k)return o;let roles=[];try{roles=supRoles(u);}catch(e){}
+  const add=(...r)=>r.forEach(x=>{if(!o.includes(x))o.push(x);});const wl=srIsWl(u),cls=u.cls||'';
+  if(k==='Skývald'&&wl)add('Ignores Hindering terrain','Ignores Dangerous terrain','Ignores Perilous terrain','Ignores Water terrain');
+  if(k==='Army of Lions'&&wl)add('Tenacious (1)');
+  if(k==='Thunderous Assault'&&supOn(side,k)&&roles.includes('The Speakers'))add('Shock');
+  if(k==='Obdurate Bone and Stone'&&roles.includes('The Legion')){if(/Medium/.test(cls))add('Vanguard (2)');if(/Heavy/.test(cls))add('Vanguard (4)');}
+  if(k==='Divinity Grace')add('Loses Brittle (Divinity Grace)');
+  if(k==='Blasphemous Mesa'&&u.type!=='marker')add('Aura of Death (+1)');
+  if(k==='Reign of Terror'&&(roles.includes('The Creed')||roles.includes('The Legion'))&&animate(u)&&odTier(side,'dark')>=3)add('Terrifying (+1)');
+  if(k==='Elemental Dominion'){if(rh(u.rules,'Fire Elemental'))add('Fan the Flames');if(rh(u.rules,'Air Elemental'))add('Opportunists');if(rh(u.rules,'Earth Elemental'))add('Regeneration (2)');}
+  if(k==='The Spirit Shines'&&roles.includes('Theist')){add('Divine Purpose');if((state.units||[]).some(x=>x.side===side&&srAlive(x)&&x.charName&&(frRoles(x,true).includes('Theist')||/Theist|Priest/.test(x.charName))&&(x.id===u.id||srNear(x,u,12))))add('Indomitable (+1)');}
+  if(k==='Remorseless Hunter'&&roles.includes('Husk'))add('Designate Target');
+  if(k==='Lambs to the Slaughter'&&wl)add('Fearless','Fury');
+  if(k==='Professional Troops'&&roles.includes('Feudal')&&(state.units||[]).some(x=>x.side===side&&srAlive(x)&&x.charName&&(frRoles(x,true).includes('Feudal')||/Noble Lord/.test(x.charName))&&(x.id===u.id||srNear(x,u,8))))add('Professional Troops (re-roll 6s in Clashes and Defense)');
+  if(k==='Holy Crusade'&&supAct(side,k)&&roles.includes('Theist'))add('Cannot be Broken (Holy Crusade)');
+  return o;}
+function supForwardForce(u){const k=supK(u.side);return srIsWl(u)&&(k==='Paragon of War'||k==='First Born of War');}
+function seasonNow(side){const S=supOf(side),g=frG(side,'wc');if(S&&S.active){if(S.k==="Reaper's Bloom")return 'Autumn';if(S.k==='Subtle Sow')return 'Spring';if(S.k==='Reigning Season'||S.k==='Crop Rotation'){const c=(frRoles(S.wl,true).find(r=>/^Court of/.test(r))||'').replace('Court of ','');if(c)return c;}}return g.season;}
+/* Weaver Courts: the Warlord's Bloom Effect (Bloom with 2 Seeds) */
+function supBloom(u){const S=supOf(u.side);if(!S)return null;const act2=S.active;
+  if(S.k==="Reaper's Bloom")return {rules:[act2?'Cleave (+2)':'Cleave (+1)'],t:'Cleave (+'+(act2?2:1)+')'};
+  if(S.k==='Subtle Sow')return {heal:u.type==='monster'?0:(act2?5:3),t:'heals '+(act2?5:3)+' wounds'};
+  if(S.k==='Reigning Season')return {label:act2?'Reigning Season (Deadly Blades and Deadly Shots)':'Reigning Season (Deadly Blades and Deadly Shots against regiments that have not activated)',t:'Deadly Blades and Deadly Shots'+(act2?'':' against regiments that have not activated')};
+  if(S.k==='Crop Rotation')return {rules:['Untouchable'],label:'Crop Rotation (re-roll failed Clash and Impact hits of 6)',t:'Untouchable and re-roll failed hits of 6'};
+  return null;}
+/* re-roll and dice hooks */
+function supHitSrc(A,g,T){const S=[];if(srHas(A,/^Professional Troops/)&&(g.type==='clash'||!g.type))S.push({k:'fail',face:6,src:'Professional Troops'});if(srHas(A,/^Crop Rotation/))S.push({k:'fail',face:6,src:'Crop Rotation'});return S;}
+function supDefSrc(T){return srHas(T,/^Professional Troops/)?[{k:'fail',face:6,src:'Professional Troops'}]:[];}
+function supEvasion(T,E){return supOn(T.side,'Divine Protection')&&E<2?E+1:E;}
+/* Glimmers of a Golden Age: once per round, 1+X failed hits become hits in a Legion Clash or Charge */
+function glimmerN(A){if(!supOn(A.side,'Glimmers of a Golden Age')||!supRoles(A).includes('The Legion')||supMem(A.side).glR===srRnd())return 0;return 1+(supAct(A.side,'Glimmers of a Golden Age')?4:odTier(A.side,'dark'));}
+/* chants */
+function supOnChant(u,cult){let units=state.units;const k=supK(u.side),notes=[];
+  if(k==='The Matriarch Walks'&&(base(u.id).effects||[]).includes('Broken')){units=units.map(x=>x.id===u.id?Object.assign({},x,{effects:x.effects.filter(e=>e!=='Broken')}):x);notes.push('The Matriarch Walks: no longer Broken');}
+  if(k==='Visions of Conquest'&&cult==='Conquest'){const E=engaged(u).map(e=>e.id);units=units.map(x=>E.includes(x.id)?grantU(x,'Dissonance (no Inspiration this round)',[]):x);if(E.length)notes.push('Visions of Conquest: engaged enemies lose Inspiration');}
+  if(k==='Visions of War'&&cult==='War'){units=units.map(x=>x.id===u.id?grantU(x,'Visions of War (Tenacious (1))',['Tenacious (1)']):x);notes.push('Visions of War: Tenacious (1)');}
+  if(k==='Visions of Death'&&cult==='Death'&&/Infantry/.test(u.cls||'')){units=units.map(x=>x.id===u.id?grantU(x,'Visions of Death (Command Stand +3 Attacks)',[]):x);notes.push('Visions of Death: Command Stand +3 Attacks');}
+  return {units,notes};}
+/* the Matriarch Walks and Visions of Conquest (card choice) */
+function vocOk(c){return supAct(HU,'Visions of Conquest')&&huStackOn()&&PS().huStack.filter(cardOk).includes(c);}
+function mwExtra(side){return supAct(side,'The Matriarch Walks')&&supMem(side).mwR!==srRnd();}
+/* Carrier of the Godflesh */
+function srGodflesh(side,card){if(!card||!supOn(side,'Carrier of the Godflesh'))return {};const id=card.slice(2),u=base(id);if(!u||!u.onTable)return {};
+  const hard=rx((u.rules||[]).concat(fx(u)),'Hardened');return {units:state.units.map(x=>x.id===id&&hard<2?grantU(x,'Carrier of the Godflesh (Hardened (+1))',['Hardened (+1)']):x),lastText:'Carrier of the Godflesh: the Strategic Stack card is revealed ('+cardName(card)+'); '+(u.short||u.name)+' gains Hardened (+1).'};}
+/* reinforcements: Raid Tactics!, Infantry Tactics, Combat Maneuvers, Reigning Season, Tactical Superiority */
+function supReinfNeed(u,need){return supK(u.side)==='Raid Tactics!'&&(supRoles(u).includes('Mortals')||supRoles(u).includes('Exalted'))?need+1:need;}
+function supAfterReinf(side,units,res){const S=supOf(side);if(!S)return;const arr=units.filter(u=>u.side===side&&u.arriving&&!u.onTable);
+  const give=(u,src,r)=>{Object.assign(u,grantU(u,src,r));};
+  if(S.k==='Combat Maneuvers'){const imp=arr.filter(u=>/Infantry/.test(u.cls||'')&&supRoles(u).includes('Imperial'));const L=imp.length?imp.slice(0,2):arr.filter(u=>/Infantry/.test(u.cls||'')).slice(0,1);L.forEach(u=>{give(u,'Combat Maneuvers (Vanguard (5))',['Vanguard (5)']);res.push(u.name+' gains Vanguard (5) (Combat Maneuvers)');});}
+  if(S.k==='Reigning Season'&&supMem(side).rsR!==srRnd()){const u=arr.filter(u=>u.type!=='monster').sort((a,b)=>(+b.points||0)-(+a.points||0))[0];if(u){give(u,'Reigning Season (Vanguard (3))',['Vanguard (3)']);res.push(u.name+' gains Vanguard (3) (Reigning Season)');state.sup=supMemo(side,{rsR:srRnd()});}}}
+function supTactical(side,pool,autoId){if(supK(side)!=='Tactical Superiority'||!autoId)return null;return pool.find(u=>u.id!==autoId&&!u.arriving&&supRoles(u).includes('The Orders')&&reinfRule(u.cls,state.round||1)!=='no');}
+/* Lead by Example: after an Orders regiment activates, the next card's non-Veteran regiment Rallies and gets +1 Clash and +2″ Charge */
+function supLeadByExample(units,a){const u=units.find(x=>x.id===a.id);if(!u||supK(u.side)!=='Lead by Example'||supMem(u.side).lbR===srRnd()||!supRoles(u).includes('The Orders'))return null;
+  const st=(u.side===HU&&!PVP()?(PS().huStack||[]):(state.aiStack||[])).filter(c=>c[0]==='u'&&c.slice(2)!==u.id&&cardOk(c));const nx=st[0];if(!nx)return null;const t=units.find(x=>x.id===nx.slice(2));if(!t||supRoles(t).includes('Veteran'))return null;
+  const i=units.indexOf(t);let y=Object.assign({},t,{effects:(t.effects||[]).filter(e=>e!=='Broken')});if((+y.stats.C||0)<4)y=grantU(y,'Lead by Example (+1 Clash)',[],{C:1});y=grantU(y,'Charge +2″ (Lead by Example)',[]);units[i]=y;return 'Lead by Example: '+(t.short||t.name)+' Rallies and gets +1 Clash and +2″ Charge';}
+/* Paragon of War: while the Exemplar's regiment is engaged, all friendly regiments are Awakened */
+function supParagon(st){['cs','nord'].forEach(side=>{const w=st.units.find(u=>u.side===side&&u.warlord);if(!w||!/Exemplar/.test(w.charName||'')||!w.onTable||w.destroyed)return;const keep=state;state=st;try{if(!engaged(w).length)return;
+  st.units=st.units.map(x=>x.side===side&&x.onTable&&!x.destroyed&&x.type!=='marker'&&!hasGrant(x,'Awakened')?grantU(Object.assign({},x,{effects:(x.effects||[]).filter(e=>e!=='Broken')}),'Awakened',awakenRules(x)):x);}finally{state=keep;}});}
+/* Field Studies (Biomancer): Observation tokens */
+function fsTok(side){return +supMem(side).fs||0;}
+/* character extra spells: Divinity Grace, Omnipotence (4+ successes), Forgemaster (once per round), Crop Rotation, The Spirit Shines (activated), Blasphemous Mesa (1 token) */
+let lastSpellSucc=0;
+function srExtraCast(u,res){const S=supOf(u.side);if(!S||!charAct)return '';const wl=srIsWl(u),R=srRnd(),n=(charAct.cast||[]).length;
+  if(S.k==='Divinity Grace'&&wl&&n===1)return 'Divinity Grace';
+  if(S.k==='Crop Rotation'&&wl&&n===1)return 'Crop Rotation';
+  if(S.k==='Forgemaster'&&wl&&n===1&&supMem(u.side).fgR!==R)return 'Forgemaster';
+  if(S.k==='Omnipotence'&&res&&res.success&&lastSpellSucc>=4&&!charAct.omni)return 'Omnipotence';
+  if(S.k==='The Spirit Shines'&&S.active&&(frRoles(u,true).includes('Theist')||/Theist|Priest/.test(u.charName||''))&&supMem(u.side).ssR!==R&&n===1)return 'The Spirit Shines';
+  if(charAct.mesa&&n===1)return 'Blasphemous Mesa';return '';}
+async function srCharCast(res){if(!charAct)return;const u=byId(charAct.id);charAct.cast=(charAct.cast||[]).concat(res.spell?[res.spell]:[]);charAct.notes=(charAct.notes||[]).concat([(res.success?'Cast ':'Tried to cast ')+res.spell+': '+res.line]);
+  const why=srExtraCast(u,res);
+  if(why){if(why==='Forgemaster')await putState({sup:supMemo(u.side,{fgR:srRnd()})});if(why==='The Spirit Shines'){await putState({sup:supMemo(u.side,{ssR:srRnd()})});charAct.autoWin=true;}if(why==='Omnipotence')charAct.omni=true;if(why==='Blasphemous Mesa')charAct.mesa=false;
+    Object.assign(charAct,{spell:0,target:null,rolls:null,done:false});toast(why+': the '+u.charName+' may cast one more spell (not the same one).');render();return;}
+  await charCommit(charAct.id,{spell:res.spell,target:res.success?res.target:null,success:res.success,note:charAct.notes.join('. ')+'.'});}
+async function srAiExtra(u,first){const why=(()=>{const S=supOf(u.side);if(!S)return '';const wl=srIsWl(u);if(S.k==='Divinity Grace'&&wl)return 'x';if(S.k==='Crop Rotation'&&wl)return 'x';if(S.k==='Forgemaster'&&wl&&supMem(u.side).fgR!==srRnd())return 'fg';if(S.k==='Omnipotence'&&lastSpellSucc>=4)return 'x';return '';})();if(!why)return '';
+  if(why==='fg')await putState({sup:supMemo(u.side,{fgR:srRnd()})});const sp=spellsOf(u,true).find(s=>s.name!==first&&spellTargets(u,s).length);if(!sp)return '';const r=await aiCastSpell(byId(u.id),true,sp.name,null);return r?'; then '+r:'';}
+/* Supremacy draw-step options for the active regiment */
+function supOptions(u){const out=[];if(!u||!act||act.id!==u.id)return out;const side=u.side,S=supOf(side);if(!S)return out;const fresh=!act.actions.length&&!act.cur,R=srRnd(),roles=supRoles(u),add=(label,fn,why)=>out.push({label,fn,why});
+  const head=t=>out.push({head:t});
+  if(S.k==='Obdurate Bone and Stone'&&supMem(side).obR!==R){const X=odTier(side,'dark');const opts=[];if(roles.includes('The Legion'))opts.push(['+'+X+'″ Charge distance this activation',()=>grant(u.id,'Charge +'+X+'″ (Obdurate Bone and Stone)',[],null,'Obdurate Bone and Stone: +'+X+'″ Charge')]);if(srIsWl(u))opts.push(['+'+X+' Attacks in its Clash this activation',()=>grant(u.id,'Obdurate Bone and Stone (+'+X+' Attacks)',[],{A:X},'Obdurate Bone and Stone: +'+X+' Attacks')]);
+    if(opts.length){head('Obdurate Bone and Stone (once per round, X = Dark Power Tier '+X+')');opts.forEach(([l,f])=>add(l,async()=>{await f();await putState({sup:supMemo(side,{obR:R})});}));}}
+  if(S.k==='Reign of Terror'&&(roles.includes('The Creed')||roles.includes('The Legion'))&&supMem(side).rtR!==R&&!hasGrant(u,'Trial of Will')){const g=frG(side,'od');head('Reign of Terror (once per round)');add('Spend 1 Power token: Trial of Will for its Clash',async()=>{const pool=(+g.dark||0)>0?'dark':'pant';await putState({fr:frPatch(side,'od',{[pool]:Math.max(0,(+g[pool]||0)-1)}),sup:supMemo(side,{rtR:R}),units:state.units.map(x=>x.id===u.id?grantU(x,'Reign of Terror (Trial of Will)',['Trial of Will']):x)});},((+g.dark||0)+(+g.pant||0))<1?'No Power tokens':'');}
+  if(S.k==='Blasphemous Mesa'&&S.active&&(roles.includes('The Creed')||roles.includes('The Legion'))&&!act.mesa){const g=frG(side,'od');head('Blasphemous Mesa (spend 1 Dark Power token)');[['Aura of Death (+1)',['Aura of Death (+1)']],['loses Brittle',[],'Loses Brittle (Blasphemous Mesa)'],['Terrifying (+1)',['Terrifying (+1)']]].forEach(([l,r,lab])=>add(l,async()=>{act.mesa=true;await putState({fr:frPatch(side,'od',{dark:(+g.dark||0)-1}),units:state.units.map(x=>x.id===u.id?grantU(x,lab||('Blasphemous Mesa: '+l),r):x)});},(+g.dark||0)<1?'No Dark Power tokens':!fresh?'Only before Draw Events and actions':''));}
+  if(S.k==='Ruthless Competence'&&roles.includes('Clone')&&supMem(side).rcR!==R){head('Ruthless Competence (once per round)');add('Opportunist for its Clash or Volley this activation',async()=>{act.extraFx.push('Opportunist (Ruthless Competence)');await putState({sup:supMemo(side,{rcR:R})});});}
+  if(S.k==='Induced Aggression'&&act.frDecay&&['Drone','Clone','Monstrosity'].some(r=>roles.includes(r))&&!act.iaSwap){head('Induced Aggression');add('Swap the Strain for +1 Clash (max 4) and +1 March',async()=>{act.iaSwap=true;const S0=srStrain(u);await putState({units:state.units.map(x=>{if(x.id!==u.id)return x;let y=ungrantU(x,src=>src==='Strain: '+(S0&&S0[0]));y=grantU(y,'Induced Aggression (+1 Clash, +1 March)',[],Object.assign({M:1},(+y.stats.C||0)<4?{C:1}:{}));return y;})});});}
+  if(S.k==='Field Studies'&&S.on&&act.frDecay&&!act.fsNoDecay&&fsTok(side)>=2){head('Field Studies');add('Spend 2 tokens: this Strain Expression causes no Decay',async()=>{act.fsNoDecay=true;act.frDecay=false;await putState({sup:supMemo(side,{fs:fsTok(side)-2})});});}
+  if(['Lord of Roaring Flames','Lord of the Eternal Mountain','Mistress of Azure Gales','Mistress of Winsome Mists','Mistress of the Ghostly Reikai'].includes(S.k)&&act.frIdeal&&supMem(side).ideR!==R&&!act.ideUsed){const k=act.frIdeal,need={'Lord of the Eternal Mountain':'Chi','Mistress of Azure Gales':'Fu','Mistress of Winsome Mists':'Sui','Mistress of the Ghostly Reikai':'Mu'}[S.k]||supWlIdeal(side);
+    if(k===need&&!(S.k==='Mistress of the Ghostly Reikai'&&u.type==='monster')){const done=async()=>{act.ideUsed=true;await putState({sup:supMemo(side,{ideR:R})});};head(S.k+' (once per round)');
+      if(S.k==='Lord of Roaring Flames')add('Also gain Glorious Charge this round',async()=>{await grant(u.id,'Lord of Roaring Flames (Glorious Charge)',['Glorious Charge']);await done();});
+      if(S.k==='Lord of the Eternal Mountain')add('Replace the Chi effect with Hardened (+1) and Oblivious',async()=>{await putState({units:state.units.map(x=>x.id===u.id?grantU(ungrantU(x,src=>src==='Ideal Card: Chi'),'Lord of the Eternal Mountain',['Hardened (+1)','Oblivious']):x)});await done();});
+      if(S.k==='Mistress of Azure Gales')add('Replace the Fu effect with Fluid Formation',async()=>{act.frFu=false;await putState({units:state.units.map(x=>x.id===u.id?grantU(ungrantU(x,src=>src==='Ideal Card: Fu'),'Mistress of Azure Gales (Fluid Formation)',['Fluid Formation']):x)});await done();});
+      if(S.k==='Mistress of the Ghostly Reikai')add('Replace the Mu effect with Loose Formation',async()=>{await putState({units:state.units.map(x=>x.id===u.id?grantU(ungrantU(x,src=>src==='Ideal Card: Mu'),'Mistress of the Ghostly Reikai (Loose Formation)',['Loose Formation']):x)});await done();});
+      if(S.k==='Mistress of Winsome Mists')['Blossom in the Wind','Misery of Failure Envisioned'].forEach(n=>{const sp=supSpell(u,n);if(!sp)return;const T=spellTargets(u,sp);if(!T.length)return;add('Replace the Sui effect: cast '+n+' (automatic) on '+(T[0].short||T[0].name),async()=>{await putState({units:state.units.map(x=>x.id===u.id?ungrantU(x,src=>src==='Ideal Card: Sui'):x)});const line=await resolveSpell(u.id,sp,T[0].id,2,false);toast(n+': '+line);await done();});});}}
+  if(S.k==='Thesis/Antithesis/Synthesis'&&S.active&&frRoles(u).includes('Forged')&&!act.thesis){act.thesis=true;const g=frG(side,'dw');frSet(side,'dw',{ep:Math.min(10,(+g.ep||0)+1)},{lastTitle:N(side)+' · Thesis/Antithesis/Synthesis',lastText:'A Forged regiment activates: +1 Elemental Power.'});}
+  return out;}
+function supWlIdeal(side){const w=supWl(side);return w?(frRoles(w,true).find(r=>['Ka','Chi','Fu','Sui','Mu'].includes(r))||''):'';}
+function supSpell(u,name){const S=(typeof SPELLDB!=='undefined')&&SPELLDB[name];if(!S)return null;return {name,range:S.r||0,att:S.a,scaling:!!S.s,targets:S.t==='enemy'?'enemy':'friendly',text:S.d||'',db:S};}
+function supIdealMatch(u,k){const S=supOf(u.side);if(!S||!S.active)return false;const need={'Lord of Roaring Flames':supWlIdeal(u.side),'Lord of the Eternal Mountain':'Chi','Mistress of Azure Gales':'Fu','Mistress of Winsome Mists':'Sui','Mistress of the Ghostly Reikai':'Mu'}[S.k];return !!need&&need===k;}
+/* activated parts that need a choice: Skývald's Hregg, Surrounded by Fear and Dead Men, Master of the Legions, First Born of War */
+async function supHregg(side,tid){const T=base(tid);if(!T)return;const AL=allocate(T,5);await putState({units:state.units.map(x=>x.id===tid?Object.assign({},x,{wounds:AL.w,auxWounds:AL.aw},AL.dead?{onTable:false,destroyed:true,status:'Destroyed',destroyedRound:state.round,destroyedBy:side}:{}):x),lastTitle:N(side)+' · Skývald: Hregg',lastText:(T.short||T.name)+' suffers 5 unavoidable wounds. No Morale Tests.'});}
+async function supSacrifice(side,tid){const T=base(tid);if(!T)return;const W=+(T.stats&&T.stats.W)||4,before=live(T),AL=allocate(T,3*W),after=AL.dead?0:live(Object.assign({},T,{wounds:AL.w,auxWounds:AL.aw})),lost=Math.max(0,before-after);const g=frG(side,'od');
+  await putState({fr:frPatch(side,'od',{pant:(+g.pant||0)+lost}),units:state.units.map(x=>x.id===tid?Object.assign({},x,{wounds:AL.w,auxWounds:AL.aw},AL.dead?{onTable:false,destroyed:true,status:'Destroyed (sacrificed)',destroyedRound:state.round}:{}):x),lastTitle:N(side)+' · Surrounded by Fear and Dead Men',lastText:(T.short||T.name)+' loses '+lost+' stand'+(lost===1?'':'s')+'; +'+lost+' Fallen Pantheon token'+(lost===1?'':'s')+(AL.dead?'. It is destroyed (its Command Stand may Die Fighting).':'.')});}
+const MOTL={'Tier +1':['Master of the Legions (Dark Power Tier +1)',[]],'Memories of Old':['Memories of Old',null],'2D6 Charge':['Master of the Legions (2D6 Charge, pick the highest)',[]],'loses Brittle':['Loses Brittle (Master of the Legions)',[]]};
+async function supMotl(side,picks){let units=state.units;const lines=[];picks.forEach(([id,b])=>{const u=units.find(x=>x.id===id);if(!u||!MOTL[b])return;let y;if(b==='Memories of Old'){const m=memOf(u);y=m?grantU(u,'Memories of Old',m.rules):u;}else y=grantU(u,MOTL[b][0],MOTL[b][1]);units=units.map(x=>x.id===id?y:x);lines.push((u.short||u.name)+': '+b);});
+  await putState({units,sup:supMemo(side,{motlR:srRnd()}),lastTitle:N(side)+' · Master of the Legions',lastText:lines.join('; ')||'No regiment chosen.'});}
+async function supFirstBorn(side,ids){let units=state.units;ids.forEach(id=>{units=units.map(x=>x.id===id&&!hasGrant(x,'Awakened')?grantU(Object.assign({},x,{effects:(x.effects||[]).filter(e=>e!=='Broken')}),'Awakened',awakenRules(x)):x);});
+  await putState({units,sup:supMemo(side,{fbR:srRnd()}),lastTitle:N(side)+' · First Born of War',lastText:ids.map(id=>{const u=base(id);return u?(u.short||u.name):id;}).join(' and ')+' become Awakened.'});}
+function supChoiceNeeded(side){const S=supOf(side);if(!S)return '';const R=srRnd();
+  if(S.k==='First Born of War'&&S.on&&supMem(side).fbR!==R&&(state.units||[]).some(u=>u.side===side&&srAlive(u)))return 'fb';
+  if(S.k==='Master of the Legions'&&S.active&&supMem(side).motlR!==R&&(state.units||[]).some(u=>u.side===side&&srAlive(u)&&supRoles(u).includes('The Legion')))return 'motl';
+  if(S.k==='Skývald'&&S.active&&S.choice==='Hregg'&&supMem(side).hrR!==R)return 'hregg';
+  if(S.k==='Surrounded by Fear and Dead Men'&&S.active&&supMem(side).sfR!==R)return 'sacrifice';
+  return '';}
+async function supAiChoice(side){const c=supChoiceNeeded(side),R=srRnd();const mine=(state.units||[]).filter(u=>u.side===side&&srAlive(u)),foes=(state.units||[]).filter(u=>u.side!==side&&srAlive(u));
+  const nearFoe=u=>Math.min(99,...foes.map(e=>polyDist(corners(u),corners(e))));
+  if(c==='fb')await supFirstBorn(side,mine.sort((a,b)=>nearFoe(a)-nearFoe(b)).slice(0,2).map(u=>u.id));
+  if(c==='motl')await supMotl(side,mine.filter(u=>supRoles(u).includes('The Legion')).sort((a,b)=>nearFoe(a)-nearFoe(b)).slice(0,2).map(u=>[u.id,nearFoe(u)<12?'2D6 Charge':(memOf(u)?'Memories of Old':'loses Brittle')]));
+  if(c==='hregg'){const t=foes.sort((a,b)=>(+b.points||0)-(+a.points||0))[0];await putState({sup:supMemo(side,{hrR:R})});if(t)await supHregg(side,t.id);}
+  if(c==='sacrifice'){const t=mine.filter(u=>supRoles(u).includes('The Fallen Pantheon')&&!/Fallen Divinity/.test(u.name+(u.charName||''))).sort((a,b)=>(+a.points||0)-(+b.points||0))[0];await putState({sup:supMemo(side,{sfR:R})});if(t)await supSacrifice(side,t.id);}}
+function supChoiceBar(add,mk,me,info){const c=supChoiceNeeded(me);if(!c)return false;const R=srRnd(),mine=(state.units||[]).filter(u=>u.side===me&&srAlive(u)),foes=(state.units||[]).filter(u=>u.side!==me&&srAlive(u));
+  const mkSel=(lab,L,none)=>{const s=document.createElement('select');s.setAttribute('aria-label',lab);if(none){const o=document.createElement('option');o.value='';o.textContent=none;s.appendChild(o);}L.forEach(u=>{const o=document.createElement('option');o.value=u.id;o.textContent=u.short||u.name;s.appendChild(o);});add(s);return s;};
+  if(c==='fb'){info.textContent='First Born of War: choose two friendly regiments to become Awakened this round.';const a=mkSel('First regiment',mine),b=mkSel('Second regiment',mine,'none');add(mk('Awaken them',()=>supFirstBorn(me,[a.value,b.value].filter((v,i,A)=>v&&A.indexOf(v)===i))));return true;}
+  if(c==='motl'){info.textContent='Master of the Legions: up to two Legion regiments each gain one benefit this round.';const L=mine.filter(u=>supRoles(u).includes('The Legion'));const rows=[0,1].map(i=>{const s=mkSel('Legion regiment '+(i+1),L,i?'none':null);const b=document.createElement('select');b.setAttribute('aria-label','Benefit '+(i+1));Object.keys(MOTL).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;b.appendChild(o);});add(b);return [s,b];});
+    add(mk('Apply',()=>supMotl(me,rows.filter(([s])=>s.value).map(([s,b])=>[s.value,b.value]))));return true;}
+  if(c==='hregg'){info.textContent='Skývald, Hregg: one enemy regiment suffers 5 unavoidable wounds (no Morale Tests).';const s=mkSel('Hregg target',foes);add(mk('Strike',async()=>{await putState({sup:supMemo(me,{hrR:R})});await supHregg(me,s.value);}));return true;}
+  if(c==='sacrifice'){info.textContent='Surrounded by Fear and Dead Men: destroy up to 3 stands of another Fallen Pantheon regiment; each stand gives a Fallen Pantheon token.';const L=mine.filter(u=>supRoles(u).includes('The Fallen Pantheon')&&!/Fallen Divinity/.test(u.name+(u.charName||'')));if(!L.length){putState({sup:supMemo(me,{sfR:R})});return true;}const s=mkSel('Regiment to sacrifice',L);add(mk('Sacrifice',async()=>{await putState({sup:supMemo(me,{sfR:R})});await supSacrifice(me,s.value);}));add(mk('Skip',()=>putState({sup:supMemo(me,{sfR:R})}),true));return true;}
+  return false;}
+/* Army of Lions: once per game, reveal the top card before the Supremacy roll-off; a Polemarch card wins it */
+function aolTry(side){if(supK(side)!=='Army of Lions'||supMem(side).aolUsed)return null;const S=supOf(side);if(!S.on)return null;const st=side===HU&&!PVP()?((PS().huStack)||[]):(state.aiStack||[]);const top=st.filter(cardOk)[0];if(!top)return null;
+  const u=base(top.slice(2));const isP=top[0]==='c'&&u&&/Polemarch/.test(u.charName||'');return {top,isP};}
+/* Tricks of the Trade: the Influence Pool */
+function totPool(side){return (supMem(side).pool||[]);}
+async function supOnAwaken(u){if(!u)return;const k=supK(u.side);
+  if(k==='Herald of War'&&srIsWl(u)){for(const x of srFriends(u).filter(x=>frRoles(x).includes('Ardent')&&srNear(x,u,8)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Herald of War');}
+  if(k==='Thesis/Antithesis/Synthesis'){const ids=(state.units||[]).filter(x=>x.side===u.side&&hasGrant(x,'Awakened')&&!x.thesisR&&frRoles(x).includes('Forged')&&x.type!=='monster'&&(x.wounds||0)>0&&canHeal(x)).map(x=>x.id);
+    if(ids.length)await putState({units:state.units.map(x=>ids.includes(x.id)?Object.assign({},x,{wounds:Math.max(0,(x.wounds||0)-2),thesisR:srRnd()}):x),lastTitle:N(u.side)+' · Thesis/Antithesis/Synthesis',lastText:'Awakened Forged regiments heal 2 wounds.'});}}
+async function supAfterCombat(S,before){const A=base(S.att),T=base(S.tgt);if(!A||!T)return;const lostT=Math.max(0,live(before)-(T.destroyed?0:live(T)));const kA=supK(A.side);
+  if(lostT&&(S.type==='clash'||S.type==='impact')&&kA==='Driven by Carnage'&&supRoles(A).includes('Half-Bloods')&&canHeal(A)&&(A.wounds||0)>0){const h=lostT*(supAct(A.side,kA)?2:1);await putState({units:state.units.map(x=>x.id===A.id?Object.assign({},x,{wounds:Math.max(0,(x.wounds||0)-h)}):x),lastText:(state.lastText||'')+' Driven by Carnage: heals '+h+'.'});}
+  if(T.destroyed&&!before.destroyed&&act&&act.id===A.id){const dc=kA==='Driven by Carnage'&&(srIsWl(A)||(supAct(A.side,kA)&&supRoles(A).includes('Half-Bloods')))&&(S.type==='clash'||S.type==='impact'),rp=kA==='Relentless Protectors'&&/Cavalry/.test(A.cls||'')&&S.type==='impact';
+    if(dc||rp){act.freeReform=dc?'Driven by Carnage':'Relentless Protectors';toast(act.freeReform+': it may make a free out-of-sequence Reform.');render();}}
+  if(T.destroyed&&!before.destroyed){for(const s of ['cs','nord'])if(supOn(s,'Field Studies')&&fsTok(s)<4)await putState({sup:supMemo(s,{fs:fsTok(s)+1})});}}
+function supCharBox(u,box){if(!charAct||!u)return;const S=supOf(u.side);if(!S)return;
+  if(S.k==='Blasphemous Mesa'&&srIsWl(u)&&!charAct.mesaUsed){const g=frG(u.side,'od');const b=document.createElement('button');b.type='button';b.className='btn ghost';b.textContent='Blasphemous Mesa (Draw Event): spend 1 Dark Power for an extra spell';b.disabled=(+g.dark||0)<1;
+    b.onclick=async()=>{charAct.mesaUsed=true;charAct.mesa=true;await frSet(u.side,'od',{dark:(+g.dark||0)-1});toast('Blasphemous Mesa: one extra spell this activation (not the same one).');render();};box.appendChild(b);}}
+async function supApplyBloom(u){const B=supBloom(u);if(!B)return;let units=state.units;
+  if(B.rules||B.label)units=units.map(x=>x.id===u.id?grantU(x,B.label||("Warlord's Bloom ("+B.rules.join(', ')+')'),B.rules||[]):x);
+  if(B.heal)units=units.map(x=>x.id===u.id&&canHeal(x)?Object.assign({},x,{wounds:Math.max(0,(x.wounds||0)-B.heal)}):x);
+  await putState({units,lastText:(state.lastText||'')+" Warlord's Bloom Effect: "+B.t+'.'});}
+function glimApply(){if(!cb||!(cb.type==='clash'||cb.type==='impact'))return;const A=base(cb.att);if(!A)return;let n=glimmerN(A);if(!n)return;let used=0;
+  for(const g of cb.groups||[])for(const r of g.rolls||[]){if(n<=0)break;if(!r.hit){r.hit=true;r.glim=true;g.hits=(g.hits||0)+1;n--;used++;}}
+  if(used){cb.glim=used;state.sup=supMemo(A.side,{glR:srRnd()});putState({sup:state.sup}).catch(()=>{});toast('Glimmers of a Golden Age: '+used+' failed hit'+(used>1?'s':'')+' become hits.');}}
+function totAdd(m){Object.entries(m).forEach(([s,v])=>{if(supK(s)==='Tricks of the Trade'&&supMem(s).pool)state.sup=supMemo(s,{pool:totPool(s).concat([v])});});}
+function supTrackers(side,box,mine){const S=supOf(side);if(!S)return;
+  if(S.k==='Field Studies'){const n=fsTok(side);box.append(frRow('Observation tokens: '+n+' / 4',mine?abBtn('Spend 1 (Practitioner: roll 1 extra die, pick any result)',()=>putState({sup:supMemo(side,{fs:n-1})}),'ab-tog'):null));
+    if(mine&&n>=3){const L=(state.units||[]).filter(u=>u.side===side&&srAlive(u)&&u.type!=='monster');const sel=bEl('select',{className:'tf-in'});sel.setAttribute('aria-label','Field Studies target');L.forEach(u=>sel.append(bEl('option',{value:u.id,textContent:u.short||u.name})));
+      box.append(frRow('Spend 3 (on your last card): loses Broken, heals 5:',sel,abBtn('Spend 3',()=>putState({sup:supMemo(side,{fs:n-3}),units:state.units.map(x=>x.id===sel.value?Object.assign({},x,{effects:(x.effects||[]).filter(e=>e!=='Broken'),wounds:canHeal(x)?Math.max(0,(x.wounds||0)-5):x.wounds}):x)}),'ab-tog')));}
+    box.append(ptext('Spending 2 to stop a Strain Expression’s Decay is offered on the regiment when it uses Strain Expression. A token is added automatically whenever a regiment is destroyed.'));}
+  if(S.k==='Tricks of the Trade'){const P=totPool(side);if(!supMem(side).pool){if(mine)box.append(frRow('Influence Pool:',abBtn('Roll the Influence Pool (5 dice)',()=>putState({sup:supMemo(side,{pool:Array.from({length:5},d6)})}),'ab-tog')));}
+    else{const r=frRow('Influence Pool (click a die to spend it instead of rolling; not for Reinforcement or Supremacy rolls):');P.forEach((v,i)=>{const b=abBtn(String(v),()=>{const q=P.slice();q.splice(i,1);putState({sup:supMemo(side,{pool:q})});toast('Influence die '+v+' spent: use '+v+' as that roll’s result.');},'ab-sq');if(!mine)b.disabled=true;r.append(b);});if(!P.length)r.append(bEl('span',{textContent:'empty'}));box.append(r);box.append(ptext('Your unmodified Supremacy roll is added to the pool each round.'));}}}
 
 function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},seats=state.seats||{};
   info.textContent='Play against a friend. Share this page with them from the Share menu, with permission to interact. Each of you takes an edge and builds or pastes your own army.';
