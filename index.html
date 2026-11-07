@@ -626,7 +626,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-07 13:42 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-07 14:12 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1697,7 +1697,8 @@ function pickOptions(side){const sc=scenOf(),id=scenId(),zs=zonesOf();const p=st
 function aiPick(){const sc=scenOf(),opts=pickOptions(AI);if(!opts.length)return null;const zc=zoneControl();const score=n=>{const z=zc.find(q=>q.name===n);return z?z:{tot:{cs:0,nord:0}};};
   if(sc.pick==='grind'){const mine=all().filter(u=>u.side===AI&&u.onTable&&!isMarker(u));return opts.map(n=>{const z=zonesOf().find(q=>q.name===n);return {n,d:Math.min(99,...mine.map(u=>Math.hypot(u.x-z.x,u.y-z.y)))};}).sort((a,b)=>a.d-b.d)[0].n;}
   const hu=all().filter(u=>u.side===HU&&u.onTable&&!isMarker(u));return opts.map(n=>{const z=zonesOf().find(q=>q.name===n);return {n,d:Math.min(99,...hu.map(u=>Math.hypot(u.x-z.x,u.y-z.y)))-score(n).tot.cs*2};}).sort((a,b)=>a.d-b.d)[0].n;}
-async function afterSupremacy(first){const sc=scenOf();if(!sc.pick){await startActivations(first);return;}
+async function afterSupremacy(first){if(await supStart(first))return;await afterSupremacy0(first);}
+async function afterSupremacy0(first){const sc=scenOf();if(!sc.pick){await startActivations(first);return;}
   await putState({step:'picks',first,picks:{},phase:'Round '+state.round+' · Scenario choice'});await nextPick();}
 async function nextPick(){const p=state.picks||{},first=state.first,second=first===HU?AI:HU,order=[first,second];const who=order.find(s=>!p[s]);
   if(!who){await startActivations(first);return;}
@@ -1819,6 +1820,7 @@ const RULES=`Conquest: The Last Argument of Kings, quick reference.
 - Table 72 x 48 inches. x runs west to east (0-72), y runs from YOUR edge (y=0) to the enemy edge (y=48). Facing is degrees clockwise from y+ (0 = toward the enemy edge, 90 = east, 180 = toward your own edge, 270 = west).
 - Faction rules: use your army's faction options (listed per activation in factionOptions and per round in faction choices) and your characters' Draw Events and abilities (Pheromancy, Biomancy and similar) whenever they help.
 - Terrain: Hindering terrain on a charge path removes Impact attacks; Dangerous/Perilous terrain wounds stands moving through; Water gives -1 Clash; Cover halves Volleys; Impassable and buildings block movement; Infantry can occupy buildings.
+- Supremacy: your Warlord's Supremacy Ability may grant rules this round (shown as 'Supremacy: …' effects on your units).
 - An activation has 2 actions (plus free ones). March and Reform may repeat; other actions may not. A failed Charge ends the activation.
 - Unengaged actions: march (up to M inches; sideways/backward cost double; wheels allowed), reform (turn on the spot up to 180 degrees, change files), charge (target must be in the front arc and within M+6 inches; roll D6+M, needs at least the distance; not in the round a regiment arrives), volley (needs Barrage, target in front arc and range), aim, rally (if Broken).
 - Engaged actions (in contact with an enemy): clash, combat_reform (turn to face an enemy that hit a flank), inspire (+1 Clash this activation), withdraw (Light/Medium only, costly), combat_rally (if Broken).
@@ -1950,8 +1952,8 @@ async function planCharacter(u){const sp=spellsOf(u,true).filter(s=>magicLevel(u
   try{const r=await askJSON(prompt,'default');if(r&&r.char)return r;}catch(e){}return {char:'pass'};}
 let aiNotes=[];function aiNote(t){if(!aiNotes.includes(t))aiNotes.push(t);}
 async function planRound(){const cards=defaultStack();
-  const prompt=`You are Claude, commanding the ${N(AI)} army in Conquest: The Last Argument of Kings, round ${state.round}. Arrange your Command Stack for this round: every card exactly once, top first. Cards are "u:<id>" for a regiment and "c:<id>" for the character attached to that regiment. A character card played right before its own regiment lets that regiment act straight after as its Entourage (it counts as a Strategic Stack activation and gains Inspired).\nYour cards: ${JSON.stringify(cards)}\n\n${RULES}\n\nBOARD: ${JSON.stringify(boardFor(null))}\n${frRoundOptions(AI).length?'Faction choices available now (pick by id; one per group such as soma/tactic/ritual/season/sect/creed; a Tribal Tactic is once per game, so save it for a decisive round): '+JSON.stringify(frRoundOptions(AI).map(o=>({id:o.id,choice:o.label})))+'\n':''}Reply with JSON only: {"faction":["<choice id>",...],"stack":[...],"go_first_if_won":true|false,"effects":[{"unit":"<your unit id>","effect":"<a round-long effect your army rules grant, e.g. a chosen tactic; omit if none>"}],"intent":"one sentence on your plan for the round"}.`;
-  try{const r=await askJSON(prompt,'default');if(r&&Array.isArray(r.stack)){const st=r.stack.map(String).filter(c=>cards.includes(c));cards.forEach(c=>{if(!st.includes(c))st.push(c);});aiLastPlanBy='claude';return {stack:st,first:r.go_first_if_won!==false,effects:Array.isArray(r.effects)?r.effects:[],intent:String(r.intent||''),faction:Array.isArray(r.faction)?r.faction.map(String):[]};}}catch(e){if(e&&e.code==='not_granted')aiNote('Claude was not allowed to play, so the map used simple tactics.');}
+  const prompt=`You are Claude, commanding the ${N(AI)} army in Conquest: The Last Argument of Kings, round ${state.round}. Arrange your Command Stack for this round: every card exactly once, top first. Cards are "u:<id>" for a regiment and "c:<id>" for the character attached to that regiment. A character card played right before its own regiment lets that regiment act straight after as its Entourage (it counts as a Strategic Stack activation and gains Inspired).\nYour cards: ${JSON.stringify(cards)}\n\n${RULES}\n\nBOARD: ${JSON.stringify(boardFor(null))}\n${frRoundOptions(AI).length?'Faction choices available now (pick by id; one per group such as soma/tactic/ritual/season/sect/creed; a Tribal Tactic is once per game, so save it for a decisive round): '+JSON.stringify(frRoundOptions(AI).map(o=>({id:o.id,choice:o.label})))+'\n':''}${(()=>{const S=supOf(AI);return S&&S.can&&!S.d.unknown?`Your Warlord's Supremacy Ability ${S.k} can be activated this round (${S.d.every?'every round':S.d.uses?(S.d.uses-S.used)+' uses left':'once per battle'}; the Warlord must be on the table): ${S.d.a} Set "supremacy" true to activate it this round, false to save it for a decisive moment.\n`:'';})()}Reply with JSON only: {"supremacy":true|false,"faction":["<choice id>",...],"stack":[...],"go_first_if_won":true|false,"effects":[{"unit":"<your unit id>","effect":"<a round-long effect your army rules grant, e.g. a chosen tactic; omit if none>"}],"intent":"one sentence on your plan for the round"}.`;
+  try{const r=await askJSON(prompt,'default');if(r&&Array.isArray(r.stack)){const st=r.stack.map(String).filter(c=>cards.includes(c));cards.forEach(c=>{if(!st.includes(c))st.push(c);});aiLastPlanBy='claude';return {stack:st,first:r.go_first_if_won!==false,effects:Array.isArray(r.effects)?r.effects:[],intent:String(r.intent||''),faction:Array.isArray(r.faction)?r.faction.map(String):[],sup:typeof r.supremacy==='boolean'?r.supremacy:null};}}catch(e){if(e&&e.code==='not_granted')aiNote('Claude was not allowed to play, so the map used simple tactics.');}
   aiLastPlanBy='';return {stack:cards,first:true,effects:[],intent:'',faction:[]};}
 /* ---------- running a turn ---------- */
 async function aiRegiment(id,source,report){const u0=base(id);startActivation(id,source);selId=id;const u=byId(id);
@@ -2032,7 +2034,7 @@ async function doReinforcements(humanAuto){const R=state.round,out=[];const unit
   await putState({units});out.push({title:N(HU)+' reinforcements',lines:hl.length?hl:['none'],narration:''},{title:N(AI)+' reinforcements',lines:al.length?al:['none'],narration:''});return out;}
 async function startCommandPhase(rep){if(PVP()){await putState({step:'supremacy',ready:{},phase:'Round '+state.round+' · Command Phase',lastTitle:'Reinforcements done',lastText:(rep||[]).map(r=>r.title+': '+r.lines.join(', ')).join(' · ')||'Both armies have rolled.'});return;}aiStatus(N(AI)+' are arranging their Command Stack…');aiBusy=true;render();const P=await planRound();let FL=[];try{FL=await aiFactionRound(P.faction);}catch(e){}aiBusy=false;aiStatus('');if(FL.length)rep.push({title:N(AI)+' faction rules',lines:FL,narration:''});
   let units=state.units;if(P.effects.length){units=(state.units||[]).map(u=>{const fxs=P.effects.filter(e=>e&&e.unit===u.id&&u.side===AI&&e.effect).map(e=>String(e.effect).slice(0,80));return fxs.length?Object.assign({},u,{effects:(u.effects||[]).concat(fxs)}):u;});}
-  await putState({units,aiStack:P.stack,aiFirst:P.first,step:'supremacy',phase:'Round '+state.round+' · Supremacy',lastTitle:N(AI)+' have set their Command Stack',lastText:(P.intent?'“'+P.intent+'” ':'')+'Roll off for Supremacy.'});
+  await putState({units,aiStack:P.stack,aiFirst:P.first,aiSupWant:P.sup==null?null:P.sup,step:'supremacy',phase:'Round '+state.round+' · Supremacy',lastTitle:N(AI)+' have set their Command Stack',lastText:(P.intent?'“'+P.intent+'” ':'')+'Roll off for Supremacy.'});
   if(P.effects.length)rep.push({title:N(AI)+' round effects',lines:P.effects.filter(e=>e&&e.effect).map(e=>`${(base(e.unit)||{}).name||e.unit}: ${e.effect}`),narration:''});
   if(P.intent)rep.push({title:N(AI)+' plan',lines:[],narration:P.intent});showReport(rep);$('air-title').textContent='Round '+state.round;}
 async function rollSupremacyPvp(){const cc=cardsTotal('cs'),cn=cardsTotal('nord');let a,b,ma,mb,n=0;
@@ -2582,11 +2584,11 @@ const SEATNAME={get cs(){return 'South edge ('+colName('cs')+')';},get nord(){re
 /* ---------- test field: drop regiments, set conditions, activate freely ---------- */
 let tfDrag=null,tfSide='cs',tfReserve=false,tfAddOpen=true,tfFx='';
 async function tfEnter(){act=null;cb=null;selId=null;charAct=null;
-  await putState({mode:'test',sbSide:'cs',step:'activations',units:[],fr:{},army:{cs:[],nord:[]},round:1,turn:'cs',zones:[],terrain:[],sbN:0,vp:{cs:0,nord:0},names:{cs:'South',nord:'North'},
+  await putState({mode:'test',sbSide:'cs',step:'activations',units:[],fr:{},sup:{},army:{cs:[],nord:[]},round:1,turn:'cs',zones:[],terrain:[],sbN:0,vp:{cs:0,nord:0},names:{cs:'South',nord:'North'},
     aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:true,strategicUsedRound:0,hammerUsed:false,moves:[],picks:{},ready:{},
     phase:'Test field',lastTitle:'Test field',lastText:'Drop regiments on the table, then activate them as often as you like.'});applySeat();render();}
 async function tfLeave(){act=null;cb=null;selId=null;charAct=null;
-  await putState({mode:'ai',sbSide:null,step:'setup',units:[],army:null,fr:null,round:0,turn:null,zones:null,terrain:null,vp:{cs:0,nord:0},names:null,aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,moves:[],setup:null,phase:'New game',ready:{},chooser:null,reinfTurn:'cs',lastTitle:'New game',lastText:'Set up the armies to begin.'});applySeat();render();}
+  await putState({mode:'ai',sbSide:null,step:'setup',units:[],army:null,fr:null,sup:null,aiSupWant:null,round:0,turn:null,zones:null,terrain:null,vp:{cs:0,nord:0},names:null,aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,moves:[],setup:null,phase:'New game',ready:{},chooser:null,reinfTurn:'cs',lastTitle:'New game',lastText:'Set up the armies to begin.'});applySeat();render();}
 function tfUnits(fn){return putState({units:(state.units||[]).map(u=>{const r=fn(u);return r===undefined?u:r;}).filter(Boolean)});}
 function tfSet(id,patch){return tfUnits(u=>u.id===id?Object.assign({},u,typeof patch==='function'?patch(u):patch):u);}
 function tfSpot(side,k){const n=(state.units||[]).filter(u=>u.side===side&&u.onTable).length+k;return {x:12+(n%5)*12,y:side==='cs'?30+Math.floor(n/5)*6:18-Math.floor(n/5)*6};}
@@ -2617,7 +2619,7 @@ function renderTestField(tb,info,mk,add){
   {const b=mk(tfTerr?'Done editing terrain':'Place terrain',()=>{tfTerr=!tfTerr;terrMode='manual';terrSel=null;terrKey='';render();},true);b.setAttribute('aria-pressed',String(tfTerr));t2.append(b);}
   if((state.terrain||[]).length)t2.append(mk('Clear terrain',()=>putState({terrain:[]}),true));
   t2.append(mk((state.zones||[]).length?'Remove objective zones':'Add objective zones',()=>putState({zones:(state.zones||[]).length?[]:SCEN[7].zones}),true));
-  t2.append(mk((state.units||[]).length?'Clear the table':'Table is empty',()=>{act=null;cb=null;selId=null;putState({units:[],moves:[],fr:{},army:{cs:[],nord:[]}});},true));
+  t2.append(mk((state.units||[]).length?'Clear the table':'Table is empty',()=>{act=null;cb=null;selId=null;putState({units:[],moves:[],fr:{},sup:{},army:{cs:[],nord:[]}});},true));
   t2.append(mk('Leave the test field',tfLeave,true));t2.lastChild.classList.add('ng');t2.lastChild.previousSibling.disabled=!(state.units||[]).length;
   {const cr=bEl('div',{className:'tf-row col-row'});cr.append(colorPicker('cs','South colour',true),colorPicker('nord','North colour',true));add(cr);}
   add(t2);if(tfTerr)terrainPanel(add,mk);if(((state.army||{}).cs||[]).length||((state.army||{}).nord||[]).length)add(armyRulesBox());if((state.units||[]).length)add(frPanel());
@@ -2648,6 +2650,7 @@ function renderTestField(tb,info,mk,add){
       r3.append(mk('Send to reserves',()=>tfSet(u.id,{onTable:false,arriving:true,activated:false}),true));}
     else r3.append(mk('Put it on the table',()=>{const p=tfSpot(u.side,0);tfSet(u.id,{onTable:true,arriving:false,x:p.x,y:Math.max(4,Math.min(44,p.y))});}));
     if(u.charName)r3.append(mk('Remove the '+u.charName,()=>tfUnits(x=>x.id===u.id?tfDropChar(x):x),true));
+    if(u.charName){const wb=mk(u.warlord?'Warlord ★':'Make Warlord',()=>tfUnits(x=>x.side!==u.side?x:Object.assign({},x,{warlord:x.id===u.id?!u.warlord:false})),!u.warlord);wb.setAttribute('aria-pressed',String(!!u.warlord));wb.title='The Warlord’s Supremacy Ability shows under Faction rules and Supremacy';r3.append(wb);}
     r3.append(mk('Remove from the field',()=>{if(selId===u.id)selId=null;tfUnits(x=>x.id===u.id?null:x);},true));r3.lastChild.classList.add('ab-danger');
     box.append(r3);
     box.append(ptext('Drag any regiment that is not activating to move it, whichever side it belongs to; Q and E turn the selected one. '+(u.side===ME?'Activate it from the panel beside the map.':'It belongs to the side you are not controlling: switch control above to activate it, or charge it with one of yours.'),'hint'));
@@ -2786,8 +2789,9 @@ function renderFacBox(){const box=$('c-fac');if(!box)return;box.innerHTML='';con
   if(f==='Old Dominion'){const m=memOf(u);if(m)info.push(['Memory of Old',m.text+(hasGrant(u,'Memories of Old')?' · active':'')]);}
   if(f==='Spires'&&STRAIN[frBase(u)])info.push(['Strain',STRAIN[frBase(u)][0]]);
   const R=frRoles(u);if(R.length)info.push(['Battlefield Role',R.filter(r=>r!=='Character').join(', ')]);
-  if(!items.length&&!info.length){box.hidden=true;return;}box.hidden=false;
-  box.append(bEl('h3',{textContent:'Faction rules · '+f}));
+  const SB=u.warlord?supBlock(u.side,true):null;
+  if(!items.length&&!info.length&&!SB){box.hidden=true;return;}box.hidden=false;
+  box.append(bEl('h3',{textContent:'Faction rules · '+f}));if(SB){box.append(bEl('div',{className:'tf-l',textContent:'Warlord · Supremacy Ability'}),SB);}
   info.forEach(([a,b,btns])=>{const r=bEl('div',{className:'tf-row'});r.append(bEl('span',{className:'tf-l',textContent:a+':'}),bEl('span',{textContent:b}));(btns||[]).forEach(([t,fn,dis])=>{const x=abBtn(t,fn,'ab-sq');x.disabled=!!dis;x.setAttribute('aria-label',(t==='+'?'More ':'Fewer ')+a);r.append(x);});box.append(r);});
   const wrap=bEl('div',{className:'fr-opts'});items.forEach(it=>{if(it.head){wrap.append(bEl('div',{className:'tf-l',textContent:it.head}));return;}const b=document.createElement('button');b.type='button';b.className='btn'+(it.cls==='pri'?'':' ghost');b.textContent=it.label;if(it.why){b.disabled=true;b.title=it.why;}b.onclick=()=>{if(b.disabled)return;Promise.resolve(it.fn()).then(()=>render()).catch(()=>toast('That could not be saved. Try again.'));};wrap.append(b);});
   if(items.length)box.append(wrap);}
@@ -2807,15 +2811,16 @@ function frSummary(side,f){const g=k=>frG(side,k);
 function renderFrStrip(){const el=$('fr-strip');if(!el)return;el.innerHTML='';const st=state.step||'activations';
   if(!state||['setup','review'].includes(st)){el.hidden=true;return;}
   const sides=SBX()?['cs','nord']:PVP()?[ME,other(ME)]:[HU,AI];
-  sides.forEach(side=>frFacs(side).forEach(f=>frSummary(side,f).forEach(t=>{const b=document.createElement('button');b.type='button';b.className=side;
+  sides.forEach(side=>frFacs(side).forEach(f=>frSummary(side,f).concat(f===frFacs(side)[0]&&supChip(side)?['Supremacy: '+supChip(side)]:[]).forEach(t=>{const b=document.createElement('button');b.type='button';b.className=side;
     const who=SBX()?(side==='cs'?'South':'North'):side===ME?(PN(side)||'You'):(PN(side)||N(side));b.innerHTML='';const bb=document.createElement('b');bb.textContent=who+': ';b.append(bb,document.createTextNode(t));
     b.title='Open the Faction rules panel';b.onclick=()=>{frOpen=true;renderTurnbar();const d=document.querySelector('#turnbar .fr-panel');if(d)d.scrollIntoView({block:'nearest',behavior:'smooth'});};el.appendChild(b);})));
   el.hidden=!el.children.length;}
 /* the Faction rules panel: trackers per side */
 let frOpen=false;
-function frPanel(){const d=bEl('details',{className:'vc fr-panel'});d.open=frOpen;d.ontoggle=()=>{frOpen=d.open;};d.append(bEl('summary',{textContent:'Faction rules'}));let any=false;
+function frPanel(){const d=bEl('details',{className:'vc fr-panel'});d.open=frOpen;d.ontoggle=()=>{frOpen=d.open;};d.append(bEl('summary',{textContent:'Faction rules and Supremacy'}));let any=false;
   ['cs','nord'].forEach(side=>{const facs=frFacs(side);if(!facs.length)return;const mine=side===ME||SBX();
     facs.forEach(f=>{const blk=frBlock(side,f,mine);if(!blk)return;any=true;const h=bEl('div',{className:'en-tag',textContent:(SBX()?(side==='cs'?'South':'North'):N(side))+' · '+f+(side===ME?' (you)':'')});h.style.marginTop='8px';d.append(h,blk);});});
+  ['cs','nord'].forEach(side=>{const blk=supBlock(side,side===ME||SBX());if(!blk)return;any=true;const h=bEl('div',{className:'en-tag',textContent:(SBX()?(side==='cs'?'South':'North'):N(side))+' · Supremacy Ability'+(side===ME?' (you)':'')});h.style.marginTop='8px';d.append(h,blk);});
   if(!any)d.append(ptext('No faction trackers are needed for the armies on the table.'));return d;}
 function frRow(label,...kids){const r=bEl('div',{className:'tf-row'});if(label)r.append(bEl('span',{className:'tf-l',textContent:label}));kids.forEach(k=>k&&r.append(k));return r;}
 function frStep(side,k,key,val,min,max,label){return abStepper(val,min,max,v=>frSet(side,k,{[key]:v}),label);}
@@ -3183,6 +3188,124 @@ async function aiCastSpell(u,asChar,spellName,targetId){const sps=spellsOf(u,asC
     banner(`${asChar?u.charName:(u.short||u.name)} casts ${sp.name} on ${T.short||T.name}`,rolls.map(v=>({v,cls:v===1||(v<=att&&v!==6)?'hit':'miss'})),`${succ} successes, needs ${need}`);await sleep(1400);bannerHide();}
   if(succ<need)return `${sp.name} on ${T.short||T.name} fails (${succ}/${need})`;const line=await resolveSpell(u.id,sp,T.id,succ,asChar);return `casts ${sp.name}: ${line}`;}
 
+/* ---------- Supremacy Abilities (the Warlord's) ---------- */
+/* t: when the passive part works; p: passive part; a: Activated part (once per battle unless every/uses);
+   g: what the map applies automatically when activated (who gets which rules/stats until the end of the round) */
+/* Old Dominion roles, read from the warbands their characters lead (Legion: Strategos/Xhiliarch; Fallen Pantheon: Fallen Divinity; the rest Creed) */
+const ODROLE={'Athanatoi':'The Legion','Legionnaires':'The Legion','Centaur Prodromoi':'The Legion','Kataphraktoi':'The Legion','Praetorian Guard':'The Legion','Varangian Guard':'The Legion',
+ 'Buccephaloi':'The Fallen Pantheon','Centaur Kerykes':'The Fallen Pantheon','Kanephors':'The Fallen Pantheon','Karyatids':'The Fallen Pantheon','Tainted Heralds':'The Fallen Pantheon',
+ 'Cultists':'The Creed','Kheres':'The Creed','Bone Golems':'The Creed','Moroi':'The Creed','Hashashin':'The Creed','Unhallowed Sepulcher':'The Creed','Fallen Angels':'The Creed'};
+function supRoles(u){const r=frRoles(u).slice();if(frFac(u)==='Old Dominion'){const o=ODROLE[frBase(u)];if(o)r.push(o);const wl=supWl(u.side);if(/Hierodeacon/.test((wl&&wl.charName)||'')&&/Cultists|Hashashin/.test(frBase(u)))r.push('The Fallen Pantheon');}return r;}
+const INF=u=>/Infantry/.test(u.cls||''),CAV=u=>/Cavalry/.test(u.cls||''),ROLE=(...r)=>u=>supRoles(u).some(x=>r.includes(x)),ANY=()=>true;
+const SUP={
+ 'Driven by Carnage':{c:/Blooded/,t:'Always Active',p:'Friendly Half-Bloods heal 1 wound per enemy stand they destroy with Clash Actions or Impact Attacks (after Morale Tests). When its regiment destroys an enemy regiment with a Clash or Charge it may make an out-of-sequence Reform or Combat Reform.',a:'Until the end of the round, any Half-Bloods regiment that destroys an enemy regiment with a Clash or Impact Attacks may make an out-of-sequence Reform or Combat Reform, and the healing is doubled.',g:{who:ROLE('Half-Bloods'),note:'Driven by Carnage doubled'}},
+ 'Wild Beasts':{c:/Vargyr/,t:'Always Active',p:'Friendly Half-Bloods may make Impact Attacks when charging through or within Hindering terrain.',a:'Until the end of the round, friendly Half-Bloods regiments gain Shock and Fury.',g:{who:ROLE('Half-Bloods'),rules:['Shock','Fury']}},
+ 'Raid Tactics!':{c:/Jarl/,t:'Always Active',p:'Use the Activated part of Tribal Tactics three times per game, a different tactic each time. Mortal and Exalted regiments get +1 to Reinforcement Rolls and cannot be Shattered.',a:'Until the end of the round, friendly Mortal and Exalted regiments gain Fearless, Juggernaut and Inspired.',g:{who:ROLE('Mortals','Exalted'),rules:['Fearless','Juggernaut','Inspired']}},
+ 'Ruler of Manheim':{c:/Konungyr/,t:'Always Active',p:'Use the Activated part of Tribal Tactics at the end of every Supremacy Phase (not the same tactic as last round). Mortal and Exalted regiments cannot be Shattered.',a:'Until the end of the round, all friendly regiments and characters count as having chosen every Tribal Tactic.',g:{who:ANY,note:'all Tribal Tactics'}},
+ 'Skývald':{c:/Shaman/,t:'Always Active',uses:2,p:'The Shaman and its regiment ignore Water, Hindering, Perilous and Dangerous terrain effects.',a:'Twice per game, each time a different effect: Niflmire (all Barrage ranges halved this round), Hregg (one enemy regiment takes 5 unavoidable wounds, no Morale Tests) or Snæstormur (enemy regiments −1 March and no Charge re-rolls this round).',cho:['Niflmire','Hregg','Snæstormur']},
+ 'Divine Protection':{c:/Volva/,t:'Always Active',p:'Friendly regiments get +1 Evasion (max 2).',a:'Until the end of the round the Warlord may target friendly regiments with spells regardless of Line of Sight, range or Engagement (Self spells unaffected).'},
+ 'Carrier of the Godflesh':{c:/Mechanist/,t:'Battlefield',p:'When you put a card in the Strategic Stack, reveal it and pick a regiment on the table that card could activate: it gains Hardened (+1) (max 2) until the end of the round.',a:''},
+ 'Army of Lions':{c:/Polemarch/,t:'Always Active',p:'Its regiment (with Auxiliary Stand and Character) gets +1 Clash (max 4) and Tenacious (1). Friendly Infantry within 10″ of the Warlord may re-roll failed unmodified Morale Rolls of 6.',a:'Once per game before the Supremacy roll-off, reveal the top card of your Command Stack: if it is a Polemarch you may win this round’s roll-off automatically (two Polemarchs cancel out).'},
+ 'Infantry Tactics':{c:/Aristarch/,t:'Always Active',p:'Once per game, at the start of a Reinforcement Phase, re-roll all failed Reinforcement Rolls.',a:'Until the end of the round, the chosen Battlefield Order affects all friendly non-Monster regiments on the table.',g:{who:u=>u.type!=='monster'&&!/Monster/.test(u.cls||''),note:'Battlefield Order for all'}},
+ 'Hammer and Anvil':{c:/Ipparchos/,t:'Always Active',p:'Once per round an Infantry or Cavalry regiment makes a free Reform as its last action (no change to ranks or files). Battlefield: Infantry or Cavalry activated from the Strategic Stack gains Shock.',a:''},
+ 'Bringing Back the Children of Fire':{c:/Promethean|Oracle/,t:'Always Active',p:'Friendly Titan regiments gain Priest (+3). A Titan activated from the Strategic Stack counts as 6 stands for Seizing Objective Zones this round.',a:''},
+ 'The Matriarch Walks':{c:/Matriarch/,t:'Always Active',p:'A regiment that Chants any Cult’s Battlecry loses Broken at once.',a:'Once per battle, after your first activation (and any Entourage) this round, draw the next Command Card and activate it straight away (it cannot Entourage).'},
+ 'Concentrated Assault':{c:/^Chieftain/,t:'Always Active',p:'The Chieftain’s Crushing Force covers the whole table, and its Tempo affects every friendly Tribes regiment.',a:''},
+ 'Thunderous Assault':{c:/Thunder Chieftain/,t:'Battlefield',p:'All friendly Speakers regiments gain Shock.',a:''},
+ 'Visions of Conquest':{c:/Scion of Conquest/,t:'Always Active',p:'A regiment that Chants the Cult of Conquest Battlecry also gets the Dissonance spell’s effects this round; any regiment adding a Chant Marker may add a Conquest marker instead.',a:'Until the end of the round, instead of drawing from your Command Stack, pick any card from it to play.'},
+ 'Visions of War':{c:/Scion of War/,t:'Always Active',p:'A regiment that Chants the Cult of War Battlecry also gains Tenacious (1) this round.',a:''},
+ 'Visions of Death':{c:/Scion of Death/,t:'Always Active',p:'Infantry that Chants the Cult of Death Battlecry: its Command Stand gets +3 Attacks this round.',a:''},
+ 'Obdurate Bone and Stone':{c:/Xhiliarch/,t:'Always Active',p:'Dark Power can reach Tier IV. Legion Medium regiments gain Vanguard (2), Heavy ones Vanguard (4). Once per round: +X Charge distance for a Legion charge, or +X Attacks for the Warlord’s regiment in a Clash or the Warlord in a Duel (X = Dark Power Tier).',a:''},
+ 'Master of the Legions':{c:/^Strategos/,t:'Always Active',every:true,p:'Dark Power can reach Tier IV. The Activated part can be used at the end of every Supremacy Phase.',a:'Up to two friendly Legion regiments on the table each gain one benefit until the end of the round: Dark Power Tier +1, its Memory of Old activates, 2D6 pick highest for Charge distance, or loses Brittle.'},
+ 'Glimmers of a Golden Age':{c:/Mounted Strategos/,t:'Always Active',p:'Dark Power can reach Tier IV. Once per round, in a Legion Clash or Charge, turn 1+X failed hits into hits before rolling (X = Dark Power Tier).',a:'Until the end of the round, that once-per-round ability counts as Dark Power Tier IV.'},
+ 'Divinity Grace':{c:/Hierodeacon/,t:'Always Active',p:'The Warlord may cast one extra spell per activation (not the same one). All friendly regiments lose Brittle. Dark Shepherd makes double tokens. Cultists and Hashashin count as Fallen Pantheon.',a:'Until the end of the round, Fallen Pantheon regiments gain Blessed.',g:{who:ROLE('The Fallen Pantheon','Fallen Pantheon'),rules:['Blessed']}},
+ 'Blasphemous Mesa':{c:/Archimandrite/,t:'Always Active',p:'Draw Event for the Warlord: spend 1 Dark Power token for an extra spell (not the same one). Friendly regiments gain Aura of Death (+1).',a:'Until the end of the round, when a Creed or Legion regiment activates, before its Draw Events, spend 1 Dark Power token for one: Aura of Death (+1), lose Brittle, or Terrifying (+1).'},
+ 'Reign of Terror':{c:/Theokrator/,t:'Always Active',p:'Creed and Legion Animate Vessels gain Terrifying (+1) at Dark Power Tier III. Once per round, before a Clash, spend 1 token to give a Creed or Legion regiment Trial of Will for that action.',a:'Until the end of the round, friendly Creed and Legion regiments gain Trial of Will.',g:{who:ROLE('The Creed','The Legion','Creed','Legion'),rules:['Trial of Will']}},
+ 'Surrounded by Fear and Dead Men':{c:/Fallen Divinity/,t:'Always Active',p:'Must be the Warlord; acts as a Monster regiment with two actions; may Duel and cannot refuse a Duel. When destroyed, its Fallen Pantheon tokens move to the Dark Power pool.',a:'Pick another friendly Fallen Pantheon regiment: destroy up to 3 of its stands (if it is destroyed, its Command Stand performs Die Fighting!). Each stand gives +1 Fallen Pantheon token.'},
+ 'Elemental Confluence':{c:/Maharajah/,t:'Always Active',p:'Elementals with Elemental Conduit add Ritual Markers to any Ritual. When a Ritual completes, start one of a different Court. One extra Court.',a:''},
+ 'Omnipotence':{c:/^Sorcerer/,t:'Always Active',p:'All characters take the Warlord’s Court. A spell cast with 4+ successes gives one free extra spell per activation (same spell once per round per character, each spell at most 3 times a round).',a:''},
+ 'Elemental Dominion':{c:/Raj/,t:'Always Active',p:'Fire Elementals gain Fan the Flames; Air Elementals gain Opportunists; Water Elementals charging flank or rear gain Terrifying (1) and Impact (+2); Earth Elementals gain a Regeneration (2) Draw Event.',a:''},
+ 'Lord of Roaring Flames':{c:/Daimyo/,t:'Always Active',p:'Once per round, a regiment or character activated with the Warlord’s Ideal Card may also gain Glorious Charge this round.',a:'This round, every friendly regiment activated with the Warlord’s Ideal Card gets its effects whatever its Battlefield Role.',g:{who:ANY,note:'Warlord’s Ideal for every role'}},
+ 'Lord of the Eternal Mountain':{c:/Oyabun/,t:'Always Active',p:'Once per round, a regiment or character activated with a Chi Ideal Card may swap its effects for Hardened (+1) and Oblivious.',a:'This round, every friendly regiment activated with a Chi Ideal Card gets its effects whatever its Battlefield Role.',g:{who:ANY,note:'Chi Ideal for every role'}},
+ 'Mistress of Azure Gales':{c:/Bakasu/,t:'Always Active',p:'Once per round, a regiment or character activated with a Fu Ideal Card may swap its effects for Fluid Formation.',a:'This round, every friendly regiment activated with a Fu Ideal Card gets its effects whatever its Battlefield Role.',g:{who:ANY,note:'Fu Ideal for every role'}},
+ 'Mistress of Winsome Mists':{c:/Onmyoji/,t:'Always Active',p:'Once per round, a regiment or character activated with a Sui Ideal Card may swap its effects for a free, automatically successful Blossom in the Wind or Misery of Failure Envisioned.',a:'This round, every friendly regiment activated with a Sui Ideal Card gets its effects whatever its Battlefield Role.',g:{who:ANY,note:'Sui Ideal for every role'}},
+ 'Mistress of the Ghostly Reikai':{c:/Jorogumo/,t:'Always Active',p:'Once per round, a non-Monster regiment or character activated with a Mu Ideal Card may swap its effects for Loose Formation.',a:'This round, every friendly regiment activated with a Mu Ideal Card gets its effects whatever its Battlefield Role.',g:{who:ANY,note:'Mu Ideal for every role'}},
+ "Reaper's Bloom":{c:/Mhor/,t:'Always Active',p:'Warlord’s Bloom Effect: the regiment gains Cleave (+1) until the end of the round.',a:'The Season counts as Autumn this round (the Cycle does not change), and the Warlord’s Bloom Effect becomes Cleave (+2).'},
+ 'Subtle Sow':{c:/Rhun/,t:'Always Active',p:'Warlord’s Bloom Effect: the non-Monster regiment heals 3 wounds.',a:'The Season counts as Spring this round (the Cycle does not change), and the Warlord’s Bloom Effect heals 5 wounds.'},
+ 'Reigning Season':{c:/Taosidhe/,t:'Always Active',p:'Once per round, at the end of a Reinforcement Phase, one non-Monster regiment gains Vanguard (3) this round. Warlord’s Bloom Effect: a Clash or Volley against regiments that have not activated gains Deadly Blades and Deadly Shots.',a:'The Season counts as the Warlord’s Court Season this round, and the Bloom Effect works against any regiment.'},
+ 'Crop Rotation':{c:/Seanchas/,t:'Always Active',p:'After each Victory Phase, Seed Markers may be moved between friendly regiments. Gains Summer and Winter spells and one free extra spell per activation (one per High Court). Warlord’s Bloom Effect: Untouchable and re-roll failed Clash or Impact hits of 6 this round.',a:'The Season counts as the Warlord’s Court Season this round (the Cycle does not change).'},
+ 'Combat Maneuvers':{c:/Imperial Officer/,t:'Always Active',p:'Each Reinforcement Phase, up to two Imperial Infantry regiments (or one other Infantry) still off the table gain Vanguard (5).',a:'Until the end of the round, Veteran Infantry regiments gain Fluid Formation and Opportunist.',g:{who:u=>INF(u)&&frRoles(u).includes('Veteran'),rules:['Fluid Formation','Opportunist']}},
+ 'Professional Troops':{c:/Noble Lord/,t:'Always Active',p:'Feudal regiments within 8″ of a Feudal character re-roll unmodified 6s in Clashes and Defense Rolls; Feudal regiments in the Warlord’s warband are Veteran; Feudal units gain the Dynastic Ally’s role.',a:''},
+ 'The Spirit Shines':{c:/Theist Priest/,t:'Always Active',p:'Theist regiments gain Divine Purpose; a Theist regiment within 12″ of a Theist character gains Indomitable (+1).',a:'This round, a Theist character’s successful spell on a Theist regiment affects every Theist regiment on the table, and one Theist character makes an extra, automatically successful spell.'},
+ 'Holy Crusade':{c:/Crusading/,t:'Always Active',p:'The Warlord may take every Crusading Bull; a free 3-stand Crusaders regiment joins its warband.',a:'Until the end of the round, Theist Infantry gain Support (4), all friendly regiments gain Divine Purpose, and Theist regiments cannot be Broken or Shattered.',g:{who:ANY,rules:u=>['Divine Purpose'].concat(INF(u)&&frRoles(u).includes('Theist')?['Support (4)']:[])}},
+ 'Relentless Protectors':{c:/Sealed Temple/,t:'Always Active',p:'A Cavalry regiment that destroys an enemy regiment with a Charge may make an out-of-sequence Reform.',a:'Until the end of the round, friendly regiments gain Shock.',g:{who:ANY,rules:['Shock']}},
+ 'Tactical Superiority':{c:/Crimson Tower/,t:'Always Active',p:'When a regiment arrives automatically from Reinforcements, one more Orders regiment arrives too.',a:'Until the end of the round, friendly Cavalry gain Support equal to their Attacks.',g:{who:CAV,rules:u=>['Support ('+((u.stats&&u.stats.A)||0)+')']}},
+ 'Lead by Example':{c:/Order of the Sword|Sword Priory/,t:'Always Active',p:'Once per round, after an Orders regiment activates, draw the next card: its non-Veteran regiment makes an out-of-sequence Rally and gets +1 Clash (max 4) and +2″ Charge this round.',a:'Until the end of the round, friendly Infantry gain Impact (3).',g:{who:INF,rules:['Impact (3)']}},
+ 'For All Mankind':{c:/Errant|Shield/,t:'Always Active',p:'Friendly regiments cannot be Shattered, and the army ignores Memories of the Red Years.',a:'Until the end of the round, all friendly regiments get +1 Attacks and Hardened (+1).',g:{who:ANY,rules:['Hardened (+1)'],stats:{A:1}}},
+ 'Induced Aggression':{c:/Pheromancer/,t:'Always Active',p:'Drones, Clones and Monstrosities using Strain Expression may swap it for +1 Clash (max 4) and +1 March this round. Its regiment ignores Decay wounds.',a:''},
+ 'Field Studies':{c:/Biomancer/,t:'Battlefield',p:'Observation pool (max 4): +1 token whenever any regiment is destroyed. Spend 1: the Warlord’s Practitioner action rolls an extra die. Spend 2: Strain Expression causes no Decay. Spend 3: on your last card, a non-Monster regiment loses Broken and heals 5.',a:''},
+ 'Ruthless Competence':{c:/High Clone Executor/,t:'Always Active',p:'Infantry using Strain Expression get +1 March this round. Once per round one of: a Clone Clash or Volley gains Opportunist; a Clone attacked in a Clash makes the attacker lose Inspired; when a friendly regiment is destroyed, a Clone within 12″ makes an out-of-sequence March.',a:''},
+ 'Remorseless Hunter':{c:/Prideborne/,t:'Always Active',p:'Husk regiments gain Designate Target.',a:'Until the end of the round, all friendly regiments gain Sureshot and Longshot.',g:{who:ANY,rules:['Sureshot','Longshot']}},
+ 'Lambs to the Slaughter':{c:/Highborne/,t:'Always Active',p:'Its regiment gains Fearless and Fury.',a:'Until the end of the round, Husk regiments’ Clash, Volley and Impact hit rolls of 6 count as 1.',g:{who:ROLE('Husk'),note:'hit rolls of 6 count as 1'}},
+ 'Tricks of the Trade':{c:/Merchant Prince/,t:'Always Active',p:'Before the first Reinforcement Phase roll 5 dice as an Influence Pool; spend them instead of rolling (not Reinforcement or Supremacy rolls, no re-rolls). Your final unmodified Supremacy roll joins the pool.',a:''},
+ 'Herald of War':{c:/Kerawegh/,t:'Always Active',p:'When its regiment Awakens, Ardent regiments within 8″ Awaken too.',a:'Ardent regiments heal 4 wounds at once and gain Lethal Demise (+4) until the end of the round.',g:{who:ROLE('Ardent'),rules:['Lethal Demise (+4)'],heal:4}},
+ 'Paragon of War':{c:/Exemplar/,t:'Always Active',p:'While its regiment is engaged, all friendly regiments are Awakened. The character gains Forward Force.',a:''},
+ 'Living Legend':{c:/Lost Ancestor/,t:'Always Active',p:'No Creed is chosen: both the Ardent and the Tempered Creeds are active.',a:''},
+ 'First Born of War':{c:/Hold Raegh/,t:'Battlefield',p:'At the end of each Supremacy Phase, two friendly regiments become Awakened this round. The character gains Forward Force.',a:''},
+ 'Forgemaster':{c:/Tempered Sorcerer/,t:'Always Active',p:'One free extra spell each round (not the same one). Tempered characters may measure Line of Sight from an Awakened Forged regiment’s Command Stand (half range, once per regiment per round).',a:''},
+ 'Thesis/Antithesis/Synthesis':{c:/Steelshaper/,t:'Always Active',p:'A non-Monster Forged regiment that Awakens heals 2 wounds (once per game spend 3 Elemental Power to heal 5 instead).',a:'This round, each Forged regiment that activates adds an Elemental Power Marker.'}
+};
+const SUPALIAS={'concetrated assault':'Concentrated Assault','for all mankind':'For All Mankind'};
+function supWl(side){return (state.units||[]).find(u=>u.side===side&&u.warlord&&u.type!=='marker');}
+function supKey(u){if(!u)return '';const cn=u.charName||frBase(u)||'';
+  const byC=Object.keys(SUP).find(k=>SUP[k].c&&SUP[k].c.test(cn)&&(!/Strategos/.test(cn)||(/Mounted/.test(cn)===(k==='Glimmers of a Golden Age'))));
+  const e=frEncy(u,u.charName||null),m=e&&String(e.options||'').match(/Supremacy:\s*([^;]+)/);if(!m)return byC||'';
+  const names=m[1].split(/,\s*|\s+or\s+/).map(s=>s.trim()).filter(Boolean).map(s=>SUPALIAS[s.toLowerCase()]||s);
+  if(names.length>1&&byC&&names.includes(byC))return byC;return names[0]||byC||'';}
+function supOf(side){const wl=supWl(side);if(!wl)return null;const k=supKey(wl);if(!k)return null;const d=SUP[k]||{t:'',p:'The text of this Supremacy Ability is not in the rules this map uses yet. Check the Warlord’s card.',a:'',unknown:true};
+  const g=((state.sup||{})[side])||{},R=state.round||1,on=!!wl.onTable&&!wl.destroyed,used=+g.n||0;
+  const active=g.round===R,max=d.uses||1;let why='';
+  if(!d.a&&!d.unknown)why='No Activated part';else if(!on)why='The Warlord must be on the table';else if(active)why='Already active this round';else if(!d.every&&used>=max)why=max>1?'Used twice already':'Already used this battle';
+  return {wl,k,d,on,used,active,why,can:!why,g,choice:g.choice};}
+function supApply(units,side,S,choice){const g=S.d.g;if(!g)return units;const src='Supremacy: '+S.k;
+  return units.map(u=>{if(u.side!==side||u.type==='marker'||u.destroyed||!u.onTable||!g.who(u))return u;let y=grantU(u,src,typeof g.rules==='function'?g.rules(u):(g.rules||[]),g.stats||null);
+    if(g.heal&&(y.wounds||0)>0)y=Object.assign({},y,{wounds:Math.max(0,(y.wounds||0)-g.heal)});return y;});}
+async function supActivate(side,choice){const S=supOf(side);if(!S||!S.can){toast(S?S.why:'No Supremacy Ability');return false;}
+  const sup=Object.assign({},state.sup||{});sup[side]=Object.assign({},S.g,{n:(S.used||0)+1,round:state.round||1,choice:choice||'',chosen:(S.g.chosen||[]).concat(choice?[choice]:[])});
+  const units=supApply(state.units||[],side,S,choice);
+  await putState({sup,units,lastTitle:WHO(side)+' · Supremacy',lastText:`${S.wl.charName||'The Warlord'} activates ${S.k}${choice?' ('+choice+')':''}: ${S.d.a}`});return true;}
+function supChip(side){const S=supOf(side);if(!S)return '';return S.k+(S.active?' · active this round':S.d.a?(S.d.every?' · every round':S.can?' · ready':' · '+(S.used?'used':'not on the table')):' · passive');}
+/* the Supremacy step: after the First Player is set, First Player declares, then the other */
+function supNeeded(){return ['cs','nord'].some(s=>{const S=supOf(s);return S&&S.can;});}
+function supAiWant(side){const S=supOf(side);if(!S||!S.can||S.d.unknown)return false;if(S.d.every)return true;const R=state.round||1;
+  const mine=(state.units||[]).filter(u=>u.side===side&&u.type!=='marker'&&!u.destroyed),on=mine.filter(u=>u.onTable).length;
+  if(state.aiSupWant===true&&R>=2)return true;if(state.aiSupWant===false&&R<5)return false;return R>=4||(R>=3&&on>=mine.length*0.6);}
+async function supStart(first){if(!supNeeded())return false;await putState({step:'supdecl',first,supDone:{},phase:'Round '+state.round+' · Supremacy Abilities'});await supNext();return true;}
+async function supNext(){const first=state.first,order=[first,other(first)],done=state.supDone||{};const who=order.find(s=>!done[s]);
+  if(!who){await afterSupremacy0(first);return;}
+  const S=supOf(who);if(!S||!S.can){await putState({supDone:Object.assign({},done,{[who]:'skip'})});return supNext();}
+  if(!PVP()&&who===AI){let ch='';if(S.d.cho){const used=S.g.chosen||[];ch=S.d.cho.find(c=>!used.includes(c)&&c!=='Hregg')||S.d.cho.find(c=>!used.includes(c))||'';}
+    if(supAiWant(AI))await supActivate(AI,ch);await putState({supDone:Object.assign({},state.supDone||{},{[AI]:'done'})});return supNext();}
+  render();}
+async function supDecide(side,yes,choice){if(yes){const ok=await supActivate(side,choice);if(!ok)return;}await putState({supDone:Object.assign({},state.supDone||{},{[side]:yes?'done':'pass'})});await supNext();}
+function supBar(add,info,mk,me){const first=state.first,order=[first,other(first)],done=state.supDone||{},who=order.find(s=>!done[s]);
+  const theirs=order.filter(s=>done[s]==='done').map(s=>WHO(s)+' activated '+supOf(s).k).join(' · ');
+  if(who!==me){info.textContent=`Supremacy Abilities: waiting for ${WHO(who||other(me))} to decide.`+(theirs?' '+theirs+'.':'');return;}
+  const S=supOf(me);info.textContent=`Supremacy Abilities (${who===first?'First Player declares first':'the First Player has declared'}). Activate ${S.k}?`+(theirs?' '+theirs+'.':'');
+  add(ptext(S.d.a+(S.d.every?' (every round)':S.d.uses?` (${S.d.uses-S.used} left)`:' (once per battle)')+(S.d.g&&!S.d.g.note?' The map applies it.':' The map shows it as a reminder on the strip; apply it at the table.')));
+  if(S.d.cho)S.d.cho.filter(c=>!(S.g.chosen||[]).includes(c)).forEach(c=>add(mk('Activate: '+c,()=>supDecide(me,true,c))));else add(mk('Activate '+S.k,()=>supDecide(me,true)));
+  add(mk('Not this round',()=>supDecide(me,false),true));}
+/* full text in the Faction rules panel and the character's card */
+function supBlock(side,mine){const S=supOf(side);if(!S)return null;const box=bEl('div',{className:'fr-blk'});
+  box.append(ptext((S.wl.charName||'Warlord')+' · '+S.k));
+  if(S.d.p)box.append(ptext((S.d.t?S.d.t+': ':'')+S.d.p));
+  if(S.d.a)box.append(ptext('Activated'+(S.d.every?' (every round)':S.d.uses?' ('+S.d.uses+' times)':' (once per battle)')+': '+S.d.a+(S.active?' — active this round'+(S.choice?' ('+S.choice+')':'')+'.':S.used&&!S.d.every?' — used.':'')));
+  if(mine&&SBX()&&(S.d.a||S.d.unknown)){const r=bEl('div',{className:'fr-opts'});
+    if(S.can){(S.d.cho?S.d.cho.filter(c=>!(S.g.chosen||[]).includes(c)):['']).forEach(c=>r.append(abBtn('Activate'+(c?': '+c:''),()=>supActivate(side,c),'ab-tog')));}
+    else r.append(bEl('span',{className:'hint',textContent:S.why}));
+    if(S.used)r.append(abBtn('Reset',()=>{const sup=Object.assign({},state.sup||{});delete sup[side];return putState({sup});},'ab-tog'));box.append(r);}
+  return box;}
+
 function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},seats=state.seats||{};
   info.textContent='Play against a friend. Press Host an online game at the top, then send your opponent the invite link. Each of you takes an edge and builds or pastes your own army.';
   const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent='Seats';box.appendChild(h);
@@ -3236,7 +3359,7 @@ function renderSetup(tb,info,mk,add){
     add(mk('Back',()=>putState({step:'setup'}),true));if(PVP()&&!seatSide()){tb.querySelectorAll('button').forEach(b=>b.disabled=true);}return true;}
   return false;}
 async function newGame(){if(!resetArm){resetArm=true;render();setTimeout(()=>{resetArm=false;render();},5000);return;}resetArm=false;act=null;cb=null;selId=null;charAct=null;
-  await putState({step:'setup',fr:null,units:[],round:0,turn:null,vp:{cs:0,nord:0},aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,moves:[],setup:null,phase:'New game',ready:{},chooser:null,reinfTurn:'cs',lastTitle:'New game',lastText:'Set up the armies to begin.'});
+  await putState({step:'setup',fr:null,sup:null,aiSupWant:null,units:[],round:0,turn:null,vp:{cs:0,nord:0},aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,moves:[],setup:null,phase:'New game',ready:{},chooser:null,reinfTurn:'cs',lastTitle:'New game',lastText:'Set up the armies to begin.'});
   $('ai-report').hidden=true;}
 
 const AUTO_ARMY=/Strategic Stack|Direct Orders|Hammer and Anvil|Prophecy Unfulfilled|Animate Vessel|Brittle/;
@@ -3266,6 +3389,7 @@ function renderTurnbarPvp(tb,info,mk,add,step){const me=seatSide();
     if(who!==HU){info.textContent=`${sc.name}: waiting for ${WHO(who||AI)} to pick a zone.`+(p[HU]&&p[HU]!=='none'?` You picked ${p[HU]}.`:'');return true;}
     info.textContent=`${sc.name}: `+(sc.pick==='deny'?'pick a zone that scores nothing this round.':sc.pick==='secret'?'secretly pick a zone other than the centre; it scores nothing this round unless you both pick it.':'pick a 6″ zone with none of your regiments in it; Seizing it this round is worth +3.')+(p[AI]&&p[AI]!=='none'&&sc.pick!=='secret'?` ${N(AI)} picked ${p[AI]}.`:'');
     pickOptions(HU).forEach(n=>add(mk(n,()=>humanPick(n),true)));return true;}
+  if(step==='supdecl'){supBar(add,info,mk,ME);return true;}
   if(step==='choose'){if(state.chooser!==HU){info.textContent=`${WHO(state.chooser||AI)} won Supremacy and are choosing who goes first.`;return true;}
     info.textContent='You won Supremacy. Who goes first?';add(mk('I go first',()=>chooseFirst(HU)));add(mk(N(AI)+' go first',()=>chooseFirst(AI),true));return true;}
   const hu=sideCardsLeft(HU),op=sideCardsLeft(AI),vd=document.createElement('details');vd.className='vc';const vs=document.createElement('summary');vs.textContent='Victory conditions';vd.append(vs,ptext(scenOf().vp+picksText()));
@@ -3297,6 +3421,7 @@ function renderTurnbar0(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHT
     add(box);add(mk('Lock stack and roll off',async()=>{aiBusy=true;render();try{await putState({huStack:huDraft.slice(),huHeld:null,huLastCard:null,strategicHeld:false});huDraft=null;aiBusy=false;await rollSupremacy();}catch(e){aiBusy=false;render();toast('That could not be saved. Try again.');}}));return;}
   if(step==='picks'){const sc=scenOf(),p=state.picks||{},waiting=!p[HU];info.textContent=`${sc.name}: `+(sc.pick==='deny'?'pick a zone that scores nothing this round.':sc.pick==='secret'?'secretly pick a zone other than the centre; it scores nothing this round unless you both pick it.':'pick a 6″ zone with none of your regiments in it; Seizing it this round is worth +3.')+(p[AI]&&sc.pick!=='secret'?` ${N(AI)} picked ${p[AI]}.`:'');
     if(waiting)pickOptions(HU).forEach(n=>add(mk(n,()=>humanPick(n),true)));return;}
+  if(step==='supdecl'){supBar(add,info,mk,HU);return;}
   if(step==='choose'){info.textContent='You won Supremacy. Who goes first?';add(mk('I go first',()=>chooseFirst(HU)));add(mk(N(AI)+' go first',()=>chooseFirst(AI),true));return;}
   const hu=humanCardsLeft(),ai=aiCardsLeft();
   if(state.turn===AI){info.textContent=`${N(AI)}'s turn.`;add(mk('Play the '+N(AI)+' turn',runAITurn));return;}
