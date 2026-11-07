@@ -514,6 +514,9 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 [data-ui="steel"] .rtabs button[aria-selected=true]{background:linear-gradient(180deg,var(--brass2),var(--brass));color:#1C1407}
 [data-ui="steel"] .armies{background:linear-gradient(180deg,var(--plate2),var(--plate));border:1px solid var(--edge);border-top:2px solid var(--brass);border-radius:4px}
 [data-ui="steel"] .armies .u{border-bottom-color:#2A3036}
+
+.t-ed{display:flex;flex-direction:column;gap:8px;border:1px dashed var(--gold);border-radius:6px;padding:10px;margin-top:6px}.t-ed .row{gap:6px}
+.tpiece{cursor:help}
 </style>
 <div class="wrap">
   <div class="top">
@@ -540,7 +543,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
         <line x1="170" y1="124" x2="674" y2="124"/><line x1="170" y1="208" x2="674" y2="208"/><line x1="170" y1="292" x2="674" y2="292"/></g>
       <rect id="edge-top" x="170" y="40" width="504" height="8" fill="#2F578E" opacity="0.75"/><rect id="edge-bot" x="170" y="368" width="504" height="8" fill="#8E2F2F" opacity="0.75"/>
       <g id="zones" fill="#D9B44A" fill-opacity="0.2" stroke="#E8C65A" stroke-width="2" stroke-dasharray="6 4"></g>
-      <g id="stones"></g><g id="hills"></g><g id="forests"></g><g id="rocks"></g>
+      <g id="stones"></g><g id="terr-low"></g><g id="hills"></g><g id="forests"></g><g id="rocks"></g>
       <g id="rings"></g><g id="moves"></g><g id="units"></g><g id="rulerg"></g>
     </svg>
     </div>
@@ -624,11 +627,95 @@ function rocks(cx,cy,rx,ry,g){el('ellipse',{cx:cx+2,cy:cy+ry*.7,rx:rx*1.05,ry:ry
 function stones(cx,cy,n,rad,g){for(let i=0;i<n;i++){const a=i/n*Math.PI*2+.4,x=cx+Math.cos(a)*rad,y=cy+Math.sin(a)*rad*.7;el('rect',{x:x-2.5,y:y-6,width:5,height:8,rx:1.5,fill:'#8F8B80',stroke:'#5C5A55','stroke-width':.5},g);}
  el('line',{x1:cx,y1:cy+4,x2:cx,y2:cy-15,stroke:'#4A3418','stroke-width':1.2},g);el('path',{d:`M${cx} ${cy-15} l10 3 l-10 3z`,fill:'#E8C65A',stroke:'#8A6D3B','stroke-width':.5},g);}
 const TERR0=[{type:'forest',x:20,y:38,rx:3.5,ry:2.5,seed:11},{type:'forest',x:54,y:9,rx:3.5,ry:2.5,seed:12},{type:'hill',x:37,y:40,rx:3,ry:2,seed:13},{type:'hill',x:32,y:8,rx:3,ry:2,seed:14},{type:'rocks',x:61,y:37,rx:2.5,ry:1.5,seed:15},{type:'rocks',x:10,y:11,rx:2.5,ry:1.5,seed:16}];
+
+/* ---------- terrain catalogue and terrain rules ---------- */
+const TKW=['Traversable','Elevated','Obstructing','Cover','Hindering','Dangerous','Perilous','Water','Impassable','Garrison'];
+const TKWD={Traversable:'Can be moved through; does not raise a regiment’s Size.',Elevated:'Can be moved through; regiments standing on it add its Size to their own.',Obstructing:'Blocks Line of Sight for regiments of equal or smaller Size; regiments on it can see over everything.',
+ Cover:'Volleys through it, or at a regiment wholly inside it, halve their Barrage (round up) if the target’s Size is not above the terrain’s. Sureshot ignores this.',
+ Hindering:'If at least half the stands charge through it, no Impact Attacks; Medium and Heavy regiments also lose Inspired that round.',
+ Dangerous:'Roll a die for each stand that moves through it: each 6 is 1 Wound (2 for Cavalry and Chariots). No Morale Tests.',
+ Perilous:'Roll a die for each stand that moves through it: each 4+ is 1 Wound (2 for Cavalry and Chariots). No Morale Tests.',
+ Water:'A regiment with at least half its stands in it gets −1 Clash (minimum 1).',Impassable:'Cannot be moved through.',
+ Garrison:'A building. Infantry that fit its Capacity can Occupy it for +Defense and 360° sight; nobody else may move into or within 1″ of it.'};
+const TTYPES={
+ forest:{name:'Forest',size:3,kw:['Traversable','Hindering','Cover']},
+ hill:{name:'Hill',size:2,kw:['Elevated','Obstructing']},
+ rocks:{name:'Rocks',size:2,kw:['Impassable','Obstructing']},
+ swamp:{name:'Swamp',size:0,kw:['Traversable','Hindering','Dangerous']},
+ water:{name:'River or lake',size:0,kw:['Traversable','Water']},
+ ruins:{name:'Ruins',size:1,kw:['Traversable','Cover','Hindering']},
+ field:{name:'Cornfield',size:1,kw:['Traversable','Cover']},
+ rubble:{name:'Broken ground',size:0,kw:['Traversable','Dangerous']},
+ thorns:{name:'Thornwood',size:1,kw:['Traversable','Hindering','Perilous']},
+ building:{name:'Building',size:2,kw:['Garrison'],cap:4,def:1}};
+function tInfo(t){const d=TTYPES[t.type]||TTYPES.forest;return {name:t.name||d.name,size:t.size!=null?+t.size:d.size,kw:Array.isArray(t.kw)?t.kw:d.kw,cap:t.cap!=null?+t.cap:(d.cap||4),def:t.def!=null?+t.def:(d.def||1)};}
+function tHas(t,k){return tInfo(t).kw.includes(k);}
+function tId(t){return String(t.seed||(t.x+'_'+t.y));}
+function inT(t,p,pad){pad=pad||0;return ((p[0]-t.x)/(t.rx+pad))**2+((p[1]-t.y)/(t.ry+pad))**2<=1;}
+function tBlocks(t,occ){return tHas(t,'Impassable')||(tHas(t,'Garrison')&&!occ);}
+function uSize(u){const c=u.cls||'';let s=/Monster|Titan/i.test(c)||u.type==='monster'?3:/Cavalry|Brute|Chariot/i.test(c)?2:1;const e=terrainOf().find(t=>tHas(t,'Elevated')&&inT(t,[u.x,u.y]));if(e)s+=tInfo(e).size;if(u.garrison){const g=terrainOf().find(t=>tId(t)===u.garrison);if(g)s=Math.max(s,tInfo(g).size);}return s;}
+function tIgnore(u,k){const R=(u.rules||[]).concat(fx(u));if(rh(R,'Fly'))return true;if(k==='Hindering'&&(armyHas(u.side,/ignores Hindering/i)||frFac(u)==='Weaver Courts'||R.some(x=>/Ignores Hindering/i.test(x))))return true;return false;}
+function segHits(t,a,b){for(let k=0;k<=12;k++){const f=k/12;if(inT(t,[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]))return true;}return false;}
+/* which stands crossed which terrain during a move */
+function tCrossed(u,from,to){const A=standsOf(Object.assign({},u,from)),B=standsOf(Object.assign({},u,to));const out={};
+  terrainOf().forEach(t=>{let n=0;A.forEach((s,i)=>{const b=B[i]||B[B.length-1];if(segHits(t,stC(s),stC(b)))n++;});if(n)out[tId(t)]={t,n};});return {per:out,total:A.length};}
+function stC(s){const P=s.poly;return [(P[0][0]+P[1][0]+P[2][0]+P[3][0])/4,(P[0][1]+P[1][1]+P[2][1]+P[3][1])/4];}
+function standCenters(u){return standsOf(u).map(stC);}
+/* after a move: Dangerous / Perilous rolls; charges through Hindering */
+function tAfterMove(u,entry){const res={notes:[],wounds:0,hindered:false};if(!entry.from||!entry.to)return res;
+  const C=tCrossed(u,entry.from,entry.to),big=/Cavalry|Chariot/i.test(u.cls||'');
+  Object.values(C.per).forEach(({t,n})=>{const I=tInfo(t);
+    ['Dangerous','Perilous'].forEach(k=>{if(!I.kw.includes(k)||tIgnore(u,k))return;const need=k==='Dangerous'?6:4,rolls=[];let w=0;for(let i=0;i<n;i++){const d=d6();rolls.push(d);if(d>=need)w+=big?2:1;}res.wounds+=w;res.notes.push(`${I.name} (${k}): rolled ${rolls.join(', ')} → ${w} wound${w===1?'':'s'}`);});
+    if(entry.type==='charge'&&I.kw.includes('Hindering')&&!tIgnore(u,'Hindering')&&n>=Math.ceil(C.total/2))res.hindered=I.name;});
+  return res;}
+/* Volley Cover and Line of Sight */
+function tCover(A,T){if(rh((A.rules||[]).concat(fx(A)),'Sureshot'))return null;const sz=uSize(T),tc=standCenters(T);
+  for(const t of terrainOf()){if(!tHas(t,'Cover'))continue;const I=tInfo(t);if(sz>I.size)continue;
+    if(tc.every(p=>inT(t,p)))return I.name+' (target inside)';if(!inT(t,[A.x,A.y])&&segHits(t,[A.x,A.y],[T.x,T.y]))return I.name+' (shooting through)';}return null;}
+function tLos(A,T,volley){const sa=uSize(A),st=uSize(T);
+  for(const t of terrainOf()){if(!tHas(t,'Obstructing')&&!tHas(t,'Garrison'))continue;if(inT(t,[A.x,A.y])||inT(t,[T.x,T.y]))continue;const I=tInfo(t);
+    const blocks=volley?I.size>=sa&&I.size>=st:I.size>=sa&&I.size>=st;if(blocks&&segHits(t,[A.x,A.y],[T.x,T.y]))return I.name+' (Size '+I.size+')';}return null;}
+function tWater(u){const P=standCenters(u);if(!P.length)return false;const w=P.filter(p=>terrainOf().some(t=>tHas(t,'Water')&&inT(t,p))).length;return w>=Math.ceil(P.length/2);}
+/* Garrison terrain */
+function tGarrisonNear(u){if(!/Infantry/i.test(u.cls||'')||u.garrison)return [];const C=corners(u);
+  return terrainOf().filter(t=>{if(!tHas(t,'Garrison'))return false;const I=tInfo(t);if(live(u)>I.cap)return false;if(all().some(o=>o.garrison===tId(t)&&!o.destroyed))return false;
+    let dmin=1e9;for(let k=0;k<32;k++){const a=k/32*Math.PI*2,q=[t.x+Math.cos(a)*t.rx,t.y+Math.sin(a)*t.ry];C.forEach(c=>{dmin=Math.min(dmin,Math.hypot(c[0]-q[0],c[1]-q[1]));});}
+    return dmin<=(u.m||0)+1;});}
+function tGarrisonOf(u){return u&&u.garrison?terrainOf().find(t=>tId(t)===u.garrison):null;}
+
+/* ---------- drawing the new terrain types ---------- */
+function swamp(cx,cy,rx,ry,g){const b=blob(cx,cy,rx,ry,11,.25);el('path',{d:b(1),fill:'#5D6B3C'},g);el('path',{d:b(.72),fill:'#4B5A35',opacity:.9},g);
+  for(let i=0;i<5;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*.55;el('ellipse',{cx:cx+Math.cos(a)*d*rx,cy:cy+Math.sin(a)*d*ry,rx:6+r()*7,ry:3+r()*3,fill:'#3E5560',opacity:.75},g);}
+  const n=Math.max(10,Math.round(rx*ry/35));for(let i=0;i<n;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*.85,x=cx+Math.cos(a)*d*rx,y=cy+Math.sin(a)*d*ry;el('path',{d:`M${x} ${y}l-2 -7M${x} ${y}l0 -9M${x} ${y}l2.5 -6`,stroke:'#9AA25A','stroke-width':1.1,fill:'none'},g);}}
+function water(cx,cy,rx,ry,g){const b=blob(cx,cy,rx,ry,10,.18);el('path',{d:b(1.06),fill:'#C9B98A',opacity:.9},g);el('path',{d:b(1),fill:'#3F6F8E'},g);el('path',{d:b(.7),fill:'#4C82A3'},g);
+  for(let i=0;i<6;i++){const x=cx+(r()-.5)*rx*1.2,y=cy+(r()-.5)*ry*1.1,w=6+r()*10;el('path',{d:`M${x-w} ${y} q${w/2} -3 ${w} 0 t${w} 0`,stroke:'#A9CDE0','stroke-width':1,fill:'none',opacity:.8},g);}}
+function ruins(cx,cy,rx,ry,g){const b=blob(cx,cy,rx,ry,9,.2);el('path',{d:b(1),fill:'#9B9483'},g);el('path',{d:b(.8),fill:'#AAA391',opacity:.8},g);
+  const w=rx*.7,h=ry*.6;el('path',{d:`M${cx-w} ${cy+h} L${cx-w} ${cy-h} L${cx+w*.2} ${cy-h}`,stroke:'#6E675A','stroke-width':4,fill:'none','stroke-linecap':'square'},g);
+  el('path',{d:`M${cx+w*.5} ${cy-h*.2} L${cx+w} ${cy-h*.2} L${cx+w} ${cy+h*.6}`,stroke:'#6E675A','stroke-width':4,fill:'none'},g);
+  for(let i=0;i<8;i++)el('rect',{x:cx+(r()-.5)*rx*1.4,y:cy+(r()-.5)*ry*1.2,width:3+r()*4,height:2+r()*3,fill:'#7E7767'},g);}
+function field(cx,cy,rx,ry,g){const b=blob(cx,cy,rx,ry,8,.12);el('path',{d:b(1),fill:'#C9A94A',stroke:'#8C7330','stroke-width':.8},g);
+  const id='fc'+Math.floor(r()*1e9);const cp=el('clipPath',{id},g);el('path',{d:b(1)},cp);const lines=el('g',{'clip-path':`url(#${id})`},g);
+  for(let k=-rx*2;k<rx*2;k+=5)el('line',{x1:cx+k,y1:cy-ry*1.2,x2:cx+k+ry*.6,y2:cy+ry*1.2,stroke:'#A88B32','stroke-width':1.4},lines);}
+function rubble(cx,cy,rx,ry,g){const b=blob(cx,cy,rx,ry,10,.25);el('path',{d:b(1),fill:'#8F7B5C',opacity:.85},g);
+  const n=Math.max(14,Math.round(rx*ry/20));for(let i=0;i<n;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*.85,x=cx+Math.cos(a)*d*rx,y=cy+Math.sin(a)*d*ry,z=1.5+r()*2.5;el('circle',{cx:x,cy:y,r:z,fill:['#7A7468','#958E80','#6A6458'][i%3]},g);}}
+function thorns(cx,cy,rx,ry,g){const b=blob(cx,cy,rx,ry,12,.3);el('path',{d:b(1),fill:'#3F4A2A'},g);
+  const n=Math.max(14,Math.round(rx*ry/25));for(let i=0;i<n;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*.85,x=cx+Math.cos(a)*d*rx,y=cy+Math.sin(a)*d*ry;
+    el('path',{d:`M${x-5} ${y+3}Q${x} ${y-6} ${x+5} ${y+3}M${x-2} ${y-1}l-2 -2M${x+2} ${y-1}l2 -2`,stroke:'#7A5A3A','stroke-width':1.1,fill:'none'},g);}
+  for(let i=0;i<4;i++)el('circle',{cx:cx+(r()-.5)*rx,cy:cy+(r()-.5)*ry,r:1.6,fill:'#B0413A'},g);}
+function building(cx,cy,rx,ry,g){el('ellipse',{cx,cy,rx,ry,fill:'#8C8571',opacity:.55,stroke:'#5E5848','stroke-width':.8,'stroke-dasharray':'3 2'},g);
+  const w=rx*1.15,h=ry*1.0;el('rect',{x:cx-w/2+2,y:cy-h/2+3,width:w,height:h,fill:'#000',opacity:.25},g);
+  el('rect',{x:cx-w/2,y:cy-h/2,width:w,height:h,fill:'#B9A989',stroke:'#5E4B33','stroke-width':1.2},g);
+  el('path',{d:`M${cx-w/2} ${cy-h/2} L${cx} ${cy-h/2+h*.5} L${cx+w/2} ${cy-h/2} M${cx-w/2} ${cy+h/2} L${cx} ${cy-h/2+h*.5} L${cx+w/2} ${cy+h/2}`,stroke:'#7A4E32','stroke-width':1,fill:'none'},g);
+  el('rect',{x:cx-w/2,y:cy-h/2,width:w,height:h,fill:'#9C5A3A',opacity:.35},g);}
+const TDRAW={forest,hill,rocks,swamp,water,ruins,field,rubble,thorns,building};
+const TLAYER={forest:'forests',hill:'hills',rocks:'rocks',swamp:'terr-low',water:'terr-low',field:'terr-low',rubble:'terr-low',thorns:'forests',ruins:'rocks',building:'rocks'};
 function terrainOf(){return (state&&Array.isArray(state.terrain))?state.terrain:TERR0;}
 let terrKey='';
-function drawTerrain(){const T=terrainOf(),k=JSON.stringify(T);if(k===terrKey)return;terrKey=k;['forests','hills','rocks'].forEach(i=>$(i).innerHTML='');
-  T.forEach((t,i)=>{const g=el('g',{'data-tid':String(i)},$(t.type==='forest'?'forests':t.type==='hill'?'hills':'rocks'));s=(t.seed|0)||i+1;
-    const f=t.type==='forest'?forest:t.type==='hill'?hill:rocks;f(px(t.x),py(t.y),t.rx*S,t.ry*S,g);});}
+function drawTerrain(){const T=terrainOf(),k=JSON.stringify(T)+'|'+(typeof terrSel==='number'?terrSel:'');if(k===terrKey)return;terrKey=k;['forests','hills','rocks','terr-low'].forEach(i=>$(i).innerHTML='');
+  T.forEach((t,i)=>{const g=el('g',{'data-tid':String(i),class:'tpiece'},$(TLAYER[t.type]||'rocks'));s=(t.seed|0)||i+1;const I=tInfo(t);
+    const tt=el('title',{},g);tt.textContent=I.name+' · Size '+I.size+' · '+I.kw.join(', ')+(I.kw.includes('Garrison')?' · Capacity '+I.cap+', Defense +'+I.def:'');
+    (TDRAW[t.type]||forest)(px(t.x),py(t.y),t.rx*S,t.ry*S,g);
+    if(terrSel===i)el('ellipse',{cx:px(t.x),cy:py(t.y),rx:t.rx*S+4,ry:t.ry*S+4,fill:'none',stroke:'#E8C65A','stroke-width':2,'stroke-dasharray':'5 3'},g);});}
 const L=$('legend');function lt(x,y,cls,t){const e=el('text',{x,y,class:cls,'dominant-baseline':'central'},L);e.textContent=t;if(t==='Claude’s army')e.id='leg-them-t';}
 [['Large zone','9 in, 3 VP'],['Small zone','6 in, 2 VP'],['Forest','Hindering, cover'],['Hill','Blocks sight'],['Rocks','Impassable'],['Your army','Bottom edge'],['Claude’s army','Top edge'],['Command stand','Leader, gold edge'],['Minotaur','Auxiliary stand']].forEach(([a,b],i)=>{
  const y=50+i*36;lt(48,y,'lt',a);lt(48,y+17,'ls',b);const ic=el('g',{},L),cy=y+8;
@@ -655,7 +742,7 @@ function renderLegend(){const pan=$('leg-panel'),btn=$('leg-btn');if(!pan||!btn)
   if(zs.some(z=>z.friendly))item(g=>{el('circle',{cx:13,cy:13,r:8,fill:COL.cs.light,'fill-opacity':.35,stroke:COL.cs.light},g);el('circle',{cx:28,cy:13,r:8,fill:COL.nord.light,'fill-opacity':.35,stroke:COL.nord.light},g);},'Friendly zones','Only the other side can seize them');
   if((state.units||[]).some(u=>u.type==='marker'))item(g=>{[[COL.cs.fill,9],[COL.nord.fill,20],['#6B5638',31]].forEach(([c,x])=>el('circle',{cx:x,cy:13,r:5,fill:c,stroke:'#F3E6C4','stroke-width':1},g));},'Objective Markers',PAL[colId('cs')].name+' south, '+colName('nord')+' north, brown neutral; 3 wounds');
   const types=[...new Set(T.map(t=>t.type))];if(types.length){sec('Terrain');
-    if(types.includes('forest'))item(g=>forest(20,13,14,9,g),'Forest','Hindering, cover');if(types.includes('hill'))item(g=>hill(20,13,14,8,g),'Hill','Blocks sight');if(types.includes('rocks'))item(g=>rocks(20,13,11,7,g),'Rocks','Impassable');}
+    types.forEach(ty=>{const d=TTYPES[ty]||TTYPES.forest;item(g=>(TDRAW[ty]||forest)(20,13,ty==='building'?9:14,ty==='building'?7:9,g),d.name,'Size '+d.size+' · '+d.kw.join(', '));});}
   sec('Armies');
   ['cs','nord'].forEach(sd=>item(g=>{el('rect',{x:8,y:6,width:24,height:14,rx:2,fill:COL[sd].fill,stroke:'#F3E6C4','stroke-width':1},g);},N(sd)+(sd===HU?' (you)':''),(sd===HU)?'Bottom edge':'Top edge'));
   sec('Stands');
@@ -700,6 +787,8 @@ const ACT={
   clash:{n:'Clash',d:'Fight the enemy in contact'},
   creform:{n:'Combat Reform',d:'Resolve test, then reshape'},
   inspire:{n:'Inspire',d:'+1 Clash this activation'},
+  occupy:{n:'Occupy building',d:'Move into it; ends the activation'},
+  leave:{n:'Leave building',d:'Takes both actions; ends the activation'},
   memory:{n:'Memories of Old',d:'Gain its Memory until the end of the round'},
   withdraw:{n:'Withdraw',d:'Resolve test, fall back'},
   crally:{n:'Combat Rally',d:'Remove Broken in combat'},
@@ -810,7 +899,10 @@ function availableActions(u){
   const cap=used.length>=2||n>=3;
   const can=(type,why)=>out.push({type,why});
   const repeatOk=t=>t==='march'||t==='reform';
-  const blocked=t=>{if(act.chargeFailed)return'The failed Charge ended this activation';if(act.cur)return'Finish the current action first';if(cap)return'No actions left';if(firstMust&&t!=='march')return'An arriving regiment must March first';if(last&&last.type===t&&!repeatOk(t))return'Already used this activation';if(used.some(a=>a.type===t)&&!repeatOk(t))return'Already used this activation';return'';};
+  const blocked=t=>{if(act.chargeFailed)return'The failed Charge ended this activation';if(act.occupyT||act.leaveT)return'Moving in or out of a building ends the activation';if(act.cur)return'Finish the current action first';if(cap)return'No actions left';if(firstMust&&t!=='march')return'An arriving regiment must March first';if(last&&last.type===t&&!repeatOk(t))return'Already used this activation';if(used.some(a=>a.type===t)&&!repeatOk(t))return'Already used this activation';return'';};
+  if(u.garrison){if(!eng.length&&(hasRule(u,/^Barrage/)||modHas(u,/^Barrage/))){can('volley',blocked('volley'));can('aim',blocked('aim'));}if(eng.length)can('clash',blocked('clash'));if(!animate(u))can('inspire',blocked('inspire'));
+    can('leave',used.length?'Leaving takes both actions: do it as the first action':broken?'':blocked('leave'));return out;}
+  if(!eng.length&&!arrive&&tGarrisonNear(u).length)can('occupy',blocked('occupy'));
   if(!eng.length){
     can('march',blocked('march'));
     can('charge',arrive?'No Charge in the round a regiment arrives':blocked('charge'));
@@ -893,10 +985,17 @@ function finishAction(){
   if(c.combat)entry.combat=c.combat;
   if(c.segs)entry.segs=c.segs.map(s=>({mode:s.mode,amt:+s.amt.toFixed(2),cost:+s.cost.toFixed(2)}));
   if(c.type==='inspire'&&!act.extraFx.includes('Inspired (Inspire action)'))act.extraFx.push('Inspired (Inspire action)');
+  if(c.type==='occupy'){const t=tGarrisonNear(base(act.id))[0];if(t){act.occupyT=tId(t);Object.assign(act.pose,{x:t.x,y:t.y});entry.to={x:t.x,y:t.y,facing:u.facing||0,files:geom(u).files};entry.building=tInfo(t).name;toast('The regiment occupies the '+tInfo(t).name.toLowerCase()+': +'+tInfo(t).def+' Defense and 360° sight. Its activation ends.');}}
+  if(c.type==='leave'){const t=tGarrisonOf(base(act.id));if(t){const G=geom(u),a=(u.facing||0)*Math.PI/180,f=[Math.sin(a),Math.cos(a)],R=Math.max(t.rx,t.ry)+1+G.d/2;act.leaveT=tId(t);Object.assign(act.pose,{x:+(t.x+f[0]*R).toFixed(2),y:+(t.y+f[1]*R).toFixed(2)});entry.to={x:act.pose.x,y:act.pose.y,facing:u.facing||0,files:G.files};toast('The regiment leaves the building and forms up 1″ outside it. Its activation ends. Drag it if it needs a different spot.');}}
+  let TM=null;if(['march','charge','withdraw'].includes(c.type)&&entry.from&&entry.to){TM=tAfterMove(base(act.id),entry);if(TM.notes.length||TM.hindered)entry.terrain=TM.notes.concat(TM.hindered?['Charged through '+TM.hindered+' (Hindering)']:[]);}
   act.actions.push(entry);act.cur=null;render();
+  if(TM&&TM.wounds){const bu=base(act.id),AL=allocate(bu,TM.wounds);putState({units:state.units.map(x=>x.id===bu.id?Object.assign({},x,{wounds:AL.w,auxWounds:AL.aw},AL.dead?{onTable:false,destroyed:true,status:'Destroyed',destroyedRound:state.round}:{}):x),lastTitle:N(bu.side)+' · '+(bu.short||bu.name),lastText:TM.notes.join('; ')+'. No Morale Tests.'}).catch(()=>{});}
+  if(TM&&TM.notes.length)toast(TM.notes.join(' · ')+'. No Morale Tests.');
+  if(TM&&TM.hindered){const bu=byId(act.id),ice=frFac(bu)==='Nords'&&armyHas(bu.side,/Ice, Flesh/);if(/Medium|Heavy/.test(bu.cls||'')&&!ice){act.extraFx=act.extraFx.filter(x=>!/Inspired/.test(x));act.extraFx.push('Hindered (no Inspired this round)');}
+    render();toast('Charged through '+TM.hindered+' (Hindering): no Impact Attacks'+(/Medium|Heavy/.test(bu.cls||'')&&!ice?', and it loses Inspired this round.':'.'));}
   if(c.type==='memory'){const m=memOf(byId(act.id));if(m)grant(act.id,'Memories of Old',m.rules,null,'Memories of Old: '+m.text).then(()=>render());}
   if(c.type==='charge')frOnCharge(act.id);
-  if(c.type==='charge'&&hasImpact(byId(act.id)))openCombat({type:'impact',att:act.id,tgt:c.target,inAct:false,fromCharge:true});
+  if(c.type==='charge'&&hasImpact(byId(act.id))&&!(TM&&TM.hindered)&&!(byId(c.target)||{}).garrison)openCombat({type:'impact',att:act.id,tgt:c.target,inAct:false,fromCharge:true});
 }
 function hasDraw(u,re){return (u.abilities||[]).some(a=>re.test(a[0]))||fx(u).some(x=>re.test(x));}
 function drawVal(u,re){let v=0;(u.abilities||[]).concat(fx(u).map(x=>[x])).forEach(a=>{const m=String(a[0]).match(re);if(m)v=Math.max(v,+m[1]||0);});return v;}
@@ -914,7 +1013,7 @@ function setChargeTarget(t){const u=byId(act.id);if(t.type==='marker'&&(state.ro
   const arcOk=corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)==='front');
   if(!arcOk){toast((t.short||t.name)+' is not in this regiment’s front arc.');return;}
   if(dist>chargeMax(u)+(armyHas(u.side,/Prophecy Unfulfilled/)&&engaged(t).length?2:0)+1e-6){toast(`Out of reach: ${(t.short||t.name)} is ${dist.toFixed(1)}″ away and the furthest this regiment can charge is ${chargeMax(u)}″.`);return;}
-  Object.assign(act.cur,{stage:'roll',target:t.id,dist,pu:armyHas(u.side,/Prophecy Unfulfilled/)&&engaged(t).length>0});toast('');render();}
+  Object.assign(act.cur,{stage:'roll',target:t.id,dist,pu:armyHas(u.side,/Prophecy Unfulfilled/)&&engaged(t).length>0});const lo=tLos(u,t,false);toast(lo?'Check Line of Sight: '+lo+' is in the way.':(t.garrison?'The target is in a building: no Impact Attacks against it.':''));render();}
 function resolveCharge(roll,reroll){const u=byId(act.id),c=act.cur;c.roll=roll;if(reroll)c.rerolled=true;
   const f=chargeFixed(u);const cd=(u.m||0)+(f!=null?f:roll)+(c.pu?2:0);c.cd=cd;
   if(cd>=c.dist-1e-6){c.success=true;placeCharge();c.stage='adjust';}
@@ -1298,9 +1397,10 @@ function supportLost(u){if(rh(u.rules,'Iron Discipline'))return false;return eng
 function hasImpact(u){if(!u||rh(u.rules,'Loose Formation'))return false;if(u.modProfiles&&Object.values(u.modProfiles).some(m=>rx(m.rules,'Impact')>0))return true;return rx(u.rules,'Impact')>0||(u.aux!=null&&rx(u.auxRules,'Impact')>0)||(u.char!=null&&rx(u.charRules,'Impact')>0);}
 function hitMods(A,p,type,T){let base=type==='volley'?p.V:p.C,r6=false;const inFront=T&&arcOf(T,[A.x,A.y])==='front',pike=T&&rh(T.rules,'Pike Formation')&&inFront&&fxHas(A,/charged/);
   if(type==='clash'&&T&&rh(T.rules,'Disruptive')&&inFront)base-=1;
+  if(type==='clash'&&tWater(A))base=Math.max(1,base-1);
   if(type==='clash'&&fxHas(A,/Aggression Directive/)&&base<4)base+=1;
   if((type==='clash'||type==='impact')&&!pike&&rh((A.rules||[]).concat(fx(A)),'Shock')&&(type==='impact'||fxHas(A,/charged/)))base+=1;
-  if(type==='clash'){const dread=engaged(A).some(e=>rh(e.rules,'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if(fxHas(A,/Inspired/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
+  if(type==='clash'){const dread=engaged(A).some(e=>rh(e.rules,'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if(fxHas(A,/Inspired/)&&!fxHas(A,/^Hindered/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
   if(type==='volley'){const aim=(act&&act.id===A.id&&act.actions.some(a=>a.type==='aim'))||rh(p.rules,'Deadshot');if(aim){if(base+1>=5)r6=true;else base+=1;}}
   return {hitOn:Math.max(1,Math.min(6,base)),reroll6:r6};}
 function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=supportLost(A)?1:(rx(A.rules,'Support')||1);
@@ -1325,7 +1425,7 @@ function moraleInfo(T,A){const s=T.stats||{},R0=s.R,broken=(T.effects||[]).inclu
   let R=+R0||0;const cR=+(T.charStats&&T.charStats.R)||0;if(!broken)R=Math.max(R,cR);const n=live(T),bonus=broken?0:(n>=10?3:n>=7?2:n>=4?1:0);R+=bonus;
   const self=A&&A.id===T.id;const terr=(self||rh(T.rules,'Fearless')||rh(T.rules,'Bravery'))?0:Math.max(rx((A.rules||[]).concat(fx(A)),'Terrifying'),animate(A)?1:0);R-=terr;const arc0=self?'front':arcOf(T,[A.x,A.y]);if(phalanx(T)&&arc0==='front')R+=1;
   return {auto,R,bonus,terr,iron:rh(T.rules,'Iron Discipline'),arc:arc0,oblivious:rh(T.rules,'Oblivious'),indom:rx((T.rules||[]).concat(fx(T)),'Indomitable')};}
-function openCombat(o){cb=Object.assign({step:'att',groups:null,cover:false,owner:HU},o);if(cb.type==='volley'&&cb.tgt&&rh((byId(cb.tgt)||{}).rules||[],'Loose Formation'))cb.cover=true;if(cb.type==='freform'){cb.hits=0;cb.wounds=cb.preWounds;cb.step=cb.noMorale?'done':'mor';cb.extra=0;cb.groups=[];}else if(cb.type==='lethal'){cb.hits=cb.lethalHits;cb.step='def';cb.groups=[{label:'Lethal Demise',n:cb.lethalHits,nUse:cb.lethalHits,hits:cb.lethalHits,ones:0,red:0,rolls:null}];}else if(cb.tgt)cb.groups=buildGroups(cb.type,byId(cb.att),byId(cb.tgt));renderCombat();renderCard();maybeAutoAI();try{$('combat').scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}}
+function openCombat(o){cb=Object.assign({step:'att',groups:null,cover:false,owner:HU},o);if(cb.type==='volley'&&cb.tgt&&rh((byId(cb.tgt)||{}).rules||[],'Loose Formation'))cb.cover=true;if(cb.type==='volley'&&cb.tgt&&cb.att){const cv=tCover(byId(cb.att),byId(cb.tgt));if(cv){cb.cover=true;cb.coverWhy=cv;}const lo=tLos(byId(cb.att),byId(cb.tgt),true);if(lo)setTimeout(()=>toast('Check Line of Sight: '+lo+' is in the way.'),30);}if(cb.type==='freform'){cb.hits=0;cb.wounds=cb.preWounds;cb.step=cb.noMorale?'done':'mor';cb.extra=0;cb.groups=[];}else if(cb.type==='lethal'){cb.hits=cb.lethalHits;cb.step='def';cb.groups=[{label:'Lethal Demise',n:cb.lethalHits,nUse:cb.lethalHits,hits:cb.lethalHits,ones:0,red:0,rolls:null}];}else if(cb.tgt)cb.groups=buildGroups(cb.type,byId(cb.att),byId(cb.tgt));renderCombat();renderCard();maybeAutoAI();try{$('combat').scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}}
 function maybeAutoAI(){if(PVP())return;if(cb&&!aiBusy&&!autoRunning){const A=base(cb.att);if(A&&A.side===AI&&cb.tgt){setTimeout(async()=>{if(autoRunning||aiBusy||!cb)return;autoRunning=true;try{await autoResolve();}finally{autoRunning=false;}},400);}}}
 let autoRunning=false;
 function closeCombat(){if(PVP()&&cb&&cb.owner!==HU)return;if(cb&&cb.inAct&&act&&act.cur&&(act.cur.type==='clash'||act.cur.type==='volley'))act.cur=null;cb=null;renderCombat();render();}
@@ -1356,7 +1456,7 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;return;}b
   else if(cb.type==='lethal'){body.appendChild(ptext(`${cb.lethalLost} ${A.short||A.name} stand${cb.lethalLost>1?'s were':' was'} destroyed while in contact, so ${T.short||T.name} suffers ${cb.lethalHits} automatic Hits (Lethal Demise ${cb.lethalX} each). They hit the front arc, use no other special rules, and the wounds cause no Morale Tests.`));}
   else{body.appendChild(ptext(`${A.short||A.name} strikes ${T.short||T.name} in the ${arc==='left'||arc==='right'?'flank':arc}.`+(cb.type==='volley'?' Claude checks Line of Sight and cover.':'')+' Dice counts are worked out from the stands in contact; change a count if the table says otherwise.'));}
   if(cb.type!=='lethal'&&cb.type!=='freform'){const s1=stepBox('1 · '+sA+' rolls to hit');
-  if(cb.type==='volley'){const lab=document.createElement('label');lab.className='row hint';const x=document.createElement('input');x.type='checkbox';x.id='cb-cover';x.checked=cb.cover;x.disabled=cb.step!=='att';x.dataset.who='A';x.onchange=()=>{cb.cover=x.checked;renderCombat();};lab.append(x,document.createTextNode('Target is in Cover or has Loose Formation (shots halved)'));s1.appendChild(lab);}
+  if(cb.type==='volley'){const lab=document.createElement('label');lab.className='row hint';const x=document.createElement('input');x.type='checkbox';x.id='cb-cover';x.checked=cb.cover;x.disabled=cb.step!=='att';x.dataset.who='A';x.onchange=()=>{cb.cover=x.checked;renderCombat();};lab.append(x,document.createTextNode('Target is in Cover or has Loose Formation (shots halved)'+(cb.coverWhy?' · Cover: '+cb.coverWhy:'')));s1.appendChild(lab);}
   cb.groups.forEach(g=>{const row=document.createElement('div');row.className='grow';g.nUse=cb.type==='volley'&&cb.cover?Math.ceil(g.n/2):g.n;
     const tags=['hits on '+g.hitOn+' or less'];if(g.reroll6)tags.push('re-roll 6s');if(g.flurry)tags.push('Flurry');if(g.relentless)tags.push(cb.type==='volley'?'Rapid Volley':'Relentless Blows');
     if(g.red)tags.push((cb.type==='impact'?'Brutal Impact':cb.type==='volley'?'Armor Piercing':'Cleave')+' '+g.red);if(g.smite)tags.push('Smite');if(g.flawless)tags.push(cb.type==='volley'?'Precise Shot':'Flawless Strikes');if(g.deadly)tags.push(cb.type==='volley'?'Deadly Shot':'Deadly Blades');if(g.linebreaker)tags.push('Linebreaker');
@@ -1426,7 +1526,8 @@ $('c-roll-go').onclick=()=>{if(!selId)return;pick={type:$('c-roll-type').value,a
 function svgPt(ev){const sv=$('board'),p=sv.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;return p.matrixTransform(sv.getScreenCTM().inverse());}
 $('board').addEventListener('pointerdown',ev=>{
   if(aiBusy)return;const pt=svgPt(ev);
-  if(state&&state.step==='review'&&terrMode==='manual'){terrainClick(pt,ev);return;}
+  if(state&&((state.step==='review'&&terrMode==='manual')||(SBX()&&tfTerr))){terrainClick(pt,ev);return;}
+  {const tg=ev.target.closest('g[data-tid]');if(tg&&!ev.target.closest('g[data-id]')&&!(act&&act.cur)&&!pick&&!ruler){const t=terrainOf()[+tg.getAttribute('data-tid')];if(t){const I=tInfo(t);toast(I.name+' · Size '+I.size+' · '+I.kw.map(k=>k+' ('+TKWD[k].split(/[.;]/)[0].toLowerCase()+')').join(' · '));}}}
   if(ruler){if(!rA||rB){rA=[ix(pt.x),iy(pt.y)];rB=null;}else rB=[ix(pt.x),iy(pt.y)];drawRuler();return;}
   const g=ev.target.closest('g[data-id]');if(!g){return;}
   const id=g.getAttribute('data-id');
@@ -1456,6 +1557,8 @@ async function saveActivation(){
   const u=byId(act.id),G=geom(u),side=u.side;
   const units=(state.units||[]).map(x=>x.id!==act.id?x:Object.assign({},x,u.order?{order:u.order.slice()}:{},{x:u.x,y:u.y,facing:u.facing,files:G.files,onTable:true,arriving:false,activated:true,arrivedRound:act.entering?state.round:x.arrivedRound,effects:(x.effects||[]).concat(act.extraFx.filter(f=>!(x.effects||[]).includes(f)&&!/charged|Inspire action/.test(f)))}));
   const FA=frAfterAct(act,units);
+  {const gi=units.findIndex(x=>x.id===act.id);if(gi>=0){const x=units[gi];if(act.occupyT){const t=terrainOf().find(q=>tId(q)===act.occupyT),d=t?tInfo(t).def:1;units[gi]=Object.assign({},x,{garrison:act.occupyT,garrisonD:d,stats:Object.assign({},x.stats,{D:(+x.stats.D||0)+d})});}
+    if(act.leaveT){const d=+x.garrisonD||0;units[gi]=Object.assign({},x,{garrison:null,garrisonD:0,stats:Object.assign({},x.stats,{D:(+x.stats.D||0)-d})});}}}
   const pts=act.actions.length?[[act.actions[0].from.x,act.actions[0].from.y]].concat(act.actions.map(a=>[a.to.x,a.to.y])):[];
   const desc=act.actions.map(a=>a.type==='charge'?`Charge vs ${(base(a.target)||{}).short||a.target} at ${a.dist.toFixed(1)}″, rolled ${a.roll}${a.rerolled?' (re-rolled)':''}: ${a.result==='failed'?'failed, moved '+(a.moved||0).toFixed(1)+'″':'contact on the '+a.face}`:ACT[a.type].n+(a.dist!=null?' '+a.dist.toFixed(1)+'″':'')).join(', ')||'no actions';
   const note=side===ME?$('note').value.trim():'';
@@ -1630,7 +1733,7 @@ function aiStatus(t){$('ai-status').textContent=t||'';}
 function poseOk(u,p,opt){opt=opt||{};const v=Object.assign({},u,p,{onTable:true}),A=corners(v);
   if(!opt.offOk&&!A.every(q=>q[0]>=-0.01&&q[0]<=72.01&&q[1]>=-0.01&&q[1]<=48.01))return false;
   for(const o of all()){if(!o.onTable||o.destroyed||o.id===u.id)continue;const d=polyDist(A,corners(o));if(d<=0.02)return false;if(o.side!==u.side&&o.type!=='marker'&&d<1-1e-6&&!opt.ignoreEnemy)return false;}
-  const pts=A.concat([[v.x,v.y]]);for(const t of terrainOf())if(t.type==='rocks'&&pts.some(q=>((q[0]-t.x)/t.rx)**2+((q[1]-t.y)/(t.ry*0.85))**2<=1))return false;
+  const pts=A.concat([[v.x,v.y]]);if(!u.garrison)for(const t of terrainOf()){if(tHas(t,'Impassable')&&!rh((u.rules||[]),'Fly')&&pts.some(q=>((q[0]-t.x)/t.rx)**2+((q[1]-t.y)/(t.ry*0.85))**2<=1))return false;if(tHas(t,'Garrison')&&pts.some(q=>inT(t,q,1)))return false;}
   return true;}
 function heading(from,P){return ((Math.atan2(P.x-from.x,P.y-from.y)*180/Math.PI)+360)%360;}
 function angDiff(a,b){return (((a-b)%360)+540)%360-180;}
@@ -1781,7 +1884,7 @@ function heuristicPlan(u){const plan=[];if(!u.onTable){plan.push({do:'enter',edg
   const z=zoneControl().filter(z=>z.holder!==AI).sort((a,b)=>Math.hypot(a.x-u.x,a.y-u.y)-Math.hypot(b.x-u.x,b.y-u.y))[0];if(z)plan.push({do:'march',toward:'zone:'+z.name},{do:'march',toward:'zone:'+z.name});return plan;}
 function boardFor(activeId){return {round:state.round,scenario:{name:scenOf().name,victoryConditions:scenOf().vp.replace(/bottom player/g,'enemy (bottom) player').replace(/top player/g,'your (top) side'),yourPick:(state.picks||{})[AI]||null},victoryPoints:{you:state.vp?.[AI]||0,enemy:state.vp?.[HU]||0},yourArmy:N(AI),enemyArmy:N(HU),armyRules:{you:state.army?.[AI]||[],enemy:state.army?.[HU]||[]},
   reinforcementLine:state.rl?.[AI]??null,zones:zoneControl().map(z=>({name:z.name,x:z.x,y:z.y,diameter:z.size,friendlyTo:z.friendly?(z.friendly===AI?'you':'enemy'):null,heldBy:z.holder?(z.holder===AI?'you':'enemy'):'nobody',stands:{you:z.tot[AI],enemy:z.tot[HU]}})),
-  terrain:terrainOf().map(t=>({type:t.type==='rocks'?'rocks (impassable)':t.type==='forest'?'forest (hindering)':'hill',x:t.x,y:t.y,halfWidth:t.rx,halfDepth:t.ry})),
+  terrain:terrainOf().map(t=>{const I=tInfo(t);return {type:I.name,size:I.size,rules:I.kw,x:t.x,y:t.y,halfWidth:t.rx,halfDepth:t.ry,occupiedBy:(all().find(o=>o.garrison===tId(t))||{}).id||undefined};}),
   units:(state.units||[]).filter(u=>!u.destroyed&&(u.onTable||u.arriving||u.id===activeId)).map(u=>unitBrief(byId(u.id)||u))};}
 async function planActivation(u,source){const brief={activeRegiment:u.id,source,options:optionsFor(u),availableNow:u.onTable?availableActions(u).filter(a=>!a.why).map(a=>a.type):['enter, then march'],arrivedThisRound:!u.onTable||u.arrivedRound===state.round};
   const prompt=`You are Claude, commanding the ${N(AI)} army against a human player's ${N(HU)} in a tabletop wargame. Choose this activation's actions.\n\n${RULES}\n\n${PLAN_SCHEMA}\n\nBOARD (JSON):\n${JSON.stringify(boardFor(u.id))}\n\nTHIS ACTIVATION (JSON):\n${JSON.stringify(brief)}\n\nThink like a strong player: concentrate force, hit flanks and rears, use charges whose needed roll is small, take or contest zones, and do not walk into enemy front arcs needlessly. Reply with the JSON object only.`;
@@ -2087,14 +2190,15 @@ function rosterTable(units,onBanner){const t=document.createElement('table');t.c
 function terrR(t){return Math.max(t.rx,t.ry);}
 function terrWhy(p,list){const R=terrR(p);if(p.x-p.rx<0||p.x+p.rx>72||p.y-p.ry<0||p.y+p.ry>48)return 'That piece would hang off the table.';
   for(const q of list){if(q===p)continue;if(Math.hypot(p.x-q.x,p.y-q.y)-R-terrR(q)<7-1e-6)return 'Terrain must be at least 7″ from other terrain.';}
-  if(p.type==='rocks'&&zonesOf().some(z=>Math.hypot(p.x-z.x,p.y-z.y)<z.r+R))return 'Impassable terrain cannot sit on an objective zone.';
+  if((tHas(p,'Impassable')||tHas(p,'Garrison'))&&zonesOf().some(z=>Math.hypot(p.x-z.x,p.y-z.y)<z.r+R))return tHas(p,'Garrison')?'Buildings cannot overlap an objective zone.':'Impassable terrain cannot sit on an objective zone.';
+  if(tHas(p,'Garrison')){if(p.x-p.rx<6||p.x+p.rx>66||p.y-p.ry<6||p.y+p.ry>42)return 'Buildings must be at least 6″ from the table edges.';if(list.filter(q=>q!==p&&tHas(q,'Garrison')).length>=2)return 'At most 2 buildings per battlefield.';}
   if((scenOf().markers||[]).some(m=>((m.x-p.x)/(p.rx+1.5))**2+((m.y-p.y)/(p.ry+1.5))**2<=1))return 'Terrain cannot cover an Objective Marker.';return '';}
 const TSIZE={small:[2.5,1.8],medium:[4,3],large:[5.5,4]};
-function genTerrain(){let best=[];for(let a=0;a<30;a++){const out=[],n=6+Math.floor(Math.random()*3);let tries=0;const types=['forest','forest','forest','hill','hill','hill','rocks','rocks'];
+function genTerrain(){let best=[];for(let a=0;a<30;a++){const out=[],n=6+Math.floor(Math.random()*3);let tries=0;const types=['forest','forest','hill','hill','rocks','swamp','water','ruins','field','rubble','thorns','building'];
   while(out.length<n&&tries++<3000){const type=types[Math.floor(Math.random()*types.length)],rx=+(2.5+Math.random()*4).toFixed(1),ry=+(Math.max(1.8,rx*(0.55+Math.random()*0.4))).toFixed(1);
-    const p={type,x:+(rx+Math.random()*(72-2*rx)).toFixed(1),y:+(ry+Math.random()*(48-2*ry)).toFixed(1),rx,ry,seed:Math.floor(Math.random()*1e9)};if(!terrWhy(p,out))out.push(p);}
+    const big=type==='building',RX=big?2.6:rx,RY=big?2.2:ry,p={type,x:+(RX+Math.random()*(72-2*RX)).toFixed(1),y:+(RY+Math.random()*(48-2*RY)).toFixed(1),rx:RX,ry:RY,seed:Math.floor(Math.random()*1e9)};if(!terrWhy(p,out))out.push(p);}
   if(out.length>best.length)best=out;if(best.length>=n)break;}return best;}
-let terrMode='random',terrType='forest',terrSize='medium';
+let terrMode='random',terrType='forest',terrSize='medium',terrSel=null,tfTerr=false;
 function scenarioPanel(add,mk){const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent='Scenario';box.appendChild(h);
   const sel=document.createElement('select');sel.setAttribute('aria-label','Scenario');Object.keys(SCEN).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k+'. '+SCEN[k].name;sel.appendChild(o);});sel.value=String(scenId());
   sel.onchange=async()=>{const id=+sel.value;const patch={scenario:id,zones:SCEN[id].zones};await putState(patch);if(terrMode==='random')await putState({terrain:genTerrain()});else{const ok=terrainOf().filter(t=>!terrWhy(t,terrainOf()));await putState({terrain:ok});}};
@@ -2103,15 +2207,25 @@ function terrainPanel(add,mk){const box=document.createElement('div');box.classN
   const g=document.createElement('div');g.className='grp';g.setAttribute('role','group');g.setAttribute('aria-label','Terrain mode');
   [['random','Random'],['manual','Place it yourself']].forEach(([m,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',String(terrMode===m));b.onclick=()=>{terrMode=m;renderTurnbar();};g.appendChild(b);});
   const row=document.createElement('div');row.className='row';row.appendChild(g);
-  if(terrMode==='random'){row.appendChild(mk('Shuffle terrain',()=>putState({terrain:genTerrain()}),true));box.appendChild(row);box.appendChild(ptext('Pieces are placed at random, at least 7″ apart. Forests and hills may overlap objective zones; impassable rocks never do.'));}
+  if(terrMode==='random'){row.appendChild(mk('Shuffle terrain',()=>putState({terrain:genTerrain()}),true));box.appendChild(row);box.appendChild(ptext('Pieces are placed at random, at least 7″ apart, from all ten terrain types. Impassable rocks and buildings never sit on objective zones; at most 2 buildings. Hover a piece on the map to see its rules.'));}
   else{const mkSel=(lab,opts,val,fn)=>{const sl=document.createElement('select');sl.setAttribute('aria-label',lab);opts.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sl.appendChild(o);});sl.value=val;sl.onchange=()=>fn(sl.value);return sl;};
-    row.appendChild(mkSel('Terrain type',[['forest','Forest (hindering)'],['hill','Hill'],['rocks','Rocks (impassable)']],terrType,v=>terrType=v));
+    row.appendChild(mkSel('Terrain type',Object.entries(TTYPES).map(([k,d])=>[k,d.name+' ('+d.kw.join(', ')+')']),terrType,v=>terrType=v));
     row.appendChild(mkSel('Terrain size',[['small','Small'],['medium','Medium'],['large','Large']],terrSize,v=>terrSize=v));
     row.appendChild(mk('Clear the table',()=>putState({terrain:[]}),true));box.appendChild(row);
-    box.appendChild(ptext('Click the map to place a piece; click a piece to remove it. Pieces must be at least 7″ apart, and rocks cannot go on an objective zone.'));}
+    box.appendChild(ptext('Click the map to place a piece; click a piece to select it, change its rules or remove it. Pieces must be at least 7″ apart; impassable terrain and buildings cannot go on an objective zone.'));
+    const ed=terrEditor();if(ed)box.appendChild(ed);}
   add(box);}
+function terrEditor(){const T=terrainOf(),t=T[terrSel];if(terrSel==null||!t)return null;const I=tInfo(t),box=document.createElement('div');box.className='t-ed';
+  const upd=p=>{const L=T.slice();L[terrSel]=Object.assign({},t,p);putState({terrain:L});};
+  const h=document.createElement('div');h.className='row';const nm=document.createElement('b');nm.textContent='Selected: '+I.name;h.append(nm,abStepper(I.size,0,4,v=>upd({size:v}),'terrain Size'),document.createTextNode(' Size'));
+  const rm=document.createElement('button');rm.type='button';rm.className='btn ghost';rm.textContent='Remove piece';rm.onclick=()=>{const L=T.slice();L.splice(terrSel,1);terrSel=null;putState({terrain:L});};
+  const dn=document.createElement('button');dn.type='button';dn.className='btn ghost';dn.textContent='Done';dn.onclick=()=>{terrSel=null;terrKey='';render();};h.append(rm,dn);box.appendChild(h);
+  const kw=document.createElement('div');kw.className='row';TKW.forEach(k=>{const on=I.kw.includes(k);const b=abBtn((on?'✓ ':'')+k,()=>upd({kw:on?I.kw.filter(x=>x!==k):I.kw.concat([k])}),'ab-tog'+(on?' on':''));b.title=TKWD[k];b.setAttribute('aria-pressed',String(on));kw.appendChild(b);});box.appendChild(kw);
+  if(I.kw.includes('Garrison')){const g=document.createElement('div');g.className='row';g.append(document.createTextNode('Capacity'),abStepper(I.cap,1,8,v=>upd({cap:v}),'Capacity'),document.createTextNode('Defense +'),abStepper(I.def,0,3,v=>upd({def:v}),'Defense'));box.appendChild(g);}
+  box.appendChild(ptext(I.kw.map(k=>k+': '+TKWD[k]).join(' ')));return box;}
 function terrainClick(pt,ev){const g=ev.target.closest('g[data-tid]');const T=terrainOf().slice();
-  if(g){T.splice(+g.getAttribute('data-tid'),1);putState({terrain:T});return;}
+  if(g){const i=+g.getAttribute('data-tid');terrSel=terrSel===i?null:i;terrKey='';render();return;}
+  if(terrSel!=null){terrSel=null;terrKey='';render();return;}
   const [rx,ry]=TSIZE[terrSize],p={type:terrType,x:+ix(pt.x).toFixed(1),y:+iy(pt.y).toFixed(1),rx,ry,seed:Math.floor(Math.random()*1e9)};
   const why=terrWhy(p,T);if(why){toast(why);return;}T.push(p);putState({terrain:T});}
 /* Yoroni Modular Regiments: stand profiles, Command rules and mix rules */
@@ -2428,12 +2542,13 @@ function renderTestField(tb,info,mk,add){
   add(top);
   const t2=bEl('div',{className:'tf-row'});
   t2.append(mk((state.terrain||[]).length?'Shuffle terrain':'Add terrain',()=>putState({terrain:genTerrain()}),true));
+  {const b=mk(tfTerr?'Done editing terrain':'Place terrain',()=>{tfTerr=!tfTerr;terrMode='manual';terrSel=null;terrKey='';render();},true);b.setAttribute('aria-pressed',String(tfTerr));t2.append(b);}
   if((state.terrain||[]).length)t2.append(mk('Clear terrain',()=>putState({terrain:[]}),true));
   t2.append(mk((state.zones||[]).length?'Remove objective zones':'Add objective zones',()=>putState({zones:(state.zones||[]).length?[]:SCEN[7].zones}),true));
   t2.append(mk((state.units||[]).length?'Clear the table':'Table is empty',()=>{act=null;cb=null;selId=null;putState({units:[],moves:[],fr:{},army:{cs:[],nord:[]}});},true));
   t2.append(mk('Leave the test field',tfLeave,true));t2.lastChild.classList.add('ng');t2.lastChild.previousSibling.disabled=!(state.units||[]).length;
   {const cr=bEl('div',{className:'tf-row col-row'});cr.append(colorPicker('cs','South colour',true),colorPicker('nord','North colour',true));add(cr);}
-  add(t2);if(((state.army||{}).cs||[]).length||((state.army||{}).nord||[]).length)add(armyRulesBox());if((state.units||[]).length)add(frPanel());
+  add(t2);if(tfTerr)terrainPanel(add,mk);if(((state.army||{}).cs||[]).length||((state.army||{}).nord||[]).length)add(armyRulesBox());if((state.units||[]).length)add(frPanel());
   // selected regiment: conditions
   const u=base(selId);
   if(u&&u.type!=='marker'){const box=bEl('div',{className:'rev tf-sel'});
@@ -2541,6 +2656,8 @@ async function awaken(id,why){const u=base(id);if(!u||hasGrant(u,'Awakened'))ret
 function frOnCharge(id){const u=base(id);if(!u||frFac(u)!=='Dweghom')return;const c=dwCreed(u.side),r=frRoles(u);if(/Ardent/.test(c)&&(r.includes('Ardent')||r.includes('Clan')))awaken(id,'Ardent Creed: successful Charge');}
 /* round effects that come from state rather than actions */
 function frFx(u){const out=[];if(!state||!u||u.type==='marker')return out;const f=frFac(u);
+  const gt=tGarrisonOf(u);if(gt)out.push('In '+tInfo(gt).name.toLowerCase()+' (+'+(u.garrisonD||tInfo(gt).def)+' Defense, 360° sight, all stands front rank)');if(u.onTable&&tWater(u))out.push('In water (−1 Clash)');
+  {const e=terrainOf().find(t=>tHas(t,'Elevated')&&inT(t,[u.x,u.y]));if(e)out.push('On '+tInfo(e).name.toLowerCase()+' (Size '+uSize(u)+')');}
   if(f==='Old Dominion'&&animate(u)&&odTier(u.side,'dark')>=3)out.push('Inspired (Dark Power III)');
   if(f==='Hundred Kingdoms'&&/Infantry/.test(u.cls||'')&&frRoles(u).includes('Veteran')&&live(u)-(u.char!=null?1:0)>=5)out.push('Inspired (Relentless Drills)');
   return out;}
