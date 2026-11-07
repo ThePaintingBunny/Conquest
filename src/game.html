@@ -484,6 +484,36 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 [data-ui="steel"] .en-dlg::backdrop{background:rgba(5,7,9,.7)}
 [data-ui="steel"] footer,[data-ui="steel"] .foot{color:var(--muted)}
 [data-ui="steel"] a{color:var(--brass2)}
+
+.rcol{display:flex;flex-direction:column;gap:8px;min-width:0;position:sticky;top:10px;max-height:calc(100vh - 20px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+@media (max-width:900px){.rcol{position:static;max-height:none;overflow:visible}}
+.rtabs{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.rtabs button{flex:1;font:inherit;font-size:14px;font-weight:600;padding:8px 10px;border:0;background:var(--panel);color:var(--muted);cursor:pointer}
+.tb-n{display:inline-block;min-width:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:var(--cs);color:#fff;font-size:11px;line-height:17px;text-align:center;font-family:var(--body);letter-spacing:0;vertical-align:1px}.tb-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-left:6px;box-shadow:0 0 6px var(--ok)}
+.rtabs button+button{border-left:1px solid var(--line)}
+.rtabs button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.armies{display:flex;flex-direction:column;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.ar-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-bottom:2px solid currentColor;margin-bottom:4px;padding-bottom:3px}
+.armies .side.cs .ar-h{color:var(--cs)}.armies .side.nord .ar-h{color:var(--nord)}
+.armies .side .ar-h h2{font-size:16px;margin:0;border:0!important;padding:0!important;color:inherit}
+.ar-sum{font-size:12px;color:var(--muted);text-align:right}
+.armies .u{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 4px;font-size:14px;border-radius:3px;justify-content:stretch}
+.armies .u:hover,.armies .u:focus-visible{background:color-mix(in srgb,var(--gold) 12%,transparent);outline:none}
+.armies .u.sel{box-shadow:inset 3px 0 0 var(--gold);background:color-mix(in srgb,var(--gold) 8%,transparent)}
+.armies .u.done .n::after{content:none}
+.armies .u.done .n{color:var(--muted)}
+.armies .u.dead{opacity:.5}.armies .u.dead .n{text-decoration:line-through}
+.u-ic{font-size:12px;color:var(--ok);text-align:center}.u.done .u-ic{color:var(--muted)}.u.off .u-ic{color:var(--muted)}.u.dead .u-ic{color:var(--warn)}
+.u-m{display:flex;flex-direction:column;min-width:0}.u-m .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:600}
+.u-c{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.u-t{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}.tg{font-size:11px;padding:0 6px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}.tg.bad{border-color:var(--warn);color:var(--warn)}.tg.good{border-color:var(--gold);color:var(--gold-ink)}
+.armies .u .s{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:13px}
+.u-bar{display:block;width:44px;height:4px;border-radius:2px;background:var(--line);overflow:hidden}.u-bar b{display:block;height:100%;background:var(--ok)}.u-bar b.low{background:var(--warn)}
+#units g.hi{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px var(--gold))}
+[data-ui="steel"] .rtabs{border-color:var(--edge);border-radius:3px}[data-ui="steel"] .rtabs button{background:#20252A;font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+[data-ui="steel"] .rtabs button[aria-selected=true]{background:linear-gradient(180deg,var(--brass2),var(--brass));color:#1C1407}
+[data-ui="steel"] .armies{background:linear-gradient(180deg,var(--plate2),var(--plate));border:1px solid var(--edge);border-top:2px solid var(--brass);border-radius:4px}
+[data-ui="steel"] .armies .u{border-bottom-color:#2A3036}
 </style>
 <div class="wrap">
   <div class="top">
@@ -517,6 +547,8 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
     <section class="combat" id="combat" hidden aria-live="polite"><div class="cb-head"><h2 id="cb-title">Combat</h2><button type="button" class="btn ghost" id="cb-close">Close</button></div><div id="cb-body" class="sec"></div></section>
     </div>
 
+    <div class="rcol">
+    <div class="rtabs" role="tablist" aria-label="Side panel"><button type="button" role="tab" id="tab-reg" aria-selected="true">Regiment</button><button type="button" role="tab" id="tab-army" aria-selected="false">Armies</button></div>
     <aside class="card" id="card" aria-live="polite">
       <div><h2 id="c-name">Choose a regiment</h2><div class="meta" id="c-meta">Click a regiment on the table or in the rosters below.</div></div>
       <div class="stats" id="c-stats" hidden></div>
@@ -559,10 +591,14 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
       <div class="sec"><h3>Strategic Stack</h3><div class="row"><span class="read" id="strat-read">Empty</span><button type="button" class="btn ghost" id="strat-btn">Place top card face down</button></div><p class="hint" id="strat-hint">Once per round, instead of activating a regiment's card, hide it here, then press End turn. Only regiment cards, not Characters.</p></div>
       <div class="row"><div class="grp" role="group" aria-label="Tools"><button type="button" id="ruler" aria-pressed="false">Ruler</button></div><span class="hint">Click two points to measure.</span></div>
     </aside>
+    <div class="armies roster" id="armies" hidden>
+      <div class="side cs"><div class="ar-h"><h2 id="h-cs">City States</h2><span class="ar-sum" id="sum-cs"></span></div><div id="r-cs"></div></div>
+      <div class="side nord"><div class="ar-h"><h2 id="h-nord">Nords</h2><span class="ar-sum" id="sum-nord"></span></div><div id="r-nord"></div></div>
+    </div>
+    </div>
   </div>
 
   <div class="last" id="last">No moves yet.</div>
-  <div class="roster"><div class="side cs"><h2 id="h-cs">City States</h2><div id="r-cs"></div></div><div class="side nord"><h2 id="h-nord">Nords</h2><div id="r-nord"></div></div></div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
 <script>
@@ -917,7 +953,7 @@ function startActivation(id,source){
   act={id,source,entering,placed:false,actions:[],cur:null,arrivedThisRound:!!u.arrivedRound&&u.arrivedRound===state.round,
     pose:entering?Object.assign({onTable:true,x:36,files:G.files},ownEntry(u.side,G.d)):{x:u.x,y:u.y,facing:u.facing||0,files:G.files},
     extraFx:(source==='strategic'||(source==='entourage'&&ordersU(u)))?(hasRule(u,/Automaton/)?[]:[source==='entourage'?'Inspired (Direct Orders)':'Inspired (Strategic Stack)']).concat(u.strategicFx||[]).concat((/Infantry|Cavalry/.test(u.cls||'')&&(state.units||[]).some(x=>x.charName==='Ipparchos'&&x.onTable&&!x.destroyed))?['Shock (Hammer and Anvil)']:[]):[]};
-  selId=id;render();drawEvents(u);
+  selId=id;rightTab='reg';render();drawEvents(u);
 }
 /* Draw Events and start-of-activation effects */
 function drawEvents(u){const notes=[];
@@ -1182,6 +1218,38 @@ function renderCard(){
   if(overlapsAny(byId(act.id))&&!(act.cur&&act.cur.type==='charge'))w.push('This regiment overlaps another one.');
   if(w.length){$('c-warn').hidden=false;$('c-warn').textContent=w.join(' ');}
 }
+
+/* Armies tab: both rosters next to the map */
+let rightTab='reg';
+function setTab(t){rightTab=t;renderTabs();}
+function renderTabs(){const a=rightTab==='army';$('tab-reg').setAttribute('aria-selected',String(!a));$('tab-army').setAttribute('aria-selected',String(a));$('card').hidden=a;$('armies').hidden=!a;
+  const n=(state&&state.units||[]).filter(u=>u.type!=='marker'&&!u.destroyed&&u.onTable&&!u.activated).length;{const t=$('tab-army');t.textContent='Armies';if(state&&(state.units||[]).some(u=>u.type!=='marker')){const b=document.createElement('span');b.className='tb-n';b.textContent=n;b.title=n+' regiment'+(n===1?'':'s')+' on the table still to activate';t.appendChild(b);t.setAttribute('aria-label','Armies, '+n+' still to activate');}}
+  {const t=$('tab-reg');t.textContent='Regiment';if(act){const b=document.createElement('span');b.className='tb-dot';b.title='A regiment is activating';t.appendChild(b);}}}
+function hiUnit(id,on){const g=document.querySelector('#units g[data-id="'+id+'"]');if(g)g.classList.toggle('hi',on);}
+function renderArmies(){
+  ['cs','nord'].forEach(sd=>{const box=$('r-'+sd);box.innerHTML='';const L=all().filter(u=>u.side===sd);
+    const regs=L.filter(u=>u.type!=='marker'),onT=regs.filter(u=>u.onTable&&!u.destroyed),done=onT.filter(u=>u.activated).length,dead=regs.filter(u=>u.destroyed).length,off=regs.length-onT.length-dead;
+    $('sum-'+sd).textContent=regs.length?`${done}/${onT.length} activated`+(off?` · ${off} off table`:'')+(dead?` · ${dead} destroyed`:''):'';
+    L.forEach(u=>{const row=document.createElement('div');row.tabIndex=0;row.setAttribute('role','button');
+      row.className='u'+(u.onTable?'':' off')+(u.destroyed?' dead':'')+(u.activated&&u.type!=='marker'?' done':'')+(u.id===selId?' sel':'');
+      const ic=document.createElement('span');ic.className='u-ic';ic.textContent=u.type==='marker'?'◆':u.destroyed?'✕':u.activated?'✓':u.onTable?'•':'⧗';ic.title=u.type==='marker'?'Objective Marker':u.destroyed?'Destroyed':u.activated?'Activated this round':u.onTable?'Ready to activate':'Not on the table';
+      const mid=document.createElement('span');mid.className='u-m';const n=document.createElement('span');n.className='n';n.textContent=u.name;mid.appendChild(n);
+      if(u.charName){const c=document.createElement('span');c.className='u-c';c.textContent='+ '+u.charName+(u.warlord?' ★':'')+(u.charActivated?' · activated':'');mid.appendChild(c);}
+      const tags=document.createElement('span');tags.className='u-t';
+      (u.effects||[]).forEach(e=>{const t=document.createElement('span');t.className='tg'+(/^Broken/.test(e)?' bad':/Inspired/.test(e)?' good':'');t.textContent=e.replace(/\s*\(.*\)$/,'');tags.appendChild(t);});
+      if(!u.onTable&&!u.destroyed&&u.type!=='marker'){const t=document.createElement('span');t.className='tg';t.textContent=u.arriving?'Arriving':'Reserves';tags.appendChild(t);}
+      if(tags.children.length)mid.appendChild(tags);
+      const right=document.createElement('span');right.className='s';
+      if(u.type==='marker')right.textContent=u.destroyed?'Destroyed':(3-Math.max(u.dmg?.cs||0,u.dmg?.nord||0))+'/3 wounds';
+      else if(u.destroyed)right.textContent='Destroyed';
+      else{const L2=live(u),T=u.stands||1;const t=document.createElement('span');t.textContent=L2+'/'+T;right.appendChild(t);right.title=L2+' of '+T+' stands left'+(u.wounds?', '+u.wounds+' wounds taken':'');
+        const bar=document.createElement('i');bar.className='u-bar';const fill=document.createElement('b');fill.style.width=Math.round(L2/T*100)+'%';if(L2/T<=.34)fill.className='low';bar.appendChild(fill);right.appendChild(bar);}
+      row.append(ic,mid,right);
+      const pick=()=>{selId=u.id;rightTab='reg';render();};row.onclick=pick;row.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick();}};
+      row.onmouseenter=()=>hiUnit(u.id,true);row.onmouseleave=()=>hiUnit(u.id,false);row.onfocus=()=>hiUnit(u.id,true);row.onblur=()=>hiUnit(u.id,false);
+      box.appendChild(row);});
+    if(!L.length){const p=document.createElement('p');p.className='hint';p.textContent='No regiments yet.';box.appendChild(p);}});
+  renderTabs();}
 function render(){
   if(!state)return;applyColors();bldUse(SBX()?'test':'main');if(SBX()){state.strategicHeld=true;}{const su=state.step==='setup';['.main','.roster','#view-hint','#last','.score'].forEach(q=>{const e=document.querySelector(q);if(e)e.hidden=su;});}drawTerrain();drawZones();
   $('phase').textContent=state.phase||'';
@@ -1194,15 +1262,7 @@ function render(){
   if(act&&act.actions.length){const pts=[[act.actions[0].from.x,act.actions[0].from.y]].concat(act.actions.map(a=>[a.to.x,a.to.y]));el('polyline',{points:pts.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#E8C65A','stroke-width':1.6,'stroke-dasharray':'4 3'},rg);}
   all().filter(u=>u.onTable).forEach(u=>drawUnit(u,ug));
   $('last').innerHTML='';const b=document.createElement('b');b.textContent=(state.lastTitle||'Last move')+': ';$('last').append(b,document.createTextNode(state.lastText||'No moves yet.'));
-  ['cs','nord'].forEach(sd=>{const box=$('r-'+sd);box.innerHTML='';all().filter(u=>u.side===sd).forEach(u=>{
-    const row=document.createElement('div');row.className='u'+(u.onTable?'':' off')+(u.activated&&u.type!=='marker'?' done':'')+(u.id===selId?' sel':'');row.tabIndex=0;
-    const n=document.createElement('span');n.className='n';n.textContent=u.name+(u.charName?' + '+u.charName:'');
-    const s2=document.createElement('span');s2.className='s';s2.textContent=u.type==='marker'?(u.destroyed?'Destroyed':'Objective · '+(3-Math.max(u.dmg?.cs||0,u.dmg?.nord||0))+' wounds left'):u.onTable?(u.status||u.stands+' stands'):(u.arriving?'Arriving this round':(u.status||'Reinforcements'));
-    n.textContent=u.name;
-    row.append(n,s2);row.onclick=()=>{selId=u.id;render();};row.onkeydown=e=>{if(e.key==='Enter'){selId=u.id;render();}};box.appendChild(row);
-    if(u.charName){const cr=document.createElement('div');cr.className='u'+(u.onTable?'':' off')+(u.charActivated?' done':'')+(u.id===selId?' sel':'');cr.tabIndex=0;
-      const cn=document.createElement('span');cn.className='n';cn.textContent=u.charName;const cs2=document.createElement('span');cs2.className='s';cs2.textContent='Character · with '+(u.short||u.name);
-      cr.append(cn,cs2);cr.onclick=()=>{selId=u.id;render();};cr.onkeydown=e=>{if(e.key==='Enter'){selId=u.id;render();}};box.appendChild(cr);}});});
+  renderArmies();
   renderCard();try{renderFacBox();renderFrStrip();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
   const held=!!PS().strategicHeld,used=PS().strategicUsedRound===state.round,notMine=PVP()&&(state.turn!==HU||!seatSide());
   {const ss=$('strat-btn').closest('.sec');if(ss)ss.hidden=SBX()||!canStrat(ME);}
@@ -1373,7 +1433,7 @@ $('board').addEventListener('pointerdown',ev=>{
   if(act&&act.cur&&act.cur.type==='charge'&&(act.cur.stage==='target'||act.cur.stage==='roll')){const t=byId(id);if(t&&t.side!==ME){selId=act.id;setChargeTarget(t);return;}}
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){const t=byId(id);if(t&&t.side!==ME){selId=act.id;act.cur.stage='combat';act.cur.target=t.id;openCombat({type:'volley',att:act.id,tgt:t.id,inAct:true});render();return;}}
   if(pick){const t=byId(id),a=byId(pick.att);if(t&&a&&t.side!==a.side){const p=pick;pick=null;openCombat({type:p.type,att:p.att,tgt:t.id,inAct:false});return;}}
-  selId=id;
+  selId=id;rightTab='reg';
   if(SBX()&&!pick&&!cb&&!(act&&act.id===id)){const u=base(id);if(u&&u.onTable&&u.type!=='marker'){tfDrag={id,ox:ix(pt.x)-u.x,oy:iy(pt.y)-u.y,moved:false};$('board').setPointerCapture(ev.pointerId);return;}}
   if(act&&act.id===id&&((act.entering&&!act.placed)||(act.cur&&(act.cur.moving||(act.cur.type==='charge'&&act.cur.stage==='adjust'))))){const u=byId(id);drag={ox:ix(pt.x)-u.x,oy:iy(pt.y)-u.y};$('board').setPointerCapture(ev.pointerId);}
   render();});
@@ -1386,6 +1446,8 @@ $('rot-l').onclick=()=>rot(-15);$('rot-r').onclick=()=>rot(15);$('rot-180').oncl
 $('f-less').onclick=()=>form(-1);$('f-more').onclick=()=>form(1);
 $('done-act').onclick=finishAction;$('cancel-act').onclick=cancelAction;$('abort').onclick=abort;
 $('ruler').onclick=()=>{ruler=!ruler;$('ruler').setAttribute('aria-pressed',ruler);rA=rB=null;drawRuler();};
+$('tab-reg').onclick=()=>setTab('reg');$('tab-army').onclick=()=>setTab('army');
+['tab-reg','tab-army'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();setTab(rightTab==='reg'?'army':'reg');$(rightTab==='reg'?'tab-reg':'tab-army').focus();}}));
 document.addEventListener('keydown',ev=>{if(!act&&SBX()&&selId&&!/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)){tfKey(ev);return;}if(!act||ev.target.tagName==='INPUT')return;const u=byId(act.id);const k=ev.key;let dx=0,dy=0;
   if(k==='ArrowLeft')dx=.5;if(k==='ArrowRight')dx=-.5;if(k==='ArrowUp')dy=-.5;if(k==='ArrowDown')dy=.5;if(FLIP){dx=-dx;dy=-dy;}
   if(dx||dy){ev.preventDefault();setPose({x:u.x+dx,y:u.y+dy});}
