@@ -106,6 +106,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1px s
 .report h2{font-family:var(--display);font-size:20px;margin:0}.air-h{margin:6px 0 0;font-weight:700}.air-n{margin:0;font-style:italic;color:var(--muted)}
 .stackb{flex:1 1 100%;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px}.stackb li{display:flex;align-items:center;gap:6px}.stackb li span{flex:1}.stackb .btn{padding:2px 10px;font-size:14px}
 .stackb li.dnd{border:1px solid transparent;border-radius:6px;padding:2px 4px;cursor:grab;user-select:none}.stackb li.drag{opacity:.45}.stackb li.over{border-color:var(--brass,#c9a24a);background:rgba(201,162,74,.12)}.stackb li.ins-b{box-shadow:0 -3px 0 0 var(--brass,#c9a24a)}.stackb li.ins-a{box-shadow:0 3px 0 0 var(--brass,#c9a24a)}.stackb .grip{cursor:grab;touch-action:none;user-select:none;padding:2px 8px;font-size:18px;line-height:1;opacity:.7}
+.stats .v.mod{color:var(--brass,#d9b25a)}.stats .v sup,.chip sup{font-size:10px;margin-left:2px}.stats .v sup.dn,.chip sup.dn{color:#e07a6a}.chip.mod{border-color:var(--brass,#d9b25a)}
 .tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px}.tools .tool{font:inherit;font-weight:700;padding:6px 12px;border-radius:4px;border:1px solid var(--edge,#555);background:var(--plate,#222);color:inherit;cursor:pointer}.tools .tool[aria-pressed="true"]{border-color:var(--brass,#c9a24a);box-shadow:inset 0 0 0 1px var(--brass,#c9a24a)}.tools .hint{font-size:13px}
 #aibanner{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:60;max-width:min(560px,94vw);box-shadow:0 14px 40px rgba(0,0,0,.6)}#aibanner .md{width:44px;height:44px}
 #turn-note{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;padding:18px 28px;font-weight:800;font-size:22px;text-align:center;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .3s}#turn-note.on{opacity:1}
@@ -630,7 +631,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-07 22:18 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-07 22:28 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1292,6 +1293,21 @@ function renderFormation(){const box=$('c-form');if(!box)return;const u=act?byId
   box.append(grid);
   if(u.mods){const leg=document.createElement('div');leg.className='fm-leg';[...new Set(u.mods)].forEach(m=>{const s2=MODSTYLE[m];if(!s2)return;const c=document.createElement('span');const t=document.createElement('span');t.className='fm-tag';t.textContent=s2[0];t.style.background=s2[1];c.append(t,document.createTextNode(' '+m));leg.append(c);});box.append(leg);}
   if(act.pose.order)box.append((()=>{const r=document.createElement('button');r.type='button';r.className='btn ghost';r.textContent='Reset formation';r.onclick=()=>{delete act.pose.order;render();};return r;})());}
+/* the regiment's printed stats (without this round's changes) and its stats right now */
+function baseStats(u){const b=Object.assign({},u.stats||{});(u.temp||[]).forEach(g=>Object.entries(g.d||{}).forEach(([k,v])=>{if(b[k]!=null&&!isNaN(+b[k]))b[k]=+b[k]-v;}));return b;}
+function baseRules(u){const T=new Set();(u.temp||[]).forEach(g=>(g.rules||[]).forEach(r=>T.add(r)));const out=[];(u.rules||[]).forEach(r=>{if(T.has(r)){T.delete(r);return;}out.push(r);});return out;}
+function effStats(u){const S=u.stats||{},e=Object.assign({},S),why={};const p=prof(u,'reg');
+  e.M=(+u.m||+S.M||0)+srMarchMod(u);if(e.M!==+baseStats(u).M)why.M='March changes this round';
+  const hc=hitMods(u,p,'clash',null);e.C=hc.hitOn;why.C=hc.reroll6?'re-rolls failed 6s (bonus above 5)':(fxHas(u,/Inspired/)?'Inspired':'');
+  if(hasRule(u,/^Barrage/)||modHas(u,/^Barrage/)){const hv=hitMods(u,p,'volley',null);e.V=hv.hitOn;}
+  e.A=p.A;const mi=moraleInfo(u,u);e.R=mi.auto?'–':mi.R;why.R=mi.auto?'never tests':'includes its size'+(u.charName?' and the character’s Resolve':'');
+  let D=+S.D||0;const rr=RU(u);if(rh(rr,'Shield')&&!u.garrison)D+=1;if(phalanx(u))D+=1;const bas=drawVal(u,/^Bastion\s*\((\d+)\)/);if(bas)D+=bas;e.D=D;if(D!==(+S.D||0))why.D='from the front'+(bas?', with Bastion':'');
+  let Ev=supEvasion(u,+S.E||0);if(fxHas(u,/^Coils of the Serpent/)&&Ev<2)Ev+=1;e.E=Ev;e._why=why;return e;}
+/* special rules that are new or have a different value right now */
+function effRules(u,BR){const all=RU(u),out=[],seen=new Set();const val=(L,n)=>rx(L,n);
+  all.forEach(r=>{const m=String(r).match(/^([A-Z][A-Za-z'!\- ]+?)\s*\(\+?(\d+)\)$/);const plain=/^[A-Z][A-Za-z'!\- ]+$/.test(String(r))&&GLOSS[String(r).toLowerCase()];
+    if(m){const n=m[1].trim();if(seen.has(n))return;seen.add(n);const now=val(all,n),was=val(BR,n);if(now!==was&&now>0)out.push([n+' ('+now+')',was?n+' ('+was+')':'']);}
+    else if(plain&&!rh(BR,String(r))&&!seen.has(r)){seen.add(r);out.push([String(r),'']);}});return out;}
 function renderCard(){
   const u=selId?byId(selId):null;chipFac=u?facOf(N(u.side)):null;
   $('card').classList.toggle('activating',!!(act&&u&&act.id===u.id));$('card').style.setProperty('--side',u&&COL[u.side]?COL[u.side].fill:'var(--trim)');
@@ -1301,7 +1317,9 @@ function renderCard(){
   $('c-name').textContent=u.name+(u.charName?' + '+u.charName:'');
   $('c-meta').textContent=[u.cls,(u.type!=='marker'?'Size '+uSize(u)+(baseSize(u).why?' ('+baseSize(u).why+')':''):''),u.stands+(u.stands===1?' stand':' stands'),u.onTable?'on the table':(u.arriving?'arriving this round':'in reinforcements'),u.status&&u.onTable?u.status:'',u.wounds?u.wounds+' wounds taken'+(lostOf(u)?', '+lostOf(u)+' stands lost':''):''].filter(Boolean).join(' · ');
   const st=$('c-stats');st.innerHTML='';const S0=u.stats||{};['M','V','C','A','W','R','D','E'].forEach(k=>{const k1=document.createElement('div');k1.className='k';k1.textContent=k;st.appendChild(k1);});
-  ['M','V','C','A','W','R','D','E'].forEach(k=>{const v=document.createElement('div');v.className='v';v.textContent=S0[k]??'–';st.appendChild(v);});
+  {const B=baseStats(u),E=u.type==='marker'?S0:effStats(u);['M','V','C','A','W','R','D','E'].forEach(k=>{const v=document.createElement('div');v.className='v';const b=B[k],e=E[k];const num=x=>typeof x==='number'||(x!=null&&x!==''&&!isNaN(+x));
+    v.textContent=e??'–';if(num(b)&&num(e)&&+e!==+b){v.classList.add('mod');const up=+e>+b;const m=document.createElement('sup');m.textContent=up?'▲':'▼';m.className=up?'up':'dn';v.appendChild(m);v.title='Base '+b+' · now '+e+(E._why&&E._why[k]?' ('+E._why[k]+')':'');}
+    else if(E._why&&E._why[k]){v.title=E._why[k];}st.appendChild(v);});}
   const subRow=(title,S,rules)=>{const h=document.createElement('div');h.className='k sub';h.style.gridColumn='1/-1';h.style.textAlign='left';h.style.marginTop='6px';h.textContent=title;st.appendChild(h);
     ['M','V','C','A','W','R','D','E'].forEach(k=>{const v=document.createElement('div');v.className='v';v.textContent=(S||{})[k]??'–';st.appendChild(v);});
     if(rules&&rules.length){const r=document.createElement('div');r.style.gridColumn='1/-1';r.className='chips';rules.forEach(x=>r.appendChild(chip(x)));st.appendChild(r);}};
@@ -1311,7 +1329,9 @@ function renderCard(){
   if(eng.length)fb.appendChild(chip('In contact: '+eng.map(e=>e.short||e.name).join(', '),'fx'));
   fxs.forEach(x=>fb.appendChild(chip(x,'fx')));
   if(!fb.children.length)fb.appendChild(chip('Nothing extra this round'));
-  const rb=$('c-rules');rb.innerHTML='';(u.rules||[]).forEach(x=>rb.appendChild(chip(x)));if(!rb.children.length)rb.appendChild(chip('None'));
+  const rb=$('c-rules');rb.innerHTML='';const BR=baseRules(u);BR.forEach(x=>rb.appendChild(chip(x)));
+  effRules(u,BR).forEach(([t,base])=>{const c=chip(t,'mod');c.title=base?'Base '+base+' · changed this round':'Gained this round';const m=document.createElement('sup');m.textContent='▲';m.className='up';c.appendChild(m);rb.appendChild(c);});
+  if(!rb.children.length)rb.appendChild(chip('None'));
   const ab=$('c-abil');ab.innerHTML='';(u.abilities||[]).forEach(([n,t])=>{const p=document.createElement('p');const b=document.createElement('b');b.textContent=n+': ';p.append(b,document.createTextNode(t));ab.appendChild(p);});
   $('c-abil-sec').hidden=!(u.abilities||[]).length;
   const mine=u.side===ME&&u.type!=='marker'&&(!PVP()||!!seatSide());$('c-act-sec').hidden=!mine||aiBusy;if(!mine||aiBusy)return;
@@ -1326,14 +1346,14 @@ function renderCard(){
       if(u.charName&&!u.charActivated&&(!huStackOn()||((humanTop()==='c:'+u.id||vocOk('c:'+u.id)||(humanTop()&&humanTop()[0]==='c'&&sameCard(humanTop(),u)))&&state.turn===HU))){const b3=document.createElement('button');b3.type='button';b3.className='btn';b3.textContent='Activate the '+u.charName;b3.onclick=()=>charActivate(u.id,humanTop());startBox.appendChild(b3);}
       return;}
     if(!u.onTable&&!u.arriving){const p=document.createElement('p');p.className='hint';p.textContent='Still in reinforcements this round.';startBox.appendChild(p);return;}
-    if(huStackOn()){const top=vocOk('u:'+u.id)?'u:'+u.id:humanTop(),held=huHeldOk()&&PS().huHeld==='u:'+u.id,myTurn=state.turn===HU;const row=document.createElement('div');row.className='row';
+    if(huStackOn()){const top=vocOk('u:'+u.id)?'u:'+u.id:humanTop(),held=huHeldOk()&&sameCard(PS().huHeld,u),myTurn=state.turn===HU;const row=document.createElement('div');row.className='row';
       const why=!myTurn?'It is not your turn.':'';
-      const heldMe=huHeldOk()&&PS().huHeld==='u:'+u.id,okU=!heldMe&&(top==='u:'+u.id||(top&&top[0]==='u'&&sameCard(top,u))),okC=top==='c:'+u.id||(top&&top[0]==='c'&&sameCard(top,u));
+      const heldMe=false,okU=(top==='u:'+u.id&&sameCard(top,u))||(top&&top[0]==='u'&&sameCard(top,u)),okC=top==='c:'+u.id||(top&&top[0]==='c'&&sameCard(top,u));
       if(okU){const ent=PS().huLastCard==='c:'+u.id&&!noEntourage(u);const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=(ent?'Activate as Entourage':'Activate')+(top!=='u:'+u.id?' (with the '+cardName(top)+' card)':'');b.disabled=!!why;b.onclick=()=>startActivation(u.id,ent?'entourage':'command',top);row.appendChild(b);}
       if(okC){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Activate the '+u.charName;b.disabled=!!why;b.onclick=()=>charActivate(u.id,top);row.appendChild(b);}
       if(held&&stratU(u)){const b=document.createElement('button');b.type='button';b.className='btn ghost';b.textContent='Activate from Strategic Stack';b.disabled=!!why;b.onclick=()=>startActivation(u.id,'strategic');row.appendChild(b);}
       if(row.children.length)startBox.appendChild(row);
-      const p=document.createElement('p');p.className='hint';p.textContent=why||(heldMe?'Its card is in your Strategic Stack, so it can only activate from there.':row.children.length?(okC?'Your top card is a '+u.charName+' card.':'Your top card is a '+frBase(u)+' card; it can activate any '+frBase(u)+' regiment.'):'Not your next card. Next in your Command Stack: '+(top?cardName(top):'nothing')+'.');startBox.appendChild(p);return;}
+      const p=document.createElement('p');p.className='hint';p.textContent=why||(okC?'Your top card is a '+u.charName+' card.':okU?'Your top card is a '+frBase(u)+' card; it can activate any '+frBase(u)+' regiment that has not activated.':(held&&stratU(u))?'A '+frBase(u)+' card is in your Strategic Stack; it can activate this regiment.':'Not your next card. Next in your Command Stack: '+(top?cardName(top):'nothing')+'.');startBox.appendChild(p);return;}
     const row=document.createElement('div');row.className='row';
     const b1=document.createElement('button');b1.type='button';b1.className='btn';b1.textContent='Activate';b1.onclick=()=>startActivation(u.id,'command');
     const b2=document.createElement('button');b2.type='button';b2.className='btn ghost';b2.textContent='Activate from Strategic Stack';b2.onclick=()=>startActivation(u.id,'strategic');b2.disabled=!PS().strategicHeld;b2.title=PS().strategicHeld?'':'No card is held in the Strategic Stack';
@@ -1898,18 +1918,25 @@ function frontArcHas(u,t){return rh(RU(u),'Acute Senses')||rh(RU(u),'Fluid Forma
 /* cards */
 function regCardLive(u){return u.type!=='marker'&&!u.destroyed&&(u.onTable||u.arriving)&&!u.dyingFight;}
 function huStackOn(){const P=state&&PS();return !!P&&Array.isArray(P.huStack)&&P.huStack.length>0&&(state.step||'activations')==='activations';}
-function humanTop(){return huStackOn()?(PS().huStack.filter(cardOk)[0]||null):null;}
+function humanTop(){return huStackOn()?(validCards(PS().huStack)[0]||null):null;}
 function huHeldOk(){const P=state&&PS();return !!(P&&P.huHeld&&cardOk(P.huHeld));}
 function cardName(c){const u=base(c.slice(2));if(!u)return c;return c[0]==='c'?(u.charName+' (character with '+(u.short||u.name)+')'):u.name;}
 function sideCardsLeft(side){return (state.units||[]).filter(u=>u.side===side&&regCardLive(u)).reduce((n,u)=>n+(u.activated?0:1)+(u.charName&&!u.charActivated?1:0),0);}
-function humanCardsLeft(){if(huStackOn())return PS().huStack.filter(cardOk).length+(huHeldOk()?1:0);return (state.units||[]).filter(u=>u.side===HU&&regCardLive(u)).reduce((n,u)=>n+(u.activated?0:1)+(u.charName&&!u.charActivated?1:0),0);}
+function humanCardsLeft(){if(huStackOn())return validCards(PS().huStack).length+(huHeldOk()?1:0);return (state.units||[]).filter(u=>u.side===HU&&regCardLive(u)).reduce((n,u)=>n+(u.activated?0:1)+(u.charName&&!u.charActivated?1:0),0);}
 function defaultHumanStack(){const mine=(state.units||[]).filter(u=>u.side===HU&&regCardLive(u));const out=[];mine.sort((a,b)=>(b.onTable?1:0)-(a.onTable?1:0)).forEach(u=>{if(u.charName)out.push('c:'+u.id);out.push('u:'+u.id);});return out;}
 let huDraft=null;
 async function popHuCard(card,extra){if(!Array.isArray(PS().huStack))return;const st=PS().huStack.filter(c=>c!==card);if(PVP()){await savePS({huStack:st,huLastCard:card});await putState(extra||{});return;}await putState(Object.assign({huStack:st,huLastCard:card},extra||{}));}
 /* a regiment card can activate any regiment of the same type (not one whose card is in the Strategic Stack); a character card any character of the same name */
-function sameCard(c,u){if(!c||!u)return false;const o=base(c.slice(2));if(!o||o.side!==u.side)return false;if(c[0]==='u')return !u.activated&&regCardLive(u)&&frBase(o)===frBase(u)&&!(huHeldOk()&&PS().huHeld==='u:'+u.id);return !!u.charName&&!u.charActivated&&regCardLive(u)&&o.charName===u.charName;}
-function cardOk(c){const id=c.slice(2),u=base(id);if(!u||!regCardLive(u))return false;return c[0]==='c'?(!!u.charName&&!u.charActivated):!u.activated;}
-function aiCardsLeft(){const st=(state.aiStack||[]).filter(cardOk);if(st.length)return st.length;return (state.units||[]).filter(u=>u.side===AI&&regCardLive(u)).reduce((n,u)=>n+(u.activated?0:1)+(u.charName&&!u.charActivated?1:0),0);}
+/* Command Cards are their own things: a card belongs to a regiment type (or character name), not to one regiment.
+   It can activate any living regiment of that type that has not activated yet; a card whose own regiment died is used on another of the type. */
+function cardOf(c){return base(c.slice(2))||null;}
+function sameCard(c,u){if(!c||!u)return false;const o=cardOf(c);if(!o||o.side!==u.side)return false;if(c[0]==='u')return !u.activated&&regCardLive(u)&&u.type!=='marker'&&frBase(o)===frBase(u);return !!u.charName&&!u.charActivated&&regCardLive(u)&&(o.charName||o.charSlain)===u.charName;}
+function cardAvail(c){const o=cardOf(c);if(!o)return [];return (state.units||[]).filter(u=>sameCard(c,u));}
+function cardPick(c){const A=cardAvail(c);const own=A.find(u=>u.id===c.slice(2));return own||A[0]||null;}
+function cardKey(c){const o=cardOf(c);if(!o)return c;return c[0]+'|'+o.side+'|'+(c[0]==='u'?frBase(o):(o.charName||o.charSlain));}
+function validCards(L){const used={};return (L||[]).filter(c=>{const k=cardKey(c),cap=cardAvail(c).length;used[k]=(used[k]||0);if(used[k]>=cap)return false;used[k]++;return true;});}
+function cardOk(c){return cardAvail(c).length>0;}
+function aiCardsLeft(){const st=validCards((state.aiStack||[]));if(st.length)return st.length;return (state.units||[]).filter(u=>u.side===AI&&regCardLive(u)).reduce((n,u)=>n+(u.activated?0:1)+(u.charName&&!u.charActivated?1:0),0);}
 function cardsTotal0(side){return (state.units||[]).filter(u=>u.side===side&&regCardLive(u)).reduce((n,u)=>n+1+(u.charName?1:0),0);}
 /* Command Cards in each player's Command Stack this round (the Supremacy roll-off compares these) */
 function cardsTotal(side){if(!PVP()){const P=PS()||{};const hs=Array.isArray(P.huStack)?P.huStack.length+(P.huHeld?1:0):null,as=Array.isArray(state.aiStack)?state.aiStack.length:null;
@@ -2088,10 +2115,10 @@ async function aiRegiment(id,source,report){const u0=base(id);startActivation(id
   if(act){await saveActivation();}
   const title=(u0.name)+(source==='entourage'?' (Entourage)':'');report.push({title,lines,narration:P.narration});}
 async function runAITurn(){if(PVP())return;if(aiBusy||!state||!db)return;if(act){toast('Finish or undo your activation first.');return;}aiBusy=true;aiNotes=[];render();const report=[];
-  try{let st=(state.aiStack||[]).filter(cardOk);if(!st.length)st=defaultStack();
+  try{let st=validCards((state.aiStack||[]));if(!st.length)st=defaultStack();
     const card=st.shift();if(!card){aiBusy=false;await afterAITurn([]);return;}
     await putState({aiStack:st,turn:AI,phase:'Round '+state.round+' · '+N(AI)+' are acting'});
-    const id=card.slice(2);
+    const id=((cardPick(card)||{}).id)||card.slice(2);
     if(card[0]==='c'){await darkHandAI(byId(id));const u=byId(id);aiStatus(`${N(AI)}: the ${u.charName} is deciding…`);const d=await planCharacter(u);const cl=[];
       for(const x of (Array.isArray(d.draws)?d.draws:[]).slice(0,3)){const a=chAbil(byId(id)).find(q=>q.kind==='draw'&&q.n.toLowerCase()===String(x.ability||'').toLowerCase());if(a){const r=await useAbil(id,a.n,x.target);if(r)cl.push(r);}}
       let line;if(d.char==='cast'){const r=await aiCastSpell(byId(id),true,d.spell,d.target);if(r){const r2=await srAiExtra(byId(id),d.spell);line=`the ${u.charName} ${r}`+r2;await charCommit(id,{spell:d.spell,note:r+r2+'.'});}else line=await aiCast(id,d.spell,d.target);}
@@ -2099,7 +2126,7 @@ async function runAITurn(){if(PVP())return;if(aiBusy||!state||!db)return;if(act)
       else if(d.char==='ability'){const a=chAbil(byId(id)).find(q=>q.kind==='action'&&q.n.toLowerCase()===String(d.ability||'').toLowerCase());if(a){const r=await useAbil(id,a.n,d.target);await charCommit(id,{note:'Used '+a.n+'.'});line=r;}else{await charCommit(id,{note:'No action.'});line=`the ${u.charName} takes no action`;}}
       else{await charCommit(id,{note:'No action.'});line=`the ${u.charName} takes no action`;}
       report.push({title:u.charName,lines:cl.concat([line]),narration:String(d.narration||'')});
-      const nx=(state.aiStack||[]).filter(cardOk)[0];if(nx==='u:'+id&&!noEntourage(byId(id))){await putState({aiStack:(state.aiStack||[]).filter(cardOk).slice(1)});await aiRegiment(id,'entourage',report);}}
+      const nx=validCards((state.aiStack||[]))[0];if(nx&&nx[0]==='u'&&sameCard(nx,byId(id))&&!noEntourage(byId(id))){await putState({aiStack:validCards((state.aiStack||[])).slice(1)});await aiRegiment(id,'entourage',report);}}
     else await aiRegiment(id,'command',report);}
   catch(e){report.push({title:'Problem',lines:['The '+N(AI)+' turn stopped early: '+((e&&e.message)||e)],narration:''});act=null;cb=null;}
   aiBusy=false;bannerHide();aiStatus('');showReport(report);await afterAITurn(report);}
@@ -3721,7 +3748,7 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);try{await supOnAwaken(u);}catch(e){}if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
@@ -3904,7 +3931,7 @@ function supOnChant(u,cult){let units=state.units;const k=supK(u.side),notes=[];
   if(k==='Visions of Death'&&cult==='Death'&&/Infantry/.test(u.cls||'')){units=units.map(x=>x.id===u.id?grantU(x,'Visions of Death (Command Stand +3 Attacks)',[]):x);notes.push('Visions of Death: Command Stand +3 Attacks');}
   return {units,notes};}
 /* the Matriarch Walks and Visions of Conquest (card choice) */
-function vocOk(c){return supAct(HU,'Visions of Conquest')&&huStackOn()&&PS().huStack.filter(cardOk).includes(c);}
+function vocOk(c){return supAct(HU,'Visions of Conquest')&&huStackOn()&&validCards(PS().huStack).includes(c);}
 function mwExtra(side){return supAct(side,'The Matriarch Walks')&&supMem(side).mwR!==srRnd();}
 /* Carrier of the Godflesh */
 function srGodflesh(side,card){if(!card||!supOn(side,'Carrier of the Godflesh'))return {};const id=card.slice(2),u=base(id);if(!u||!u.onTable)return {};
@@ -3995,7 +4022,7 @@ function supChoiceBar(add,mk,me,info){const c=supChoiceNeeded(me);if(!c)return f
   if(c==='sacrifice'){info.textContent='Surrounded by Fear and Dead Men: destroy up to 3 stands of another Fallen Pantheon regiment; each stand gives a Fallen Pantheon token.';const L=mine.filter(u=>supRoles(u).includes('The Fallen Pantheon')&&!/Fallen Divinity/.test(u.name+(u.charName||'')));if(!L.length){putState({sup:supMemo(me,{sfR:R})});return true;}const s=mkSel('Regiment to sacrifice',L);add(mk('Sacrifice',async()=>{await putState({sup:supMemo(me,{sfR:R})});await supSacrifice(me,s.value);}));add(mk('Skip',()=>putState({sup:supMemo(me,{sfR:R})}),true));return true;}
   return false;}
 /* Army of Lions: once per game, reveal the top card before the Supremacy roll-off; a Polemarch card wins it */
-function aolTry(side){if(supK(side)!=='Army of Lions'||supMem(side).aolUsed)return null;const S=supOf(side);if(!S.on)return null;const st=side===HU&&!PVP()?((PS().huStack)||[]):(state.aiStack||[]);const top=st.filter(cardOk)[0];if(!top)return null;
+function aolTry(side){if(supK(side)!=='Army of Lions'||supMem(side).aolUsed)return null;const S=supOf(side);if(!S.on)return null;const st=side===HU&&!PVP()?((PS().huStack)||[]):(state.aiStack||[]);const top=validCards(st)[0];if(!top)return null;
   const u=base(top.slice(2));const isP=top[0]==='c'&&u&&/Polemarch/.test(u.charName||'');return {top,isP};}
 /* Tricks of the Trade: the Influence Pool */
 function totPool(side){return (supMem(side).pool||[]);}
@@ -4190,7 +4217,7 @@ function stackDnD(box,arr){const items=Array.from(box.children);let drag=null;
         if(w.mode==='swap'){[arr[i],arr[w.i]]=[arr[w.i],arr[i]];}else{const [x]=arr.splice(i,1);let to=w.i+(w.mode==='after'?1:0);if(i<to)to--;arr.splice(to,0,x);}renderTurnbar();};
       window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);};
     li.addEventListener('pointerdown',start);});}
-function stackView(){if(!huStackOn()&&!(PS()&&PS().huHeld))return null;const L=(PS().huStack||[]).filter(cardOk);const d=document.createElement('details');d.className='stackv';const sm=document.createElement('summary');sm.textContent='Your Command Stack ('+L.length+' left)';d.appendChild(sm);
+function stackView(){if(!huStackOn()&&!(PS()&&PS().huHeld))return null;const L=validCards((PS().huStack||[]));const d=document.createElement('details');d.className='stackv';const sm=document.createElement('summary');sm.textContent='Your Command Stack ('+L.length+' left)';d.appendChild(sm);
   const ol=document.createElement('ol');L.forEach(c=>{const li=document.createElement('li');li.textContent=cardName(c);ol.appendChild(li);});d.appendChild(ol);
   if(huHeldOk()&&PS().huHeld)d.appendChild(ptext('Strategic Stack: '+cardName(PS().huHeld)));return d;}
 let myTurnCards=null,myTurnStrat=false,lastTurnSeen=null;
