@@ -1232,7 +1232,9 @@ function drawVolleyZones(u,g){const vr=u&&volleyRange(u);if(!vr)return;const spa
   /* union of the stands' fans: straight ahead of the front edge plus a sector at each front corner out to the arc's edge */
   const shape=Rad=>{const sp=span*Math.PI/180,o=[],n=Math.max(8,Math.round(span/4));o.push(P(fe,-hw));for(let k=0;k<=n;k++){const an=-sp+sp*k/n;o.push(P(fe+Rad*Math.cos(an),-hw+Rad*Math.sin(an)));}for(let k=0;k<=n;k++){const an=sp*k/n;o.push(P(fe+Rad*Math.cos(an),hw+Rad*Math.sin(an)));}o.push(P(fe,hw));return o;};
   const front=standsOf(u).filter(s=>s.rank===0);
-  if(span>=180){const ring=Rad=>{const o=[];[[1,1],[1,-1],[-1,-1],[-1,1]].forEach(([i,j],q)=>{const c=P(fe*i,hw*j),a0=[0,-Math.PI/2,Math.PI,Math.PI/2][q];for(let k=0;k<=8;k++){const an=a0-Math.PI/2*k/8;o.push([c[0]+f[0]*Rad*Math.cos(an)+r[0]*Rad*Math.sin(an),c[1]+f[1]*Rad*Math.cos(an)+r[1]*Rad*Math.sin(an)]);}});return o;};
+  if(span>=180){/* every direction: the shooting stands' outline grown by the range (a rounded rectangle). Acute Senses fires from the front rank only; Fluid Formation from whichever side faces the target, so the whole regiment */
+    const back=rh(RU(u),'Fluid Formation')||u.garrison?-fe:fe-G.sd;
+    const ring=Rad=>{const o=[],C=[[fe,hw,0],[back,hw,1],[back,-hw,2],[fe,-hw,3]];C.forEach(([a,b,q])=>{for(let k=0;k<=10;k++){const an=(q+k/10)*Math.PI/2;o.push(P(a+Rad*Math.cos(an),b+Rad*Math.sin(an)));}});return o;};
     if(!long)el('polygon',{points:pts(ring(R)),fill:'#6FA8FF','fill-opacity':.2,stroke:'#9CC4FF','stroke-width':2,'stroke-dasharray':'6 4','pointer-events':'none'},g);el('polygon',{points:pts(ring(H)),fill:'#FFD66B','fill-opacity':.32,stroke:'#FFE39A','stroke-width':2,'pointer-events':'none'},g);return;}
   if(!long)el('polygon',{points:pts(shape(R)),fill:'#6FA8FF','fill-opacity':.2,stroke:'#9CC4FF','stroke-width':2,'stroke-dasharray':'6 4','pointer-events':'none'},g);
   el('polygon',{points:pts(shape(H)),fill:'#FFD66B','fill-opacity':.32,stroke:'#FFE39A','stroke-width':2,'pointer-events':'none'},g);
