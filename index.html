@@ -587,6 +587,13 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .rtools>summary>span:first-child{margin-right:auto}
 .rtools .rt-s{text-transform:none;letter-spacing:0;font-family:inherit}
 .rtools>.sec{padding:0 10px 10px}
+
+.qa{display:flex;flex-direction:column;gap:2px}
+.qa-row{align-items:center}
+.qa-l{font-size:12px;color:var(--muted);min-width:78px}
+.qa-sel{min-width:220px;max-width:100%}
+.qa-edit{margin:4px 0 8px;border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+.qa-edit>summary{cursor:pointer;font-size:13px;font-weight:600;padding:4px 0}
 </style>
 <style>.fan-note{max-width:1240px;margin:24px auto 32px;font-size:13px;color:var(--muted)}.fan-note a{color:inherit}</style>
 </head>
@@ -679,7 +686,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 12:38 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 12:46 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -2780,9 +2787,9 @@ function upgAbilities(w){return (w.upg||[]).map(n=>{const e=upgFind(n);return e?
 function charJson(c,warlord,custom,w){const n=v=>v==='-'?null:v,S=c.stats;return {name:c.name,warlord,stats:{C:n(S.C)||1,A:n(S.A)||1,W:n(S.W)||4,R:S.R==='-'?0:S.R,D:n(S.D)||0,E:n(S.E)||0,V:n(S.V)||0},rules:c.rules.concat((c.draw||[]).filter(d=>!c.rules.includes(d))),spells:[],upgrades:(w?upgAbilities(w):(custom||[]).map(x=>[x.name,x.pts+' pts'])).map(a=>a[0])};}
 function bldToList(){const f=bldFac();if(!f)return null;const units=[],count={};units.push=function(...a){a.forEach(x=>{if(this.wbCur&&x){x.wb=this.wbCur[0];x.wbChar=this.wbCur[1];}});return Array.prototype.push.apply(this,a);};const roman=['','I','II','III','IV','V','VI'];
   const nameOf=u=>{count[u]=(count[u]||0)+1;return u;};
-  bld.wbs.forEach((w,wi)=>{const c=bldUnit(w.char);if(!c)return;const wl=bld.warlord===wi;units.wbCur=[wi,c.name];
-    if(c.type==='Monster'){units.push(unitJson(c,{name:nameOf(c.name),points:wbPtsChar(w),abilities:c.draw.map(d=>[d,ruleInfo(d,f.name)||'Draw Event']).concat(upgAbilities(w)),warlordMonster:wl},f));}
-    w.regs.forEach((r,ri)=>{if(r.modular){const x=modJson(r.modular);x.points+=(r.custom||[]).reduce((a,c)=>a+(+c.pts||0),0);(r.custom||[]).forEach(q=>x.abilities.push([q.name,'Upgrade, '+q.pts+' pts']));nameOf(x.name);if(w.joins===ri&&c.type!=='Monster')x.character=charJson(c,wl,w.custom,w);x.abilities=(x.abilities||[]).concat(upgAbilities(w).map(a=>['The '+c.name+': '+a[0],a[1]]));units.push(x);return;}
+  bld.wbs.forEach((w,wi)=>{const c=bldUnit(w.char);if(!c&&!w.bare)return;const wl=bld.warlord===wi;units.wbCur=[wi,c?c.name:null];
+    if(c&&c.type==='Monster'){units.push(unitJson(c,{name:nameOf(c.name),points:wbPtsChar(w),abilities:c.draw.map(d=>[d,ruleInfo(d,f.name)||'Draw Event']).concat(upgAbilities(w)),warlordMonster:wl},f));}
+    w.regs.forEach((r,ri)=>{if(r.modular){const x=modJson(r.modular);x.points+=(r.custom||[]).reduce((a,c)=>a+(+c.pts||0),0);(r.custom||[]).forEach(q=>x.abilities.push([q.name,'Upgrade, '+q.pts+' pts']));nameOf(x.name);if(c&&w.joins===ri&&c.type!=='Monster')x.character=charJson(c,wl,w.custom,w);if(c)x.abilities=(x.abilities||[]).concat(upgAbilities(w).map(a=>['The '+c.name+': '+a[0],a[1]]));units.push(x);return;}
       if(r.chariots){r.chariots.filter(Boolean).forEach(nm=>{const u=bldUnit(nm);if(u)units.push(unitJson(u,{name:nameOf(nm),stands:1},f));});return;}
       const u=bldUnit(r.unit);if(!u)return;const o=regOptions(u).opts,ab=u.draw.map(d=>[d,ruleInfo(d,f.name)||'Draw Event']);let aux=null;const rules=u.rules.slice();
       (r.opts||[]).forEach(nm=>{const op=o.find(x=>x.name===nm);if(!op)return;
@@ -2791,7 +2798,7 @@ function bldToList(){const f=bldFac();if(!f)return null;const units=[],count={};
         ab.push([op.name,(op.kind==='off'?'Officer':'Option')+(op.detail?': '+op.detail:'')+', '+op.cost+' pts']);});
       (r.custom||[]).forEach(x=>ab.push([x.name,'Upgrade, '+x.pts+' pts']));
       const x=unitJson(u,{name:nameOf(u.name),points:rowPts(r),stands:u.kind==='char'?1:(r.stands||bldBase(u)),rules,abilities:ab,standardBearer:bearerDefault(u),auxiliary:aux},f);if(w.pbReg===ri)x.vetRole=true;
-      if(w.joins===ri&&c.type!=='Monster')x.character=charJson(c,wl,w.custom,w);x.abilities=(x.abilities||[]).concat(upgAbilities(w).map(a=>['The '+c.name+': '+a[0],a[1]]));units.push(x);});});
+      if(c&&w.joins===ri&&c.type!=='Monster')x.character=charJson(c,wl,w.custom,w);if(c)x.abilities=(x.abilities||[]).concat(upgAbilities(w).map(a=>['The '+c.name+': '+a[0],a[1]]));units.push(x);});});
   // number duplicate names
   const seen={};units.forEach(u=>{if(count[u.name]>1){seen[u.name]=(seen[u.name]||0)+1;u.name=u.name+' '+roman[seen[u.name]]||u.name;}});
   if(!units.some(u=>(u.character&&u.character.warlord)||u.warlordMonster)){const fc=units.find(u=>u.character&&canWarlord(bldUnit(u.character.name)));if(fc)fc.character.warlord=true;}
@@ -2962,7 +2969,7 @@ function modePicker(add){const g=document.createElement('div');g.className='grp'
 const SEATNAME={get cs(){return 'South edge ('+colName('cs')+')';},get nord(){return 'North edge ('+colName('nord')+')';}};
 
 /* ---------- test field: drop regiments, set conditions, activate freely ---------- */
-let tfDrag=null,tfSide='cs',tfReserve=false,tfAddOpen=true,tfFx='';
+let tfDrag=null,tfSide='cs',tfReserve=false,tfAddOpen=false,tfFx='',tfEditOpen=true,tfOneOpen=true;
 async function tfEnter(){act=null;cb=null;selId=null;charAct=null;
   await putState({mode:'test',sbSide:'cs',step:'activations',units:[],fr:{},sup:{},army:{cs:[],nord:[]},round:1,turn:'cs',zones:[],terrain:[],sbN:0,vp:{cs:0,nord:0},names:{cs:'South',nord:'North'},
     aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:true,strategicUsedRound:0,hammerUsed:false,moves:[],picks:{},ready:{},
@@ -2972,11 +2979,11 @@ async function tfLeave(){act=null;cb=null;selId=null;charAct=null;
 function tfUnits(fn){return putState({units:(state.units||[]).map(u=>{const r=fn(u);return r===undefined?u:r;}).filter(Boolean)});}
 function tfSet(id,patch){return tfUnits(u=>u.id===id?Object.assign({},u,typeof patch==='function'?patch(u):patch):u);}
 function tfSpot(side,k){const n=(state.units||[]).filter(u=>u.side===side&&u.onTable).length+k;return {x:12+(n%5)*12,y:side==='cs'?30+Math.floor(n/5)*6:18-Math.floor(n/5)*6};}
-async function tfDrop(L){const side=tfSide;let n=state.sbN||0;
-  const units=buildUnits(side,L).map((u,i)=>{n++;const p=tfSpot(side,i);return Object.assign(u,{id:'t'+(side==='cs'?'s':'n')+'-'+n,x:p.x,y:Math.max(4,Math.min(44,p.y)),onTable:!tfReserve,arriving:tfReserve});});
+async function tfDrop(L,spec){const side=tfSide;let n=state.sbN||0;
+  const units=buildUnits(side,L).map((u,i)=>{n++;const p=tfSpot(side,i);return Object.assign(u,{id:'t'+(side==='cs'?'s':'n')+'-'+n,x:p.x,y:Math.max(4,Math.min(44,p.y)),onTable:!tfReserve,arriving:tfReserve},spec?{tfSpec:spec}:{});});
   const A=Object.assign({cs:[],nord:[]},state.army||{});A[side]=[...new Set((A[side]||[]).concat(L.armyRules||[]))];
   await putState({army:A,units:(state.units||[]).concat(units),sbN:n,lastTitle:'Test field',lastText:units.length+' regiment'+(units.length===1?'':'s')+' dropped for '+(side==='cs'?'South':'North')+(tfReserve?' (arriving from reserves)':'')+'.'});
-  if(units[0])selId=units[0].id;tfAddOpen=false;toast(tfReserve?'Dropped in reserves: activate it to bring it on from an edge.':'Dropped on the table. Drag to move; Q and E turn the selected regiment.');render();}
+  if(units[0])selId=units[0].id;if(!spec)tfAddOpen=false;toast(tfReserve?'Dropped in reserves: activate it to bring it on from an edge.':'Dropped on the table. Drag to move; Q and E turn the selected regiment.');render();}
 function tfWmax(u){const W=+(u.stats&&u.stats.W)||4;return Math.max(1,(u.stands||1)*W+(u.auxStats?+u.auxStats.W||0:0));}
 function tfKey(ev){const u=base(selId);if(!u||!u.onTable)return;const k=ev.key;let p=null;
   if(k==='q'||k==='Q')p={facing:((u.facing||0)-15+360)%360};if(k==='e'||k==='E')p={facing:((u.facing||0)+15)%360};
@@ -2984,6 +2991,54 @@ function tfKey(ev){const u=base(selId);if(!u||!u.onTable)return;const k=ev.key;l
   if(p){ev.preventDefault();tfSet(u.id,p);}}
 function tfDropChar(u){const o=(u.order||[]).filter(t=>t!=='c');const st=Math.max(1,(u.stands||2)-1);
   const x=Object.assign({},u,{stands:st,files:Math.min(u.files||1,st)});['char','charName','charStats','charRules','warlord','spells','charActivated'].forEach(k=>delete x[k]);if(u.order)x.order=o;return x;}
+/* ---------- test field: one regiment at a time, and edit what is already on the table ---------- */
+let qa=(()=>{try{return JSON.parse(localStorage.getItem('tfQuick')||'null')||{};}catch(e){return {};}})();
+function qaSave(){try{localStorage.setItem('tfQuick',JSON.stringify(qa));}catch(e){}}
+function withBld(tmp,fn){const keep=bld;bld=tmp;try{return fn();}finally{bld=keep;}}
+function qaFacE(fac){return ENCY.find(f=>f.name===fac)||null;}
+function qaUnitE(fac,name){const f=qaFacE(fac);return f&&f.units.find(x=>x.name===name)||null;}
+function qaUnits(fac){const f=qaFacE(fac);return f?f.units.filter(u=>u.kind!=='char'||u.type==='Monster'):[];}
+/* characters that may lead (join) this regiment */
+function qaChars(fac,unit){const f=qaFacE(fac),u=qaUnitE(fac,unit);if(!f||!u||u.kind==='char')return [];
+  return withBld({fac,wbs:[],warlord:0},()=>f.units.filter(c=>{if(c.kind!=='char'||c.type==='Monster')return false;try{return joinable({char:c.name},{unit:u.name});}catch(e){return c.type===u.type;}}));}
+function qaLeader(spec){const u=qaUnitE(spec.fac,spec.unit);return u&&u.kind==='char'?u:qaUnitE(spec.fac,spec.char);}
+function qaClean(spec){const s=Object.assign({fac:'',unit:'',char:'',stands:null,opts:[],upg:[],warlord:false},spec||{});const u=qaUnitE(s.fac,s.unit);if(!u)return s;
+  if(u.kind==='char'){s.char='';s.stands=1;s.opts=[];}else{const b=bldBase(u),single=/^1 stand/.test(u.stands||'');s.stands=single?b:Math.max(b,Math.min(12,+s.stands||b));
+    if(s.char&&!qaChars(s.fac,s.unit).some(c=>c.name===s.char))s.char='';const O=withBld({fac:s.fac,wbs:[],warlord:0},()=>regOptions(u).opts.map(o=>o.name));s.opts=(s.opts||[]).filter(n=>O.includes(n));}
+  const L=qaLeader(s);if(!L){s.upg=[];s.warlord=false;}else{const U=(UPG[s.fac]||{list:[]}).list;s.upg=(s.upg||[]).filter(n=>U.some(e=>e[1]===n));if(!canWarlord(L))s.warlord=false;}return s;}
+function qaList(spec){const s=qaClean(spec),f=qaFacE(s.fac),u=qaUnitE(s.fac,s.unit);if(!f||!u)return null;
+  const w=u.kind==='char'?{char:u.name,regs:[],upg:s.upg.slice(),custom:[]}:{char:s.char||'',bare:!s.char,regs:[{unit:u.name,stands:s.stands,opts:s.opts.slice(),custom:[]}],joins:s.char?0:null,upg:s.char?s.upg.slice():[],custom:[]};
+  const L=withBld({fac:f.name,wbs:[w],warlord:s.warlord?0:-1},()=>bldToList());if(!L)return null;
+  L.units.forEach(x=>{if(x.character)x.character.warlord=!!s.warlord;if(x.warlordMonster!=null)x.warlordMonster=!!s.warlord;});return L;}
+/* best guess at the setup of a regiment that came from a full army */
+function qaSpecOf(u){if(u.tfSpec)return qaClean(u.tfSpec);const fac=u.fac||frFac(u),base=frBase(u),e=qaUnitE(fac,base);
+  const monChar=!!(e&&e.kind==='char');const O=e&&!monChar?withBld({fac,wbs:[],warlord:0},()=>regOptions(e).opts.map(o=>o.name)):[];const ab=(u.abilities||[]).map(a=>String(a[0]));
+  return qaClean({fac,unit:base,char:u.charName||'',stands:monChar?1:regTot(u),opts:O.filter(n=>ab.includes(n)||(n==='Veteran'&&u.vetRole)),upg:itemsOf(u),warlord:!!(u.warlord||u.warlordMonster)});}
+function tfRebuild(u,spec){const s=qaClean(spec),L=qaList(s);if(!L||!L.units.length){toast('That setup could not be built.');return;}
+  const n=buildUnits(u.side,L)[0];const keep=['id','x','y','facing','side','onTable','arriving','activated','effects','temp','destroyed'];const x=Object.assign({},n,{tfSpec:s});keep.forEach(k=>{if(u[k]!==undefined)x[k]=u[k];});
+  if(frBase(u)===frBase(n))x.name=u.name,x.short=u.short||x.short;if(u.charName&&u.charName===n.charName){x.charActivated=u.charActivated;x.charWounds=u.charWounds;}
+  x.wounds=Math.min(u.wounds||0,Math.max(0,tfWmax(x)-1));['order','slotBase','slotFiles','charSlain'].forEach(k=>delete x[k]);
+  return tfUnits(y=>y.id===u.id?x:(s.warlord&&y.side===u.side&&(y.warlord||y.warlordMonster)?Object.assign({},y,{warlord:false,warlordMonster:false}):y));}
+/* the setup form: faction and regiment when adding, then leader, stands, options, upgrades, Warlord */
+function qaForm(spec,onChange,adding){const s=qaClean(spec),box=bEl('div',{className:'qa'});const set=p=>onChange(qaClean(Object.assign({},s,p)));
+  const row=(label,...kids)=>{const r=bEl('div',{className:'tf-row qa-row'});r.append(bEl('span',{className:'qa-l',textContent:label}),...kids);box.append(r);return r;};
+  const sel=(label,val,opts,fn)=>{const e=bEl('select',{className:'tf-in qa-sel'});e.setAttribute('aria-label',label);opts.forEach(([v,t,dis])=>{const o=bEl('option',{value:v,textContent:t});if(dis)o.disabled=true;e.append(o);});e.value=val;e.onchange=()=>fn(e.value);return e;};
+  if(adding){row('Faction',sel('Faction',s.fac,[['','Choose a faction…',true]].concat(ENCY.map(f=>[f.name,f.name])),v=>set({fac:v,unit:'',char:'',opts:[],upg:[]})));
+    if(s.fac){const U=qaUnits(s.fac);row('Regiment',sel('Regiment',s.unit,[['','Choose a regiment…',true]].concat(U.map(u=>[u.name,u.name+(u.kind==='char'?' (Monster character)':'')+' · '+(u.cls?u.cls+' ':'')+u.type])),v=>set({unit:v,stands:null,opts:[]})));}}
+  const u=qaUnitE(s.fac,s.unit);if(!u)return box;
+  if(u.kind!=='char'){const C=qaChars(s.fac,s.unit);row('Led by',sel('Character',s.char,[['','No character']].concat(C.map(c=>[c.name,c.name])),v=>set({char:v,upg:v===s.char?s.upg:[]})));
+    if(!C.length)box.lastChild.append(bEl('span',{className:'ab-note',textContent:'No character in this faction can join it.'}));
+    const b=bldBase(u);if(!/^1 stand/.test(u.stands||''))row('Stands',abStepper(s.stands,b,12,v=>set({stands:v}),'stands'),bEl('span',{className:'ab-note',textContent:'at least '+b+(s.char?', plus the character':'')}));
+    const RO=withBld({fac:s.fac,wbs:[],warlord:0},()=>regOptions(u)),O=RO.opts;if(O.length){const r=row('Options');const nOff=s.opts.filter(n=>(O.find(o=>o.name===n)||{}).kind==='off').length;
+      O.forEach(o=>{const on=s.opts.includes(o.name),full=!on&&o.kind==='off'&&RO.max!=null&&nOff>=RO.max,auxTaken=!on&&o.kind==='aux'&&s.opts.some(n=>(O.find(q=>q.name===n)||{}).kind==='aux');
+        const bt=abBtn((on?'✓ ':'')+o.name,()=>set({opts:on?s.opts.filter(n=>n!==o.name):s.opts.concat([o.name])}),'ab-tog'+(on?' on':''));bt.title=(o.detail||'')+(o.cost?' · '+o.cost+' pts':'')+(full?' · officer limit reached':auxTaken?' · one auxiliary only':'');bt.disabled=full||auxTaken;bt.setAttribute('aria-pressed',String(on));r.append(bt);});}}
+  const L=qaLeader(s);
+  if(L){const U=(UPG[s.fac]||{list:[]}).list;if(U.length&&!charNoUpg(L)){const r=row('Upgrades · '+L.name);
+      withBld({fac:s.fac,wbs:[{char:L.name,regs:[],upg:s.upg}],warlord:s.warlord?0:-1},()=>U.forEach(e=>{const on=s.upg.includes(e[1]);let why='';try{why=on?'':upgWhy(e,L,0);}catch(x){}if(/^Taken/.test(why||''))why='';
+        const bt=abBtn((on?'✓ ':'')+e[1],()=>set({upg:on?s.upg.filter(n=>n!==e[1]):s.upg.concat([e[1]])}),'ab-tog'+(on?' on':''));bt.title=e[0]+' · '+(e[2]?e[2]+' pts':'free')+' · '+e[4]+(why?' · '+why:'');bt.disabled=!!why&&!on;bt.setAttribute('aria-pressed',String(on));r.append(bt);}));}
+    if(canWarlord(L)){const bt=abBtn((s.warlord?'★ ':'')+'Warlord',()=>set({warlord:!s.warlord}),'ab-tog'+(s.warlord?' on':''));bt.setAttribute('aria-pressed',String(!!s.warlord));row('Warlord',bt);}}
+  return box;}
+
 function renderTestField(tb,info,mk,add){
   const nOn=s=>(state.units||[]).filter(u=>u.side===s&&u.type!=='marker').length;
   info.textContent='Test field: drop regiments for either side, set up the situation, then activate any of your regiments as often as you like. Nothing here is scored.';
@@ -3012,6 +3067,7 @@ function renderTestField(tb,info,mk,add){
       r0.append(bEl('span',{className:'tf-l',textContent:'Belongs to'}),sg2);box.append(r0);}
     if(act&&act.id===u.id){box.append(ptext('Activating now: use the panel beside the map. Conditions unlock when the activation is saved or undone.'));add(box);}
     else{
+    {const sp=qaSpecOf(u);if(qaUnitE(sp.fac,sp.unit)){const d=bEl('details',{className:'qa-edit'});d.open=tfEditOpen;d.ontoggle=()=>{tfEditOpen=d.open;};d.append(bEl('summary',{textContent:'Setup: leader, stands, options, upgrades'}));d.append(qaForm(sp,ns=>tfRebuild(u,ns),false));box.append(d);}}
     const r1=bEl('div',{className:'tf-row'});
     r1.append(bEl('span',{className:'tf-l',textContent:'Wounds taken'}),abStepper(u.wounds||0,0,tfWmax(u)-1,v=>tfSet(u.id,{wounds:v}),'wounds'));
     r1.append(bEl('span',{className:'tf-l',textContent:(u.stands||1)+' stands, '+live(u)+' left'}));
@@ -3029,16 +3085,21 @@ function renderTestField(tb,info,mk,add){
     if(u.onTable){r3.append(mk('⟲ 15°',()=>tfSet(u.id,{facing:((u.facing||0)-15+360)%360}),true),mk('15° ⟳',()=>tfSet(u.id,{facing:((u.facing||0)+15)%360}),true),mk('Turn around',()=>tfSet(u.id,{facing:((u.facing||0)+180)%360}),true));
       r3.append(mk('Send to reserves',()=>tfSet(u.id,{onTable:false,arriving:true,activated:false}),true));}
     else r3.append(mk('Put it on the table',()=>{const p=tfSpot(u.side,0);tfSet(u.id,{onTable:true,arriving:false,x:p.x,y:Math.max(4,Math.min(44,p.y))});}));
-    if(u.charName)r3.append(mk('Remove the '+u.charName,()=>tfUnits(x=>x.id===u.id?tfDropChar(x):x),true));
-    if(u.charName){const wb=mk(u.warlord?'Warlord ★':'Make Warlord',()=>tfUnits(x=>x.side!==u.side?x:Object.assign({},x,{warlord:x.id===u.id?!u.warlord:false})),!u.warlord);wb.setAttribute('aria-pressed',String(!!u.warlord));wb.title='The Warlord’s Supremacy Ability shows under Faction rules and Supremacy';r3.append(wb);}
     r3.append(mk('Remove from the field',()=>{if(selId===u.id)selId=null;tfUnits(x=>x.id===u.id?null:x);},true));r3.lastChild.classList.add('ab-danger');
     box.append(r3);
     box.append(ptext('Drag any regiment that is not activating to move it, whichever side it belongs to; Q and E turn the selected one. '+(u.side===ME?'Activate it from the panel beside the map.':'It belongs to the side you are not controlling: switch control above to activate it, or charge it with one of yours.'),'hint'));
     add(box);}}
   else add(ptext('Select a regiment on the map or in the rosters to set its wounds, effects and facing.','hint'));
   // adding regiments: the army builder with its own draft
-  const det=bEl('details',{className:'rev tf-add'});det.open=tfAddOpen||!(state.units||[]).length;det.ontoggle=()=>{tfAddOpen=det.open;};
-  det.append(bEl('summary',{textContent:'Add regiments'}));
+  {const one=bEl('details',{className:'rev tf-add'});one.open=tfOneOpen;one.ontoggle=()=>{tfOneOpen=one.open;};one.append(bEl('summary',{textContent:'Add one regiment'}));
+    const r=bEl('div',{className:'tf-row'});const g=bEl('div',{className:'grp'});g.setAttribute('role','group');g.setAttribute('aria-label','Drop for');
+    [['cs','For South ('+colName('cs')+')'],['nord','For North ('+colName('nord')+')']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t});b.setAttribute('aria-pressed',String(tfSide===sd));b.onclick=()=>{tfSide=sd;renderTurnbar();};g.appendChild(b);});
+    const lab=bEl('label',{className:'tf-chk'});const cbx=bEl('input',{type:'checkbox',checked:tfReserve});cbx.onchange=()=>{tfReserve=cbx.checked;};lab.append(cbx,document.createTextNode(' Arrive from reserves'));r.append(g,lab);one.append(r);
+    one.append(qaForm(qa,ns=>{qa=ns;qaSave();renderTurnbar();},true));
+    const s0=qaClean(qa),ok=!!qaUnitE(s0.fac,s0.unit);const go=mk(ok?'Drop '+s0.unit+(s0.char?' with the '+s0.char:'')+(tfReserve?' in reserves':' on the table'):'Choose a regiment first',()=>{const L=qaList(qa);if(!L||!L.units.length){toast('Choose a regiment first.');return;}tfDrop(L,qaClean(qa));});go.disabled=!ok;
+    one.append(bEl('div',{className:'tf-row'},[go]));one.append(ptext('Only legal choices are offered: characters that may join this regiment, its stand range, its own options and the upgrades that character may take. Press again to drop another. Change a regiment that is already on the table under Setup when you select it.','hint'));add(one);}
+  const det=bEl('details',{className:'rev tf-add'});det.open=tfAddOpen||(!(state.units||[]).length&&!tfOneOpen);det.ontoggle=()=>{tfAddOpen=det.open;};
+  det.append(bEl('summary',{textContent:'Add whole warbands (army builder)'}));
   const r4=bEl('div',{className:'tf-row'});const sg=bEl('div',{className:'grp'});sg.setAttribute('role','group');sg.setAttribute('aria-label','Drop for');
   [['cs','For South ('+colName('cs')+')'],['nord','For North ('+colName('nord')+')']].forEach(([sd,t])=>{const b=bEl('button',{type:'button',textContent:t});b.setAttribute('aria-pressed',String(tfSide===sd));b.onclick=()=>{tfSide=sd;renderTurnbar();};sg.appendChild(b);});
   const lab=bEl('label',{className:'tf-chk'});const cbx=bEl('input',{type:'checkbox',checked:tfReserve});cbx.onchange=()=>{tfReserve=cbx.checked;};lab.append(cbx,document.createTextNode(' Arrive from reserves (to test entering the table)'));
@@ -3969,7 +4030,7 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);try{await supOnAwaken(u);}catch(e){}if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,standsOf,render:()=>render(),planCharge,chargeFaces,placeCharge,corners,polyDist,geom,live,lostOf,contactKeep,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,qaList,qaSpecOf,qaClean,tfRebuild,standsOf,render:()=>render(),planCharge,chargeFaces,placeCharge,corners,polyDist,geom,live,lostOf,contactKeep,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
