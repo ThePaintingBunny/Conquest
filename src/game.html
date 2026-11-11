@@ -1278,7 +1278,7 @@ function setChargeTarget(t){const u=byId(act.id);if(fx(t).some(x=>/^Prowling/.te
   Object.assign(act.cur,{stage:'roll',target:t.id,dist,pu:armyHas(u.side,/Prophecy Unfulfilled/)&&engaged(t).length>0});const lo=tLos(u,t,false);toast(lo?'Check Line of Sight: '+lo+' is in the way.':(t.garrison?'The target is in a building: no Impact Attacks against it.':''));render();}
 /* the Charge Roll happens in the game: one die (two, keep the highest, with Master of the Legions) */
 function chargeRollBtn(label,go,need){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=label;b.onclick=async()=>{b.disabled=true;const u=byId(act.id),two=u&&fxHas(u,/2D6 Charge/);
-  const d=[d6()].concat(two?[d6()]:[]),r=Math.max(...d);banner('Charge Roll'+(two?' (2D6, highest)':''),d.map(v=>({v,cls:v===r&&v>=need?'hit':v===r?'miss':''})),'needs '+need+' or more');await sleep((DSPEED[SET.diceSpeed]||1300)+700);bannerHide();go(r);};return b;}
+  const d=[d6()].concat(two?[d6()]:[]),r=Math.max(...d);pubRoll('Charge Roll'+(two?' (2D6, highest)':'')+' · '+(u.short||u.name)+(act&&act.cur&&act.cur.target&&byId(act.cur.target)?' → '+(byId(act.cur.target).short||byId(act.cur.target).name):''),d.map(v=>({v,cls:v===r&&v>=need?'hit':v===r?'miss':''})),'needs '+need+' or more');banner('Charge Roll'+(two?' (2D6, highest)':''),d.map(v=>({v,cls:v===r&&v>=need?'hit':v===r?'miss':''})),'needs '+need+' or more');await sleep((DSPEED[SET.diceSpeed]||1300)+700);bannerHide();go(r);};return b;}
 function resolveCharge(roll,reroll){const u=byId(act.id),c=act.cur;c.roll=roll;if(reroll)c.rerolled=true;
   const tg=byId(c.target);if(tg&&fxHas(tg,/^Whispered Illusion: Phantom Onslaught/)&&!c.wi){const mi=moraleInfo(u,u),v=d6();c.wi={v,R:mi.R,pass:mi.auto||v<=mi.R};toast('Phantom Onslaught: Resolve test '+v+' against '+mi.R+(c.wi.pass?' passed: −1″ Charge Distance.':' failed: no Shock and −2 Impact this round.'));if(!c.wi.pass&&!act.extraFx.includes('Phantom Onslaught (no Shock, Impact −2)'))act.extraFx.push('Phantom Onslaught (no Shock, Impact −2)');}
   const f=chargeFixed(u);const cd=(u.m||0)+(f!=null?f:roll+srChargeBonus(u,byId(c.target)))+(c.pu?2:0)-(c.wi&&c.wi.pass?1:0);c.cd=cd;
@@ -1518,13 +1518,22 @@ function rulerPoly(e){if(e&&e.id){const u=byId(e.id);if(u&&u.onTable)return corn
 function closestPts(P,Q){if(P.length>2&&Q.length>2&&polyDist(P,Q)===0)return null;let best=[Infinity,null,null];const seg=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy;let t=L?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L:0;t=Math.max(0,Math.min(1,t));return [a[0]+t*dx,a[1]+t*dy];};
   const edges=X=>X.length<2?[[X[0],X[0]]]:X.map((p,i)=>[p,X[(i+1)%X.length]]);
   for(const [A,B,sw] of [[P,Q,false],[Q,P,true]])for(const p of A)for(const [a,b] of edges(B)){const q=seg(p,a,b),d=Math.hypot(p[0]-q[0],p[1]-q[1]);if(d<best[0])best=sw?[d,q,p]:[d,p,q];}return best;}
-function drawRuler(hover){const g=$('rulerg');g.innerHTML='';if(!ruler||!rA)return;const B0=rB||hover;if(!B0)return;
-  const cp=closestPts(rulerPoly(rA),rulerPoly(B0));if(!cp){const t=el('text',{x:px(rA.id?byId(rA.id).x:rA[0]),y:py(rA.id?byId(rA.id).y:rA[1]),'text-anchor':'middle',fill:'#FFF3C4','font-size':13,'font-weight':700,stroke:'#1C2421','stroke-width':3,'paint-order':'stroke'},g);t.textContent='0″ (in contact)';return;}
+/* the ruler: yours in pale gold, the opponent's (online) in their colour */
+let rRuler=null,rulerT=null,lastRulerJson='',lastHover=null;
+function rulerSer(p){return p?(p.id?{id:p.id}:{x:+(+p[0]).toFixed(2),y:+(+p[1]).toFixed(2)}):null;}
+function rulerDes(p){return p?(p.id?{id:p.id}:[p.x,p.y]):null;}
+function pushRuler(a,b){if(!PVP()||!db||!seatSide())return;const v=JSON.stringify(ruler&&a&&b?{a:rulerSer(a),b:rulerSer(b)}:null);if(v===lastRulerJson)return;lastRulerJson=v;clearTimeout(rulerT);rulerT=setTimeout(()=>{db.doc('game/ruler').set({by:HU,r:v,at:Date.now()}).catch(()=>{});},90);}
+function onRuler(d){if(!d||d.by===HU)return;try{const r=JSON.parse(d.r||'null');rRuler=r&&r.a&&r.b?{a:rulerDes(r.a),b:rulerDes(r.b),side:d.by}:null;}catch(e){rRuler=null;}drawRuler();}
+function rulerLine(g,a,b,col,prefix){if((a.id&&!byId(a.id))||(b.id&&!byId(b.id)))return;const cp=closestPts(rulerPoly(a),rulerPoly(b));
+  if(!cp){const at=a.id?byId(a.id):{x:a[0],y:a[1]};const t=el('text',{x:px(at.x),y:py(at.y),'text-anchor':'middle',fill:col,'font-size':13,'font-weight':700,stroke:'#1C2421','stroke-width':3,'paint-order':'stroke'},g);t.textContent=prefix+'0″ (in contact)';return;}
   const A=cp[1],B=cp[2];
-  el('line',{x1:px(A[0]),y1:py(A[1]),x2:px(B[0]),y2:py(B[1]),stroke:'#FFF3C4','stroke-width':2},g);
-  [A,B].forEach(p=>el('circle',{cx:px(p[0]),cy:py(p[1]),r:3,fill:'#FFF3C4'},g));
-  const t=el('text',{x:(px(A[0])+px(B[0]))/2,y:(py(A[1])+py(B[1]))/2-8,'text-anchor':'middle',fill:'#FFF3C4','font-size':13,'font-weight':700,'font-family':'Alegreya Sans, sans-serif',stroke:'#1C2421','stroke-width':3,'paint-order':'stroke'},g);
-  t.textContent=cp[0].toFixed(1)+'″'+((rA.id||(rB&&rB.id))?' (closest points)':'');}
+  el('line',Object.assign({x1:px(A[0]),y1:py(A[1]),x2:px(B[0]),y2:py(B[1]),stroke:col,'stroke-width':2},prefix?{'stroke-dasharray':'6 3'}:{}),g);
+  [A,B].forEach(p=>el('circle',{cx:px(p[0]),cy:py(p[1]),r:3,fill:col},g));
+  const t=el('text',{x:(px(A[0])+px(B[0]))/2,y:(py(A[1])+py(B[1]))/2-8,'text-anchor':'middle',fill:col,'font-size':13,'font-weight':700,'font-family':'Alegreya Sans, sans-serif',stroke:'#1C2421','stroke-width':3,'paint-order':'stroke'},g);
+  t.textContent=prefix+cp[0].toFixed(1)+'″'+((a.id||b.id)?' (closest points)':'');}
+function drawRuler(hover){if(hover!==undefined)lastHover=hover;const g=$('rulerg');g.innerHTML='';g.setAttribute('pointer-events','none');
+  if(rRuler)rulerLine(g,rRuler.a,rRuler.b,(COL[rRuler.side]&&COL[rRuler.side].light)||'#9FD3FF',(PN(rRuler.side)||N(rRuler.side))+': ');
+  const B0=ruler&&rA?(rB||lastHover):null;pushRuler(rA,B0);if(!ruler||!rA||!B0)return;rulerLine(g,rA,B0,'#FFF3C4','');}
 let chipFac=null;function chip(t,cls,fac){const c=document.createElement('span');c.className='chip'+(cls?' '+cls:'');c.textContent=t;return tipChip(c,t,fac||chipFac);}
 /* formation editor: arrange stands when arriving or reforming */
 let formSel=null;
@@ -2061,7 +2070,7 @@ $('board').addEventListener('pointerdown',ev=>{
   if(aiBusy)return;const pt=svgPt(ev);
   if(state&&((state.step==='review'&&terrMode==='manual')||(SBX()&&tfTerr))){terrainClick(pt,ev);return;}
   {const tg=ev.target.closest('g[data-tid]');if(tg&&!ev.target.closest('g[data-id]')&&!(act&&act.cur)&&!pick&&!ruler){const t=terrainOf()[+tg.getAttribute('data-tid')];if(t){const I=tInfo(t);toast(I.name+' · Size '+I.size+' · '+I.kw.map(k=>k+' ('+TKWD[k].split(/[.;]/)[0].toLowerCase()+')').join(' · '));}}}
-  if(ruler){const gU=ev.target.closest&&ev.target.closest('g[data-id]'),P=gU?{id:gU.getAttribute('data-id')}:[ix(pt.x),iy(pt.y)];if(!rA||rB){rA=P;rB=null;}else rB=P;drawRuler();return;}
+  if(ruler){const gU=ev.target.closest&&ev.target.closest('g[data-id]'),P=gU?{id:gU.getAttribute('data-id')}:[ix(pt.x),iy(pt.y)];if(!rA||rB){rA=P;rB=null;lastHover=null;}else rB=P;drawRuler();return;}
   const g=ev.target.closest('g[data-id]');if(!g){return;}
   const id=g.getAttribute('data-id');
   if(act&&act.cur&&act.cur.type==='charge'&&(act.cur.stage==='target'||act.cur.stage==='roll')){const t=byId(id);if(t&&t.side!==ME){selId=act.id;setChargeTarget(t);return;}}
@@ -2079,7 +2088,7 @@ $('board').addEventListener('pointerup',()=>{if(tfDrag){const d=tfDrag;tfDrag=nu
 $('rot-l').onclick=()=>rot(-15);$('rot-r').onclick=()=>rot(15);$('rot-180').onclick=()=>rot(180);
 $('f-less').onclick=()=>form(-1);$('f-more').onclick=()=>form(1);
 $('done-act').onclick=finishAction;$('cancel-act').onclick=cancelAction;$('abort').onclick=abort;
-$('ruler').onclick=()=>{ruler=!ruler;$('ruler').setAttribute('aria-pressed',ruler);rA=rB=null;drawRuler();};
+$('ruler').onclick=()=>{ruler=!ruler;$('ruler').setAttribute('aria-pressed',ruler);rA=rB=null;lastHover=null;drawRuler();};
 $('set-open').onclick=()=>openSettings();$('mm-open').onclick=()=>{if(mmCurrent()&&!mmOverlay){mmGo('home');return;}mmOverlay=!mmOverlay;mmPage=mmOverlay?'home':null;render();};$('tab-reg').onclick=()=>setTab('reg');$('tab-army').onclick=()=>setTab('army');
 ['tab-reg','tab-army'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();setTab(rightTab==='reg'?'army':'reg');$(rightTab==='reg'?'tab-reg':'tab-army').focus();}}));
 document.addEventListener('keydown',ev=>{if(!act&&SBX()&&selId&&!/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)){tfKey(ev);return;}if(!act||ev.target.tagName==='INPUT')return;const u=byId(act.id);const k=ev.key;let dx=0,dy=0;
@@ -2224,6 +2233,10 @@ function myTurnPvp(){return !PVP()||(!!seatSide()&&state.turn===HU);}
 /* live view of the opponent's activation */
 function pushLive(){if(!PVP()||!db||!seatSide())return;const mine=act&&base(act.id)&&base(act.id).side===HU;const v=mine?JSON.stringify({id:act.id,pose:act.pose}):'null';if(v===lastLive)return;lastLive=v;
   clearTimeout(liveT);liveT=setTimeout(()=>{db.doc('game/live').set({by:HU,act:v,at:Date.now()}).catch(()=>{});},120);}
+const rollSince=Date.now();let rollSeen=0,rollHideT=null;
+function pubRoll(title,dice,text){if(!PVP()||!db||!seatSide())return;db.doc('game/roll').set({by:HU,title,dice:JSON.stringify(dice),text:text||'',at:Date.now()}).catch(()=>{});}
+function onRoll(d){if(!d||d.by===HU||!d.at||d.at<rollSince-2000||d.at===rollSeen)return;rollSeen=d.at;let dice=[];try{dice=JSON.parse(d.dice||'[]');}catch(e){}
+  banner((PN(d.by)||N(d.by))+' · '+d.title,dice,d.text);clearTimeout(rollHideT);rollHideT=setTimeout(bannerHide,(DSPEED[SET.diceSpeed]||1300)+2600);}
 function onLive(d){if(!d||d.by===HU)return;try{const a=JSON.parse(d.act||'null');ract=a&&a.id?a:null;}catch(e){ract=null;}if(!act)render();}
 /* shared combat: each side rolls its own dice */
 function cbSync(){if(!PVP()||!db)return;const v=JSON.stringify(cb||null);if(v===lastCbJson)return;lastCbJson=v;
@@ -5035,6 +5048,7 @@ function renderTurnbar0(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHT
  try{myStk=JSON.parse(localStorage.getItem('vob-stack')||'null');}catch(e){}
  if(realId){try{db.doc(stkPath()).onSnapshot(sn=>{if(sn.exists){myStk=Object.assign({},sn.data());if(state)render();}},()=>{});}catch(e){}}
  db.doc('game/live').onSnapshot(sn=>{if(sn.exists&&state&&PVP())onLive(sn.data());},()=>{});
+ try{db.doc('game/ruler').onSnapshot(sn=>{if(sn.exists&&state&&PVP())onRuler(sn.data());},()=>{});db.doc('game/roll').onSnapshot(sn=>{if(sn.exists&&state&&PVP())onRoll(sn.data());},()=>{});}catch(e){}
  try{db.doc('game/lobby').onSnapshot(sn=>{lobby=sn.exists?Object.assign({},sn.data()):{};if(state){try{renderMenu();renderPresence();}catch(e){}}},()=>{});}catch(e){}
  setInterval(()=>presencePing(),10000);setTimeout(()=>presencePing(),1500);
  window.__presenceLeave=()=>{try{if(!db||!myId)return;const d=db.doc('game/lobby'),v={[myId]:{n:savedName()||'',t:0,left:Date.now()}};if(typeof d.update==='function')d.update(v).catch(()=>{});else d.set(Object.assign({},lobby,v)).catch(()=>{});}catch(e){}};
