@@ -759,7 +759,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 22:10 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 22:12 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1199,7 +1199,13 @@ function startAction(type){if(act&&!act.cur&&srStartAction(type))return;if(type=
   if(!moving&&!reshape){finishAction();return;}
   render();
 }
+/* March restriction (core rules): a regiment may not March to within 1″ of an enemy regiment; only a Charge brings it into contact */
+const MOVE1=['march','reform','fluid','hammer','dtmarch','fadv'];
+function near1(c,pose){const u=Object.assign({},base(act.id),pose||act.pose),uc=corners(u),st=corners(Object.assign({},base(act.id),c.start));
+  return all().find(e=>e.onTable&&!e.destroyed&&e.type!=='marker'&&e.side!==u.side&&e.id!==u.id&&(d=>d<1-1e-3&&d<polyDist(st,corners(e))-1e-3)(polyDist(uc,corners(e))))||null;}
+function pullBack(c){const P=act.pose,S=c.start;for(let t=1;t>=0;t-=0.02){const q={x:S.x+(P.x-S.x)*t,y:S.y+(P.y-S.y)*t,facing:t>0.5?P.facing:S.facing};if(!near1(c,q)&&!overlapsAny(Object.assign({},base(act.id),act.pose,q))){Object.assign(act.pose,q);return true;}}Object.assign(act.pose,{x:S.x,y:S.y,facing:S.facing});return false;}
 function finishAction(){
+  if(act.cur&&MOVE1.includes(act.cur.type)&&!act.cur.sweep&&act.cur.start){const e=near1(act.cur);if(e){if(aiBusy||(!PVP()&&base(act.id).side===AI))pullBack(act.cur);else{toast('A regiment may not March or Reform to within 1″ of an enemy regiment ('+(e.short||e.name)+' is '+polyDist(corners(byId(act.id)),corners(e)).toFixed(1)+'″ away). Only a Charge brings it into contact. Move it back, or Cancel.');return;}}}
   if(act.cur&&act.cur.type==='creform'){const c0=act.cur;if(cb&&cb.type==='freform'){toast('Record the Fighting Reform wounds first.');return;}const n=crContact(c0);if(n<c0.contact0){toast(`That puts ${n} stand${n===1?'':'s'} in contact instead of ${c0.contact0}. A Combat Reform cannot reduce the stands in contact.`);return;}const uu=byId(act.id),uc=corners(uu),bad=(c0.foes||[]).map(byId).filter(e=>e&&polyDist(uc,corners(e))<=0.35&&arcOf(e,[uu.x,uu.y])!==c0.foeArc[e.id]);if(bad.length){const e=bad[0],L=a=>a==='left'||a==='right'?a+' flank':a;toast(`You were on the ${L(c0.foeArc[e.id])} of ${e.short||e.name}; a Combat Reform cannot move you to its ${L(arcOf(e,[uu.x,uu.y]))}.`);return;}}
   if(act.cur&&act.cur.type==='withdraw'){const c1=act.cur;if(c1.stage!=='march'){toast(cb&&cb.type==='freform'?'Record the withdrawal wounds first.':'Finish the withdrawal first.');return;}
     if(!c1.failed){const uu=byId(act.id),A=corners(uu);if(all().some(o=>o.onTable&&o.side!==uu.side&&polyDist(A,corners(o))<1-1e-6)){toast('A Withdraw March cannot end within 1″ of an enemy. Move further, or press "Withdraw fails" to return to the start.');return;}}}
@@ -1761,6 +1767,7 @@ function renderCard(){
   act.actions.forEach((a,i)=>{const li=document.createElement('li');let t='';if(a.dist!=null)t+=`${a.dist.toFixed(1)}″`;if(a.roll!=null)t+=(t?', ':'')+`rolled ${a.roll}`;if(a.vanguard)t+=(t?', ':'')+`Vanguard ${a.vanguard}`;const ck=document.createElement('span');ck.className='ck';ck.textContent='✓';const nm=document.createElement('b');nm.textContent=ACT[a.type].n+(a.free?' (free)':'');li.append(ck,nm);if(t){const sm=document.createElement('small');sm.textContent=t;li.append(sm);}$('c-log').appendChild(li);});
   const w=[];if(act.entering&&act.placed){const G=geom(Object.assign({},base(act.id),act.pose));if(act.pose.y+G.d/2>48.01)w.push('Not every stand is on the table yet; it needs another March.');}
   if(overlapsAny(byId(act.id))&&!(act.cur&&act.cur.type==='charge'))w.push('This regiment overlaps another one.');
+  if(act.cur&&MOVE1.includes(act.cur.type)&&!act.cur.sweep&&act.cur.start){const e=near1(act.cur);if(e)w.push('Within 1″ of '+(e.short||e.name)+': a March or Reform must stay at least 1″ from enemy regiments (only a Charge makes contact).');}
   if(w.length){$('c-warn').hidden=false;$('c-warn').textContent=w.join(' ');}
 }
 
