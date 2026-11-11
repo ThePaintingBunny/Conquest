@@ -747,7 +747,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 15:52 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 15:58 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -4128,7 +4128,7 @@ function shatterImmune(y){const t=(y.rules||[]).concat((y.abilities||[]).map(a=>
 function breakCheck(old,st){const O=new Map(((old&&old.units)||[]).map(u=>[u.id,u])),rnd=st.round||0,notes=[];
   st.units=st.units.map(u=>{if(u.type==='marker'||!u.onTable||u.destroyed)return u;let y=u;const n=live(y),o=O.get(y.id);
     const wasBroken=!!(o&&(o.effects||[]).includes('Broken')),isBroken=(y.effects||[]).includes('Broken');
-    if(y.rsRound!==rnd||y.rs==null){const n0=o&&o.onTable&&!o.destroyed?live(o):n;y=Object.assign({},y,{rs:n0,rsRound:rnd,broke:isBroken?(y.broke!=null&&y.rsRound!=null?y.broke:n0):null});}
+    if(y.rsRound!==rnd||y.rs==null){const n0=o&&o.onTable&&!o.destroyed?live(o):n;y=Object.assign({},y,{rs:n0,rsRound:rnd,broke:isBroken?n0:null});}
     if(wasBroken&&!isBroken)y=Object.assign({},y,{rs:n,broke:null});
     if(isBroken&&y.broke==null)y=Object.assign({},y,{broke:o&&wasBroken?live(o):n});
     const rs=+y.rs||n;

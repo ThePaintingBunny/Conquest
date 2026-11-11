@@ -4117,7 +4117,7 @@ function shatterImmune(y){const t=(y.rules||[]).concat((y.abilities||[]).map(a=>
 function breakCheck(old,st){const O=new Map(((old&&old.units)||[]).map(u=>[u.id,u])),rnd=st.round||0,notes=[];
   st.units=st.units.map(u=>{if(u.type==='marker'||!u.onTable||u.destroyed)return u;let y=u;const n=live(y),o=O.get(y.id);
     const wasBroken=!!(o&&(o.effects||[]).includes('Broken')),isBroken=(y.effects||[]).includes('Broken');
-    if(y.rsRound!==rnd||y.rs==null){const n0=o&&o.onTable&&!o.destroyed?live(o):n;y=Object.assign({},y,{rs:n0,rsRound:rnd,broke:isBroken?(y.broke!=null&&y.rsRound!=null?y.broke:n0):null});}
+    if(y.rsRound!==rnd||y.rs==null){const n0=o&&o.onTable&&!o.destroyed?live(o):n;y=Object.assign({},y,{rs:n0,rsRound:rnd,broke:isBroken?n0:null});}
     if(wasBroken&&!isBroken)y=Object.assign({},y,{rs:n,broke:null});
     if(isBroken&&y.broke==null)y=Object.assign({},y,{broke:o&&wasBroken?live(o):n});
     const rs=+y.rs||n;
