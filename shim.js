@@ -287,7 +287,7 @@
         const link = urlWith('join=' + room + (brokerIx > 0 ? '&b=' + brokerIx : ''));
         try { await navigator.clipboard.writeText(link); flash('Invite link copied: ' + link); } catch (e) { flash('Send this link to your opponent: ' + link); }
       }, true);
-      btn('Leave', () => { location.href = urlWith(''); });
+      btn('Leave', () => { try { window.__presenceLeave && window.__presenceLeave(); } catch (e) { } setTimeout(() => { location.href = urlWith(''); }, 400); });
     }
     btn('Claude settings', openSettings);
     bar.appendChild(right);
@@ -329,6 +329,6 @@
     host: () => { location.href = urlWith('host=' + newCode()); },
     join: c => { c = clean(c || ''); if (c.length >= 4) location.href = urlWith('join=' + c); else flash('Type the game code your host sent you.'); },
     invite: async () => { const link = urlWith('join=' + room + (brokerIx > 0 ? '&b=' + brokerIx : '')); try { await navigator.clipboard.writeText(link); flash('Invite link copied: ' + link); } catch (e) { flash('Send this link to your opponent: ' + link); } },
-    leave: () => { location.href = urlWith(''); },
+    leave: () => { try { window.__presenceLeave && window.__presenceLeave(); } catch (e) { } setTimeout(() => { location.href = urlWith(''); }, 400); },
     openSettings };
 })();

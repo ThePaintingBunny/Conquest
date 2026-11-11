@@ -747,7 +747,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 15:26 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 15:28 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -2209,19 +2209,19 @@ function N(side){return (state&&state.names&&state.names[side])||(side==='cs'?'C
 function PN(side){const v=state&&state.players&&state.players[side];return v?String(v).slice(0,24):'';}
 function WHO(side){const p=PN(side);return p?p+' ('+N(side)+')':N(side);}
 let pnDraft={};let lobby={},presLast=0;
-function presencePing(force){if(!db||!myId||!state)return;const inMp=state.mode==='pvp'||mmCurrent()==='multi';if(!inMp)return;const now=Date.now();if(!force&&now-presLast<10000)return;presLast=now;
+function presencePing(force){if(!db||!myId||!state)return;const inMp=state.mode==='pvp'||mmCurrent()==='multi';if(!inMp)return;const now=Date.now();if(!force&&now-presLast<8000)return;presLast=now;
   const me={n:savedName()||'',t:now,seat:seatSide()||null};const d=db.doc('game/lobby'),full=()=>{try{d.set(Object.assign({},lobby,{[myId]:me})).catch(()=>{});}catch(e){}};try{if(typeof d.update==='function')d.update({[myId]:me}).catch(full);else full();}catch(e){full();}}
-function lobbyPeople(){const now=Date.now(),seats=(state&&state.seats)||{},out=[];Object.entries(lobby||{}).forEach(([id,v])=>{if(!v||typeof v!=='object')return;const seat=seats.cs===id?'cs':seats.nord===id?'nord':null;out.push({id,name:v.n||(seat&&PN(seat))||'',seat,online:now-(+v.t||0)<45000,me:id===myId});});
+function lobbyPeople(){const now=Date.now(),seats=(state&&state.seats)||{},out=[];Object.entries(lobby||{}).forEach(([id,v])=>{if(!v||typeof v!=='object')return;const seat=seats.cs===id?'cs':seats.nord===id?'nord':null;out.push({id,left:!!v.left,name:v.n||(seat&&PN(seat))||'',seat,online:now-(+v.t||0)<25000,me:id===myId});});
   ['cs','nord'].forEach(sd=>{const id=seats[sd];if(id&&!out.some(p=>p.id===id))out.push({id,name:PN(sd)||'',seat:sd,online:false,me:id===myId});});
   return out.sort((a,b)=>(a.seat?0:1)-(b.seat?0:1)||(a.seat||'').localeCompare(b.seat||'')||String(a.name).localeCompare(String(b.name)));}
 function lobbyBox(){const box=bEl('div',{className:'mm-net mm-ppl'});box.append(bEl('h3',{textContent:'In the lobby'}));const L=lobbyPeople().filter(p=>p.online||p.seat);
   if(!L.length)box.append(bEl('p',{className:'hint',textContent:'Nobody else is here yet.'}));
   L.forEach(p=>{const r=bEl('div',{className:'mm-pp'});r.append(bEl('span',{className:'nb-dot '+(p.online?'on':'off'),title:p.online?'Connected':'Not connected'}),bEl('strong',{textContent:(p.name||'Unnamed player')+(p.me?' (you)':'')}),
-    bEl('span',{className:'ab-note',textContent:p.seat?(p.seat==='cs'?'South edge':'North edge')+' · '+colName(p.seat)+((state.setup||{})[p.seat]?' · army ready':''):'watching'}),bEl('span',{className:'ab-note',textContent:p.online?'connected':'not connected'}));box.append(r);});
+    bEl('span',{className:'ab-note',textContent:p.seat?(p.seat==='cs'?'South edge':'North edge')+' · '+colName(p.seat)+((state.setup||{})[p.seat]?' · army ready':''):'watching'}),bEl('span',{className:'ab-note',textContent:p.online?'connected':(p.left?'left':'not connected')}));box.append(r);});
   box.append(bEl('p',{className:'hint',textContent:'Anyone else who opens the invite link can watch the game without taking a seat.'}));return box;}
 /* the opponent's connection, shown during an online game */
-function renderPresence(){const el0=$('pres');if(!el0)return;if(!state||!PVP()||!seatSide()||mmCurrent()){el0.hidden=true;return;}const opp=seatSide()==='cs'?'nord':'cs',id=(state.seats||{})[opp];const v=id&&lobby[id];const on=!!(v&&Date.now()-(+v.t||0)<45000);
-  const watch=lobbyPeople().filter(p=>!p.seat&&p.online).length;el0.hidden=false;el0.innerHTML='';el0.append(bEl('span',{className:'nb-dot '+(on?'on':'off')}),document.createTextNode((PN(opp)||'Opponent')+(id?(on?' connected':' not connected'):' — seat open')+(watch?' · '+watch+' watching':'')));}
+function renderPresence(){const el0=$('pres');if(!el0)return;if(!state||!PVP()||!seatSide()||mmCurrent()){el0.hidden=true;return;}const opp=seatSide()==='cs'?'nord':'cs',id=(state.seats||{})[opp];const v=id&&lobby[id];const on=!!(v&&Date.now()-(+v.t||0)<25000);
+  const watch=lobbyPeople().filter(p=>!p.seat&&p.online).length;el0.hidden=false;el0.innerHTML='';el0.append(bEl('span',{className:'nb-dot '+(on?'on':'off')}),document.createTextNode((PN(opp)||'Opponent')+(id?(on?' connected':(v&&v.left?' has left':' not connected')):' — seat open')+(watch?' · '+watch+' watching':'')));}
 function savedName(){try{return localStorage.getItem('conquest-player-name')||'';}catch(e){return '';}}
 function nameInput(side,label,editable){const w=bEl('label',{className:'pn-in'});w.append(bEl('span',{className:'tf-l',textContent:label}));
   const i=bEl('input',{type:'text',id:'pn-'+side,maxLength:24,value:pnDraft[side]!=null?pnDraft[side]:PN(side),placeholder:editable?'Type a name':'No name yet'});i.disabled=!editable;i.setAttribute('autocomplete','nickname');
@@ -4789,7 +4789,9 @@ function renderTurnbar0(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHT
  if(realId){try{db.doc(stkPath()).onSnapshot(sn=>{if(sn.exists){myStk=Object.assign({},sn.data());if(state)render();}},()=>{});}catch(e){}}
  db.doc('game/live').onSnapshot(sn=>{if(sn.exists&&state&&PVP())onLive(sn.data());},()=>{});
  try{db.doc('game/lobby').onSnapshot(sn=>{lobby=sn.exists?Object.assign({},sn.data()):{};if(state){try{renderMenu();renderPresence();}catch(e){}}},()=>{});}catch(e){}
- setInterval(()=>presencePing(),15000);setTimeout(()=>presencePing(),1500);
+ setInterval(()=>presencePing(),10000);setTimeout(()=>presencePing(),1500);
+ window.__presenceLeave=()=>{try{if(!db||!myId)return;const d=db.doc('game/lobby'),v={[myId]:{n:savedName()||'',t:0,left:Date.now()}};if(typeof d.update==='function')d.update(v).catch(()=>{});else d.set(Object.assign({},lobby,v)).catch(()=>{});}catch(e){}};
+ window.addEventListener('pagehide',()=>window.__presenceLeave());
  db.doc('game/combat').onSnapshot(sn=>{if(sn.exists&&state&&PVP())onCombat(sn.data());},()=>{});
  const t=setTimeout(()=>{$('phase').textContent='The game state is slow to load.'},10000);
  db.doc('game/state').onSnapshot(sn=>{clearTimeout(t);if(sn.exists){state=Object.assign({},sn.data());if(!state.units)state.units=[];applySeat();render();}else{state={step:'setup',units:[],vp:{cs:0,nord:0},round:0,phase:'New game'};applySeat();render();}},
