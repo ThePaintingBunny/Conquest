@@ -106,7 +106,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1px s
 .report h2{font-family:var(--display);font-size:20px;margin:0}.air-h{margin:6px 0 0;font-weight:700}.air-n{margin:0;font-style:italic;color:var(--muted)}
 .stackb{flex:1 1 100%;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px}.stackb li{display:flex;align-items:center;gap:6px}.stackb li span{flex:1}.stackb .btn{padding:2px 10px;font-size:14px}
 .stackb li.dnd{border:1px solid transparent;border-radius:6px;padding:2px 4px;cursor:grab;user-select:none}.stackb li.drag{opacity:.45}.stackb li.over{border-color:var(--brass,#c9a24a);background:rgba(201,162,74,.12)}.stackb li.ins-b{box-shadow:0 -3px 0 0 var(--brass,#c9a24a)}.stackb li.ins-a{box-shadow:0 3px 0 0 var(--brass,#c9a24a)}.stackb .grip{cursor:grab;touch-action:none;user-select:none;padding:2px 8px;font-size:18px;line-height:1;opacity:.7}
-.stats .v.mod{color:var(--brass,#d9b25a)}.stats .v sup,.chip sup{font-size:10px;margin-left:2px}.stats .v sup.dn,.chip sup.dn{color:#e07a6a}.chip.mod{border-color:var(--brass,#d9b25a)}
+.stats .v.mod{color:var(--brass,#d9b25a)}.stats .v sup,.chip sup{font-size:10px;margin-left:2px}.stats .v sup.dn,.chip sup.dn,.stats .v sup.down,.chip sup.down{color:#e07a6a;display:inline;border:0;background:none;padding:0}.chip.mod{border-color:var(--brass,#d9b25a)}
 .tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px}.tools .tool{font:inherit;font-weight:700;padding:6px 12px;border-radius:4px;border:1px solid var(--edge,#555);background:var(--plate,#222);color:inherit;cursor:pointer}.tools .tool[aria-pressed="true"]{border-color:var(--brass,#c9a24a);box-shadow:inset 0 0 0 1px var(--brass,#c9a24a)}.tools .hint{font-size:13px}
 #aibanner{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:60;max-width:min(560px,94vw);box-shadow:0 14px 40px rgba(0,0,0,.6)}#aibanner .md{width:44px;height:44px}
 #turn-note{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;padding:18px 28px;font-weight:800;font-size:22px;text-align:center;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .3s}#turn-note.on{opacity:1}
@@ -542,6 +542,51 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .set-sw[aria-checked=true]{background:var(--gold);color:#1C1408;border-color:var(--gold)}
 .set-test{min-height:36px}
 @media (prefers-reduced-motion: reduce){.md.rolling{animation-duration:.01s}}
+
+/* regiment tab layout */
+.card.activating>*{order:0!important}
+.card{gap:10px}
+.rh{display:flex;flex-direction:column;gap:4px;padding-bottom:10px;border-bottom:1px solid var(--edge)}
+.rh h2{margin:0}
+.rh .meta{font-size:13px}
+.rbadges{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.rbadge{font-size:12px;font-weight:600;padding:2px 8px;border-radius:3px;border:1px solid var(--edge);background:#262B30;color:var(--sx);white-space:nowrap}
+.rbadge.ok{border-color:#3E6B45;background:#1F3324;color:#A9D8B0}
+.rbadge.warn{border-color:#8A6A2A;background:#33291A;color:#F0CF83}
+.rbadge.bad{border-color:#8E3A34;background:#3A1D1B;color:#F2A9A1}
+.rbadge.info{border-color:#3F5D86;background:#1C2736;color:#AFC8EA}
+.rfx{padding:8px 10px;border:1px solid #8A6A2A;border-radius:4px;background:#2A2416}
+.rfx h3{margin:0 0 2px}
+.rsub{display:flex;gap:0;border:1px solid var(--edge);border-radius:3px;overflow:hidden;margin-top:4px}
+.rsub button{flex:1;font:inherit;font-size:12px;font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;padding:7px 6px;border:0;background:#20252A;color:var(--muted);cursor:pointer}
+.rsub button+button{border-left:1px solid var(--edge)}
+.rsub button[aria-selected=true]{background:#2F353B;color:var(--sx);box-shadow:inset 0 -2px 0 var(--brass2)}
+.rsub button .n{opacity:.7;margin-left:4px;font-family:inherit}
+.rpane{display:flex;flex-direction:column;gap:10px}
+.rpane[hidden]{display:none}
+.rsubs{display:flex;flex-direction:column;gap:10px}
+.rsubs:empty{display:none}
+.rblk{border:1px solid var(--edge);border-radius:4px;background:#1A1E22;padding:8px;display:flex;flex-direction:column;gap:6px}
+.rblk-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px}
+.rblk-h .role{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass2);font-family:var(--display)}
+.rblk-h b{font-size:14px}
+.rblk-h .w{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rblk .stats{margin:0}
+.rblk .tags{display:flex;flex-wrap:wrap;gap:4px}
+.rblk .tag{font-size:11.5px;padding:1px 6px;border-radius:3px;background:#2B2620;border:1px solid #5C4A2A;color:#E6CF9C}
+.rgrp{display:flex;flex-direction:column;gap:6px}
+.rgrp h4{margin:4px 0 0;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass2);font-family:var(--display);font-weight:600}
+.rgrp p{margin:0;padding:6px 8px;border-left:2px solid var(--edge);background:#1A1E22;border-radius:0 3px 3px 0;font-size:13.5px;line-height:1.4}
+.rgrp.draw p{border-left-color:var(--brass2)}
+.rgrp.upg p{border-left-color:#6B5A8E}
+.rtools{border:1px solid var(--edge);border-radius:4px;background:#1A1E22}
+.rtools>summary{cursor:pointer;padding:8px 10px;display:flex;justify-content:space-between;gap:8px;font-size:12px;font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);list-style:none}
+.rtools>summary::-webkit-details-marker{display:none}
+.rtools>summary::before{content:'▸';margin-right:6px}
+.rtools[open]>summary::before{content:'▾'}
+.rtools>summary>span:first-child{margin-right:auto}
+.rtools .rt-s{text-transform:none;letter-spacing:0;font-family:inherit}
+.rtools>.sec{padding:0 10px 10px}
 </style>
 <style>.fan-note{max-width:1240px;margin:24px auto 32px;font-size:13px;color:var(--muted)}.fan-note a{color:inherit}</style>
 </head>
@@ -581,12 +626,8 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
     <div class="rcol">
     <div class="rtabs" role="tablist" aria-label="Side panel"><button type="button" role="tab" id="tab-reg" aria-selected="true">Regiment</button><button type="button" role="tab" id="tab-army" aria-selected="false">Armies</button></div>
     <aside class="card" id="card" aria-live="polite">
-      <div><h2 id="c-name">Choose a regiment</h2><div class="meta" id="c-meta">Click a regiment on the table or in the rosters below.</div></div>
-      <div class="stats" id="c-stats" hidden></div>
-      <div class="sec" id="c-fx-sec" hidden><h3>Active now</h3><div class="chips" id="c-fx"></div></div>
-      <div class="sec" id="c-rules-sec" hidden><h3>Special rules</h3><div class="chips" id="c-rules"></div></div>
-      <div class="sec" id="c-abil-sec" hidden><h3>Abilities and Draw Events</h3><div class="rules" id="c-abil"></div></div>
-      <div class="sec" id="c-char" hidden></div>
+      <div class="rh"><h2 id="c-name">Choose a regiment</h2><div class="meta" id="c-meta">Click a regiment on the table or in the rosters below.</div><div class="rbadges" id="c-badges" hidden></div></div>
+      <div class="sec rfx" id="c-fx-sec" hidden><h3>This round</h3><div class="chips" id="c-fx"></div></div>
       <div class="sec actp" id="c-act-sec" hidden>
         <div class="actp-head"><h3 id="c-act-h">Activation</h3><span class="actp-pips" id="c-pips" hidden></span></div>
         <div id="c-start" class="sec"></div>
@@ -618,8 +659,15 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
         </div>
         <p class="hint" id="toast" role="status"></p>
       </div>
-      <div class="sec" id="c-roll-sec" hidden><h3>Combat roller</h3><div class="row"><select id="c-roll-type" aria-label="Attack type"><option value="clash">Clash</option><option value="impact">Impact Attacks</option><option value="volley">Volley</option></select><button type="button" class="btn ghost" id="c-roll-go">Pick target</button></div><p class="hint">Roll an attack from the selected regiment, for example one Claude declares.</p></div>
-      <div class="sec"><h3>Strategic Stack</h3><div class="row"><span class="read" id="strat-read">Empty</span><button type="button" class="btn ghost" id="strat-btn">Place top card face down</button></div><p class="hint" id="strat-hint">Once per round, instead of activating a regiment's card, hide it here, then press End turn. Only regiment cards, not Characters.</p></div>
+      <div class="sec" id="c-char" hidden></div>
+      <div class="rsub" id="c-subtabs" role="tablist" aria-label="Regiment details" hidden><button type="button" role="tab" data-p="prof">Profile</button><button type="button" role="tab" data-p="rules">Rules</button><button type="button" role="tab" data-p="abil">Abilities</button></div>
+      <div class="rpane" data-p="prof"><div class="stats" id="c-stats" hidden></div><div class="rsubs" id="c-subs"></div></div>
+      <div class="rpane" data-p="rules"><div class="sec" id="c-rules-sec" hidden><div class="chips" id="c-rules"></div><p class="hint">▲ marks a rule gained or raised this round. Hover a rule to read it.</p></div></div>
+      <div class="rpane" data-p="abil"><div class="sec" id="c-abil-sec" hidden><div class="rules" id="c-abil"></div></div></div>
+      <details class="rtools" id="c-tools"><summary><span>Tools</span><span class="rt-s">Strategic Stack: <span id="strat-read">Empty</span></span></summary>
+        <div class="sec"><h3>Strategic Stack</h3><div class="row"><button type="button" class="btn ghost" id="strat-btn">Place top card face down</button></div><p class="hint" id="strat-hint">Once per round, instead of activating a regiment's card, hide it here, then press End turn. Only regiment cards, not Characters.</p></div>
+        <div class="sec" id="c-roll-sec" hidden><h3>Combat roller</h3><div class="row"><select id="c-roll-type" aria-label="Attack type"><option value="clash">Clash</option><option value="impact">Impact Attacks</option><option value="volley">Volley</option></select><button type="button" class="btn ghost" id="c-roll-go">Pick target</button></div><p class="hint">Roll an attack from the selected regiment, for example one Claude declares.</p></div>
+      </details>
     </aside>
     <div class="armies roster" id="armies" hidden>
       <div class="side cs"><div class="ar-h"><h2 id="h-cs">City States</h2><span class="ar-sum" id="sum-cs"></span></div><div id="r-cs"></div></div>
@@ -631,7 +679,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 07:39 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 07:57 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1085,6 +1133,9 @@ function finishAction(){
   if(c.type==='charge')frOnCharge(act.id);
   if(c.type==='charge'&&hasImpact(byId(act.id))&&!(TM&&TM.hindered)&&!(byId(c.target)||{}).garrison)openCombat({type:'impact',att:act.id,tgt:c.target,inAct:false,fromCharge:true});
 }
+function isDrawAb(u,n,t){const nm=String(n||''),base=nm.replace(/^.*?:\s*/,'').replace(/\s*\(.*$/,'').trim().toLowerCase();if(/^Draw Event/i.test(nm)||/^Draw Event/i.test(String(t||'')))return true;
+  try{const L=[];const e=frEncy(u);if(e&&e.draw)L.push(...e.draw);if(u.charName){const c=frEncy(u,u.charName);if(c&&c.draw)L.push(...c.draw);}return L.some(d=>String(d).toLowerCase().replace(/\s*\(.*$/,'').trim()===base);}catch(e){return false;}}
+function isUpgAb(u,n){const nm=String(n||'');if(/^The .+?:/.test(nm))return true;const base=nm.replace(/\s*\(.*$/,'').trim();if(ITEMS[base])return true;try{const f=UPG[frFac(u)];return !!(f&&(f.list||[]).some(x=>x[1]===base));}catch(e){return false;}}
 function hasDraw(u,re){return (u.abilities||[]).some(a=>re.test(a[0]))||fx(u).some(x=>re.test(x));}
 function drawVal(u,re){let v=0;(u.abilities||[]).concat(fx(u).map(x=>[x])).forEach(a=>{const m=String(a[0]).match(re);if(m)v=Math.max(v,+m[1]||0);});return v;}
 function trampleX(u){return Math.max(rx(RU(u),'Trample'),u.char!=null?rx(u.charRules,'Trample'):0);}
@@ -1308,36 +1359,60 @@ function effRules(u,BR){const all=RU(u),out=[],seen=new Set();const val=(L,n)=>r
   all.forEach(r=>{const m=String(r).match(/^([A-Z][A-Za-z'!\- ]+?)\s*\(\+?(\d+)\)$/);const plain=/^[A-Z][A-Za-z'!\- ]+$/.test(String(r))&&GLOSS[String(r).toLowerCase()];
     if(m){const n=m[1].trim();if(seen.has(n))return;seen.add(n);const now=val(all,n),was=val(BR,n);if(now!==was&&now>0)out.push([n+' ('+now+')',was?n+' ('+was+')':'']);}
     else if(plain&&!rh(BR,String(r))&&!seen.has(r)){seen.add(r);out.push([String(r),'']);}});return out;}
+let regPane=(()=>{try{return localStorage.getItem('regPane')||'prof';}catch(e){return 'prof';}})();
+function regPaneSync(u){const tabs=$('c-subtabs');if(!tabs)return;if(!tabs.dataset.wired){tabs.dataset.wired='1';tabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{regPane=b.dataset.p;try{localStorage.setItem('regPane',regPane);}catch(e){}regPaneSync(selId?byId(selId):null);}));}
+  tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.p===regPane)));
+  document.querySelectorAll('#card .rpane').forEach(p=>p.hidden=!u||p.dataset.p!==regPane);}
+function regPaneCounts(u,nR,nA){const tabs=$('c-subtabs');tabs.querySelectorAll('button').forEach(b=>{const base={prof:'Profile',rules:'Rules',abil:'Abilities'}[b.dataset.p];const n=b.dataset.p==='rules'?nR:b.dataset.p==='abil'?nA:0;b.textContent=base;if(n){const s2=document.createElement('span');s2.className='n';s2.textContent=n;b.appendChild(s2);}
+  if(b.dataset.p==='abil')b.hidden=!nA;});if(regPane==='abil'&&!nA){regPane='prof';regPaneSync(u);}}
 function renderCard(){
   const u=selId?byId(selId):null;chipFac=u?facOf(N(u.side)):null;
   $('card').classList.toggle('activating',!!(act&&u&&act.id===u.id));$('card').style.setProperty('--side',u&&COL[u.side]?COL[u.side].fill:'var(--trim)');
   $('c-roll-sec').hidden=!(u&&u.onTable)||!!cb||!!(act&&act.id===(u&&u.id));
-  ['c-stats','c-fx-sec','c-rules-sec','c-abil-sec','c-act-sec'].forEach(i=>$(i).hidden=!u);
+  ['c-stats','c-fx-sec','c-rules-sec','c-abil-sec','c-act-sec','c-subtabs','c-badges'].forEach(i=>$(i).hidden=!u);$('c-subs').innerHTML='';
+  regPaneSync(u);
   if(!u){$('c-name').textContent='Choose a regiment';$('c-meta').textContent='Click a regiment on the table or in the rosters below.';return;}
   $('c-name').textContent=u.name+(u.charName?' + '+u.charName:'');
-  $('c-meta').textContent=[u.cls,(u.type!=='marker'?'Size '+uSize(u)+(baseSize(u).why?' ('+baseSize(u).why+')':''):''),u.stands+(u.stands===1?' stand':' stands'),u.onTable?'on the table':(u.arriving?'arriving this round':'in reinforcements'),u.status&&u.onTable?u.status:'',u.wounds?u.wounds+' wounds taken'+(lostOf(u)?', '+lostOf(u)+' stands lost':''):''].filter(Boolean).join(' · ');
+  $('c-meta').textContent=[N(u.side),u.cls,(u.type!=='marker'?'Size '+uSize(u)+(baseSize(u).why?' ('+baseSize(u).why+')':''):''),u.stands+(u.stands===1?' stand':' stands')].filter(Boolean).join(' · ');
+  {const bx=$('c-badges');bx.innerHTML='';const bd=(t,c,ti)=>{const e=document.createElement('span');e.className='rbadge'+(c?' '+c:'');e.textContent=t;if(ti)e.title=ti;bx.appendChild(e);};
+    if(u.destroyed)bd('Destroyed','bad');else if(!u.onTable)bd(u.arriving?'Arriving this round':'In reinforcements','info');
+    if((u.effects||[]).includes('Broken'))bd('Broken','bad');
+    if(u.onTable&&!u.destroyed&&u.type!=='marker'){if(act&&act.id===u.id)bd('Activating now','warn');else if(u.activated)bd('Activated','');else bd('Not yet activated','ok');}
+    if(u.charName&&u.onTable&&!u.destroyed)bd(u.charName+(u.charActivated?' activated':' not yet activated'),u.charActivated?'':'ok');
+    if(u.wounds||lostOf(u))bd(u.wounds+' wound'+(u.wounds===1?'':'s')+(lostOf(u)?' · '+lostOf(u)+' stand'+(lostOf(u)===1?'':'s')+' lost':''),'warn');
+    {const eg=engaged(u);if(eg.length)bd('Engaged: '+eg.map(e=>e.short||e.name).join(', '),'bad');}
+    bx.hidden=!bx.children.length;}
   const st=$('c-stats');st.innerHTML='';const S0=u.stats||{};['M','V','C','A','W','R','D','E'].forEach(k=>{const k1=document.createElement('div');k1.className='k';k1.textContent=k;st.appendChild(k1);});
   {const B=baseStats(u),E=u.type==='marker'?S0:effStats(u);['M','V','C','A','W','R','D','E'].forEach(k=>{const v=document.createElement('div');v.className='v';const b=B[k],e=E[k];const num=x=>typeof x==='number'||(x!=null&&x!==''&&!isNaN(+x));
-    v.textContent=e??'–';if(num(b)&&num(e)&&+e!==+b){v.classList.add('mod');const up=+e>+b;const m=document.createElement('sup');m.textContent=up?'▲':'▼';m.className=up?'up':'dn';v.appendChild(m);v.title='Base '+b+' · now '+e+(E._why&&E._why[k]?' ('+E._why[k]+')':'');}
+    v.textContent=e??'–';if(num(b)&&num(e)&&+e!==+b){v.classList.add('mod');const up=+e>+b;const m=document.createElement('sup');m.textContent=up?'▲':'▼';m.className=up?'up':'down';v.appendChild(m);v.title='Base '+b+' · now '+e+(E._why&&E._why[k]?' ('+E._why[k]+')':'');}
     else if(E._why&&E._why[k]){v.title=E._why[k];}st.appendChild(v);});}
-  const subRow=(title,S,rules,B,why)=>{const h=document.createElement('div');h.className='k sub';h.style.gridColumn='1/-1';h.style.textAlign='left';h.style.marginTop='6px';h.textContent=title;st.appendChild(h);
+  const subRow=(role,name,wtxt,tags,S,rules,B,why)=>{const blk=document.createElement('div');blk.className='rblk';const h=document.createElement('div');h.className='rblk-h';
+    const r0=document.createElement('span');r0.className='role';r0.textContent=role;const nm=document.createElement('b');nm.textContent=name;h.append(r0,nm);if(wtxt){const w=document.createElement('span');w.className='w';w.textContent=wtxt;h.appendChild(w);}blk.appendChild(h);
+    if(tags&&tags.length){const tg=document.createElement('div');tg.className='tags';tags.forEach(t=>{const e=document.createElement('span');e.className='tag';e.textContent=t;tg.appendChild(e);});blk.appendChild(tg);}
+    const g=document.createElement('div');g.className='stats';['M','V','C','A','W','R','D','E'].forEach(k=>{const k1=document.createElement('div');k1.className='k';k1.textContent=k;g.appendChild(k1);});
     ['M','V','C','A','W','R','D','E'].forEach(k=>{const v=document.createElement('div');v.className='v';const e=(S||{})[k],b=B?B[k]:e;v.textContent=e??'–';
-      if(B&&e!=null&&b!=null&&String(e)!==String(b)&&!isNaN(+e)&&!isNaN(+b)){v.classList.add('mod');const up=+e>+b;const sp=document.createElement('sup');sp.textContent=up?'▲':'▼';v.appendChild(sp);v.title='Base '+b+' → now '+e+(why&&why[k]?' ('+why[k]+')':'');}
-      st.appendChild(v);});
-    if(rules&&rules.length){const r=document.createElement('div');r.style.gridColumn='1/-1';r.className='chips';rules.forEach(x=>r.appendChild(chip(x)));st.appendChild(r);}};
-  if(u.aux!=null&&u.auxStats)subRow('Auxiliary · '+(u.auxName||'Auxiliary')+(auxDead(u)?' (destroyed)':u.auxWounds?' · '+u.auxWounds+' wounds taken':''),u.auxStats,u.auxRules||[]);
+      if(B&&e!=null&&b!=null&&String(e)!==String(b)&&!isNaN(+e)&&!isNaN(+b)){v.classList.add('mod');const up=+e>+b;const sp=document.createElement('sup');sp.textContent=up?'▲':'▼';sp.className=up?'up':'down';v.appendChild(sp);v.title='Base '+b+' → now '+e+(why&&why[k]?' ('+why[k]+')':'');}
+      g.appendChild(v);});blk.appendChild(g);
+    if(rules&&rules.length){const r=document.createElement('div');r.className='chips';rules.forEach(x=>r.appendChild(chip(x)));blk.appendChild(r);}
+    $('c-subs').appendChild(blk);};
   if(u.charName){const CX=chStatsX(u),why={};itemSpec(u).forEach(([n,S])=>{const d=typeof S.cs==='function'?S.cs(u):S.cs;if(d)Object.entries(d).forEach(([k,v])=>{if(v)why[k]=(why[k]?why[k]+', ':'')+n+' '+(v>0?'+':'')+v;});});
     const CR=chRulesX(u).concat(itemDuelRules(u).map(x=>x+' (in Duels)'));
-    subRow('Character · '+u.charName+(u.warlord?' ★ Warlord':'')+' · '+Math.max(0,(+CX.W||0)-(+u.charWounds||0))+'/'+(CX.W??'?')+' wounds left'+(u.charActivated?' · activated':'')+(itemsOf(u).length?' · '+itemsOf(u).join(', '):''),CX,CR,u.charStats||{},why);}
+    subRow('Character'+(u.warlord?' · ★ Warlord':''),u.charName,Math.max(0,(+CX.W||0)-(+u.charWounds||0))+'/'+(CX.W??'?')+' wounds left'+(u.charActivated?' · activated':''),itemsOf(u),CX,CR,u.charStats||{},why);}
+  if(u.aux!=null&&u.auxStats)subRow('Auxiliary',u.auxName||'Auxiliary',auxDead(u)?'destroyed':u.auxWounds?u.auxWounds+' wounds taken':'',[],u.auxStats,u.auxRules||[]);
   const fxs=fx(u),eng=engaged(u);const fb=$('c-fx');fb.innerHTML='';
-  if(eng.length)fb.appendChild(chip('In contact: '+eng.map(e=>e.short||e.name).join(', '),'fx'));
   fxs.forEach(x=>fb.appendChild(chip(x,'fx')));
-  if(!fb.children.length)fb.appendChild(chip('Nothing extra this round'));
+  $('c-fx-sec').hidden=!fb.children.length;
   const rb=$('c-rules');rb.innerHTML='';const BR=baseRules(u);BR.forEach(x=>rb.appendChild(chip(x)));
   effRules(u,BR).forEach(([t,base])=>{const c=chip(t,'mod');c.title=base?'Base '+base+' · changed this round':'Gained this round';const m=document.createElement('sup');m.textContent='▲';m.className='up';c.appendChild(m);rb.appendChild(c);});
   if(!rb.children.length)rb.appendChild(chip('None'));
-  const ab=$('c-abil');ab.innerHTML='';(u.abilities||[]).forEach(([n,t])=>{const p=document.createElement('p');const b=document.createElement('b');b.textContent=n+': ';p.append(b,document.createTextNode(t));ab.appendChild(p);});
-  $('c-abil-sec').hidden=!(u.abilities||[]).length;
+  const ab=$('c-abil');ab.innerHTML='';const G={draw:[],abil:[],upg:[]};
+  (u.abilities||[]).forEach(([n,t])=>{const nm=String(n);if(u.charName&&nm===u.charName)return;const base=nm.replace(/\s*\(.*$/,'').replace(/^.*?:\s*/,'').trim();
+    const isUpg=isUpgAb(u,nm),isDraw=!isUpg&&isDrawAb(u,nm,t);
+    (isUpg?G.upg:isDraw?G.draw:G.abil).push([nm.replace(/^The .+?:\s*/,'').replace(/^Draw Event:\s*/i,''),String(t).replace(/^Draw Event:\s*/i,'')]);});
+  [['draw','Draw Events','Resolved at the start of its activation, before the first action.'],['abil','Abilities',''],['upg',u.charName?'Character upgrades · '+u.charName:'Upgrades','']].forEach(([k,t,h])=>{if(!G[k].length)return;const g=document.createElement('div');g.className='rgrp '+k;const h4=document.createElement('h4');h4.textContent=t;g.appendChild(h4);if(h){const hp=document.createElement('div');hp.className='hint';hp.textContent=h;g.appendChild(hp);}
+    G[k].forEach(([n,tx])=>{const p=document.createElement('p');const b=document.createElement('b');b.textContent=n+': ';p.append(b,document.createTextNode(tx));g.appendChild(p);});ab.appendChild(g);});
+  const nAb=G.draw.length+G.abil.length+G.upg.length;$('c-abil-sec').hidden=!nAb;
+  regPaneCounts(u,rb.querySelectorAll('.chip').length,nAb);
   const mine=u.side===ME&&u.type!=='marker'&&(!PVP()||!!seatSide());$('c-act-sec').hidden=!mine||aiBusy;if(!mine||aiBusy)return;
   const startBox=$('c-start');startBox.innerHTML='';$('c-actions').innerHTML='';$('c-log').innerHTML='';$('c-warn').hidden=true;
   const inAct=act&&act.id===u.id;
@@ -2973,9 +3048,9 @@ function frOptions0(u){const out=[];if(!u||!act||act.id!==u.id)return out;const 
 function renderDrawStep(u,fresh){const box=$('c-draw');box.innerHTML='';
   (act.drawNotes||[]).forEach(t=>{const d=document.createElement('div');d.className='dn auto';const i=document.createElement('span');i.className='dn-i';i.textContent='✓';const s=document.createElement('span');s.textContent=t;d.append(i,s);box.appendChild(d);});
   if(fresh){const notes=(act.drawNotes||[]).join(' ').toLowerCase();
-    (u.abilities||[]).forEach(([n,t])=>{const nm=String(n),base=nm.replace(/\s*\(.*$/,'').trim();if(!/Draw Event/i.test(String(t))&&!hasDraw(u,new RegExp('^'+base.replace(/[^A-Za-z ]/g,'.'))))return;
+    (u.abilities||[]).forEach(([n,t])=>{const nm=String(n),base=nm.replace(/\s*\(.*$/,'').trim();if(!isDrawAb(u,nm,t)&&!fx(u).some(x=>new RegExp('^'+base.replace(/[^A-Za-z ]/g,'.')).test(x)))return;
       if(/^(Bloom|Elemental Conduit|Forged by the Elements|Strain Expression|Memories of Old)/i.test(base)||notes.includes(base.toLowerCase().split(' ')[0]))return;
-      const d=document.createElement('div');d.className='dn ref';const i=document.createElement('span');i.className='dn-i';i.textContent='•';const s2=document.createElement('span');const b=document.createElement('b');b.textContent=nm+': ';
+      const d=document.createElement('div');d.className='dn ref';const i=document.createElement('span');i.className='dn-i';i.textContent='•';const s2=document.createElement('span');const b=document.createElement('b');b.textContent=nm.replace(/^Draw Event:\s*/i,'')+': ';
       const auto=/^(Regeneration|Biotic Renewal|Bastion|Double Time)/i.test(base);
       s2.append(b,document.createTextNode(auto&&/Regeneration|Biotic/i.test(base)&&!(u.wounds>0)?'nothing to heal right now.':auto?String(t).replace(/^Draw Event:\s*/i,''):'resolve it yourself. '+String(t).replace(/^Draw Event:\s*/i,'')));d.append(i,s2);box.appendChild(d);});}
   let items=[];try{items=frOptions(u).filter(it=>it.kind!=='any');}catch(e){}
