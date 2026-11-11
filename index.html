@@ -759,7 +759,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 21:15 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 21:21 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1432,7 +1432,7 @@ async function charCommit(id,extra){extra=extra||{};const cUsed=(charAct&&charAc
     /* a character activated by its own Ideal passes the effect to the regiment it is attached to */
     if(cm&&i>=0&&!hasGrant(units[i],'Ideal Card: '+k)&&k!=='Fu'){units[i]=grantU(units[i],'Ideal Card: '+k,IDEAL[k][1],IDEAL[k][2]||null);extra.note=((extra.note||'')+' Ideal Card '+k+': '+IDEAL[k][0]+' for '+(u.short||u.name)+'.').trim();}}
   const stkP=u.side===ME&&Array.isArray(PS().huStack)?{huStack:(()=>{if(cUsed&&yCard(cUsed)){const i=PS().huStack.indexOf(cUsed);return PS().huStack.filter((c,j)=>j!==i);}const own='c:'+id,used=cUsed&&cUsed!==own&&cUsed[0]==='c'?cUsed:own;return PS().huStack.filter(c=>c!==used).map(c=>c===own?used:c);})(),huLastCard:'c:'+id}:{};if(PVP()&&stkP.huStack)await savePS(stkP);
-  const next=Object.assign({},state,PVP()?{}:stkP,{units,moves:[],lastTitle:N(u.side)+' · '+u.charName,lastText:'The '+u.charName+' activated (attached to '+u.name+').'+(extra.note?' '+extra.note:'')+(cnote?' Note: '+cnote:''),phase:'Round '+(state.round||1)+' · '+u.charName+' activated',updatedBy:u.side,updatedAt:Date.now()});
+  const next=Object.assign({},state,ovrMine()?{ovr:Object.assign({},state.ovr,{n:(+state.ovr.n||1)-1})}:{},PVP()?{}:stkP,{units,moves:[],lastTitle:N(u.side)+' · '+u.charName,lastText:'The '+u.charName+' activated (attached to '+u.name+').'+(extra.note?' '+extra.note:'')+(cnote?' Note: '+cnote:''),phase:'Round '+(state.round||1)+' · '+u.charName+' activated',updatedBy:u.side,updatedAt:Date.now()});
   try{await db.doc('game/state').set(sanitize(next));state=next;await db.collection('events').doc('e'+Date.now()).set({at:Date.now(),side:u.side,character:u.charName,unit:id,kind:'character',spell:extra.spell||null,target:extra.target||null,rolls:extra.rolls||null,success:extra.success??null});if(u.side===ME)toast('The '+u.charName+' activated. If your next card is '+u.name+', activate it as an Entourage now.');render();}
   catch(e){toast('That could not be saved. Try again in a moment.');}
 }
@@ -1646,6 +1646,9 @@ function renderCard(){
       if(u.charName&&!u.charActivated&&((SBX()&&!huStackOn())||((humanTop()==='c:'+u.id||vocOk('c:'+u.id)||(yCard(humanTop())?ySame(humanTop(),u,true):(humanTop()&&humanTop()[0]==='c'&&sameCard(humanTop(),u))))&&state.turn===HU))){const b3=document.createElement('button');b3.type='button';b3.className='btn';b3.textContent='Activate the '+u.charName;b3.onclick=()=>charActivate(u.id,humanTop());startBox.appendChild(b3);}
       return;}
     if(!u.onTable&&!u.arriving){const p=document.createElement('p');p.className='hint';p.textContent='Still in reinforcements this round.';startBox.appendChild(p);return;}
+    if(ovrMine()&&!u.activated&&(u.onTable||u.arriving)){const r=document.createElement('div');r.className='row';const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='Activate (host override)';b.onclick=()=>startActivation(u.id,'command',null);r.appendChild(b);
+      if(u.charName&&!u.charActivated){const c=document.createElement('button');c.type='button';c.className='btn ghost';c.textContent='Activate the '+u.charName+' (host override)';c.onclick=()=>charActivate(u.id,null);r.appendChild(c);}
+      startBox.appendChild(r);startBox.appendChild(ptext('The host has let you activate any one regiment or character, outside the Command Stack order.','hint'));return;}
     if(huStackOn()){const top=vocOk('u:'+u.id)?'u:'+u.id:humanTop(),held=huHeldOk()&&sameCard(PS().huHeld,u),myTurn=state.turn===HU;const row=document.createElement('div');row.className='row';
       const why=!myTurn?'It is not your turn.':'';
       const yc=yCard(top),heldMe=false,okU=yc?ySame(top,u,false):((top==='u:'+u.id&&sameCard(top,u))||(top&&top[0]==='u'&&sameCard(top,u))),okC=yc?ySame(top,u,true):(top==='c:'+u.id||(top&&top[0]==='c'&&sameCard(top,u)));
@@ -2107,7 +2110,7 @@ async function saveActivation(){
   const pp=side===ME?{strategicHeld:act.source==='strategic'?false:!!PS().strategicHeld,hammerUsed:!!PS().hammerUsed||act.actions.some(a=>a.type==='hammer')}:{};
   if(side===ME&&Array.isArray(PS().huStack)){if(yCard(act.card)){const i=PS().huStack.indexOf(act.card);pp.huStack=PS().huStack.filter((c,j)=>j!==i);}else{const own='u:'+act.id,used=act.card&&act.card!==own&&act.card[0]==='u'?act.card:own;pp.huStack=PS().huStack.filter(c=>c!==used).map(c=>c===own?used:c);}pp.huLastCard='u:'+act.id;if(act.source==='strategic')pp.huHeld=null;}
   if(PVP()&&side===ME)await savePS(pp);
-  const next=Object.assign({},state,PVP()?{}:pp,FA.fr?{fr:FA.fr}:{},{units,moves:pts.length>1?[{unit:act.id,path:pts}]:[],
+  if(ovrMine())myTurnStrat=true;const next=Object.assign({},state,PVP()?{}:pp,FA.fr?{fr:FA.fr}:{},ovrMine()?{ovr:Object.assign({},state.ovr,{n:(+state.ovr.n||1)-1})}:{},{units,moves:pts.length>1?[{unit:act.id,path:pts}]:[],
     lastTitle:N(side)+' · '+u.name+(act.source==='strategic'?' (Strategic Stack)':act.source==='entourage'?' (Entourage)':''),lastText:desc+(FA.notes.length?'. '+FA.notes.join('; '):'')+(note?'. Note: '+note:''),phase:'Round '+(state.round||1)+' · '+(side===ME?'Your turn':N(side)+' acting'),updatedBy:side,updatedAt:Date.now()});
   await db.doc('game/state').set(sanitize(next));state=next;
   await db.collection('events').doc('e'+Date.now()).set({at:Date.now(),side,unit:act.id,source:act.source,entering:act.entering,actions:act.actions,note,final:{x:u.x,y:u.y,facing:u.facing,files:G.files}});
@@ -2582,7 +2585,7 @@ async function endRound(){if(!state)return;const R=state.round||1,vp=Object.assi
   if(R>=last){await putState({vp,step:'over',turn:null,phase:'Game over · '+(vp.cs===vp.nord?'a draw':(vp.cs>vp.nord?N('cs'):N('nord'))+' win'),lastTitle:'Final score',lastText:rep[0].lines.join(' · ')});showReport(rep);$('air-title').textContent='Victory Phase';return;}
   const FRE=frRoundEnd(state.units||[],R+1);const units=FRE.units.map(u=>Object.assign({},u,{activated:false,charActivated:false,effects:(u.effects||[]).filter(e=>e==='Broken'||/^Season: /.test(e))}));
   const RLn={cs:rlCompute('cs',units),nord:rlCompute('nord',units)};
-  await putState({fr:FRE.fr,vp,units,rl:RLn,rlStart:RLn,round:R+1,step:'reinforce',turn:null,picks:{},ready:{},reinfTurn:'cs',chooser:null,aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,hammerUsed:false,moves:[],phase:'Round '+(R+1)+' · Reinforcements',lastTitle:'Round '+R+' scored',lastText:rep[0].lines.join(' · ')});
+  await putState({ovr:null,fr:FRE.fr,vp,units,rl:RLn,rlStart:RLn,round:R+1,step:'reinforce',turn:null,picks:{},ready:{},reinfTurn:'cs',chooser:null,aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,hammerUsed:false,moves:[],phase:'Round '+(R+1)+' · Reinforcements',lastTitle:'Round '+R+' scored',lastText:rep[0].lines.join(' · ')});
   showReport(rep);$('air-title').textContent='Victory Phase';}
 /* pick which regiments of a weight class arrive after rolling for the whole class */
 function reinfChoose(g,succ,side){return new Promise(res=>{bannerHide();let dg=$('rf-dlg');if(!dg){dg=document.createElement('dialog');dg.id='rf-dlg';dg.className='en-dlg set-dlg';dg.setAttribute('aria-labelledby','rf-h');document.body.appendChild(dg);dg.addEventListener('cancel',e=>e.preventDefault());}
@@ -4968,7 +4971,33 @@ function turnNotice(t){let n=$('turn-note');if(!n){n=document.createElement('div
 function turnWatch(){if(!state||state.mode==='test')return;const k=(state.step||'')+':'+(state.round||0)+':'+(state.turn||'');if(k===lastTurnSeen)return;const prev=lastTurnSeen;lastTurnSeen=k;if(!prev)return;
   if((state.step||'activations')==='activations'&&state.turn===HU&&!aiBusy){const tp=humanTop();turnNotice('Your turn'+(tp?' · next card: '+cardName(tp):''));}
   else if((state.step||'activations')==='activations'&&state.turn&&state.turn!==HU)document.title=document.title.replace(/^● /,'');}
-function renderTurnbar(){try{turnWatch();}catch(e){}if(state&&state.turn===HU&&(state.step||'activations')==='activations'&&state.mode!=='test'){if(myTurnCards==null){myTurnCards=humanCardsLeft();myTurnStrat=false;}}else myTurnCards=null;const a=document.activeElement,tb0=$('turnbar'),fid=a&&a.id&&tb0&&tb0.contains(a)&&a.tagName==='INPUT'?a.id:null,ss=fid?a.selectionStart:0;renderTurnbar0();if(fid){const e=document.getElementById(fid);if(e&&!e.disabled){e.focus();try{e.setSelectionRange(ss,ss);}catch(err){}}}}
+function renderTurnbar(){try{turnWatch();}catch(e){}if(state&&state.turn===HU&&(state.step||'activations')==='activations'&&state.mode!=='test'){if(myTurnCards==null){myTurnCards=humanCardsLeft();myTurnStrat=false;}}else myTurnCards=null;const a=document.activeElement,tb0=$('turnbar'),fid=a&&a.id&&tb0&&tb0.contains(a)&&a.tagName==='INPUT'?a.id:null,ss=fid?a.selectionStart:0;renderTurnbar0();try{const op=ovrPanel();if(op)tb0.appendChild(op);}catch(e){console.error(e);}if(fid){const e=document.getElementById(fid);if(e&&!e.disabled){e.focus();try{e.setSelectionRange(ss,ss);}catch(err){}}}}
+/* ---------- Host override console: for when the game gets stuck ---------- */
+let ovrOpen=false;
+function ovrHost(){if(!state||SBX())return false;if(!PVP())return true;const net=window.__conquestNet;if(net&&net.mode)return net.mode==='host';return !!myId&&(state.hostId?state.hostId===myId:(state.seats||{}).cs===myId);}
+function ovrMine(){const o=state&&state.ovr;return !!(o&&o.n>0&&o.side===HU&&(!PVP()||!!seatSide()));}
+async function ovrLog(t,patch){await putState(Object.assign({},patch||{},{lastTitle:'Host override',lastText:t}));toast('Override: '+t);}
+function ovrPanel(){if(!ovrHost()||['setup','review','over'].includes(state.step||''))return null;const d=bEl('details',{className:'rev ovr'});d.open=ovrOpen;d.ontoggle=()=>{ovrOpen=d.open;};
+  d.append(bEl('summary',{textContent:'Host override console'}));d.append(ptext('Only for when something gets stuck. Every override is written to the log for both players.','hint'));
+  const row=(l,...k)=>{const r=bEl('div',{className:'tf-row'});r.append(bEl('span',{className:'tf-l',textContent:l}),...k);d.append(r);};
+  const b=(t,fn,dis)=>{const x=abBtn(t,fn,'ab-tog');if(dis)x.disabled=true;return x;};
+  const S=['cs','nord'],nm=s=>PVP()?WHO(s):N(s),turnNow=state.turn;
+  row('Turn: '+(turnNow?nm(turnNow):'nobody')+(state.step&&state.step!=='activations'?' · step '+state.step:''),
+    ...S.map(s=>b('Give the turn to '+nm(s),async()=>{act=null;cb=null;charAct=null;aiBusy=false;await ovrLog('the turn is given to '+nm(s)+'.',{turn:s,step:'activations',phase:'Round '+(state.round||1)+' · '+nm(s)+' to act'});if(!PVP()&&s===AI)runAITurn();},turnNow===s&&(state.step||'activations')==='activations')));
+  row('Force the current turn to end:',b('End the turn'+(turnNow?' of '+nm(turnNow):''),async()=>{act=null;cb=null;charAct=null;aiBusy=false;const o=turnNow==='cs'?'nord':'cs';
+    const left=s=>(!PVP()&&s===AI)?aiCardsLeft():(!PVP()&&s===HU)?humanCardsLeft():sideCardsLeft(s);
+    if(left(o)>0){await ovrLog('the turn of '+nm(turnNow)+' is ended; '+nm(o)+' to act.',{turn:o,phase:'Round '+(state.round||1)+' · '+nm(o)+' to act'});if(!PVP()&&o===AI)runAITurn();}
+    else if(left(turnNow)>0){await ovrLog(nm(o)+' have no cards left; '+nm(turnNow)+' keep acting.',{});}
+    else{await ovrLog('the round is ended.',{});await endRound();}},!turnNow));
+  row('Let a player activate any one regiment (ignores the Command Stack):',...S.filter(s=>PVP()||s===HU).map(s=>b(nm(s)+' activates one',async()=>{await ovrLog(nm(s)+' may activate any one regiment or character of their choice.',{ovr:{side:s,n:1},turn:s,step:'activations'});})),
+    ...(!PVP()?[b('Claude takes a turn now',async()=>{act=null;cb=null;aiBusy=false;await ovrLog(N(AI)+' take a turn now.',{turn:AI});runAITurn();})]:[]));
+  const u=selId&&base(selId);if(u&&u.type!=='marker')row('Selected: '+(u.short||u.name)+':',b(u.activated?'Mark as not activated':'Mark as activated',()=>ovrLog((u.short||u.name)+(u.activated?' is marked as not activated.':' is marked as activated.'),{units:state.units.map(x=>x.id===u.id?Object.assign({},x,{activated:!u.activated}):x)})),
+    ...(u.charName?[b(u.charActivated?'The '+u.charName+': not activated':'The '+u.charName+': activated',()=>ovrLog('the '+u.charName+(u.charActivated?' is marked as not activated.':' is marked as activated.'),{units:state.units.map(x=>x.id===u.id?Object.assign({},x,{charActivated:!u.charActivated}):x)}))]:[]));
+  else row('Select a regiment on the map to mark it activated or not.');
+  row('This device:',b('Clear a stuck activation or dice panel',()=>{act=null;cb=null;cbQueue=[];charAct=null;aiBusy=false;try{bannerHide();}catch(e){}try{renderCombat();}catch(e){}render();toast('Cleared on this device.');}));
+  row('Round:',b(ovrArm?'Click again to end round '+(state.round||1):'End the round now (score it)',async()=>{if(!ovrArm){ovrArm=true;renderTurnbar();setTimeout(()=>{ovrArm=false;},4000);return;}ovrArm=false;act=null;cb=null;aiBusy=false;await ovrLog('round '+(state.round||1)+' is ended early.',{});await endRound();}));
+  return d;}
+let ovrArm=false;
 function renderTurnbar0(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHTML='';const step=state.step||'activations';const add=e=>tb.appendChild(e);
   const info=document.createElement('span');info.className='read';info.id='tb-info';add(info);
   const mk=(t,fn,ghost)=>{const b=document.createElement('button');b.type='button';b.className='btn'+(ghost?' ghost':'');b.textContent=t;b.onclick=fn;b.disabled=aiBusy;return b;};
@@ -5013,7 +5042,7 @@ function renderTurnbar0(){const tb=$('turnbar');if(!tb||!state)return;tb.innerHT
  window.addEventListener('pagehide',()=>window.__presenceLeave());
  db.doc('game/combat').onSnapshot(sn=>{if(sn.exists&&state&&PVP())onCombat(sn.data());},()=>{});
  const t=setTimeout(()=>{$('phase').textContent='The game state is slow to load.'},10000);
- db.doc('game/state').onSnapshot(sn=>{clearTimeout(t);if(sn.exists){state=Object.assign({},sn.data());if(!state.units)state.units=[];applySeat();render();}else{state={step:'setup',units:[],vp:{cs:0,nord:0},round:0,phase:'New game'};applySeat();render();}},
+ db.doc('game/state').onSnapshot(sn=>{clearTimeout(t);if(sn.exists){state=Object.assign({},sn.data());if(!state.units)state.units=[];applySeat();if(PVP()&&act&&state.turn!==HU){act=null;cb=null;charAct=null;setTimeout(()=>toast('The host moved the turn on; your activation was dropped.'),50);}render();}else{state={step:'setup',units:[],vp:{cs:0,nord:0},round:0,phase:'New game'};applySeat();render();}},
   ()=>{clearTimeout(t);$('phase').textContent='The map stopped updating. Reload to reconnect.'});})();
 })();
 </script>
