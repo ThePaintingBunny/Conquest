@@ -759,7 +759,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 20:25 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 20:35 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1948,7 +1948,7 @@ function rollDef(T){const A=byId(cb.att)||base(cb.att);let fails=0,dbl=0;
   cb.groups.forEach(g=>{const di=defInfo(T,A,g);g.def=di;g.drolls=[];for(let i=0;i<(g.hits||0);i++){const flaw=g.flawless&&i<(g.flawN!=null?g.flawN:(g.ones||0)),ok=x=>x!==6&&((!flaw&&x<=di.D)||x<=di.E);
     const SD=[];if(cb.blessT&&(cb.type==='clash'||cb.type==='impact'))SD.push({k:'fail',src:'Blessed'});if(rh((T.rules||[]).concat(fx(T)),'Untouchable')||(cb.type==='volley'&&rh(RU(T),'Unstable Alloys')))SD.push({k:'fail',face:6,src:'Untouchable'});if(g.exploit)SD.push({k:'succ',face:1,src:'Exploit Flanks'});if(cb.type==='clash'&&fxHas(T,/^Professional Troops/))SD.push({k:'fail',face:6,src:'Professional Troops'});if(g.forceDef)SD.push({k:'succ',src:'re-roll successful Defense ('+(A.charName||'character')+')'});
     const PD=rrPlan(SD);g.drrNotes=PD.notes;let v=d6(),re=false,first=null;if(rrDie(v,ok,PD)){first=v;v=d6();re=true;}const save=ok(v);g.drolls.push({v,save,re,first});if(!save){fails++;if((g.deadly||(cb.type==='impact'&&act&&act.resoundT===cb.tgt&&act.id===cb.att))&&v===6)dbl++;}}});
-  let brit=0;if((rh(RU(T),'Brittle')||animate(T))&&!fxHas(T,/^Loses Brittle/)&&A&&(cb.type==='clash'||cb.type==='impact')){const ar=arcOf(T,[A.x,A.y]);const k=ar==='rear'?4:ar==='left'||ar==='right'?2:0;cb.groups.forEach(g=>(g.drolls||[]).forEach(r=>{if(brit<k&&r.save){r.save=false;r.brittle=true;brit++;fails++;}}));}cb.brittle=brit;
+  let brit=0;if((rh(RU(T),'Brittle')||animate(T))&&!fxHas(T,/^Loses Brittle/)&&!/Fallen Divinity/.test(frBase(T)+' '+(T.name||''))&&!(upgOf(T,/Strength and Honor/)&&fxHas(T,/Inspired/))&&A&&(cb.type==='clash'||cb.type==='impact')){const ar=cArcU(T,A);const k=ar==='rear'?4:ar==='left'||ar==='right'?2:0;cb.groups.forEach(g=>(g.drolls||[]).forEach(r=>{if(brit<k&&r.save){r.save=false;r.brittle=true;brit++;fails++;}}));}cb.brittle=brit;
   const ten=rx((T.rules||[]).concat(fx(T)),'Tenacious')+(cb.type==='volley'?tenVol(RU(T)):0)+(cb.type==='volley'&&rh(RU(T),'Visage')?1:0)+(cb.type==='volley'&&fxHas(T,/^Figurehead of the Naglfar/)?2:0),conv=Math.min(ten,fails);cb.tenacious=conv;cb.dbl=dbl;cb.wounds=fails-conv+dbl;}
 function moraleSources(T,mi){const S=[],A=byId(cb.att)||base(cb.att)||{},iron=rh(RU(T),'Iron Discipline');
   if(!iron&&(mi.arc==='left'||mi.arc==='right'))S.push({k:'succ',src:'flank attack'});
@@ -1980,7 +1980,7 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;if(cbQueu
   const A=byId(cb.att)||base(cb.att),T=cb.tgt?byId(cb.tgt):null,LBL={clash:'Clash',impact:'Impact Attacks',volley:'Volley',lethal:'Lethal Demise',freform:'Fighting Reform'};
   $('cb-title').textContent=(cb.dieFight?'Die Fighting! ':'')+(cb.selfTitle||LBL[cb.type])+': '+(A.short||A.name)+(T?' against '+(T.short||T.name):'');
   if(!T){body.appendChild(ptext('Choose which engaged enemy regiment to attack.'));const row=document.createElement('div');row.className='row';(cb.choices||[]).forEach(id=>{const e=byId(id);const b=document.createElement('button');b.type='button';b.className='btn ghost';b.dataset.who='O';b.textContent=e.short||e.name;b.onclick=()=>{cb.tgt=id;if(cb.type!=='lethal')cb.groups=buildGroups(cb.type,A,byId(id));renderCombat();};row.appendChild(b);});body.appendChild(row);return;}
-  const sA=N(A.side),sT=N(T.side),arc=arcOf(T,[A.x,A.y]);
+  const sA=N(A.side),sT=N(T.side),arc=cb.type==='volley'?arcOf(T,[A.x,A.y]):cArcU(T,A);
   if(cb.type==='duel'){renderDuel(body);return;}
   if(cb.selfText){body.appendChild(ptext(cb.selfText));}
   else if(cb.type==='freform'){body.appendChild(ptext(`The Combat Reform test failed, so ${T.short||T.name} suffers ${cb.preWounds} wound${cb.preWounds>1?'s':''}, one for each stand in contact with the enemy. Test Morale for them, record, then finish the reform.`));}
@@ -4198,8 +4198,11 @@ function srSeizeStands(u,z,k){if(srHas(u,/^Prowling/)||srHas(u,/^Refused a Duel/
   if(v>0&&u.charName){const xs=itemSpec(u).reduce((a,[n,S])=>a+(+S.seize||0),0);if(xs&&standsOf(u).some(st=>st.kind==='char'&&inZone(st.poly,z)))s+=xs;}return s;}
 /* combat helpers */
 /* the arc an engaged enemy is in contact with: if it touches the front edge it is in the front arc, otherwise the edge it touches most */
-function contactArc(T,A){const C=corners(T),P=corners(A);let best=null;for(let i=0;i<4;i++){const e0=C[i],e1=C[(i+1)%4];let d=1e9;P.forEach(p=>{d=Math.min(d,segDist(p,e0,e1));});for(const e of [e0,e1])for(let j=0;j<4;j++)d=Math.min(d,segDist(e,P[j],P[(j+1)%4]));
-    const arc=arcOf(T,[(e0[0]+e1[0])/2,(e0[1]+e1[1])/2]);if(d<=0.4&&arc==='front')return 'front';if(!best||d<best.d)best={d,arc};}return best&&best.d<=0.4?best.arc:null;}
+/* which arc of T the attacker is fighting: the target edge with the longest stretch actually in contact (a corner merely touching does not count) */
+function contactArc(T,A){const C=corners(T),P=corners(A),N=24,pd=q=>inside(q,P)?0:Math.min(...[0,1,2,3].map(j=>segDist(q,P[j],P[(j+1)%4])));const len={};
+  for(let i=0;i<4;i++){const e0=C[i],e1=C[(i+1)%4],L=Math.hypot(e1[0]-e0[0],e1[1]-e0[1]);let n=0;for(let k=0;k<N;k++){const t=(k+.5)/N;if(pd([e0[0]+(e1[0]-e0[0])*t,e0[1]+(e1[1]-e0[1])*t])<=0.4)n++;}
+    if(n){const arc=arcOf(T,[(e0[0]+e1[0])/2,(e0[1]+e1[1])/2]);len[arc]=(len[arc]||0)+L*n/N;}}
+  let best=null;Object.entries(len).forEach(([a,l])=>{if(!best||l>best[1]+1e-6||(Math.abs(l-best[1])<=1e-6&&a==='front'))best=[a,l];});return best&&best[1]>=0.05?best[0]:null;}
 function cArcU(T,A){if(!T||!A)return 'front';if(rh(RU(T),'Acute Senses'))return 'front';if(A.onTable&&T.onTable&&polyDist(corners(A),corners(T))<=0.4){const c=contactArc(T,A);if(c)return c;}return arcOf(T,[A.x,A.y]);}
 function cArc(t,p){return rh(RU(t),'Acute Senses')?'front':arcOf(t,p);}
 function mostlyHindering(u){const P=standCenters(u);if(!P.length)return false;return P.filter(p=>terrainOf().some(t=>tHas(t,'Hindering')&&inT(t,p))).length>=Math.ceil(P.length/2);}
