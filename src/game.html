@@ -1506,9 +1506,12 @@ function drawUnit(u,g){if(u.type==='marker'){drawMarker(u,g);return;}
     el('path',{d:`M${cx-ax*flip} ${cy-ay} L${cx-ax*.2*flip} ${cy-ay*.25} L${cx+ax*.25*flip} ${cy+ay*.05} L${cx-ax*.05*flip} ${cy+ay*.45} L${cx+ax*.6*flip} ${cy+ay}`,fill:'none',stroke:'#1C1410',opacity:.75,'stroke-width':1.6,'stroke-linecap':'round','stroke-linejoin':'round'},grp);
     el('path',{d:`M${cx+ax*.25*flip} ${cy+ay*.05} L${cx+ax*.75*flip} ${cy-ay*.15}`,fill:'none',stroke:'#1C1410',opacity:.75,'stroke-width':1.1,'stroke-linecap':'round'},grp);}}
   if(act&&act.cur&&act.cur.type==='charge'&&act.cur.target===u.id&&act.cur.stage!=='adjust'){el('rect',{x:-w/2-4,y:-d/2-4,width:w+8,height:d+8,rx:4,fill:'none',stroke:'#FF8A6B','stroke-width':2.2,'stroke-dasharray':'6 3'},grp);}
-  const off=Math.max(w,d)/2;
-  const tag=el('text',{x:px(u.x),y:py(u.y)+(u.side==='nord'?-off-6:off+12),'text-anchor':'middle',fill:'#F7F3E6','font-size':11,'font-weight':700,'font-family':'Alegreya Sans, sans-serif',stroke:'#1C2421','stroke-width':2.4,'paint-order':'stroke','pointer-events':'none'},g);
+  /* the name sits just behind the regiment's rear edge, pushed out far enough along that direction that it never overlaps the stands */
+  const tag=el('text',{x:px(u.x),y:py(u.y),'text-anchor':'middle','dominant-baseline':'central',fill:'#F7F3E6','font-size':11,'font-weight':700,'font-family':'Alegreya Sans, sans-serif',stroke:'#1C2421','stroke-width':2.4,'paint-order':'stroke','pointer-events':'none'},g);
   tag.textContent=u.short||u.name;
+  {const ar=(u.facing||0)*Math.PI/180;let nx=px(u.x-Math.sin(ar))-px(u.x),ny=py(u.y-Math.cos(ar))-py(u.y);const L=Math.hypot(nx,ny)||1;nx/=L;ny/=L;
+   let tw=0;try{tw=tag.getComputedTextLength();}catch(e){}if(!tw)tw=(tag.textContent.length||1)*6;const th=12,dist=d/2+Math.abs(nx)*tw/2+Math.abs(ny)*th/2+3;
+   tag.setAttribute('x',(px(u.x)+nx*dist).toFixed(1));tag.setAttribute('y',(py(u.y)+ny*dist).toFixed(1));}
 }
 function rulerPoly(e){if(e&&e.id){const u=byId(e.id);if(u&&u.onTable)return corners(u);}return [[e[0],e[1]]];}
 function closestPts(P,Q){if(P.length>2&&Q.length>2&&polyDist(P,Q)===0)return null;let best=[Infinity,null,null];const seg=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy;let t=L?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L:0;t=Math.max(0,Math.min(1,t));return [a[0]+t*dx,a[1]+t*dy];};
