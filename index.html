@@ -679,7 +679,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 09:01 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 12:12 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -900,7 +900,10 @@ function woundState(u,wounds){const rt=regTot(u);let w=wounds==null?(u.wounds||0
   for(const i of removalSeq(u)){const W=sW(u,i);if(w>=W){w-=W;l++;}else break;}return {lost:l,rem:l>=rt?0:w,max};}
 /* stand order: tokens r0 (command stand), r1.. (other regiment stands), a (auxiliary), c (character) */
 function removalSeq(u){const rt=regTot(u),out=[];if(Array.isArray(u.order)){u.order.slice().reverse().forEach(t=>{if(/^r\d+$/.test(t)&&t!=='r0'){const i=+t.slice(1);if(i<rt&&!out.includes(i))out.push(i);}});}
-  if(!Array.isArray(u.order)){const FS=u.slotBase&&u.slotFiles?{slots:u.slotBase}:fullSlots(u);FS.slots.slice().reverse().forEach(t=>{if(t&&/^r\d+$/.test(t)&&t!=='r0'){const i=+t.slice(1);if(i<rt&&!out.includes(i))out.push(i);}});}
+  if(!Array.isArray(u.order)){const FS=u.slotBase&&u.slotFiles?{slots:u.slotBase,files:u.slotFiles}:fullSlots(u),F=Math.max(1,FS.files||u.files||1),rk=[];for(let k=0;k<FS.slots.length;k+=F)rk.push(FS.slots.slice(k,k+F));
+    /* rear rank first; within a rank work in from the ends so the survivors stay side by side */
+    const ok=t=>t&&/^r\d+$/.test(t)&&t!=='r0'&&+t.slice(1)<rt;
+    rk.reverse().forEach(row=>{let a=row.filter(Boolean);while(a.length){const R=a[a.length-1],L=a[0];let t;if(ok(R))t=a.pop();else if(ok(L))t=a.shift();else{let j=-1;for(let m=a.length-1;m>=0;m--)if(ok(a[m])){j=m;break;}if(j<0)break;t=a.splice(j,1)[0];}const i=+t.slice(1);if(!out.includes(i))out.push(i);}});}
   for(let i=rt-1;i>=1;i--)if(!out.includes(i))out.unshift(i);out.push(0);return out;}
 /* full-strength positions of every stand (command stand centre front, then the character, then the auxiliary) */
 function fullSlots(u){const rt=regTot(u),all=[];for(let i=0;i<rt;i++)all.push('r'+i);if(u.aux!=null&&u.auxStats)all.push('a');if(u.char!=null)all.push('c');const N0=all.length,fF=Math.max(1,Math.min(u.files||1,N0));
@@ -911,10 +914,11 @@ function layout(u){const G=geom(u),n=live(u),rt=regTot(u),lost=lostOf(u),rs=remo
   let seq;if(Array.isArray(u.order)){seq=u.order.filter(t=>alive.includes(t));alive.forEach(t=>{if(!seq.includes(t))seq.push(t);});
     const sp=t=>t==='r0'||t==='c'||t==='a';for(let k=G.files;k<seq.length;k++)if(sp(seq[k])){let j=Math.min(G.files,seq.length)-1;while(j>=0&&sp(seq[j]))j--;if(j>=0){[seq[j],seq[k]]=[seq[k],seq[j]];}}}
   else{const FS=u.slotBase&&u.slotFiles?{files:u.slotFiles,slots:u.slotBase}:fullSlots(u);
-    if(G.files===FS.files){/* every stand keeps its place; casualties leave the rear. If a character (or the command stand) is lost, the rear-most stand steps into its place */
+    if(G.files===FS.files||(G.files<FS.files&&G.ranks===1)){/* every stand keeps its place; casualties leave the rear. If a character (or the command stand) is lost, the rear-most stand steps into its place */
       const slots=FS.slots.map(t=>t&&alive.includes(t)?t:null);alive.forEach(t=>{if(!slots.includes(t))slots.push(t);});
       for(let k=0;k<slots.length;k++){if(slots[k])continue;let last=-1;for(let m=slots.length-1;m>k;m--)if(slots[m]){last=m;break;}if(last<0)break;if(Math.floor(last/FS.files)>Math.floor(k/FS.files)){slots[k]=slots[last];slots[last]=null;}}
       const out=[];slots.forEach((t,k)=>{if(t)out.push({pos:k,tok:t});});
+      if(G.files<FS.files&&out.length===alive.length&&out.every(o=>o.pos<FS.files)){out.sort((a,b)=>a.pos-b.pos).forEach((o,i)=>o.pos=i);}
       if(out.length===alive.length&&Math.max(...out.map(o=>o.pos))<Math.ceil(n/FS.files)*FS.files)return out.map(o=>({pos:o.pos,tok:o.tok,kind:o.tok==='a'?'aux':o.tok==='c'?'char':'reg',cmd:o.tok==='r0',ri:o.tok[0]==='r'?+o.tok.slice(1):null,mod:u.mods&&o.tok[0]==='r'?u.mods[+o.tok.slice(1)]:null}));}
     const SP=specials(u,G.files);seq=new Array(n).fill(null);const put=(k,t)=>{if(k!=null&&k<n&&seq[k]==null&&alive.includes(t))seq[k]=t;};put(SP.cmd,'r0');put(SP.aux,'a');put(SP.ch,'c');
     const rest=alive.filter(t=>!seq.includes(t));for(let k=0;k<n;k++)if(seq[k]==null)seq[k]=rest.shift();seq=seq.filter(Boolean);}
@@ -3837,9 +3841,14 @@ function contactKeep(old,st){if(!old||!Array.isArray(old.units)||old===st)return
   const shrunk=new Set();
   st.units=st.units.map(u=>{const o=O.get(u.id);if(!onT(u)||!onT(o)||!same(u,o)||(u.files||1)!==(o.files||1))return u;
     const n0=live(o),n1=live(u);if(n0===n1)return u;if(n1<n0)shrunk.add(u.id);
-    const k=(geom(o).d-geom(u).d)/2;if(Math.abs(k)<1e-9)return u;const f=fwd(u.facing);
-    if(act&&act.id===u.id&&act.pose&&act.pose.x!=null){const fp=fwd(act.pose.facing!=null?act.pose.facing:u.facing);act.pose.x+=fp[0]*k;act.pose.y+=fp[1]*k;}
-    return Object.assign({},u,{x:u.x+f[0]*k,y:u.y+f[1]*k});});
+    /* surviving stands stay exactly where they stood: move the regiment's centre by their average displacement */
+    const shift=(A,B)=>{const ca=new Map(standsOf(A).map(x=>[x.tok,x.poly])),cen=P=>[P.reduce((a,p)=>a+p[0],0)/P.length,P.reduce((a,p)=>a+p[1],0)/P.length];let dx=0,dy=0,m=0;
+      const D=[];standsOf(B).forEach(x=>{const P=ca.get(x.tok);if(!P)return;const a=cen(P),b=cen(x.poly);D.push([a[0]-b[0],a[1]-b[1]]);});if(!D.length)return [0,0];
+      /* keep as many stands as possible exactly where they were; the rest close up */
+      let best=D[0],bn=-1;D.forEach(d=>{const n=D.filter(e=>Math.hypot(e[0]-d[0],e[1]-d[1])<0.05).length;if(n>bn||(n===bn&&Math.hypot(...d)<Math.hypot(...best))){bn=n;best=d;}});return best;};
+    const [dx,dy]=shift(o,u);
+    if(act&&act.id===u.id&&act.pose&&act.pose.x!=null){const [px,py]=shift(Object.assign({},o,act.pose),Object.assign({},u,act.pose));act.pose.x+=px;act.pose.y+=py;}
+    if(Math.abs(dx)+Math.abs(dy)<1e-9)return u;return Object.assign({},u,{x:u.x+dx,y:u.y+dy});});
   if(!shrunk.size)return;
   const P=st.units,byI=new Map(P.map(u=>[u.id,u]));
   const near=(a,list)=>list.filter(e=>onT(e)&&e.side!==a.side&&polyDist(corners(posed(a)),corners(posed(e)))<=0.3);
@@ -3939,7 +3948,7 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);try{await supOnAwaken(u);}catch(e){}if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,render:()=>render(),planCharge,chargeFaces,placeCharge,corners,polyDist,geom,live,lostOf,contactKeep,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,standsOf,render:()=>render(),planCharge,chargeFaces,placeCharge,corners,polyDist,geom,live,lostOf,contactKeep,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
