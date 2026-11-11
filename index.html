@@ -686,7 +686,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 12:46 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 13:17 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1175,6 +1175,22 @@ function drawChargeZones(u,g){if(!u)return;const G=geom(u),a=(u.facing||0)*Math.
   el('polygon',{points:pts(zone(certain)),fill:'#FFF6D8','fill-opacity':.38,stroke:'#FFF6D8','stroke-opacity':1,'stroke-width':2,'pointer-events':'none'},g);
 
 }
+/* volley overlay: per front-rank stand, the effective range (half Barrage range, +1 shot) and the full range, over its firing arc */
+function drawVolleyZones(u,g){const vr=u&&volleyRange(u);if(!vr)return;const span=volleyArcSpan(u),R=vr.range,long=rh(RU(u).concat(fx(u)),'Longshot'),H=long?R:R/2;
+  const pts=q=>q.map(p=>px(p[0])+','+py(p[1])).join(' ');const fa=(u.facing||0)*Math.PI/180,G=geom(u),f=[Math.sin(fa),Math.cos(fa)],r=[Math.cos(fa),-Math.sin(fa)],fe=G.d/2,hw=G.w/2;
+  const P=(fw,rr)=>[u.x+f[0]*fw+r[0]*rr,u.y+f[1]*fw+r[1]*rr];
+  /* union of the stands' fans: straight ahead of the front edge plus a sector at each front corner out to the arc's edge */
+  const shape=Rad=>{const sp=span*Math.PI/180,o=[],n=Math.max(8,Math.round(span/4));o.push(P(fe,-hw));for(let k=0;k<=n;k++){const an=-sp+sp*k/n;o.push(P(fe+Rad*Math.cos(an),-hw+Rad*Math.sin(an)));}for(let k=0;k<=n;k++){const an=sp*k/n;o.push(P(fe+Rad*Math.cos(an),hw+Rad*Math.sin(an)));}o.push(P(fe,hw));return o;};
+  const front=standsOf(u).filter(s=>s.rank===0);
+  if(span>=180){const ring=Rad=>{const o=[];[[1,1],[1,-1],[-1,-1],[-1,1]].forEach(([i,j],q)=>{const c=P(fe*i,hw*j),a0=[0,-Math.PI/2,Math.PI,Math.PI/2][q];for(let k=0;k<=8;k++){const an=a0-Math.PI/2*k/8;o.push([c[0]+f[0]*Rad*Math.cos(an)+r[0]*Rad*Math.sin(an),c[1]+f[1]*Rad*Math.cos(an)+r[1]*Rad*Math.sin(an)]);}});return o;};
+    if(!long)el('polygon',{points:pts(ring(R)),fill:'#6FA8FF','fill-opacity':.2,stroke:'#9CC4FF','stroke-width':2,'stroke-dasharray':'6 4','pointer-events':'none'},g);el('polygon',{points:pts(ring(H)),fill:'#FFD66B','fill-opacity':.32,stroke:'#FFE39A','stroke-width':2,'pointer-events':'none'},g);return;}
+  if(!long)el('polygon',{points:pts(shape(R)),fill:'#6FA8FF','fill-opacity':.2,stroke:'#9CC4FF','stroke-width':2,'stroke-dasharray':'6 4','pointer-events':'none'},g);
+  el('polygon',{points:pts(shape(H)),fill:'#FFD66B','fill-opacity':.32,stroke:'#FFE39A','stroke-width':2,'pointer-events':'none'},g);
+  front.forEach(s=>{const c=[(s.poly[0][0]+s.poly[1][0])/2,(s.poly[0][1]+s.poly[1][1])/2];el('circle',{cx:px(c[0]),cy:py(c[1]),r:2.5,fill:'#FFE39A','pointer-events':'none'},g);});}
+function drawVolleyNeeds(u,g){const vr=u&&volleyRange(u);if(!vr)return;const long=rh(RU(u).concat(fx(u)),'Longshot');
+  all().filter(t=>t.onTable&&!t.destroyed&&t.side!==u.side).forEach(t=>{const gu=g.querySelector('g[data-id="'+t.id+'"]');if(!gu)return;const why=volleyWhy(u,t);
+    const d=Math.min(...standsOf(u).filter(s=>s.rank===0).map(s=>polyDist(s.poly,corners(t))));const eff=!why&&(long||d<=vr.range/2+1e-6);
+    gu.querySelectorAll(':scope>title').forEach(x=>x.remove());const ti=document.createElementNS(NS,'title');ti.textContent=(t.short||t.name)+': '+d.toFixed(1)+'″ from its nearest front stand. '+(why?why:eff?'In effective range: +1 shot per stand within '+(long?'range (Longshot)':(vr.range/2)+'″')+'. Click to volley.':'In range ('+vr.range+'″). Click to volley.');gu.insertBefore(ti,gu.firstChild);});}
 function drawChargeNeeds(u,g){if(!u)return;const M=+(u.m||0),fix=chargeFixed(u),max=chargeMax(u);
   all().filter(t=>t.onTable&&!t.destroyed&&t.side!==u.side).forEach(t=>{if(!corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)==='front'))return;const d=polyDist(corners(u),corners(t));if(d>max+1e-6)return;
     const need=fix!=null?'in reach, no roll needed':(Math.max(1,Math.ceil(d-M-1e-6))<=1?'any roll reaches it':'needs '+Math.ceil(d-M-1e-6)+'+ on the Charge Roll');const gu=g.querySelector('g[data-id="'+t.id+'"]');if(!gu)return;
@@ -1606,7 +1622,7 @@ function renderCard(){
     $('cancel-act').hidden=c.stage==='adjust'||c.stage==='blocked';
   }else{$('cancel-act').hidden=false;}
   if(c&&c.type==='cast'){$('c-ctl').hidden=true;$('done-act').hidden=true;}
-  if(c&&(c.type==='volley'||c.type==='clash')){$('c-ctl').hidden=true;$('done-act').hidden=true;$('c-meter').hidden=true;$('c-cur-read').textContent=c.type==='volley'&&c.stage==='target'?'Volley: click the enemy regiment you are shooting at. Claude checks Line of Sight and range.':ACT[c.type].n+': roll it in the combat panel under the map.';}
+  if(c&&(c.type==='volley'||c.type==='clash')){$('c-ctl').hidden=true;$('done-act').hidden=true;$('c-meter').hidden=true;$('c-cur-read').textContent=c.type==='volley'&&c.stage==='target'?(()=>{const vr=volleyRange(u),lg=rh(RU(u).concat(fx(u)),'Longshot');return 'Volley: click the enemy regiment you are shooting at.'+(vr?(lg?` Gold: its whole ${vr.range}″ range is effective (Longshot), +1 shot per stand.`:` Gold: effective range, within ${vr.range/2}″ of a stand, +1 shot per stand. Blue: full range, ${vr.range}″.`)+' Measured from each front-rank stand across its firing arc. Hover an enemy for its distance.':'')+' Claude checks Line of Sight.';})():ACT[c.type].n+': roll it in the combat panel under the map.';}
   act.actions.forEach((a,i)=>{const li=document.createElement('li');let t='';if(a.dist!=null)t+=`${a.dist.toFixed(1)}″`;if(a.roll!=null)t+=(t?', ':'')+`rolled ${a.roll}`;if(a.vanguard)t+=(t?', ':'')+`Vanguard ${a.vanguard}`;const ck=document.createElement('span');ck.className='ck';ck.textContent='✓';const nm=document.createElement('b');nm.textContent=ACT[a.type].n+(a.free?' (free)':'');li.append(ck,nm);if(t){const sm=document.createElement('small');sm.textContent=t;li.append(sm);}$('c-log').appendChild(li);});
   const w=[];if(act.entering&&act.placed){const G=geom(Object.assign({},base(act.id),act.pose));if(act.pose.y+G.d/2>48.01)w.push('Not every stand is on the table yet; it needs another March.');}
   if(overlapsAny(byId(act.id))&&!(act.cur&&act.cur.type==='charge'))w.push('This regiment overlaps another one.');
@@ -1658,13 +1674,12 @@ function render(){
     el('polyline',{points:p.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#F3E6C4','stroke-width':2,'stroke-dasharray':'5 4','marker-end':'url(#ah)',opacity:.75},mg);});
   if(act&&act.cur&&act.cur.moving){const c=act.cur;el('circle',{cx:px(c.start.x),cy:py(c.start.y),r:c.budget*S,fill:'#F3E6C4','fill-opacity':.08,stroke:'#F3E6C4','stroke-width':1,'stroke-dasharray':'3 4'},rg);
     el('line',{x1:px(c.start.x),y1:py(c.start.y),x2:px(act.pose.x),y2:py(act.pose.y),stroke:'#E8C65A','stroke-width':1.6,'stroke-dasharray':'4 3'},rg);}
-  if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){const A=byId(act.id),vr=A&&volleyRange(A);if(vr){const span=volleyArcSpan(A)*Math.PI/180,fa=(A.facing||0)*Math.PI/180;
-    standsOf(A).forEach(st=>{const P=st.poly,mx=(P[0][0]+P[1][0])/2,my=(P[0][1]+P[1][1])/2;const pts=[[mx,my]];for(let k=0;k<=24;k++){const an=fa-span+2*span*k/24;pts.push([mx+Math.sin(an)*vr.range,my+Math.cos(an)*vr.range]);}
-      el('polygon',{points:pts.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'#E8C65A','fill-opacity':.05,stroke:'#E8C65A','stroke-opacity':.45,'stroke-width':1},rg);});}}
+  if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyZones(byId(act.id),rg);}catch(e){console.error(e);}}
   if(act&&act.cur&&act.cur.type==='charge'&&(act.cur.stage==='target'||act.cur.stage==='roll')){try{drawChargeZones(byId(act.id),rg);}catch(e){console.error(e);}}
   if(act&&act.actions.length){const pts=[[act.actions[0].from.x,act.actions[0].from.y]].concat(act.actions.map(a=>[a.to.x,a.to.y]));el('polyline',{points:pts.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#E8C65A','stroke-width':1.6,'stroke-dasharray':'4 3'},rg);}
   all().filter(u=>u.onTable).forEach(u=>drawUnit(u,ug));
   if(act&&act.cur&&act.cur.type==='charge'&&act.cur.stage==='target'){try{drawChargeNeeds(byId(act.id),ug);}catch(e){console.error(e);}}
+  if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyNeeds(byId(act.id),ug);}catch(e){console.error(e);}}
   $('last').innerHTML='';const b=document.createElement('b');b.textContent=(state.lastTitle||'Last move')+': ';$('last').append(b,document.createTextNode(state.lastText||'No moves yet.'));
   renderArmies();
   renderCard();try{renderFacBox();renderFrStrip();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
@@ -1731,7 +1746,7 @@ function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=
     const ldr=s.cmd&&s.kind==='reg'&&A.leader!==false;
     if(type==='clash'){const eng=polyDist(s.poly,Tc)<=0.35||!!(cb&&cb.forceContact&&s.rank===0),ie=eng&&rh(RU(T),'Inherited Excellence')&&arcOf(T,[A.x,A.y])==='front'?1:0;add(K+(eng?'e':'s')+(ldr&&eng?'L':''),(ldr&&eng?'Leader':nm)+(eng?' (engaged)':' (supporting)')+(ldr&&eng?', +1 Attack':''),eng?Math.max(0,p.A+(ldr?1:0)+(s.cmd&&s.kind==='reg'&&fxHas(A,/^Visions of Death/)?3:0)-ie+(s.kind==='reg'&&rh(A.rules,'Brute Force')?Math.max(0,(+A.stats.C||0)-Math.max(+T.stats.C||0,+(T.charStats&&T.charStats.C)||0,+(T.auxStats&&T.auxStats.C)||0)):0)):(s.kind==='char'?1:sup),p);}
     if(type==='impact'&&!rh(p.rules,'Loose Formation'))add(K,nm+' impacts',Math.max(0,rx(p.rules,'Impact')-(rh(RU(T),'Pike Formation')&&arcOf(T,[A.x,A.y])==='front'?3:0)),p);
-    if(type==='volley'&&s.rank===0){const bx=rx(p.rules,'Barrage');if(bx){const rng=+((p.rules.join(', ').match(/Barrage\s*\(\d+\)\s*(\d+)/)||[])[1])||0;const eff=rh(p.rules.concat(fx(A)),'Longshot')||(rng&&polyDist(s.poly,Tc)<=rng/2);add(K,nm+' shots',bx+(eff?1:0)+(ldr?1:0),p);if(eff&&groups[K]&&groups[K].torrentOk)groups[K].torrent=true;}}});
+    if(type==='volley'&&s.rank===0){const bx=rx(p.rules,'Barrage');if(bx){const rng=+((p.rules.join(', ').match(/Barrage\s*\(\d+\)\s*\(?\s*(\d+)/)||[])[1])||0;const eff=rh(p.rules.concat(fx(A)),'Longshot')||(rng&&polyDist(s.poly,Tc)<=rng/2);add(K,nm+' shots',bx+(eff?1:0)+(ldr?1:0),p);if(eff&&groups[K]&&groups[K].torrentOk)groups[K].torrent=true;}}});
   return Object.values(groups).map(g=>Object.assign(g,{rolls:null}));}
 function defInfo(T,A,g){const s=T.stats||{},front=(cb&&cb.type==='lethal')?!cb.flank:cArcU(T,A)==='front';let D=+s.D||0;if(front&&rh(RU(T),'Shield')&&!g.linebreaker&&!(T.garrison))D+=1;if(front&&phalanx(T))D+=1;const bas=drawVal(T,/^Bastion\s*\((\d+)\)/);if(bas&&!g.linebreaker)D+=bas;
   const red=Math.max(0,g.red-rx((T.rules||[]).concat(fx(T)),'Hardened'));D=Math.max(0,D-red);if(fxHas(T,/^Armor of Dominion/)){D=Math.max(D,+s.D||0)+(D>(+s.D||0)?0:0);}if(g.smite&&!fxHas(T,/^Armor of Dominion/))D=0;let E=supEvasion(T,+s.E||0);if(fxHas(T,/^Coils of the Serpent/)&&E<2)E+=1;if(fxHas(T,/^World Breakers/)){D=Math.max(D,Math.min(3,+s.D||0));E=Math.max(E,Math.min(3,+s.E||0));}
@@ -2103,7 +2118,7 @@ function resolvePoint(spec){if(spec&&typeof spec==='object'&&isFinite(+spec.x)&&
   const z=zonesOf().find(z=>z.name.toLowerCase()===zn.toLowerCase());if(z)return {x:z.x,y:z.y,kind:'zone'};return null;}
 function seizeVal(u){if((u.effects||[]).includes('Broken'))return 0;if((u.abilities||[]).some(a=>/Brazen Race/.test(a[0])))return 6;if(frBase(u)==='Tontorr')return 6;if(u.type==='monster')return 3;if(/Light/.test(u.cls||''))return 0;return 1;}
 function inZone(poly,z){return inside([z.x,z.y],poly)||poly.some((p,i)=>segDist([z.x,z.y],p,poly[(i+1)%poly.length])<z.r-1e-6);}
-function volleyRange(u){const m=(u.rules||[]).concat(u.modProfiles?Object.values(u.modProfiles).flatMap(x=>x.rules||[]):[]).join(', ').match(/Barrage\s*\((\d+)\)\s*(\d+)/);return m?{shots:+m[1],range:(+m[2]+srRangeBonus(u))*(['cs','nord'].some(s=>supAct(s,'Skývald')&&supOf(s).choice==='Niflmire')?0.5:1)}:null;}
+function volleyRange(u){const m=(u.rules||[]).concat(u.modProfiles?Object.values(u.modProfiles).flatMap(x=>x.rules||[]):[]).join(', ').match(/Barrage\s*\((\d+)\)\s*\(?\s*(\d+)/);return m?{shots:+m[1],range:(+m[2]+srRangeBonus(u))*(['cs','nord'].some(s=>supAct(s,'Skývald')&&supOf(s).choice==='Niflmire')?0.5:1)}:null;}
 /* can this regiment Volley at that target: some stand within Barrage range and the target in its front arc */
 function volleyWhy(A,T){const vr=volleyRange(A);if(!vr)return 'It has no Barrage.';if(!standsOf(A).some(st=>polyDist(st.poly,corners(T))<=vr.range+1e-6))return (T.short||T.name)+' is out of range (Barrage range '+vr.range+'″ from its stands).';if(!frontArcHas(A,T))return (T.short||T.name)+' is not in its front arc.';return '';}
 function volleyArcSpan(A){const R=RU(A);if(rh(R,'Acute Senses')||rh(R,'Fluid Formation'))return 180;if(rh(R,'Weapon Platform'))return 135;return 45;}
