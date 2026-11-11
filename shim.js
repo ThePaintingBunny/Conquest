@@ -281,12 +281,7 @@
     const right = document.createElement('div'); right.className = 'nb-r';
     const btn = (t, fn, primary) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (primary ? '' : ' ghost'); b.textContent = t; b.onclick = fn; right.appendChild(b); return b; };
     if (mode === 'local') {
-      btn('Host an online game', () => { location.href = urlWith('host=' + newCode()); }, true);
-      const f = document.createElement('form'); f.className = 'nb-join';
-      const inp = Object.assign(document.createElement('input'), { type: 'text', placeholder: 'Game code', maxLength: 12, autocomplete: 'off' }); inp.setAttribute('aria-label', 'Game code from the host');
-      const go = document.createElement('button'); go.type = 'submit'; go.className = 'btn ghost'; go.textContent = 'Join';
-      f.onsubmit = e => { e.preventDefault(); const c = clean(inp.value); if (c.length >= 4) location.href = urlWith('join=' + c); else flash('Type the game code your host sent you.'); };
-      f.append(inp, go); right.appendChild(f);
+      /* hosting and joining happen in the Multiplayer lobby, after you have entered your name */
     } else {
       if (mode === 'host' || FB) btn('Copy invite link', async () => {
         const link = urlWith('join=' + room + (brokerIx > 0 ? '&b=' + brokerIx : ''));
