@@ -2,7 +2,7 @@
 
 A browser battle map for **Conquest: The Last Argument of Kings**: build your army, set up terrain and one of 12 scenarios, then play a friend online or face Claude.
 
-**Play:** https://thepaintingbunny.github.io/conquest/
+**Play:** https://thepaintingbunny.github.io/Conquest/
 
 ## Features
 
