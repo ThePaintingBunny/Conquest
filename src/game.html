@@ -1604,12 +1604,15 @@ function renderCard(){
   if(u.charName){const CX=chStatsX(u),why={};itemSpec(u).forEach(([n,S])=>{const d=typeof S.cs==='function'?S.cs(u):S.cs;if(d)Object.entries(d).forEach(([k,v])=>{if(v)why[k]=(why[k]?why[k]+', ':'')+n+' '+(v>0?'+':'')+v;});});
     const CR=chRulesX(u).concat(itemDuelRules(u).map(x=>x+' (in Duels)'));
     subRow('Character'+(u.warlord?' · ★ Warlord':''),u.charName,Math.max(0,(+CX.W||0)-(+u.charWounds||0))+'/'+(CX.W??'?')+' wounds left'+(u.charActivated?' · activated':''),itemsOf(u),CX,CR,u.charStats||{},why);}
+  if(Array.isArray(u.mods)&&u.modProfiles){const liveT=u.mods.filter((t,i)=>!removalSeq(u).slice(0,lostOf(u)).includes(i));[...new Set(u.mods)].forEach(t=>{const m=u.modProfiles[t];if(!m)return;const n=liveT.filter(x=>x===t).length,tot=u.mods.filter(x=>x===t).length;
+      subRow(t===(u.suiCmd||u.mods[0])?'Stands · Command':'Stands',t,n+' of '+tot+' stand'+(tot===1?'':'s')+' left',[],Object.assign({},u.stats,{V:m.V,C:m.C,A:m.A,W:m.W}),m.rules||[]);});}
   if(u.aux!=null&&u.auxStats)subRow('Auxiliary',u.auxName||'Auxiliary',auxDead(u)?'destroyed':u.auxWounds?u.auxWounds+' wounds taken':'',[],u.auxStats,u.auxRules||[]);
   const fxs=fx(u),eng=engaged(u);const fb=$('c-fx');fb.innerHTML='';
   fxs.forEach(x=>fb.appendChild(chip(x,'fx')));
   $('c-fx-sec').hidden=!fb.children.length;
   const rb=$('c-rules');rb.innerHTML='';const BR=baseRules(u);BR.forEach(x=>rb.appendChild(chip(x)));
   effRules(u,BR).forEach(([t,base])=>{const c=chip(t,'mod');c.title=base?'Base '+base+' · changed this round':'Gained this round';const m=document.createElement('sup');m.textContent='▲';m.className='up';c.appendChild(m);rb.appendChild(c);});
+  if(Array.isArray(u.mods)&&u.modProfiles)[...new Set(u.mods)].forEach(t=>{const m=u.modProfiles[t];if(!m||!(m.rules||[]).length)return;const h=bEl('span',{className:'hint',textContent:t+' stands:'});h.style.cssText='flex-basis:100%;margin:6px 0 0';rb.appendChild(h);m.rules.forEach(x=>rb.appendChild(chip(x)));});
   if(!rb.children.length)rb.appendChild(chip('None'));
   const ab=$('c-abil');ab.innerHTML='';const G={draw:[],abil:[],upg:[]};
   (u.abilities||[]).forEach(([n,t])=>{const nm=String(n);if(u.charName&&nm===u.charName)return;const base=nm.replace(/\s*\(.*$/,'').replace(/^.*?:\s*/,'').trim();
@@ -2965,7 +2968,7 @@ function modJson(m){const types=Object.entries(m.counts||{}).filter(([t,n])=>+n>
   if(m.cmd==='Kappa Bushi')ab.push(['Any Ideal Card','Can be activated by any Ideal Card']);if(m.cmd==='Origami Warriors')ab.push(['Paper Ranks','Destroyed stands do not count toward Broken']);
   if(only(/^Tengu/))rules.push('Fly');if(only(/^Tengu Bushi$/))ab.push(['Blade Masters','Flawless Strikes also trigger on hit rolls of 2']);
   if(only(/^Origami/)){if(!rules.includes('Vanguard (3)'))rules.push('Vanguard (3)');ab.push(['In the Fold','Cannot be Broken']);}
-  const M=Math.min(...all.map(t=>MODULAR[t].M))+(all.includes('Tengu Ayakashi')?1:0);
+  const M=Math.min(...all.map(t=>MODULAR[t].M));
   return {name:'Modular Regiment ('+m.cmd+')',short:m.cmd.split(' ')[0]+' Modular',points:modPts(m),cls:'Medium Brute',type:'brute',stands:tot,M,V:C.V,C:C.C,A:C.A+plusA,W:C.W,R:C.R,D:C.D,E:C.E+(m.cmd==='Kami Ayakashi'?1:0),
     rules,abilities:ab,standardBearer:false,leader:true,auxiliary:null,character:null,mods,modProfiles:prof};}
 /* ---------- army builder: warbands (from the encyclopedia, no Claude needed) ---------- */
