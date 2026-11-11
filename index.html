@@ -759,7 +759,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 21:02 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 21:07 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1109,7 +1109,7 @@ function availableActions(u){
     if(/Light|Medium/.test(u.cls||''))can('withdraw',blocked('withdraw'));
     if(broken)can('crally',blocked('crally'));
   }
-  {const RC=regCaster(u);if(RC&&u.onTable&&magicLevel(u,false)&&spellsOf(u,false).length){const nc=act.actions.filter(a=>a.type==='cast').length,fr=RC.free||act.freeCast||(RC.extra&&nc===1);const why=nc>=(RC.extra?2:1)?'Already cast this activation':fr?'':blocked('cast');out.push({type:'cast',why,free:!!fr});}}
+  {const RC=regCaster(u);if(RC&&u.onTable&&magicLevel(u,false)&&spellsOf(u,false).length){const nc=act.actions.filter(a=>a.type==='cast').length,fr=RC.free||act.freeCast||(RC.extra&&!act.actions.some(a=>a.type==='cast'&&a.free));const why=nc>=(RC.extra?2:1)?'Already cast this activation':fr?'':blocked('cast');out.push({type:'cast',why,free:!!fr});}}
   if(memOf(u)){can('memory',hasGrant(base(u.id),'Memories of Old')?'Already active this round':blocked('memory'));}
   if(RU(u).some(x=>/^Fluid Formation/.test(x))&&!act.actions.some(a=>a.type==='fluid')&&!act.cur){const ok=used.length===0||cap;const narrow=geom(u).files<=3;out.push({type:'fluid',why:!narrow?'Needs 3 or fewer stands in the front rank':ok?'':'Only before the first action or after the last',free:true});}
   if(supOn(u.side,'Hammer and Anvil')&&/Infantry|Cavalry/.test(u.cls||'')&&!PS().hammerUsed&&!act.actions.some(a=>a.type==='hammer')&&!act.cur&&used.length>=1){out.push({type:'hammer',why:eng.length?'Not while engaged':'',free:true});}
@@ -1178,7 +1178,7 @@ function wdTurn(){const c=act.cur,u=byId(act.id);if(!u||!u.onTable||u.destroyed)
   Object.assign(c,{stage:'march',start:st,budget:u.m||0,moving:true,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null,withdraw:true});render();
   toast(`The regiment turns to face away (${fac}°). March it now; it cannot end within 1″ of an enemy.`);}
 function wdFail(){const c=act.cur;if(!c||c.type!=='withdraw')return;Object.assign(act.pose,{x:c.origin.x,y:c.origin.y,facing:c.origin.facing,files:c.origin.files});c.failed=true;c.start=Object.assign({},c.origin);finishAction();}
-function startAction(type){if(act&&!act.cur&&srStartAction(type))return;if(type==='cast'&&act&&!act.cur){const u0=byId(act.id),RC=regCaster(u0)||{};const nc0=act.actions.filter(a=>a.type==='cast').length;act.cur={type:'cast',moving:false,reshape:false,free:!!(RC.free||act.freeCast||(RC.extra&&nc0===1)),spell:0,target:null,rolls:null,cast:act.actions.filter(a=>a.type==='cast'&&a.spell).map(a=>a.spell),start:{x:u0.x,y:u0.y,facing:u0.facing||0,files:geom(u0).files}};render();return;}
+function startAction(type){if(act&&!act.cur&&srStartAction(type))return;if(type==='cast'&&act&&!act.cur){const u0=byId(act.id),RC=regCaster(u0)||{};act.cur={type:'cast',moving:false,reshape:false,free:!!(RC.free||act.freeCast||(RC.extra&&!act.actions.some(a=>a.type==='cast'&&a.free))),spell:0,target:null,rolls:null,cast:act.actions.filter(a=>a.type==='cast'&&a.spell).map(a=>a.spell),start:{x:u0.x,y:u0.y,facing:u0.facing||0,files:geom(u0).files}};render();return;}
   const u=byId(act.id);const st={x:u.x,y:u.y,facing:u.facing||0,files:geom(u).files};
   if(type==='fadv'){act.cur={type:'march',start:st,budget:u.m||0,moving:true,reshape:false,free:true,noSide:true,fadv:true,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null};render();return;}
   if(type==='dtmarch'){act.cur={type:'march',start:st,budget:u.m||0,moving:true,reshape:false,free:true,dt:true,segs:[],segStart:Object.assign({},st),mode:'fwd',pending:null};render();return;}
