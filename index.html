@@ -679,7 +679,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 12:12 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 12:35 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1153,6 +1153,26 @@ function jugg(u){return hasRule(u,/^Juggernaut/)||fx(u).some(x=>/Clockwork Parad
 function chargeMax(u){const f=chargeFixed(u);return (u.m||0)+(f!=null?f:6+srChargeBonus(u,act&&act.cur&&act.cur.target?byId(act.cur.target):null))+(act&&act.cur&&act.cur.pu?2:0);}
 function arcOf(t,p){const G=geom(t),a=(t.facing||0)*Math.PI/180,f=[Math.sin(a),Math.cos(a)],r=[Math.cos(a),-Math.sin(a)];const v=[p[0]-t.x,p[1]-t.y],fw=v[0]*f[0]+v[1]*f[1],rr=v[0]*r[0]+v[1]*r[1];
   if(fw>=G.d/2-1e-6&&Math.abs(rr)<=G.w/2+(fw-G.d/2))return'front';if(fw<=-G.d/2+1e-6&&Math.abs(rr)<=G.w/2+(-fw-G.d/2))return'rear';return rr>0?'right':'left';}
+/* charge overlay: the front arc it can see, the zone within its March, and the extra reach a Charge Roll can add */
+function drawChargeZones(u,g){if(!u)return;const G=geom(u),a=(u.facing||0)*Math.PI/180,f=[Math.sin(a),Math.cos(a)],r=[Math.cos(a),-Math.sin(a)];
+  const P=(fw,rr)=>[u.x+f[0]*fw+r[0]*rr,u.y+f[1]*fw+r[1]*rr],fe=G.d/2,hw=G.w/2,M=+(u.m||0),fix=chargeFixed(u),max=chargeMax(u);
+  const clip=Q=>{let out=Q;[[0,0,1],[0,72,-1],[1,0,1],[1,48,-1]].forEach(([ax,v,sg])=>{const inn=p=>sg*(p[ax]-v)>=0,cut=(a,b)=>{const t=(v-a[ax])/(b[ax]-a[ax]);return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];};const src=out;out=[];
+      src.forEach((cur,i)=>{const prev=src[(i+src.length-1)%src.length];if(inn(cur)){if(!inn(prev))out.push(cut(prev,cur));out.push(cur);}else if(inn(prev))out.push(cut(prev,cur));});});return out;};
+  const pts=q=>clip(q).map(p=>px(p[0])+','+py(p[1])).join(' ');
+  /* front arc limited to R: straight ahead of the front edge, plus a 45° sector at each front corner */
+  const zone=R=>{const o=[];const cL=[fe,-hw],cR=[fe,hw];o.push(P(cL[0],cL[1]));for(let k=0;k<=12;k++){const an=-Math.PI/4+Math.PI/4*k/12;o.push(P(cL[0]+R*Math.cos(an),cL[1]+R*Math.sin(an)));}
+    for(let k=0;k<=12;k++){const an=Math.PI/4*k/12;o.push(P(cR[0]+R*Math.cos(an),cR[1]+R*Math.sin(an)));}o.push(P(cR[0],cR[1]));return o;};
+  const far=120;el('polygon',{points:pts([P(fe,-hw),P(fe+far,-hw-far),P(fe+far,hw+far),P(fe,hw)]),fill:'#BFD8F2','fill-opacity':.1,stroke:'#D6E6F7','stroke-opacity':.8,'stroke-width':1.4,'stroke-dasharray':'7 5'},g);
+  const certain=fix!=null?max:M;
+  if(max>certain+1e-6)el('polygon',{points:pts(zone(max)),fill:'#F29A3A','fill-opacity':.32,stroke:'#FFB45C','stroke-opacity':1,'stroke-width':2,'stroke-dasharray':'6 4'},g);
+  el('polygon',{points:pts(zone(certain)),fill:'#FFF6D8','fill-opacity':.38,stroke:'#FFF6D8','stroke-opacity':1,'stroke-width':2},g);
+  const lab=(p,t,c)=>{const e=el('text',{x:px(p[0]),y:py(p[1]),fill:c,'font-size':11,'font-weight':700,'text-anchor':'middle',stroke:'#14171A','stroke-width':3,'paint-order':'stroke'},g);e.textContent=t;};
+  {const C=corners(u).map(p=>[px(p[0]),py(p[1])]),sx=C.reduce((a,p)=>a+p[0],0)/4,sy=Math.max(...C.map(p=>p[1]))+34,t=el('text',{x:sx,y:sy,'font-size':11.5,'font-weight':700,'text-anchor':'middle',stroke:'#14171A','stroke-width':3.5,'paint-order':'stroke'},g);
+    const sp=(x,c)=>{const e=document.createElementNS(NS,'tspan');e.setAttribute('fill',c);e.textContent=x;t.appendChild(e);};sp('■ '+(fix!=null?'Charge '+certain+'″':'March '+M+'″'),'#FFF6D8');if(max>certain+1e-6)sp('  ■ with roll up to '+max+'″','#FFB45C');sp('  ┆ front arc','#D6E6F7');}
+}
+function drawChargeNeeds(u,g){if(!u)return;const M=+(u.m||0),fix=chargeFixed(u),max=chargeMax(u);
+  all().filter(t=>t.onTable&&!t.destroyed&&t.side!==u.side).forEach(t=>{if(!corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)==='front'))return;const d=polyDist(corners(u),corners(t));if(d>max+1e-6)return;
+    const need=fix!=null?'in reach':(Math.max(1,Math.ceil(d-M-1e-6))+'+ needed');const e=el('text',{x:px(t.x),y:py(t.y)+4,fill:'#FFF3D6','font-size':12,'font-weight':700,'text-anchor':'middle',stroke:'#14171A','stroke-width':3.5,'paint-order':'stroke'},g);e.textContent=d.toFixed(1)+'″ · '+need;});}
 function setChargeTarget(t){const u=byId(act.id);if(fx(t).some(x=>/^Prowling/.test(x))&&polyDist(corners(u),corners(t))>=8){toast('That regiment is Prowling: it cannot be seen from 8″ or more.');return;}if(t.type==='marker'&&(state.round||1)<2){toast('Objective Markers cannot be attacked before round 2.');return;}const dist=polyDist(corners(u),corners(t));
   const arcOk=corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)==='front');
   if(!arcOk){toast((t.short||t.name)+' is not in this regiment’s front arc.');return;}
@@ -1635,8 +1655,10 @@ function render(){
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){const A=byId(act.id),vr=A&&volleyRange(A);if(vr){const span=volleyArcSpan(A)*Math.PI/180,fa=(A.facing||0)*Math.PI/180;
     standsOf(A).forEach(st=>{const P=st.poly,mx=(P[0][0]+P[1][0])/2,my=(P[0][1]+P[1][1])/2;const pts=[[mx,my]];for(let k=0;k<=24;k++){const an=fa-span+2*span*k/24;pts.push([mx+Math.sin(an)*vr.range,my+Math.cos(an)*vr.range]);}
       el('polygon',{points:pts.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'#E8C65A','fill-opacity':.05,stroke:'#E8C65A','stroke-opacity':.45,'stroke-width':1},rg);});}}
+  if(act&&act.cur&&act.cur.type==='charge'&&(act.cur.stage==='target'||act.cur.stage==='roll')){try{drawChargeZones(byId(act.id),rg);}catch(e){console.error(e);}}
   if(act&&act.actions.length){const pts=[[act.actions[0].from.x,act.actions[0].from.y]].concat(act.actions.map(a=>[a.to.x,a.to.y]));el('polyline',{points:pts.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#E8C65A','stroke-width':1.6,'stroke-dasharray':'4 3'},rg);}
   all().filter(u=>u.onTable).forEach(u=>drawUnit(u,ug));
+  if(act&&act.cur&&act.cur.type==='charge'&&act.cur.stage==='target'){try{drawChargeNeeds(byId(act.id),ug);}catch(e){console.error(e);}}
   $('last').innerHTML='';const b=document.createElement('b');b.textContent=(state.lastTitle||'Last move')+': ';$('last').append(b,document.createTextNode(state.lastText||'No moves yet.'));
   renderArmies();
   renderCard();try{renderFacBox();renderFrStrip();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
