@@ -759,7 +759,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 21:33 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 21:42 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -2899,7 +2899,7 @@ function buildUnits(side,list){const pre=side==='cs'?'h':'a';const out=[];(list.
     fac:facOf(list.faction)||'',points:+x.points||0,bearer:ref&&ref.cmd?!!ref.cmd.bearer:!!x.standardBearer,leader:ref&&ref.cmd?!!ref.cmd.leader:(x.leader!==false),effects:[],wounds:0,auxWounds:0,activated:false,charActivated:false,onTable:false,arriving:false,x:36,y:24,facing:side==='cs'?180:0};
   if(x.mods&&x.modProfiles){u.mods=x.mods.map(String);u.modProfiles=x.modProfiles;}
   if(x.wb!=null){u.wb=+x.wb;u.wbChar=String(x.wbChar||'');}
-  if(x.vetRole)u.vetRole=true;
+  if(x.vetRole)u.vetRole=true;if(x.warlordMonster)u.warlordMonster=true;
   if(hold)u.assassinHold={name:String(ch0.name),stats:ch0.stats||{},rules:(ch0.rules||[]).map(String)};
   if(hasAux){u.aux=0;u.auxName=String(x.auxiliary.name||'Auxiliary');u.auxStats=x.auxiliary.stats;u.auxRules=(x.auxiliary.rules||[]).map(String);}
   if(ch){u.char=files>=3?2:Math.min(files-1,1);u.charName=String(ch.name);u.charStats=ch.stats||{};u.charRules=(ch.rules||[]).map(String);u.warlord=!!ch.warlord;
@@ -3102,7 +3102,7 @@ function bldToList(){const f=bldFac();if(!f)return null;(bld.wbs||[]).forEach(ri
         if(rk)x.character.rules=x.character.rules.concat(['Rider']);}if(c)x.abilities=(x.abilities||[]).concat(upgAbilities(w).map(a=>['The '+c.name+': '+a[0],a[1]]));units.push(x);});});
   // number duplicate names
   const seen={};units.forEach(u=>{if(count[u.name]>1){seen[u.name]=(seen[u.name]||0)+1;u.name=u.name+' '+roman[seen[u.name]]||u.name;}});
-  if(!units.some(u=>(u.character&&u.character.warlord)||u.warlordMonster)){const fc=units.find(u=>u.character&&canWarlord(bldUnit(u.character.name)));if(fc)fc.character.warlord=true;}
+  if(!units.some(u=>(u.character&&u.character.warlord)||u.warlordMonster)){const fc=units.find(u=>u.character&&canWarlord(bldUnit(u.character.name)));if(fc)fc.character.warlord=true;else{const fm=units.find(u=>u.warlordMonster===false);if(fm)fm.warlordMonster=true;}}
   return {faction:f.name,armyRules:f.armyRules.slice(),points:bldTotal(),units};}
 function wbPtsChar(w){const c=bldUnit(w.char);return (c?c.pts||0:0)+upgPts(w)+(w.custom||[]).reduce((a,x)=>a+(+x.pts||0),0);}
 /* character upgrade catalogue per faction (paraphrased from the 2026 army lists) */
@@ -4073,7 +4073,7 @@ const SUP={
  'Thesis/Antithesis/Synthesis':{c:/Steelshaper/,t:'Always Active',p:'A non-Monster Forged regiment that Awakens heals 2 wounds (once per game spend 3 Elemental Power to heal 5 instead).',a:'This round, each Forged regiment that activates adds an Elemental Power Marker.'}
 };
 const SUPALIAS={'concetrated assault':'Concentrated Assault','for all mankind':'For All Mankind'};
-function supWl(side){return (state.units||[]).find(u=>u.side===side&&u.warlord&&u.type!=='marker');}
+function supWl(side){return (state.units||[]).find(u=>u.side===side&&(u.warlord||u.warlordMonster)&&u.type!=='marker')||null;}
 function supKey(u){if(!u)return '';const cn=u.charName||frBase(u)||'';
   const byC=Object.keys(SUP).find(k=>SUP[k].c&&SUP[k].c.test(cn)&&(!/Strategos/.test(cn)||(/Mounted/.test(cn)===(k==='Glimmers of a Golden Age'))));
   const e=frEncy(u,u.charName||null),m=e&&String(e.options||'').match(/Supremacy:\s*([^;]+)/);if(!m)return byC||'';
@@ -4102,7 +4102,11 @@ function supPreySel(side,lead){const r=bEl('div',{className:'tf-row'});const sel
   sel.onchange=()=>{if(sel.value)Promise.resolve(supSetPrey(side,sel.value)).then(()=>{if(state.step==='supdecl')supNext();});};r.append(bEl('span',{className:'tf-l',textContent:lead||'The Big Game Hunt'}),sel);return r;}
 function supChip(side){const S=supOf(side);if(!S)return '';if(S.d.prey){const t=supPrey(side);return S.k+' · '+(t?'Prey: '+(t.short||t.name):'no Prey marked');}return S.k+(S.active?' · active this round':S.d.a?(S.d.every?' · every round':S.can?' · ready':' · '+(S.used?'used':'not on the table')):' · passive');}
 /* the Supremacy step: after the First Player is set, First Player declares, then the other */
-function supNeeded(){return ['cs','nord'].some(s=>{const S=supOf(s);return S&&(S.can||supNeedPrey(s)||supChoiceNeeded(s));});}
+/* characters (or monster characters) that could be the Warlord when none was declared */
+function wlCands(side){return (state.units||[]).filter(u=>u.side===side&&!u.destroyed&&u.type!=='marker'&&((u.charName&&canWarlord(frEncy(u,u.charName)||{name:u.charName}))||(!u.charName&&u.type==='monster'&&(frEncy(u)||{}).kind==='char'&&canWarlord(frEncy(u)))));}
+function wlMissing(side){return !supWl(side)&&wlCands(side).length>0&&(PVP()||side===HU);}
+async function wlDeclare(id){const u=base(id);if(!u)return;await putState({units:state.units.map(x=>x.side!==u.side?x:x.id===id?Object.assign({},x,x.charName?{warlord:true}:{warlordMonster:true}):Object.assign({},x,{warlord:false,warlordMonster:false})),lastTitle:N(u.side)+' · Warlord',lastText:(x=>x)((u.charName||u.short||u.name)+' is declared the Warlord.')});}
+function supNeeded(){return ['cs','nord'].some(s=>{const S=supOf(s);return wlMissing(s)||(S&&(S.can||supNeedPrey(s)||supChoiceNeeded(s)));});}
 function supAiWant(side){const S=supOf(side);if(!S||!S.can||S.d.unknown)return false;if(S.d.every)return true;const R=state.round||1;
   const mine=(state.units||[]).filter(u=>u.side===side&&u.type!=='marker'&&!u.destroyed),on=mine.filter(u=>u.onTable).length;
   if(state.aiSupWant===true&&R>=2)return true;if(state.aiSupWant===false&&R<5)return false;return R>=4||(R>=3&&on>=mine.length*0.6);}
@@ -4110,16 +4114,18 @@ async function supStart(first){if(!supNeeded())return false;await putState({step
 async function supNext(){const first=state.first,order=[first,other(first)],done=state.supDone||{};const who=order.find(s=>!done[s]);
   if(!who){for(const s0 of [first,other(first)]){if(supChoiceNeeded(s0)){if(!PVP()&&s0===AI)await supAiChoice(s0);else{render();return;}}}await afterSupremacy0(first);return;}
   const S=supOf(who);if(S&&supNeedPrey(who)){if(!PVP()&&who===AI){await supSetPrey(AI,supPreyOpts(AI)[0].id);return supNext();}render();return;}
+  if(!S&&wlMissing(who)){render();return;}
   if(!S||!S.can){await putState({supDone:Object.assign({},done,{[who]:'skip'})});return supNext();}
   if(!PVP()&&who===AI){let ch='';if(S.d.cho){const used=S.g.chosen||[];ch=S.d.cho.find(c=>!used.includes(c)&&c!=='Hregg')||S.d.cho.find(c=>!used.includes(c))||'';}
     if(supAiWant(AI))await supActivate(AI,ch);await putState({supDone:Object.assign({},state.supDone||{},{[AI]:'done'})});return supNext();}
   render();}
 async function supDecide(side,yes,choice){if(yes){const ok=await supActivate(side,choice);if(!ok)return;}await putState({supDone:Object.assign({},state.supDone||{},{[side]:yes?'done':'pass'})});await supNext();}
 function supBar(add,info,mk,me){{const fo=[state.first,other(state.first)],dn=state.supDone||{};if(!fo.find(s=>!dn[s])){const mk2=(t,f,g)=>mk(t,()=>Promise.resolve(f()).then(()=>{if(state.step==='supdecl')supNext();}),g);if(supChoiceNeeded(me)&&supChoiceBar(add,mk2,me,info))return;info.textContent='Waiting for '+WHO(other(me))+' to finish their Supremacy choices.';return;}}const first=state.first,order=[first,other(first)],done=state.supDone||{},who=order.find(s=>!done[s]);
-  const theirs=order.filter(s=>done[s]==='done').map(s=>WHO(s)+' activated '+supOf(s).k).join(' · ');
+  const theirs=order.filter(s=>done[s]==='done'&&supOf(s)).map(s=>WHO(s)+' activated '+supOf(s).k).join(' · ');
   if(who!==me){info.textContent=`Supremacy Abilities: waiting for ${WHO(who||other(me))} to decide.`+(theirs?' '+theirs+'.':'');return;}
   if(supNeedPrey(me)){info.textContent='The Big Game Hunt: mark an enemy regiment as your Prey. Your Clashes and Volleys against it count as Inspired and Taking Aim.';add(supPreySel(me,'Prey'));return;}
-  const S=supOf(me);info.textContent=`Supremacy Abilities (${who===first?'First Player declares first':'the First Player has declared'}). Activate ${S.k}?`+(theirs?' '+theirs+'.':'');
+  const S=supOf(me);if(!S&&wlMissing(me)){info.textContent='Your army has no Warlord declared. Choose your Warlord: its Supremacy Ability is offered next.';const sl=document.createElement('select');sl.className='tf-in';sl.setAttribute('aria-label','Warlord');wlCands(me).forEach(u=>{const o=document.createElement('option');o.value=u.id;o.textContent=(u.charName?u.charName+' (with '+(u.short||u.name)+')':(u.short||u.name));sl.appendChild(o);});add(sl);add(mk('Declare as Warlord',async()=>{await wlDeclare(sl.value);await supNext();}));add(mk('Play without a Warlord',()=>supDecide(me,false),true));return;}
+  if(!S){info.textContent='Supremacy Abilities: your Warlord has none to declare.';add(mk('Continue',()=>supDecide(me,false)));return;}info.textContent=`Supremacy Abilities (${who===first?'First Player declares first':'the First Player has declared'}). Activate ${S.k}?`+(theirs?' '+theirs+'.':'');
   add(ptext(S.d.a+(S.d.every?' (every round)':S.d.uses?` (${S.d.uses-S.used} left)`:' (once per battle)')+' The map applies it.'));
   if(S.d.cho)S.d.cho.filter(c=>!(S.g.chosen||[]).includes(c)).forEach(c=>add(mk('Activate: '+c,()=>supDecide(me,true,c))));else add(mk('Activate '+S.k,()=>supDecide(me,true)));
   add(mk('Not this round',()=>supDecide(me,false),true));}
@@ -4669,7 +4675,7 @@ function supOptions(u){const out=[];if(!u||!act||act.id!==u.id)return out;const 
       if(S.k==='Mistress of Winsome Mists')['Blossom in the Wind','Misery of Failure Envisioned'].forEach(n=>{const sp=supSpell(u,n);if(!sp)return;const T=spellTargets(u,sp);if(!T.length)return;add('Replace the Sui effect: cast '+n+' (automatic) on '+(T[0].short||T[0].name),async()=>{await putState({units:state.units.map(x=>x.id===u.id?ungrantU(x,src=>src==='Ideal Card: Sui'):x)});const line=await resolveSpell(u.id,sp,T[0].id,2,false);toast(n+': '+line);await done();});});}}
   if(S.k==='Thesis/Antithesis/Synthesis'&&S.active&&frRoles(u).includes('Forged')&&!act.thesis){act.thesis=true;const g=frG(side,'dw');frSet(side,'dw',{ep:Math.min(10,(+g.ep||0)+1)},{lastTitle:N(side)+' · Thesis/Antithesis/Synthesis',lastText:'A Forged regiment activates: +1 Elemental Power.'});}
   return out;}
-function supWlIdeal(side){const w=supWl(side);return w?(frRoles(w,true).find(r=>['Ka','Chi','Fu','Sui','Mu'].includes(r))||''):'';}
+function supWlIdeal(side){const w=supWl(side);return w?(frRoles(w,!!w.charName).find(r=>['Ka','Chi','Fu','Sui','Mu'].includes(r))||''):'';}
 function supSpell(u,name){const S=(typeof SPELLDB!=='undefined')&&SPELLDB[name];if(!S)return null;return {name,range:S.r||0,att:S.a,scaling:!!S.s,targets:S.t==='enemy'?'enemy':'friendly',text:S.d||'',db:S};}
 function supIdealMatch(u,k){const S=supOf(u.side);if(!S||!S.active)return false;const need={'Lord of Roaring Flames':supWlIdeal(u.side),'Lord of the Eternal Mountain':'Chi','Mistress of Azure Gales':'Fu','Mistress of Winsome Mists':'Sui','Mistress of the Ghostly Reikai':'Mu'}[S.k];return !!need&&need===k;}
 /* activated parts that need a choice: Skývald's Hregg, Surrounded by Fear and Dead Men, Master of the Legions, First Born of War */
