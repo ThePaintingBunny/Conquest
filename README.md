@@ -6,6 +6,7 @@ A browser battle map for **Conquest: The Last Argument of Kings**: build your ar
 
 ## Features
 
+- **Main menu:** Continue, Single player, Multiplayer, Test field, Army builder, Encyclopedia and Settings, with a lobby for each kind of game and an in-game menu (☰ Menu).
 - **Battle map:** a 6×4 ft table with terrain (random or placed by hand), objective zones and markers for all 12 scenarios, and scoring for each round.
 - **Full turn flow:** reinforcements, hidden Command Stacks, the Supremacy roll-off, the Strategic Stack, marching, charges, and combat with automatic dice (Clash, Impact, Volley, Morale, Die Fighting, Lethal Demise).
 - **Army builder:** choose a faction and add regiments and characters. The profiles come from the built-in encyclopedia, so no API key is needed.
@@ -15,9 +16,9 @@ A browser battle map for **Conquest: The Last Argument of Kings**: build your ar
 
 ## How to play online
 
-1. Open the site and press **Host an online game**. Keep that tab open: the host's browser holds the game.
-2. Press **Copy invite link** and send it to your opponent. They can also type the code into the **Join** box.
-3. Choose **Play against a friend**. Each player takes an edge, builds an army, and either of you starts the game.
+1. Open the site, choose **Multiplayer** in the main menu and press **Host an online game**. Keep that tab open: the host's browser holds the game.
+2. Press **Copy invite link** and send it to your opponent. They can also choose **Multiplayer** and type the code into the **Join** box.
+3. In the lobby each player takes a seat (an edge), builds or loads an army, and either of you starts the game.
 
 With Firebase set up (see below), the game is saved in the cloud: either player can close the tab and come back later through the same link. Without Firebase, the host's tab holds the game, so it must stay open. Either way, players keep their seats after a reload, and you can join from a second tab in the same browser, which is handy for testing.
 

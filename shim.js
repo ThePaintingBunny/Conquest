@@ -330,5 +330,10 @@
   document.head.appendChild(css);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderBar); else renderBar();
   startNetwork();
-  window.__conquestNet = { mode, room, docs: () => docs, id: () => myId };
+  window.__conquestNet = { mode, room, docs: () => docs, id: () => myId,
+    host: () => { location.href = urlWith('host=' + newCode()); },
+    join: c => { c = clean(c || ''); if (c.length >= 4) location.href = urlWith('join=' + c); else flash('Type the game code your host sent you.'); },
+    invite: async () => { const link = urlWith('join=' + room + (brokerIx > 0 ? '&b=' + brokerIx : '')); try { await navigator.clipboard.writeText(link); flash('Invite link copied: ' + link); } catch (e) { flash('Send this link to your opponent: ' + link); } },
+    leave: () => { location.href = urlWith(''); },
+    openSettings };
 })();

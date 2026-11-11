@@ -605,6 +605,41 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .cbs-l li.now{color:#14171A;background:#F0CF83;border-color:#F0CF83;font-weight:700}
 .vsel-box{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 g.vsel{filter:drop-shadow(0 0 5px #FFE39A) drop-shadow(0 0 2px #FFE39A)}
+
+/* main menu and lobbies */
+.mm{max-width:1240px;margin:0 auto 14px}
+.mm-in{display:flex;flex-direction:column;gap:14px}
+body.mm-on:not(.mm-lobby) .turnbar,body.mm-on:not(.mm-lobby) .main,body.mm-on:not(.mm-lobby) #last,body.mm-on:not(.mm-lobby) #view-hint,body.mm-on .top .score,body.mm-on .top .phase{display:none!important}
+body.mm-on:not(.mm-lobby) .top{display:none}
+.mm-head,.mm-steps,.mm-net{align-self:stretch}.mm-head{justify-content:flex-start}
+.mm-card:disabled{opacity:.5;cursor:not-allowed}
+.mm-hero{text-align:center;padding:28px 12px 8px}
+.mm-hero h1{font-family:var(--display);letter-spacing:.14em;text-transform:uppercase;font-size:clamp(28px,5vw,46px);margin:0;color:var(--sx)}
+.mm-hero p{margin:6px 0 0;color:var(--muted)}
+.mm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;max-width:900px;margin:0 auto;width:100%}
+.mm-card{display:flex;align-items:center;gap:14px;text-align:left;padding:16px 18px;border:1px solid var(--edge);border-radius:6px;background:#1C2024;color:var(--sx);cursor:pointer;font:inherit;transition:border-color .15s,background .15s,transform .15s}
+.mm-card:hover:not(:disabled),.mm-card:focus-visible{border-color:var(--brass2);background:#232830;transform:translateY(-1px)}
+.mm-card.pri{grid-column:1/-1;border-color:#8A6A2A;background:#2A2416}
+.mm-card.sm{padding:11px 16px}
+.mm-card .mm-ico{font-size:24px;width:34px;text-align:center;flex:none;color:var(--brass2)}
+.mm-card .mm-tx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mm-card strong{font-family:var(--display);letter-spacing:.06em;font-size:16px}
+.mm-card small{color:var(--muted);font-size:13px;line-height:1.35}
+.mm-foot{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.mm-danger{border-color:#8E3A34!important;color:#F2A9A1!important}
+.mm-head{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;padding-top:6px}
+.mm-head h2{margin:0;font-family:var(--display);letter-spacing:.08em}
+.mm-head p{margin:2px 0 0}
+.mm-steps{display:flex;gap:6px;list-style:none;margin:0;padding:0;counter-reset:mms;flex-wrap:wrap}
+.mm-steps li{counter-increment:mms;padding:4px 12px;border-radius:999px;border:1px solid var(--edge);font-size:13px;color:var(--muted)}
+.mm-steps li::before{content:counter(mms) ' · '}
+.mm-steps li.ok{color:#A9D8B0;border-color:#3E6B45}.mm-steps li.ok::before{content:'✓ '}
+.mm-steps li.now{background:#F0CF83;border-color:#F0CF83;color:#14171A;font-weight:700}
+.mm-net{border:1px solid var(--edge);border-radius:6px;padding:10px 12px;background:#1A1E22}
+.mm-net h3{margin:0 0 4px}
+.mm-body{display:flex;flex-direction:column;gap:10px}
+body.mm-ov .mm{position:fixed;inset:0;z-index:70;max-width:none;margin:0;background:rgba(10,12,14,.86);backdrop-filter:blur(3px);overflow:auto;padding:24px 16px}
+body.mm-ov .mm-in{max-width:900px;margin:0 auto}
 </style>
 <style>.fan-note{max-width:1240px;margin:24px auto 32px;font-size:13px;color:var(--muted)}.fan-note a{color:inherit}</style>
 </head>
@@ -612,8 +647,9 @@ g.vsel{filter:drop-shadow(0 0 5px #FFE39A) drop-shadow(0 0 2px #FFE39A)}
 <div class="wrap">
   <div class="top">
     <div><h1>Vale of Banners</h1><div class="phase" id="phase">Waiting for the game state…</div><div class="fr-strip" id="fr-strip" hidden></div></div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" id="en-open" aria-expanded="false">Encyclopedia</button><button type="button" class="btn ghost" id="set-open" aria-haspopup="dialog" title="Settings">⚙ Settings</button><div class="score" aria-label="Victory points"><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" id="mm-open" title="Menu">☰ Menu</button><button type="button" class="btn ghost" id="en-open" aria-expanded="false">Encyclopedia</button><button type="button" class="btn ghost" id="set-open" aria-haspopup="dialog" title="Settings">⚙ Settings</button><div class="score" aria-label="Victory points"><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div></div>
   </div>
+  <section class="mm" id="mm" hidden aria-label="Menu"></section>
   <div class="turnbar" id="turnbar" aria-live="polite"></div>
   <section class="ency" id="ency" hidden aria-label="Encyclopedia"><div class="en-head"><h2>Encyclopedia</h2><button type="button" class="btn ghost" id="en-close">Close</button></div><div class="en-facs" id="en-facs" role="group" aria-label="Faction"></div><div class="en-ctl"><input type="search" id="en-q" placeholder="Search every faction: a name, a rule like Impact or Fly…" aria-label="Search the encyclopedia"><div class="grp" role="group" aria-label="Show"><button type="button" data-k="all" aria-pressed="true">All</button><button type="button" data-k="char" aria-pressed="false">Characters</button><button type="button" data-k="reg" aria-pressed="false">Regiments</button></div></div><div id="en-info"></div><div class="en-grid" id="en-grid"></div></section><span id="ai-status" hidden></span>
   <section class="report" id="ai-report" hidden aria-live="polite"><div class="cb-head"><h2 id="air-title">Turn report</h2><button type="button" class="btn ghost" id="air-close">Close</button></div><div id="air-body"></div></section>
@@ -697,7 +733,7 @@ g.vsel{filter:drop-shadow(0 0 5px #FFE39A) drop-shadow(0 0 2px #FFE39A)}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 14:32 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 15:03 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1716,7 +1752,7 @@ function render(){
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyNeeds(byId(act.id),ug);const ts=act.cur.sel&&byId(act.cur.sel);if(ts){drawVolleyLines(byId(act.id),ts,rg,arcingOn(byId(act.id)));const gs=ug.querySelector('g[data-id="'+ts.id+'"]');if(gs)gs.classList.add('vsel');}}catch(e){console.error(e);}}
   $('last').innerHTML='';const b=document.createElement('b');b.textContent=(state.lastTitle||'Last move')+': ';$('last').append(b,document.createTextNode(state.lastText||'No moves yet.'));
   renderArmies();
-  renderCard();try{renderFacBox();renderFrStrip();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
+  renderCard();try{renderFacBox();renderFrStrip();}catch(err){console.error(err);}try{renderMenu();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
   const held=!!PS().strategicHeld,used=PS().strategicUsedRound===state.round,notMine=PVP()&&(state.turn!==HU||!seatSide());
   {const ss=$('strat-btn').closest('.sec');if(ss)ss.hidden=SBX()||!canStrat(ME);}
   $('strat-read').textContent=held?'1 card held, face down':'Empty';
@@ -1993,7 +2029,7 @@ $('rot-l').onclick=()=>rot(-15);$('rot-r').onclick=()=>rot(15);$('rot-180').oncl
 $('f-less').onclick=()=>form(-1);$('f-more').onclick=()=>form(1);
 $('done-act').onclick=finishAction;$('cancel-act').onclick=cancelAction;$('abort').onclick=abort;
 $('ruler').onclick=()=>{ruler=!ruler;$('ruler').setAttribute('aria-pressed',ruler);rA=rB=null;drawRuler();};
-$('set-open').onclick=()=>openSettings();$('tab-reg').onclick=()=>setTab('reg');$('tab-army').onclick=()=>setTab('army');
+$('set-open').onclick=()=>openSettings();$('mm-open').onclick=()=>{if(mmCurrent()&&!mmOverlay){mmGo('home');return;}mmOverlay=!mmOverlay;mmPage=mmOverlay?'home':null;render();};$('tab-reg').onclick=()=>setTab('reg');$('tab-army').onclick=()=>setTab('army');
 ['tab-reg','tab-army'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();setTab(rightTab==='reg'?'army':'reg');$(rightTab==='reg'?'tab-reg':'tab-army').focus();}}));
 document.addEventListener('keydown',ev=>{if(!act&&SBX()&&selId&&!/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)){tfKey(ev);return;}if(!act||ev.target.tagName==='INPUT')return;const u=byId(act.id);const k=ev.key;let dx=0,dy=0;
   if(k==='ArrowLeft')dx=.5;if(k==='ArrowRight')dx=-.5;if(k==='ArrowUp')dy=-.5;if(k==='ArrowDown')dy=.5;if(FLIP){dx=-dx;dy=-dy;}
@@ -4512,7 +4548,7 @@ function itemDuelRules(u){const R=[];itemSpec(u).forEach(([n,S])=>(S.duel||[]).f
 function itemSpellRange(u){return itemSpec(u).reduce((a,[n,S])=>a+(S.spellRange||0),0);}
 
 function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},seats=state.seats||{};
-  info.textContent='Play against a friend. Press Host an online game at the top, then send your opponent the invite link. Each of you takes an edge and builds or pastes your own army.';
+  info.textContent='Play against a friend. Press Host an online game above (or open the invite link your opponent sent), then each of you takes a seat. Each of you takes an edge and builds or pastes your own army.';
   const box=document.createElement('div');box.className='rev';const h=document.createElement('h3');h.textContent='Seats';box.appendChild(h);
   ['cs','nord'].forEach(side=>{const row=document.createElement('div');row.className='row';const who=seats[side];const L=S0[side];
     const t=document.createElement('span');t.className='read';t.textContent=SEATNAME[side]+': '+(who?(who===myId?'you'+(PN(side)?' ('+PN(side)+')':''):(PN(side)||'taken')):'open')+(L?' · army ready: '+(L.faction||'army')+' ('+((L.units||[]).length)+' regiments)':who?' · no army yet':'');row.appendChild(t);
@@ -4537,7 +4573,7 @@ function renderSetupPvp(tb,info,mk,add){const me=seatSide(),S0=state.setup||{},s
   if(S0.cs&&S0.nord&&me)add(mk('Review both armies',async()=>{await putState({scenario:scenId(),zones:scenOf().zones});await putState({step:'review',terrain:genTerrain(),phase:'New game · Check both armies'});}));
   return true;}
 function renderSetup(tb,info,mk,add){
-  if(state.step==='setup'){modePicker(add);if(PVP())return renderSetupPvp(tb,info,mk,add);info.textContent='New game. Build your army here or paste a list for Claude to read, and Claude will design its own army to play against you.';
+  if(state.step==='setup'){if(PVP())return renderSetupPvp(tb,info,mk,add);info.textContent='New game. Build your army here or paste a list for Claude to read, and Claude will design its own army to play against you.';
     const f=document.createElement('div');f.className='setupf';
     const lab=(t,el)=>{const l=document.createElement('label');l.className='sf';const s=document.createElement('span');s.textContent=t;l.append(s,el);f.appendChild(l);return el;};
     const fac=lab('Your faction',Object.assign(document.createElement('input'),{type:'text',value:setupDraft.faction,placeholder:'e.g. City States'}));fac.oninput=()=>setupDraft.faction=fac.value;
@@ -4563,6 +4599,62 @@ function renderSetup(tb,info,mk,add){
         phase:'Round 1 · Reinforcements',picks:{},zones:scenOf().zones,lastTitle:'The armies take the field',lastText:`${N('cs')} against ${N('nord')} in ${scenOf().name}. Round 1 begins.`,maxRounds:10});act=null;cb=null;selId=null;}));
     add(mk('Back',()=>putState({step:'setup'}),true));if(PVP()&&!seatSide()){tb.querySelectorAll('button').forEach(b=>b.disabled=true);}return true;}
   return false;}
+/* ---------- main menu, lobbies and the in-game menu ---------- */
+let mmPage=null,mmOverlay=false,mmLeaveArm=false;
+function mmNet(){try{return window.__conquestNet||null;}catch(e){return null;}}
+function mmGameOn(){return !!state&&state.mode!=='test'&&!['setup','review'].includes(state.step||'activations')&&(state.units||[]).length>0;}
+function mmSetupStep(){return !!state&&state.mode!=='test'&&['setup','review'].includes(state.step||'');}
+/* which page shows: lobbies while armies are set up, the home menu otherwise (or as an overlay during a game) */
+function mmCurrent(){if(!state)return null;if(mmOverlay)return mmPage&&mmPage!=='single'&&mmPage!=='multi'?mmPage:'home';
+  if(mmSetupStep()){if(mmPage)return mmPage;const n=mmNet();if(state.step==='review')return PVP()?'multi':'single';if((n&&n.mode&&n.mode!=='local')||(PVP()&&Object.values(state.seats||{}).some(Boolean)))return 'multi';return 'home';}
+  return null;}
+function mmGo(p){mmPage=p;render();try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){}}
+async function mmStart(kind){mmOverlay=false;
+  if(kind==='test'){mmPage=null;await tfEnter();return;}
+  const want=kind==='multi'?'pvp':'ai';if(!mmSetupStep()){await newGameNow();}if((state.mode||'ai')!==want)await putState({mode:want});mmGo(kind);}
+async function newGameNow(){resetArm=true;await newGame();}
+function mmCard(t,sub,ico,fn,opt){opt=opt||{};const b=bEl('button',{type:'button',className:'mm-card'+(opt.primary?' pri':'')+(opt.small?' sm':'')});b.disabled=!!opt.disabled;
+  b.append(bEl('span',{className:'mm-ico',textContent:ico}),bEl('span',{className:'mm-tx'},[bEl('strong',{textContent:t}),bEl('small',{textContent:sub})]));b.onclick=fn;return b;}
+function mmSteps(cur){const L=[['armies','Armies'],['field','Battlefield'],['start','Start']],ol=bEl('ol',{className:'mm-steps'});const ix=L.findIndex(x=>x[0]===cur);
+  L.forEach(([k,t],i)=>{const li=bEl('li',{textContent:t});li.className=i<ix?'ok':i===ix?'now':'';ol.append(li);});return ol;}
+function renderMenu(){const box=$('mm');if(!box||!state)return;const page=mmCurrent();document.body.classList.toggle('mm-on',!!page&&!mmOverlay);document.body.classList.toggle('mm-lobby',page==='single'||page==='multi');document.body.classList.toggle('mm-ov',!!page&&mmOverlay);
+  box.hidden=!page;if(!page){box.innerHTML='';return;}box.innerHTML='';const inner=bEl('div',{className:'mm-in'});box.append(inner);
+  const head=(title,sub,back)=>{const h=bEl('div',{className:'mm-head'});if(back)h.append(bEl('button',{type:'button',className:'btn ghost mm-back',textContent:'← '+back.label,onclick:back.fn}));h.append(bEl('div',{},[bEl('h2',{textContent:title}),sub?bEl('p',{className:'hint',textContent:sub}):'']));inner.append(h);return h;};
+  const home=()=>{mmOverlay=false;mmGo(null);};
+  if(page==='home'){
+    const hero=bEl('div',{className:'mm-hero'},[bEl('h1',{textContent:'Vale of Banners'}),bEl('p',{textContent:'A battle table for Conquest: The Last Argument of Kings'})]);inner.append(hero);
+    const grid=bEl('div',{className:'mm-grid'});
+    if(mmGameOn())grid.append(mmCard('Continue',(state.phase||('Round '+(state.round||1)))+' · '+N('cs')+' '+(state.vp?.cs||0)+' – '+(state.vp?.nord||0)+' '+N('nord'),'▶',()=>{mmOverlay=false;mmPage=null;render();},{primary:true}));
+    else if(mmSetupStep()&&(state.setup&&(state.setup.cs||state.setup.nord)))grid.append(mmCard('Continue setting up',PVP()?'Multiplayer lobby':'Single player lobby','▶',()=>mmGo(PVP()?'multi':'single'),{primary:true}));
+    const busy=mmOverlay&&(mmGameOn()||SBX()),bz=busy?{disabled:true}:{},bs=t=>busy?(SBX()?'Leave the test field first':'Leave this game first'):t;
+    grid.append(mmCard('Single player',bs('Play against Claude: build or paste your army, Claude designs its own'),'⚔',()=>mmStart('single'),bz));
+    grid.append(mmCard('Multiplayer',bs('Play a friend online: take a seat, bring your army, ready up'),'⚑',()=>mmStart('multi'),bz));
+    grid.append(mmCard('Test field',bs('Drop single regiments for either side and try out rules freely'),'⚗',()=>mmStart('test'),bz));
+    grid.append(mmCard('Army builder','Build, check and save your armies','✎',()=>{mmGo('army');}));
+    grid.append(mmCard('Encyclopedia','Every faction, unit and special rule','📖',()=>{if(mmOverlay){mmOverlay=false;mmPage=null;render();}$('en-open').click();setTimeout(()=>{try{$('ency').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},60);},{small:true}));
+    grid.append(mmCard('Settings','Dice speed, animations and display','⚙',()=>{$('set-open').click();},{small:true}));
+    const n=mmNet();if(n&&n.openSettings)grid.append(mmCard('Claude settings','API key and models for playing Claude here','✦',()=>n.openSettings(),{small:true}));
+    inner.append(grid);
+    if(mmOverlay&&SBX()){const row=bEl('div',{className:'mm-foot'});row.append(bEl('button',{type:'button',className:'btn',textContent:'Back to the test field',onclick:()=>{mmOverlay=false;render();}}),bEl('button',{type:'button',className:'btn ghost',textContent:'Leave the test field',onclick:async()=>{mmOverlay=false;mmPage='home';await tfLeave();}}));inner.append(row);}
+    if(mmOverlay&&mmGameOn()){const row=bEl('div',{className:'mm-foot'});const lv=bEl('button',{type:'button',className:'btn ghost mm-danger',textContent:mmLeaveArm?'Click again: end this game and return to the menu':'Leave this game'});
+      lv.onclick=async()=>{if(!mmLeaveArm){mmLeaveArm=true;renderMenu();setTimeout(()=>{mmLeaveArm=false;renderMenu();},5000);return;}mmLeaveArm=false;mmOverlay=false;mmPage=null;await newGameNow();};
+      row.append(bEl('button',{type:'button',className:'btn',textContent:'Back to the game',onclick:()=>{mmOverlay=false;render();}}),lv);inner.append(row);}
+    return;}
+  if(page==='army'){head('Army builder','Build an army, check it is legal, and save it on this device. Saved armies can be loaded in any lobby.',{label:mmOverlay?'Menu':'Main menu',fn:()=>mmGo(mmOverlay?'home':null)});
+    const body=bEl('div',{className:'mm-body'});inner.append(body);try{bldUse('main');}catch(e){}
+    const mk=(t,fn,ghost)=>{const b=bEl('button',{type:'button',className:'btn'+(ghost?' ghost':''),textContent:t});b.onclick=fn;return b;};
+    armyBuilder(e=>body.append(e),mk,L=>{toast('Army checked and ready. Open Single player or Multiplayer to field it.');},'Check this army');return;}
+  if(page==='single'||page==='multi'){const rev=state.step==='review';if(state.step==='setup'&&(page==='multi')!==PVP()&&renderMenu.sw!==page){renderMenu.sw=page;putState({mode:page==='multi'?'pvp':'ai'});}
+    head(page==='single'?'Single player':'Multiplayer',page==='single'?'You against Claude.':'You against a friend, online.',{label:'Main menu',fn:()=>{mmPage='home';render();}});
+    inner.append(mmSteps(rev?'field':'armies'));
+    if(page==='multi'&&!rev){const n=mmNet();if(n&&n.mode==='local'){const c=bEl('div',{className:'mm-net'});c.append(bEl('h3',{textContent:'Connect'}),bEl('p',{className:'hint',textContent:'One player hosts and sends the invite link; the other joins with it or with the game code. Then each of you takes a seat below.'}));
+        const r=bEl('div',{className:'tf-row'});r.append(bEl('button',{type:'button',className:'btn',textContent:'Host an online game',onclick:()=>n.host()}));
+        const inp=bEl('input',{type:'text',className:'tf-in',placeholder:'Game code',maxLength:12});inp.setAttribute('aria-label','Game code from the host');r.append(inp,bEl('button',{type:'button',className:'btn ghost',textContent:'Join',onclick:()=>n.join(inp.value)}));c.append(r);inner.append(c);}
+      else if(n&&n.mode&&n.mode!=='local'){const c=bEl('div',{className:'mm-net'});c.append(bEl('p',{className:'hint',textContent:(n.mode==='host'?'You are hosting. ':'Connected. ')+'Send your opponent the invite link, then both of you take a seat.'}));
+        if(n.invite)c.append(bEl('button',{type:'button',className:'btn ghost',textContent:'Copy invite link',onclick:()=>n.invite()}));inner.append(c);}}
+    return;}
+}
+
 async function newGame(){if(!resetArm){resetArm=true;render();setTimeout(()=>{resetArm=false;render();},5000);return;}resetArm=false;act=null;cb=null;selId=null;charAct=null;
   await putState({step:'setup',fr:null,sup:null,aiSupWant:null,units:[],round:0,turn:null,vp:{cs:0,nord:0},aiStack:[],huStack:[],huHeld:null,huLastCard:null,strategicHeld:false,moves:[],setup:null,phase:'New game',ready:{},chooser:null,reinfTurn:'cs',lastTitle:'New game',lastText:'Set up the armies to begin.'});
   $('ai-report').hidden=true;}

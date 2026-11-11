@@ -27,7 +27,7 @@ KEY_HINT = 'Add your Anthropic API key under Claude settings at the top of the p
 body = swap(body, "'Claude was not allowed to run, so the army was not read.'", repr(KEY_HINT))
 body = swap(body, "'Claude was not allowed to run, so the armies were not built.'", repr(KEY_HINT))
 body = swap(body, 'Share this page with them from the Share menu, with permission to interact.',
-            'Press Host an online game at the top, then send your opponent the invite link.')
+            'Press Host an online game above (or open the invite link your opponent sent), then each of you takes a seat.')
 
 body = swap(body, '<script>\n(function(){', '<script src="firebase-config.js"></script>\n<script src="shim.js"></script>\n<script>\n(function(){')
 
