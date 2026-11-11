@@ -759,7 +759,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 20:46 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 20:56 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1400,7 +1400,7 @@ function startActivation(id,source,card){
   if(PVP()&&!myTurnPvp()){toast('It is not your turn.');return;}
   const u=base(id),G=geom(u);
   const entering=!u.onTable;
-  act={id,source,card:card||null,entering,placed:false,actions:[],cur:null,arrivedThisRound:!!u.arrivedRound&&u.arrivedRound===state.round,
+  act={id,source,card:card||null,entering,placed:false,snap:{units:state.units,fr:state.fr||null,sup:state.sup||null},actions:[],cur:null,arrivedThisRound:!!u.arrivedRound&&u.arrivedRound===state.round,
     pose:entering?Object.assign({onTable:true,x:36,files:G.files},ownEntry(u.side,G.d)):{x:u.x,y:u.y,facing:u.facing||0,files:G.files},
     extraFx:(source==='strategic'||(source==='entourage'&&ordersU(u)))?(hasRule(u,/Automaton/)?[]:[source==='entourage'?'Inspired (Direct Orders)':'Inspired (Strategic Stack)']).concat(u.strategicFx||[]).concat((/Infantry|Cavalry/.test(u.cls||'')&&supOn(u.side,'Hammer and Anvil'))?['Shock (Hammer and Anvil)']:[]).concat(source==='strategic'&&supOn(u.side,'Bringing Back the Children of Fire')&&frRoles(u).includes('Titan')?['Children of Fire (counts as 6 stands for Seizing)']:[]):[]};
   selId=id;rightTab='reg';render();drawEvents(u);
@@ -1459,7 +1459,8 @@ function setEdge(e,keep){const u=base(act.id),G=geom(Object.assign({},u,act.pose
     Object.assign(act.pose,e==='west'?{x:-G.d/2,y,facing:90}:{x:72+G.d/2,y,facing:270});}
   else{const x=keep&&act.edge==='own'?Math.max(G.w/2,Math.min(72-G.w/2,act.pose.x)):36;Object.assign(act.pose,Object.assign({x},ownEntry(u.side,G.d)));}
   act.edge=e;render();}
-function abort(){act=null;render();toast('Activation undone.');}
+/* Undo activation: everything the activation changed (Ideal Card, Chant, Draw Events, faction tokens...) goes back as it was */
+function abort(){const sn=act&&act.snap;act=null;cb=null;cbQueue=[];try{renderCombat();}catch(e){}if(sn&&(sn.units!==state.units||sn.fr!==(state.fr||null)||sn.sup!==(state.sup||null))){putState({_undo:true,units:sn.units,fr:sn.fr,sup:sn.sup,lastTitle:'Activation undone',lastText:'The activation and the effects it gave were undone.'}).catch(()=>{});}else render();toast('Activation undone.');}
 function toast(t){$('toast').textContent=t;}
 function setPose(p){
   if(!act)return;
@@ -4324,7 +4325,7 @@ function breakCheck(old,st){const O=new Map(((old&&old.units)||[]).map(u=>[u.id,
     return y;});
   if(notes.length){st.lastText=(st.lastText?st.lastText+' ':'')+notes.join('. ')+'.';setTimeout(()=>toast(notes.join(' · ')+'.'),80);}}
 function sanitize(st){if(!st||!Array.isArray(st.units)||st.mode==='test'&&false)return st;const keep=state;state=st;
-  try{try{breakCheck(keep,st);}catch(e){console.error(e);}supParagon(st);st.units=st.units.map(u=>{if(u.type==='marker')return u;let y=u;
+  try{try{if(!st._undo)breakCheck(keep,st);delete st._undo;}catch(e){console.error(e);}supParagon(st);st.units=st.units.map(u=>{if(u.type==='marker')return u;let y=u;
       if((y.effects||[]).includes('Broken')&&(rh(y.rules,'In the Fold')&&srAllMods(y,/Origami/)||rh(y.rules,'Life for Glory')||hasGrant(y,'Awakened')||srHas(y,/^Cannot be Broken/)))y=Object.assign({},y,{effects:y.effects.filter(e=>e!=='Broken')});
       if((y.effects||[]).includes('Broken')&&!y.fawnUsed&&INF_(y)&&itemFlag(y,'fawn'))y=Object.assign({},y,{fawnUsed:true,effects:y.effects.filter(e=>e!=='Broken')});
       if((rh(y.rules,'Shattered Perfection')||rh(y.rules,'Raging Elements'))&&!y.belowOnce&&belowStart(y))y=Object.assign({},y,{belowOnce:true});
