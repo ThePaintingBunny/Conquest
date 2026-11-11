@@ -594,6 +594,17 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .qa-sel{min-width:220px;max-width:100%}
 .qa-edit{margin:4px 0 8px;border:1px solid var(--line);border-radius:6px;padding:4px 8px}
 .qa-edit>summary{cursor:pointer;font-size:13px;font-weight:600;padding:4px 0}
+
+.cbstep{border:1px solid #8A6A2A;background:#2A2416;border-radius:4px;padding:8px 10px;margin:4px 0 8px;display:flex;flex-direction:column;gap:6px}
+.cbs-h{margin:0;font-weight:600;color:#F0CF83}
+.cbs-l{display:flex;flex-wrap:wrap;gap:4px;margin:0;padding:0;list-style:none;counter-reset:cbs}
+.cbs-l li{counter-increment:cbs;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--edge);color:var(--muted)}
+.cbs-l li::before{content:counter(cbs) ' · '}
+.cbs-l li.ok{color:#A9D8B0;border-color:#3E6B45}
+.cbs-l li.ok::before{content:'✓ '}
+.cbs-l li.now{color:#14171A;background:#F0CF83;border-color:#F0CF83;font-weight:700}
+.vsel-box{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+g.vsel{filter:drop-shadow(0 0 5px #FFE39A) drop-shadow(0 0 2px #FFE39A)}
 </style>
 <style>.fan-note{max-width:1240px;margin:24px auto 32px;font-size:13px;color:var(--muted)}.fan-note a{color:inherit}</style>
 </head>
@@ -686,7 +697,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 14:11 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 14:32 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1016,7 +1027,7 @@ function availableActions(u){
   const cap=used.length>=2||n>=3;
   const can=(type,why)=>out.push({type,why});
   const repeatOk=t=>t==='march'||t==='reform';
-  const blocked=t=>{if(act.chargeFailed)return'The failed Charge ended this activation';if(act.occupyT||act.leaveT)return'Moving in or out of a building ends the activation';if(act.cur)return'Finish the current action first';if(cap)return'No actions left';if(firstMust&&t!=='march')return'An arriving regiment must March first';if(last&&last.type===t&&!repeatOk(t))return'Already used this activation';if(used.some(a=>a.type===t)&&!repeatOk(t))return'Already used this activation';return'';};
+  const blocked=t=>{if(cb)return'Resolve the dice in the combat panel first';if(act.chargeFailed)return'The failed Charge ended this activation';if(act.occupyT||act.leaveT)return'Moving in or out of a building ends the activation';if(act.cur)return'Finish the current action first';if(cap)return'No actions left';if(firstMust&&t!=='march')return'An arriving regiment must March first';if(last&&last.type===t&&!repeatOk(t))return'Already used this activation';if(used.some(a=>a.type===t)&&!repeatOk(t))return'Already used this activation';return'';};
   if(u.garrison){if(!eng.length&&(hasBarrage(u))){can('volley',blocked('volley'));can('aim',aimWhy(u)||blocked('aim'));}if(eng.length)can('clash',blocked('clash'));if(!animate(u))can('inspire',inspWhy(u)||blocked('inspire'));
     can('leave',used.length?'Leaving takes both actions: do it as the first action':broken?'':blocked('leave'));return out;}
   if(!eng.length&&!arrive&&tGarrisonNear(u).length)can('occupy',blocked('occupy'));
@@ -1187,13 +1198,17 @@ function drawVolleyZones(u,g){const vr=u&&volleyRange(u);if(!vr)return;const spa
   if(!long)el('polygon',{points:pts(shape(R)),fill:'#6FA8FF','fill-opacity':.2,stroke:'#9CC4FF','stroke-width':2,'stroke-dasharray':'6 4','pointer-events':'none'},g);
   el('polygon',{points:pts(shape(H)),fill:'#FFD66B','fill-opacity':.32,stroke:'#FFE39A','stroke-width':2,'pointer-events':'none'},g);
   front.forEach(s=>{const c=[(s.poly[0][0]+s.poly[1][0])/2,(s.poly[0][1]+s.poly[1][1])/2];el('circle',{cx:px(c[0]),cy:py(c[1]),r:2.5,fill:'#FFE39A','pointer-events':'none'},g);});}
+function fireVolley(){if(!act||!act.cur||act.cur.type!=='volley')return;const t=byId(act.cur.sel);if(!t)return;const vw=volleyWhy(byId(act.id),t);if(vw){toast(vw);return;}
+  act.cur.stage='combat';act.cur.target=t.id;openCombat({type:'volley',att:act.id,tgt:t.id,inAct:true});render();}
+function drawVolleyLines(u,t,L,AF){const VS=volleyStands(u,t);let vg=L.querySelector('#vlines');if(vg)vg.remove();vg=el('g',{id:'vlines','pointer-events':'none'},L);
+  VS.filter(v=>!v.none&&v.to&&(!AF||v.arcing)).forEach(v=>{const ok=v.inRange&&(v.clear||AF),c=!v.inRange?'#B9B9B9':ok?(v.eff?'#FFE39A':'#9CC4FF'):'#FF7A6B';el('line',{x1:px(v.f0[0]),y1:py(v.f0[1]),x2:px(v.to[0]),y2:py(v.to[1]),stroke:c,'stroke-width':2.4,'stroke-dasharray':ok?(AF&&!v.clear?'2 3':''):'5 4'},vg);el('circle',{cx:px(v.f0[0]),cy:py(v.f0[1]),r:3.5,fill:c},vg);});return vg;}
 function drawVolleyNeeds(u,g){const vr=u&&volleyRange(u);if(!vr)return;const long=rh(RU(u).concat(fx(u)),'Longshot');
   all().filter(t=>t.onTable&&!t.destroyed&&t.side!==u.side).forEach(t=>{const gu=g.querySelector('g[data-id="'+t.id+'"]');if(!gu)return;const why=volleyWhy(u,t);
     const d=Math.min(...standsOf(u).filter(s=>s.rank===0).map(s=>polyDist(s.poly,corners(t))));const eff=!why&&(long||d<=vr.range/2+1e-6);
     const VS=volleyStands(u,t),AF=arcingOn(u);gu.querySelectorAll(':scope>title').forEach(x=>x.remove());const ti=document.createElementNS(NS,'title');ti.textContent=(t.short||t.name)+': '+d.toFixed(1)+'″ from its nearest front stand. '+(why?why:(AF?'Arcing Fire: ':'')+volleySummary(VS,AF)+' Click to volley.');gu.insertBefore(ti,gu.firstChild);
     gu.addEventListener('mouseenter',()=>{const L=$('rings');if(!L)return;let vg=L.querySelector('#vlines');if(vg)vg.remove();vg=el('g',{id:'vlines','pointer-events':'none'},L);
       VS.filter(v=>!v.none&&v.to&&(!AF||v.arcing)).forEach(v=>{const ok=v.inRange&&(v.clear||AF),c=!v.inRange?'#B9B9B9':ok?(v.eff?'#FFE39A':'#9CC4FF'):'#FF7A6B';el('line',{x1:px(v.f0[0]),y1:py(v.f0[1]),x2:px(v.to[0]),y2:py(v.to[1]),stroke:c,'stroke-width':2.2,'stroke-dasharray':ok?(AF&&!v.clear?'2 3':''):'5 4'},vg);el('circle',{cx:px(v.f0[0]),cy:py(v.f0[1]),r:3.5,fill:c},vg);});});
-    gu.addEventListener('mouseleave',()=>{const vg=document.getElementById('vlines');if(vg)vg.remove();});});}
+    gu.addEventListener('mouseleave',()=>{const vg=document.getElementById('vlines');if(vg)vg.remove();const ts=act&&act.cur&&act.cur.sel&&byId(act.cur.sel);if(ts&&$('rings'))drawVolleyLines(u,ts,$('rings'),arcingOn(u));});});}
 function drawChargeNeeds(u,g){if(!u)return;const M=+(u.m||0),fix=chargeFixed(u),max=chargeMax(u);
   all().filter(t=>t.onTable&&!t.destroyed&&t.side!==u.side).forEach(t=>{if(!corners(t).concat([[t.x,t.y]]).some(p=>arcOf(u,p)==='front'))return;const d=polyDist(corners(u),corners(t));if(d>max+1e-6)return;
     const need=fix!=null?'in reach, no roll needed':(Math.max(1,Math.ceil(d-M-1e-6))<=1?'any roll reaches it':'needs '+Math.ceil(d-M-1e-6)+'+ on the Charge Roll');const gu=g.querySelector('g[data-id="'+t.id+'"]');if(!gu)return;
@@ -1208,7 +1223,7 @@ function chargeRollBtn(label,go,need){const b=document.createElement('button');b
   const d=[d6()].concat(two?[d6()]:[]),r=Math.max(...d);banner('Charge Roll'+(two?' (2D6, highest)':''),d.map(v=>({v,cls:v===r&&v>=need?'hit':v===r?'miss':''})),'needs '+need+' or more');await sleep((DSPEED[SET.diceSpeed]||1300)+700);bannerHide();go(r);};return b;}
 function resolveCharge(roll,reroll){const u=byId(act.id),c=act.cur;c.roll=roll;if(reroll)c.rerolled=true;
   const f=chargeFixed(u);const cd=(u.m||0)+(f!=null?f:roll+srChargeBonus(u,byId(c.target)))+(c.pu?2:0);c.cd=cd;
-  if(cd>=c.dist-1e-6){c.success=true;if(placeCharge()){c.stage='adjust';if(!aiBusy){c.animating=true;animateCharge(c.plan).then(()=>{c.animating=false;render();});}}else c.stage='blocked';}
+  if(cd>=c.dist-1e-6){c.success=true;if(placeCharge()){c.stage='adjust';if(!aiBusy){c.animating=true;animateCharge(c.plan).then(()=>{c.animating=false;if(act&&act.cur===c)finishAction();else render();});}}else c.stage='blocked';}
   else if((hasRule(u,/Unstoppable/)||u.bearer)&&!c.rerolled&&chargeFixed(u)==null&&!noChargeReroll(u)){c.stage='reroll';}
   else failCharge();
   render();}
@@ -1590,6 +1605,13 @@ function renderCard(){
     if(a.type==='charge')det=`D6 + ${u.m}″`;
     b.innerHTML='';const t=document.createElement('span');t.textContent=m.n+(a.free&&!/^Free/i.test(m.n)?' (free)':'');const sm=document.createElement('small');sm.textContent=a.why||det;b.append(t,sm);
     b.onclick=()=>startAction(a.type);$('c-actions').appendChild(b);});
+  {const old=$('c-cbstep');if(old)old.remove();}
+  if(cb&&cb.type!=='duel'&&(cb.att===act.id||cb.tgt===act.id)){const LB={clash:'Clash',impact:'Impact Attacks',volley:'Volley',lethal:'Lethal Demise',freform:'Fighting Reform'},T=cb.tgt&&byId(cb.tgt),box=document.createElement('div');box.id='c-cbstep';box.className='cbstep';
+    const h=document.createElement('p');h.className='cbs-h';h.textContent='Resolving: '+(LB[cb.type]||'combat')+(T?' against '+(T.short||T.name):'');box.appendChild(h);
+    const steps=[['att','Roll to hit'],['def','Defense'],...(cb.type==='volley'||cb.noMorale?[]:[['mor','Morale']]),['done',cb.inAct||cb.fromCharge?'Finish the action':'Record']],ord=['att','def','mor','done'],cur=ord.indexOf(cb.step==='roll'?'att':cb.step);
+    const ol=document.createElement('ol');ol.className='cbs-l';steps.forEach(([k,t])=>{const li=document.createElement('li');const i=ord.indexOf(k);li.textContent=t;li.className=i<cur?'ok':i===cur?'now':'';ol.appendChild(li);});box.appendChild(ol);
+    const go=document.createElement('button');go.type='button';go.className='btn ghost';go.textContent='Go to the dice';go.onclick=()=>{try{$('combat').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}};box.appendChild(go);
+    $('c-act-sec').querySelector('.actp-head').after(box);}
   const c=act.cur;$('c-cur').hidden=!c;$('c-actions').hidden=!!c;
   if(!c&&act.actions.filter(a=>!a.free).length>=2&&![...$('c-actions').querySelectorAll('button')].some(b=>!b.disabled)){$('c-actions').hidden=true;const dn=$('c-acts-done');dn.hidden=false;dn.textContent='Both actions are used. Press End activation to finish.';}
   if(c){
@@ -1619,18 +1641,22 @@ function renderCard(){
     if(c.stage==='reroll'){$('c-cur-read').textContent=`Charge Roll ${c.roll} gives ${c.cd}″, short of ${c.dist.toFixed(1)}″. It may re-roll the Charge Roll once, or accept the failure.`;
       chg.appendChild(chargeRollBtn('Re-roll the Charge',r=>resolveCharge(r,true),Math.max(1,Math.ceil(c.dist-M-1e-6))));const b=document.createElement('button');b.type='button';b.className='btn ghost';b.textContent='Accept the failed charge';b.onclick=()=>{failCharge();render();};chg.appendChild(b);}
     if(c.stage==='adjust'){const pl=c.plan||{};const steps=[];if(pl.th)steps.push('wheels '+Math.abs(pl.th)+'° '+pl.dir);if(pl.s!=null)steps.push('moves '+pl.s.toFixed(1)+'″ straight in');if(pl.tgtPose)steps.push('cannot close the door, so '+(t.short||t.name)+' pivots to face it');else if(pl.dl)steps.push('closes the door '+Math.abs(Math.round(pl.dl))+'°');
-       $('c-cur-read').textContent=c.animating?'Charging…':pl.ok?`Charge succeeds: ${c.roll?c.roll+' + ':''}${M}${jug?' + 5':''} = ${c.cd}″ against ${c.dist.toFixed(1)}″. It ${steps.join(', ')} into the target’s ${c.face}${pl.pairs?', with '+pl.pairs+' stand contact'+(pl.pairs===1?'':'s'):''}. This is the legal Charge with the most contact; you can still drag along the face, then Finish action. The regiment becomes Inspired; Claude resolves the Impact Attacks.`:`Charge succeeds. Placed by hand flush with the target’s ${c.face}: drag along the face if needed, then Finish action.`;
+       $('c-cur-read').textContent=c.animating?'Charging…':pl.ok?`Charge succeeds: ${c.roll?c.roll+' + ':''}${M}${jug?' + 5':''} = ${c.cd}″ against ${c.dist.toFixed(1)}″. It ${steps.join(', ')} into the target’s ${c.face}${pl.pairs?', with '+pl.pairs+' stand contact'+(pl.pairs===1?'':'s'):''}. This is the legal Charge with the most contact. The Impact Attacks follow; the Charge is finished once they are resolved.`:`Charge succeeds. Placed by hand flush with the target’s ${c.face}: drag along the face if needed, then press Confirm position. The Impact Attacks follow.`;
        if(c.animating)$('done-act').hidden=true;}
     if(c.stage==='blocked'){const pl=c.plan||{};$('c-cur-read').textContent=`The Charge Roll is enough (${c.cd}″ against ${c.dist.toFixed(1)}″), but there is no legal Charge Move into ${t.short||t.name}`+(pl.why?': it is blocked by '+pl.why:'')+'. Under the rules the Charge fails: it moves straight forward the Charge Roll and halts 1″ from enemies.';$('done-act').hidden=true;
        const b1=document.createElement('button');b1.type='button';b1.className='btn';b1.textContent='Charge fails';b1.onclick=()=>{failCharge();render();};chg.appendChild(b1);
-       const b2=document.createElement('button');b2.type='button';b2.className='btn ghost';b2.textContent='Place it by hand instead';b2.onclick=()=>{placeChargeFlush();c.stage='adjust';c.plan=null;render();toast('Placed flush with the target. Drag along the face if needed, then Finish action.');};chg.appendChild(b2);}
+       const b2=document.createElement('button');b2.type='button';b2.className='btn ghost';b2.textContent='Place it by hand instead';b2.onclick=()=>{placeChargeFlush();c.stage='adjust';c.plan=null;render();toast('Placed flush with the target. Drag along the face if needed, then press Confirm position.');};chg.appendChild(b2);}
     $('cancel-act').hidden=c.stage==='adjust'||c.stage==='blocked';
   }else{$('cancel-act').hidden=false;}
   if(c&&c.type==='cast'){$('c-ctl').hidden=true;$('done-act').hidden=true;}
   if(c&&c.type==='volley'&&c.stage==='target'&&(rh(RU(u),'Arcing Fire')||(u.charName&&rh(chRulesX(u),'Arcing Fire')))){const w=arcingWhy(u),b=document.createElement('button');b.type='button';b.className='btn'+(c.arcing?'':' ghost');b.setAttribute('aria-pressed',String(!!c.arcing));
     b.textContent=(c.arcing?'✓ Arcing Fire on':'Arcing Fire')+' · −1 Volley, shoot over regiments and terrain';b.disabled=!!w&&!c.arcing;b.title=w||'Only its Arcing Fire stands shoot, as Clear Shots, at a target in its front arc and range that a friendly regiment can see. −1 Volley for the rest of this activation.';
     b.onclick=()=>{c.arcing=!c.arcing;render();};chg.appendChild(b);if(w){const h=document.createElement('p');h.className='hint';h.textContent='Arcing Fire: '+w;chg.appendChild(h);}}
-  if(c&&(c.type==='volley'||c.type==='clash')){$('c-ctl').hidden=true;$('done-act').hidden=true;$('c-meter').hidden=true;$('c-cur-read').textContent=c.type==='volley'&&c.stage==='target'?(()=>{const vr=volleyRange(u),lg=rh(RU(u).concat(fx(u)),'Longshot');return 'Volley: click the enemy regiment you are shooting at.'+(vr?(lg?` Gold: its whole ${vr.range}″ range is effective (Longshot), +1 shot per stand.`:` Gold: effective range, within ${vr.range/2}″ of a stand, +1 shot per stand. Blue: full range, ${vr.range}″.`)+' Measured from each front-rank stand across its firing arc. Hover an enemy for its distance.':'')+' Claude checks Line of Sight.';})():ACT[c.type].n+': roll it in the combat panel under the map.';}
+  if(c&&c.type==='volley'&&c.stage==='target'){const ts=c.sel&&byId(c.sel);if(ts){const vw=volleyWhy(u,ts),AF=arcingOn(u),box=document.createElement('div');box.className='vsel-box';
+      const h=document.createElement('p');h.className='read';h.textContent=(ts.short||ts.name)+': '+(vw||((AF?'Arcing Fire: ':'')+volleySummary(volleyStands(u,ts),AF)));box.appendChild(h);
+      const fb=document.createElement('button');fb.type='button';fb.className='btn';fb.textContent='Volley at '+(ts.short||ts.name);fb.disabled=!!vw;fb.onclick=fireVolley;box.appendChild(fb);
+      const hn=document.createElement('p');hn.className='hint';hn.textContent='Click another enemy to compare its lines instead.';box.appendChild(hn);chg.appendChild(box);}}
+  if(c&&(c.type==='volley'||c.type==='clash')){$('c-ctl').hidden=true;$('done-act').hidden=true;$('c-meter').hidden=true;$('c-cur-read').textContent=c.type==='volley'&&c.stage==='target'?(()=>{const vr=volleyRange(u),lg=rh(RU(u).concat(fx(u)),'Longshot');return 'Volley: click an enemy regiment to see which stands can shoot it, then press Volley.'+(vr?(lg?` Gold: its whole ${vr.range}″ range is effective (Longshot), +1 shot per stand.`:` Gold: effective range, within ${vr.range/2}″ of a stand, +1 shot per stand. Blue: full range, ${vr.range}″.`)+' Measured from each front-rank stand across its firing arc. Hover an enemy for its distance.':'')+' Claude checks Line of Sight.';})():ACT[c.type].n+': roll it in the combat panel under the map.';}
   act.actions.forEach((a,i)=>{const li=document.createElement('li');let t='';if(a.dist!=null)t+=`${a.dist.toFixed(1)}″`;if(a.roll!=null)t+=(t?', ':'')+`rolled ${a.roll}`;if(a.vanguard)t+=(t?', ':'')+`Vanguard ${a.vanguard}`;const ck=document.createElement('span');ck.className='ck';ck.textContent='✓';const nm=document.createElement('b');nm.textContent=ACT[a.type].n+(a.free?' (free)':'');li.append(ck,nm);if(t){const sm=document.createElement('small');sm.textContent=t;li.append(sm);}$('c-log').appendChild(li);});
   const w=[];if(act.entering&&act.placed){const G=geom(Object.assign({},base(act.id),act.pose));if(act.pose.y+G.d/2>48.01)w.push('Not every stand is on the table yet; it needs another March.');}
   if(overlapsAny(byId(act.id))&&!(act.cur&&act.cur.type==='charge'))w.push('This regiment overlaps another one.');
@@ -1687,7 +1713,7 @@ function render(){
   if(act&&act.actions.length){const pts=[[act.actions[0].from.x,act.actions[0].from.y]].concat(act.actions.map(a=>[a.to.x,a.to.y]));el('polyline',{points:pts.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#E8C65A','stroke-width':1.6,'stroke-dasharray':'4 3'},rg);}
   all().filter(u=>u.onTable).forEach(u=>drawUnit(u,ug));
   if(act&&act.cur&&act.cur.type==='charge'&&act.cur.stage==='target'){try{drawChargeNeeds(byId(act.id),ug);}catch(e){console.error(e);}}
-  if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyNeeds(byId(act.id),ug);}catch(e){console.error(e);}}
+  if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyNeeds(byId(act.id),ug);const ts=act.cur.sel&&byId(act.cur.sel);if(ts){drawVolleyLines(byId(act.id),ts,rg,arcingOn(byId(act.id)));const gs=ug.querySelector('g[data-id="'+ts.id+'"]');if(gs)gs.classList.add('vsel');}}catch(e){console.error(e);}}
   $('last').innerHTML='';const b=document.createElement('b');b.textContent=(state.lastTitle||'Last move')+': ';$('last').append(b,document.createTextNode(state.lastText||'No moves yet.'));
   renderArmies();
   renderCard();try{renderFacBox();renderFrStrip();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
@@ -1845,8 +1871,10 @@ function rollMor(T){const mi=moraleInfo(T,byId(cb.att));cb.mi=mi;cb.mrolls=[];le
   for(let i=0;i<cb.wounds;i++){let v=d6(),re=false,first=null,auto=mi.arc==='rear'&&!mi.iron,pass=!auto&&ok(v);
     if(!auto&&rrDie(v,ok,P)){first=v;v=d6();re=true;pass=ok(v);}cb.mrolls.push({v,pass,re,first});if(!pass)fails++;}
   const ind=Math.min(mi.indom,fails);fails-=ind;cb.indom=ind;cb.extra=mi.oblivious?Math.ceil(fails/2):fails;}
-function dieMini(v,cls){const d=document.createElement('span');d.className='md';d.setAttribute('role','img');d.setAttribute('aria-label','Die showing '+v);for(let i=0;i<9;i++){const p=document.createElement('i');if(PIPS[v]&&PIPS[v].includes(i))p.className='on';d.appendChild(p);}
-  if(!(SET.diceAnim&&animateDie(d,v,cls||'')))(cls||'').split(' ').filter(Boolean).forEach(c=>d.classList.add(c));return d;}
+const DSHOWN=new Set();
+function dieMini(v,cls,key){const d=document.createElement('span');d.className='md';d.setAttribute('role','img');d.setAttribute('aria-label','Die showing '+v);for(let i=0;i<9;i++){const p=document.createElement('i');if(PIPS[v]&&PIPS[v].includes(i))p.className='on';d.appendChild(p);}
+  const fresh=!key||!DSHOWN.has(key);if(key)DSHOWN.add(key);
+  if(!(fresh&&SET.diceAnim&&animateDie(d,v,cls||'')))(cls||'').split(' ').filter(Boolean).forEach(c=>d.classList.add(c));return d;}
 function hitParry(T){return (cb.type==='clash'||cb.type==='impact')&&rh(RU(T),'Parry');}
 function blessAsk(who,side){if(who==='T'&&cb.blessWait){const box=bEl('div',{className:'row bless-q'});box.append(ptext(`${side}: use Blessed? Re-roll all failed Defense rolls against this attack (once per round).`));
     const go=v=>{cb.blessT=v;const r=cb.blessWait;cb.blessWait=null;if(r)r();};box.append(cbtn('Use Blessed',()=>go(true)),cbtn('Not now',()=>go(false)));return box;}
@@ -1856,7 +1884,7 @@ function blessAsk(who,side){if(who==='T'&&cb.blessWait){const box=bEl('div',{cla
 function stepBox(t){const s=document.createElement('div');s.className='cstep';const h=document.createElement('h3');h.textContent=t;s.appendChild(h);return s;}
 function cbtn(t,fn,who){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=t;b.onclick=fn;if(who)b.dataset.who=who;return b;}
 function ptext(t,cls){const p=document.createElement('p');p.className=cls||'hint';p.style.margin='0';p.textContent=t;return p;}
-function renderCombat(){renderCombat0();if(cb)cbGate();cbSync();}
+function renderCombat(){if(cb&&!cb.uid)cb.uid=Date.now().toString(36)+Math.random().toString(36).slice(2,6);renderCombat0();if(cb)cbGate();cbSync();if(act&&!renderCombat.busy){renderCombat.busy=true;try{renderCard();}catch(e){console.error(e);}renderCombat.busy=false;}}
 function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;if(cbQueue.length)setTimeout(()=>{if(!cb&&cbQueue.length)openCombat(cbQueue.shift());},150);return;}box.hidden=false;const body=$('cb-body');body.innerHTML='';
   const A=byId(cb.att)||base(cb.att),T=cb.tgt?byId(cb.tgt):null,LBL={clash:'Clash',impact:'Impact Attacks',volley:'Volley',lethal:'Lethal Demise',freform:'Fighting Reform'};
   $('cb-title').textContent=(cb.dieFight?'Die Fighting! ':'')+(cb.selfTitle||LBL[cb.type])+': '+(A.short||A.name)+(T?' against '+(T.short||T.name):'');
@@ -1869,21 +1897,21 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;if(cbQueu
   else{body.appendChild(ptext(`${A.short||A.name} strikes ${T.short||T.name} in the ${arc==='left'||arc==='right'?'flank':arc}.`+(cb.type==='volley'?' '+volleySummary(cb.vst||[],cb.arcing):'')+' Dice counts are worked out from the stands in contact; change a count if the table says otherwise.'));}
   if(cb.type!=='lethal'&&cb.type!=='freform'){const s1=stepBox('1 · '+sA+' rolls to hit');
   if(cb.type==='volley'){const lab=document.createElement('label');lab.className='row hint';const x=document.createElement('input');x.type='checkbox';x.id='cb-cover';x.checked=cb.cover;x.disabled=cb.step!=='att';x.dataset.who='A';x.onchange=()=>{cb.cover=x.checked;renderCombat();};lab.append(x,document.createTextNode('Target is in Cover or has Loose Formation (shots halved)'+(cb.coverWhy?' · Cover: '+cb.coverWhy:'')));s1.appendChild(lab);}
-  cb.groups.forEach(g=>{const row=document.createElement('div');row.className='grow';g.nUse=cb.type==='volley'&&cb.cover?Math.ceil(g.n/2):g.n;
+  cb.groups.forEach((g,gi)=>{const row=document.createElement('div');row.className='grow';g.nUse=cb.type==='volley'&&cb.cover?Math.ceil(g.n/2):g.n;
     const tags=['hits on '+g.hitOn+' or less'];if(g.reroll6)tags.push('re-roll 6s');if(g.flurry)tags.push('Flurry');if(g.fiend)tags.push('Fiend Hunter');if(g.opp)tags.push('Opportunists');if(g.blessed)tags.push('Blessed');if(g.eccentric)tags.push('Eccentric Fighting Style');(g.rrNotes||[]).forEach(t=>tags.push(t));if(g.relentless)tags.push(cb.type==='volley'?'Rapid Volley':'Relentless Blows');
     if(g.red)tags.push((cb.type==='impact'?'Brutal Impact':cb.type==='volley'?'Armor Piercing':'Cleave')+' '+g.red);if(g.smite)tags.push('Smite');if(g.flawless)tags.push(cb.type==='volley'?'Precise Shot':'Flawless Strikes');if(g.deadly)tags.push(cb.type==='volley'?'Deadly Shot':'Deadly Blades');if(g.linebreaker)tags.push('Linebreaker');
     const h=document.createElement('div');h.className='gl';const nm=document.createElement('b');nm.textContent=g.label+' ';const inp=document.createElement('input');inp.type='number';inp.min='0';inp.className='nin';inp.value=String(g.nUse);inp.disabled=cb.step!=='att';inp.dataset.who='A';inp.setAttribute('aria-label','Dice for '+g.label);
     inp.onchange=()=>{const v=Math.max(0,parseInt(inp.value,10)||0);g.n=cb.type==='volley'&&cb.cover?v*2:v;renderCombat();};h.append(nm,inp,document.createTextNode(' dice · '+tags.join(' · ')));row.appendChild(h);
-    if(g.rolls){const dr=document.createElement('div');dr.className='drow';g.rolls.forEach(r=>dr.appendChild(dieMini(r.v,(r.hit?'hit':'miss')+(r.re?' re':''))));row.appendChild(dr);row.appendChild(ptext(g.hits+(g.hits===1?' hit':' hits')+(g.extra?` (${g.extra} extra from rolls of 1)`:'')));}
+    if(g.rolls){const dr=document.createElement('div');dr.className='drow';g.rolls.forEach((r,ri)=>dr.appendChild(dieMini(r.v,(r.hit?'hit':'miss')+(r.re?' re':''),cb.uid+'h'+gi+'.'+ri+'.'+r.v+(r.re?'r'+r.first:''))));row.appendChild(dr);row.appendChild(ptext(g.hits+(g.hits===1?' hit':' hits')+(g.extra?` (${g.extra} extra from rolls of 1)`:'')));}
     s1.appendChild(row);});
   if(cb.step==='att'&&cb.groups.some(g=>g.blessable)&&blessOk(base(cb.att)))s1.appendChild(blessAsk('A',sA));
-  if(cb.step==='att')s1.appendChild(cbtn('Roll to hit ('+sA+')',()=>{const parry=hitParry(T);if(cb.blessA){cb.groups.forEach(g=>{if(g.blessable)g.blessed=true;});cb.blessUsedA=true;}cb.groups.forEach(g=>rollHits(g,g.nUse,parry));glimApply();cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';renderCombat();},'A'));
+  if(cb.step==='att')s1.appendChild(cbtn('Roll to hit ('+sA+')',()=>{const parry=hitParry(T);if(cb.blessA){cb.groups.forEach(g=>{if(g.blessable)g.blessed=true;});cb.blessUsedA=true;}cb.groups.forEach((g,gi)=>rollHits(g,g.nUse,parry));glimApply();cb.hits=cb.groups.reduce((a,g)=>a+g.hits,0);cb.wounds=0;cb.extra=0;cb.step=cb.hits?'def':'done';renderCombat();},'A'));
   else s1.appendChild(ptext('Total: '+cb.hits+(cb.hits===1?' hit':' hits'),'tot'));
   body.appendChild(s1);}if(cb.step==='att')return;
   if(cb.hits){const s2=stepBox('2 · '+sT+' rolls Defense');
-    cb.groups.filter(g=>g.hits).forEach(g=>{const di=g.def||defInfo(T,A,g),row=document.createElement('div');row.className='grow';
+    cb.groups.filter(g=>g.hits).forEach(g=>{const gi=cb.groups.indexOf(g);const di=g.def||defInfo(T,A,g),row=document.createElement('div');row.className='grow';
       row.appendChild(ptext(`${g.hits} from ${g.label}: saves on Defense ${di.D} or Evasion ${di.E}, whichever is better`+(di.red?` (Defense lowered by ${di.red})`:'')+(di.front&&rh(RU(T),'Shield')&&!g.linebreaker?' · Shield +1':'')+(g.flawless?' · rolls of 1 to hit ignore Defense':''),'gl'));
-      if(g.drolls){const dr=document.createElement('div');dr.className='drow';g.drolls.forEach(r=>dr.appendChild(dieMini(r.v,(r.save?'hit':'miss')+(r.re?' re':''))));row.appendChild(dr);}s2.appendChild(row);});
+      if(g.drolls){const dr=document.createElement('div');dr.className='drow';g.drolls.forEach((r,ri)=>dr.appendChild(dieMini(r.v,(r.save?'hit':'miss')+(r.re?' re':''),cb.uid+'d'+gi+'.'+ri+'.'+r.v+(r.re?'r'+r.first:''))));row.appendChild(dr);}s2.appendChild(row);});
     const ten=rx((T.rules||[]).concat(fx(T)),'Tenacious');if(ten)s2.appendChild(ptext(`Tenacious (${ten}): up to ${ten} failed save${ten>1?'s count':' counts'} as a success.`));
     cb.groups.forEach(g=>(g.drrNotes||[]).forEach(t=>s2.appendChild(ptext(t))));if(cb.groups.some(g=>g.forceDef&&g.hits))s2.appendChild(ptext((A.charName||'The character')+': '+sT+' must re-roll successful Defense against its hits.'));
     if(cb.step==='def'&&(cb.type==='clash'||cb.type==='impact')&&blessOk(base(cb.tgt)))s2.appendChild(blessAsk('T',sT));
@@ -1894,14 +1922,14 @@ function renderCombat0(){const box=$('combat');if(!cb){box.hidden=true;if(cbQueu
   if(cb.type!=='volley'&&cb.type!=='lethal'&&cb.wounds){const mi=cb.mi||moraleInfo(T,A),s3=stepBox('3 · '+sT+' tests Morale');
     if(mi.auto){s3.appendChild(ptext('No Resolve: passes every Morale Test automatically.'));if(cb.step==='mor'){cb.extra=0;cb.step='done';}}
     else{s3.appendChild(ptext(`${cb.wounds} dice, pass on ${mi.R} or less (includes +${mi.bonus} for regiment size${mi.terr?`, −${mi.terr} Terrifying`:''})`+(mi.arc==='rear'&&!mi.iron?'. Rear attack: every test fails.':'.')+(()=>{const P=rrPlan(moraleSources(T,mi));return (P.used.length?' Re-rolls: '+P.used.join(', ')+'.':'')+(P.notes.length?' '+P.notes.join('; ')+'.':'');})()+(mi.oblivious?' Oblivious: 1 wound per 2 failures.':'')+(mi.indom?` Indomitable (${mi.indom}).`:'')));
-      if(cb.mrolls){const dr=document.createElement('div');dr.className='drow';cb.mrolls.forEach(r=>dr.appendChild(dieMini(r.v,(r.pass?'hit':'miss')+(r.re?' re':''))));s3.appendChild(dr);}
+      if(cb.mrolls){const dr=document.createElement('div');dr.className='drow';cb.mrolls.forEach((r,ri)=>dr.appendChild(dieMini(r.v,(r.pass?'hit':'miss')+(r.re?' re':''),cb.uid+'m'+ri+'.'+r.v+(r.re?'r'+r.first:''))));s3.appendChild(dr);}
       if(cb.step==='mor')s3.appendChild(cbtn('Roll Morale ('+sT+')',()=>{rollMor(T);cb.step='done';renderCombat();},'T'));
       else s3.appendChild(ptext(cb.extra+(cb.extra===1?' extra wound':' extra wounds')+' from failed Morale','tot'));}
     body.appendChild(s3);}
   if(cb.step!=='done')return;
   const tot=(cb.wounds||0)+(cb.extra||0);cb.total=tot;if(cb.type==='freform'&&cb.mi&&cb.mi.auto)cb.extra=0;const lost=woundState(T,(T.wounds||0)+tot).lost-woundState(T).lost;
   const s4=stepBox('Result');s4.appendChild(ptext(`${T.short||T.name} takes ${tot} wound${tot===1?'':'s'}`+(lost?`, about ${lost} stand${lost>1?'s':''} removed`:'')+'.','tot'));
-  s4.appendChild(ptext('Recording saves every roll and the wounds to the board. Claude checks casualty removal and Broken.'));s4.appendChild(cbtn('Record result',recordCombat,'O'));body.appendChild(s4);}
+  s4.appendChild(ptext('Recording saves every roll and the wounds to the board. Claude checks casualty removal and Broken.'));s4.appendChild(cbtn(cb.inAct||cb.fromCharge?'Finish the '+({clash:'Clash',impact:'Charge',volley:'Volley'}[cb.type]||'action'):'Record result',recordCombat,'O'));body.appendChild(s4);}
 async function recordCombat(){if(!cb)return;if(cb.type==='duel')return recordDuel();const S={att:cb.att,tgt:cb.tgt,type:cb.type,groups:(cb.groups||[]).map(g=>({rolls:g.rolls})),mark:cb.mark,healFriend:cb.healFriend};const before=JSON.parse(JSON.stringify(base(cb.tgt)||{}));const c0=cb;await recordCombat0();if(cb===c0)return;try{await srAfterCombat(S,before);}catch(e){console.error(e);}try{await supAfterCombat(S,before);}catch(e){console.error(e);}}
 async function recordCombat0(){if(!db||!state){toast('The board is read-only in this view.');return;}if(PVP()&&cb&&cb.owner!==HU)return;
   if(cb.blessUsedA||cb.blessUsedT)state=Object.assign({},state,{units:state.units.map(u=>(u.id===cb.att&&cb.blessUsedA)||(u.id===cb.tgt&&cb.blessUsedT)?Object.assign({},u,{blessedR:state.round||1}):u)});
@@ -1950,7 +1978,7 @@ $('board').addEventListener('pointerdown',ev=>{
   const g=ev.target.closest('g[data-id]');if(!g){return;}
   const id=g.getAttribute('data-id');
   if(act&&act.cur&&act.cur.type==='charge'&&(act.cur.stage==='target'||act.cur.stage==='roll')){const t=byId(id);if(t&&t.side!==ME){selId=act.id;setChargeTarget(t);return;}}
-  if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){const t=byId(id);if(t&&t.side!==ME){const vw=volleyWhy(byId(act.id),t);if(vw){toast(vw);return;}selId=act.id;act.cur.stage='combat';act.cur.target=t.id;openCombat({type:'volley',att:act.id,tgt:t.id,inAct:true});render();return;}}
+  if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){const t=byId(id);if(t&&t.side!==ME){selId=act.id;act.cur.sel=t.id;render();const vw=volleyWhy(byId(act.id),t);if(vw)toast(vw);return;}}
   if(pick){const t=byId(id),a=byId(pick.att);if(t&&a&&t.side!==a.side){const p=pick;pick=null;openCombat({type:p.type,att:p.att,tgt:t.id,inAct:false});return;}}
   selId=id;rightTab='reg';
   if(SBX()&&!pick&&!cb&&!(act&&act.id===id)){const u=base(id);if(u&&u.onTable&&u.type!=='marker'){tfDrag={id,ox:ix(pt.x)-u.x,oy:iy(pt.y)-u.y,moved:false};$('board').setPointerCapture(ev.pointerId);return;}}
@@ -1989,7 +2017,7 @@ async function saveActivation(){
   await db.collection('events').doc('e'+Date.now()).set({at:Date.now(),side,unit:act.id,source:act.source,entering:act.entering,actions:act.actions,note,final:{x:u.x,y:u.y,facing:u.facing,files:G.files}});
   act=null;render();}
 $('end').onclick=async()=>{
-  if(!act)return;if(act.cur){toast('Finish or cancel the current action first.');return;}
+  if(!act)return;if(cb&&(cb.att===act.id||cb.tgt===act.id)){toast('Resolve the dice in the combat panel first.');return;}if(act.cur){toast('Finish or cancel the current action first.');return;}
   if(act.entering&&!act.placed){toast('Confirm the entry point first.');return;}
   if(!db){toast('The board is read-only in this view, so nothing was saved.');return;}
   $('end').disabled=true;
@@ -4174,9 +4202,9 @@ async function recordDuel(){if(!cb||cb.type!=='duel')return;const c0=cb,A=base(c
   if(inA&&act&&act.cur){act.cur.combat={type:'duel',text};finishAction();}else if(charDuel){await charCommit(A.id,{note:text});}else render();toast('Duel recorded.');}
 let lastDuelLine='';
 function duelRows(box,r,who,X,Y){const s=stepBox(who);if(!r){s.appendChild(ptext(X.name+' was slain before striking (Quicksilver Strike).'));box.appendChild(s);return;}
-  s.appendChild(ptext(`${X.name}: ${X.A} attacks, hits on ${r.hitOn} or less → ${r.hits} hit${r.hits===1?'':'s'}`,'gl'));const d1=document.createElement('div');d1.className='drow';r.rolls.forEach(q=>d1.appendChild(dieMini(q.v,(q.hit?'hit':'miss')+(q.re?' re':''))));s.appendChild(d1);
-  if(r.hits){s.appendChild(ptext(`${Y.name} saves on Defense ${r.D} or Evasion ${r.E} → ${r.wounds} wound${r.wounds===1?'':'s'}`,'gl'));const d2=document.createElement('div');d2.className='drow';r.drolls.forEach(q=>d2.appendChild(dieMini(q.v,(q.save?'hit':'miss')+(q.re?' re':''))));s.appendChild(d2);}
-  if(r.mrolls.length){s.appendChild(ptext(`${Y.name} tests Resolve ${r.R} → ${r.extra} more`,'gl'));const d3=document.createElement('div');d3.className='drow';r.mrolls.forEach(q=>d3.appendChild(dieMini(q.v,(q.pass?'hit':'miss')+(q.re?' re':''))));s.appendChild(d3);}
+  s.appendChild(ptext(`${X.name}: ${X.A} attacks, hits on ${r.hitOn} or less → ${r.hits} hit${r.hits===1?'':'s'}`,'gl'));const d1=document.createElement('div');d1.className='drow';r.rolls.forEach((q,qi)=>d1.appendChild(dieMini(q.v,(q.hit?'hit':'miss')+(q.re?' re':''),(cb&&cb.uid||'')+'D'+(r.who||Y.name)+(r.n||'')+'h'+qi+'.'+q.v+(q.re?'r':''))));s.appendChild(d1);
+  if(r.hits){s.appendChild(ptext(`${Y.name} saves on Defense ${r.D} or Evasion ${r.E} → ${r.wounds} wound${r.wounds===1?'':'s'}`,'gl'));const d2=document.createElement('div');d2.className='drow';r.drolls.forEach((q,qi)=>d2.appendChild(dieMini(q.v,(q.save?'hit':'miss')+(q.re?' re':''),(cb&&cb.uid||'')+'D'+(r.who||Y.name)+(r.n||'')+'d'+qi+'.'+q.v+(q.re?'r':''))));s.appendChild(d2);}
+  if(r.mrolls.length){s.appendChild(ptext(`${Y.name} tests Resolve ${r.R} → ${r.extra} more`,'gl'));const d3=document.createElement('div');d3.className='drow';r.mrolls.forEach((q,qi)=>d3.appendChild(dieMini(q.v,(q.pass?'hit':'miss')+(q.re?' re':''),(cb&&cb.uid||'')+'D'+(r.who||Y.name)+(r.n||'')+'m'+qi+'.'+q.v+(q.re?'r':''))));s.appendChild(d3);}
   r.notes.forEach(n=>s.appendChild(ptext(n)));s.appendChild(ptext(`${Y.name} suffers ${r.total} wound${r.total===1?'':'s'}`,'tot'));box.appendChild(s);}
 function renderDuel(body){const A=base(cb.att),T=base(cb.tgt),DA=duelist(A),DT=duelist(T);if(!DA||!DT){body.appendChild(ptext('One of the characters is no longer there.'));body.appendChild(cbtn('Close',()=>{cb=null;renderCombat();render();},'O'));return;}
   const sA=N(A.side),sT=N(T.side);body.appendChild(ptext(`${DA.name} (${sA}) challenges ${DT.name} (${sT}). Both strike at the same time${DA&&(rh(DA.rules,'Quicksilver Strike')||rh(DT.rules,'Quicksilver Strike'))?' (Quicksilver Strike strikes first)':''}; wounds only hit the characters. ${DA.name}: ${DA.W-DA.wounds}/${DA.W} wounds left · ${DT.name}: ${DT.W-DT.wounds}/${DT.W}.`));
