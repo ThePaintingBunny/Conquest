@@ -747,7 +747,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 15:23 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 15:26 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -4687,7 +4687,7 @@ function renderMenu(){const box=$('mm');if(!box||!state)return;const page=mmCurr
         const inp=bEl('input',{type:'text',className:'tf-in',placeholder:'Game code',maxLength:12});inp.setAttribute('aria-label','Game code from the host');const jb=bEl('button',{type:'button',className:'btn ghost',textContent:'Join',onclick:()=>n.join(inp.value)});jb.disabled=noName;r.append(inp,jb);c.append(r);inner.append(c);}
       else if(n&&n.mode&&n.mode!=='local'){const c=bEl('div',{className:'mm-net'});c.append(bEl('p',{className:'hint',textContent:(n.mode==='host'?'You are hosting. ':'Connected. ')+'Send your opponent the invite link, then both of you take a seat.'}));
         if(n.invite)c.append(bEl('button',{type:'button',className:'btn ghost',textContent:'Copy invite link',onclick:()=>n.invite()}));inner.append(c);}}
-    if(page==='multi')inner.append(lobbyBox());
+    if(page==='multi'){const n=mmNet(),online=n?(n.mode&&n.mode!=='local'):lobbyPeople().some(p=>!p.me&&(p.online||p.seat));if(online)inner.append(lobbyBox());}
     return;}
 }
 

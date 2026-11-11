@@ -4676,7 +4676,7 @@ function renderMenu(){const box=$('mm');if(!box||!state)return;const page=mmCurr
         const inp=bEl('input',{type:'text',className:'tf-in',placeholder:'Game code',maxLength:12});inp.setAttribute('aria-label','Game code from the host');const jb=bEl('button',{type:'button',className:'btn ghost',textContent:'Join',onclick:()=>n.join(inp.value)});jb.disabled=noName;r.append(inp,jb);c.append(r);inner.append(c);}
       else if(n&&n.mode&&n.mode!=='local'){const c=bEl('div',{className:'mm-net'});c.append(bEl('p',{className:'hint',textContent:(n.mode==='host'?'You are hosting. ':'Connected. ')+'Send your opponent the invite link, then both of you take a seat.'}));
         if(n.invite)c.append(bEl('button',{type:'button',className:'btn ghost',textContent:'Copy invite link',onclick:()=>n.invite()}));inner.append(c);}}
-    if(page==='multi')inner.append(lobbyBox());
+    if(page==='multi'){const n=mmNet(),online=n?(n.mode&&n.mode!=='local'):lobbyPeople().some(p=>!p.me&&(p.online||p.seat));if(online)inner.append(lobbyBox());}
     return;}
 }
 
