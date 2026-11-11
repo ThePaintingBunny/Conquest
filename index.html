@@ -28,6 +28,17 @@ h1{font-family:var(--display);font-size:28px;margin:0;text-wrap:balance}
 .pn-in{display:flex;align-items:center;gap:6px}.pn-in input{width:150px;min-width:0}
 .col-row{flex-basis:100%;width:100%;gap:18px}.col-pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0}.col-sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}.col-sw.on{outline:3px solid var(--gold);outline-offset:2px;border-color:#fff}.col-sw.taken{opacity:.25;cursor:not-allowed}.col-sw:disabled:not(.taken){cursor:default}
 .score{display:flex;gap:10px;font-family:var(--display);font-weight:700;font-size:18px}
+.od-trk{display:flex;flex-wrap:wrap;gap:8px;flex-basis:100%}.od-trk[hidden]{display:none}
+.odg{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--odc,#8C6BB1);border-radius:8px;padding:6px 10px;min-width:220px;flex:1 1 220px;max-width:340px;cursor:pointer;color:var(--ink);font:inherit;text-align:left}
+.odg.dark{--odc:#8C6BB1}.odg.pant{--odc:#C8A24A}
+.odg-n{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;min-width:1.6em;text-align:center;color:var(--odc);font-variant-numeric:tabular-nums}
+.odg-m{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.odg-l{font-size:13px;font-weight:600;display:flex;justify-content:space-between;gap:6px}.odg-l .odg-t{background:var(--odc);color:#1C1410;border-radius:4px;padding:0 6px;font-weight:700;font-size:12px}
+.odg-bar{position:relative;height:8px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}.odg-bar i{position:absolute;left:0;top:0;bottom:0;background:var(--odc);border-radius:4px}
+.odg-bar b{position:absolute;top:-1px;bottom:-1px;width:2px;background:rgba(0,0,0,.55)}
+.odg-s{font-size:12px;color:var(--muted)}.odg-who{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.rf-sec{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.rf-sec h3{margin:0 0 4px;font-size:16px}.rf-sec .drow{margin:6px 0}.rf-sec .md{width:38px;height:38px}
+.rf-sec .set-row{justify-content:flex-start;gap:10px;text-align:left}.rf-res{font-weight:700}.rf-res.ok{color:#7FC97F}.rf-res.no{color:#E57373}.rf-ul{margin:4px 0 0;padding-left:18px}.rf-ul li{margin:2px 0}
 .score span{padding:4px 12px;border-radius:8px;color:#fff;font-variant-numeric:tabular-nums}
 .score .cs{background:var(--cs)}.score .nord{background:var(--nord)}
 .main[hidden],.roster[hidden],.score[hidden],#last[hidden],#view-hint[hidden]{display:none!important}
@@ -668,7 +679,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <section class="ency" id="ency" hidden aria-label="Encyclopedia"><div class="en-head"><h2>Encyclopedia</h2><button type="button" class="btn ghost" id="en-close">Close</button></div><div class="en-facs" id="en-facs" role="group" aria-label="Faction"></div><div class="en-ctl"><input type="search" id="en-q" placeholder="Search every faction: a name, a rule like Impact or Fly…" aria-label="Search the encyclopedia"><div class="grp" role="group" aria-label="Show"><button type="button" data-k="all" aria-pressed="true">All</button><button type="button" data-k="char" aria-pressed="false">Characters</button><button type="button" data-k="reg" aria-pressed="false">Regiments</button></div></div><div id="en-info"></div><div class="en-grid" id="en-grid"></div></section><span id="ai-status" hidden></span>
   <section class="report" id="ai-report" hidden aria-live="polite"><div class="cb-head"><h2 id="air-title">Turn report</h2><button type="button" class="btn ghost" id="air-close">Close</button></div><div id="air-body"></div></section>
   <div class="main">
-    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false">📏 Ruler</button><span class="hint" id="tool-hint">Measure between two points, or tap two regiments for the closest distance.</span><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div></div><div class="mapbox"><button type="button" class="leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel">Legend</button><div class="leg-panel" id="leg-panel" hidden></div>
+    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false">📏 Ruler</button><span class="hint" id="tool-hint">Measure between two points, or tap two regiments for the closest distance.</span><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div><div class="od-trk" id="od-trk" hidden aria-label="Old Dominion Power tokens"></div></div><div class="mapbox"><button type="button" class="leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel">Legend</button><div class="leg-panel" id="leg-panel" hidden></div>
     <svg id="board" viewBox="150 0 544 400" role="img" aria-labelledby="mt"><title id="mt">Battlefield with terrain, objectives and regiments</title>
       <style>.grass{fill:#86A85E}.patch{fill:#739650}.tuft{stroke:#5F8443}
       @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .grass{fill:#4C6A36}:root:not([data-theme="light"]) .patch{fill:#425E2F}:root:not([data-theme="light"]) .tuft{stroke:#37502A}}
@@ -747,7 +758,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 19:36 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 19:42 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1774,7 +1785,7 @@ function render(){
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyNeeds(byId(act.id),ug);const ts=act.cur.sel&&byId(act.cur.sel);if(ts){drawVolleyLines(byId(act.id),ts,rg,arcingOn(byId(act.id)));const gs=ug.querySelector('g[data-id="'+ts.id+'"]');if(gs)gs.classList.add('vsel');}}catch(e){console.error(e);}}
   $('last').innerHTML='';const b=document.createElement('b');b.textContent=(state.lastTitle||'Last move')+': ';$('last').append(b,document.createTextNode(state.lastText||'No moves yet.'));
   renderArmies();
-  renderCard();try{renderFacBox();renderFrStrip();}catch(err){console.error(err);}try{renderMenu();renderPresence();presencePing();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
+  renderCard();try{renderFacBox();renderFrStrip();renderOdTrk();}catch(err){console.error(err);}try{renderMenu();renderPresence();presencePing();}catch(err){console.error(err);}renderFormation();renderCharPanel();drawRuler();renderTurnbar();renderLegend();pushLive();
   const held=!!PS().strategicHeld,used=PS().strategicUsedRound===state.round,notMine=PVP()&&(state.turn!==HU||!seatSide());
   {const ss=$('strat-btn').closest('.sec');if(ss)ss.hidden=SBX()||!canStrat(ME);}
   $('strat-read').textContent=held?'1 card held, face down':'Empty';
@@ -2552,27 +2563,49 @@ function reinfChoose(g,succ,side){return new Promise(res=>{bannerHide();let dg=$
   g.units.forEach(u=>{const l=document.createElement('label');l.className='set-row';const c=document.createElement('input');c.type='checkbox';c.onchange=()=>{if(c.checked){if(sel.size>=succ){c.checked=false;return;}sel.add(u);}else sel.delete(u);upd();};
     const t=document.createElement('span');t.textContent=(u.short||u.name)+' · '+(u.cls||'')+(u.charName?' · with '+u.charName:'')+(u.points?' · '+u.points+' pts':'');l.append(c,t);body.appendChild(l);});
   go.onclick=()=>{dg.close();res(g.units.filter(u=>sel.has(u)));};upd();body.appendChild(go);dg.appendChild(body);dg.showModal();});}
+/* Reinforcement Phase: one panel per army with the dice, what they needed, who arrives and why; it waits for the player */
+function reinfPanel(side,G,auto,noL,mine){return new Promise(done=>{bannerHide();let dg=$('rf-dlg');if(!dg){dg=document.createElement('dialog');dg.id='rf-dlg';dg.className='en-dlg set-dlg';dg.setAttribute('aria-labelledby','rf-h');document.body.appendChild(dg);dg.addEventListener('cancel',e=>e.preventDefault());}
+  const R=state.round||1;dg.innerHTML='';const head=bEl('div',{className:'en-head'});head.append(bEl('h2',{id:'rf-h',textContent:'Reinforcements · '+N(side)+' · Round '+R}));dg.append(head);
+  const body=bEl('div',{className:'set-body'});dg.append(body);const picks=new Map(),need=[];
+  body.append(ptext('Regiments in reserve roll one die each, by weight class. A die succeeds on the number shown or less; each success lets one regiment of that class arrive.'));
+  if(auto.length){const sec=bEl('div',{className:'rf-sec'});sec.append(bEl('h3',{textContent:'Arrive without a roll'}));const ul=bEl('ul',{className:'rf-ul'});auto.forEach(t=>ul.append(bEl('li',{textContent:t})));sec.append(ul);body.append(sec);}
+  G.forEach((g,gi)=>{const sec=bEl('div',{className:'rf-sec'}),n=g.units.length,succ=g.dice.filter(v=>v<=g.need).length;
+    sec.append(bEl('h3',{textContent:g.cls+' regiments ('+n+')'}));sec.append(ptext('Round '+R+': each die succeeds on '+g.need+' or less.'));
+    const dr=bEl('div',{className:'drow'});g.dice.forEach((v,i)=>dr.append(dieMini(v,v<=g.need?'hit':'miss','rf'+R+side+gi+'-'+i+'-'+v)));sec.append(dr);
+    g.notes.forEach(t=>sec.append(ptext(t)));
+    sec.append(bEl('p',{className:'rf-res '+(succ?'ok':'no'),textContent:succ+' of '+n+' succeed'+(succ>=n?': all arrive.':!succ?': none arrive this round.':': '+succ+' may arrive.')}));
+    const ul=bEl('ul',{className:'rf-ul'});
+    if(succ>=n||!succ){picks.set(g,succ?g.units.slice():[]);g.units.forEach(u=>ul.append(bEl('li',{textContent:(u.short||u.name)+(succ?' arrives':' stays in reserve')})));sec.append(ul);}
+    else if(mine){const sel=new Set();need.push(()=>sel.size===succ);sec.append(ptext('Choose the '+succ+' that arrive'+(succ===1?'s':'')+':'));
+      g.units.forEach(u=>{const l=bEl('label',{className:'set-row'});const c=bEl('input',{type:'checkbox'});c.onchange=()=>{if(c.checked){if(sel.size>=succ){c.checked=false;return;}sel.add(u);}else sel.delete(u);picks.set(g,g.units.filter(x=>sel.has(x)));upd();};
+        l.append(c,bEl('span',{textContent:(u.short||u.name)+' · '+(u.cls||'')+(u.charName?' · with '+u.charName:'')+(u.points?' · '+u.points+' pts':'')}));sec.append(l);});picks.set(g,[]);}
+    else{const pk=g.units.slice().sort((a,b)=>(+b.points||0)-(+a.points||0)).slice(0,succ);picks.set(g,pk);g.units.forEach(u=>ul.append(bEl('li',{textContent:(u.short||u.name)+(pk.includes(u)?' arrives (chosen)':' stays in reserve')})));sec.append(ul);}
+    body.append(sec);});
+  if(noL.length){const sec=bEl('div',{className:'rf-sec'});sec.append(bEl('h3',{textContent:'Cannot arrive yet'}));const ul=bEl('ul',{className:'rf-ul'});
+    noL.forEach(u=>ul.append(bEl('li',{textContent:(u.short||u.name)+' · '+(/Heavy/.test(u.cls||'')?'Heavy regiments cannot roll before round 3':'Medium regiments cannot roll before round 2')})));sec.append(ul);body.append(sec);}
+  const go=bEl('button',{type:'button',className:'btn'});const upd=()=>{const ok=need.every(f=>f());go.disabled=!ok;go.textContent=ok?'Continue':'Choose which regiments arrive';};
+  go.onclick=()=>{dg.close();done(picks);};upd();body.append(bEl('div',{className:'row'},[go]));dg.showModal();});}
 function reinfRule(cls,R){const c=/Light/.test(cls||'')?'L':/Heavy/.test(cls||'')?'H':'M';
   if(c==='L')return R>=3?'auto':'roll4';if(c==='M')return R<=1?'no':R===2?'roll2':R===3?'roll4':'auto';return R<=2?'no':R===3?'roll2':R===4?'roll4':'auto';}
 function reserves(side){return (state.units||[]).filter(u=>u.side===side&&!u.onTable&&!u.arriving&&!u.destroyed);}
 async function doReinforcements(humanAuto){const R=state.round,out=[];const units=(state.units||[]).map(u=>Object.assign({},u));
   if(R===1&&!PVP())units.forEach(u=>{if(u.side===AI&&privOk(u))u.cls=u.cls.replace(/Light/,'Medium');});
-  const roll=async(side,autoId)=>{const res=[],rollers=[];const pool=units.filter(u=>u.side===side&&!u.onTable&&!u.arriving&&!u.destroyed);const M=state.mm&&state.mm.r===R?state.mm:null,xId=M&&M.ans==='accept'?(M.pick||{})[side]:null;let rrL=M&&M.ans==='decline'&&M.by===side&&M.opt==='reroll'?1:0;
+  const roll=async(side,autoId)=>{const res=[],rollers=[],noL=[];const pool=units.filter(u=>u.side===side&&!u.onTable&&!u.arriving&&!u.destroyed);const M=state.mm&&state.mm.r===R?state.mm:null,xId=M&&M.ans==='accept'?(M.pick||{})[side]:null;let rrL=M&&M.ans==='decline'&&M.by===side&&M.opt==='reroll'?1:0;
     for(const u of pool){const rule=reinfRule(u.cls,R);if(rule!=='no'&&(hasRule(u,/^Flank/)||(u.char!=null&&(rh(chRulesX(u),'Forward Force')||supForwardForce(u))&&u.type!=='monster'))){u.arriving=true;res.push(u.name+' arrives (Flank: kept out of the roll)');continue;}if(u.arriving)continue;if(xId&&u.id===xId&&rule!=='no'){u.arriving=true;Object.assign(u,grantU(u,'Master Manipulator (Vanguard (3))',['Vanguard (3)']));res.push(u.name+' arrives (Master Manipulator, Vanguard (3))');continue;}if(u.id===autoId&&rule!=='no'){u.arriving=true;res.push(u.name+' arrives (chosen)');{const t2=supTactical(side,pool,autoId);if(t2){t2.arriving=true;res.push(t2.name+' arrives (Tactical Superiority)');}}if(rh(u.rules,'Tidal Summons')){const w=pool.find(x=>x!==u&&!x.arriving&&rh(x.rules,'Water Elemental')&&reinfRule(x.cls,R)!=='no');if(w){w.arriving=true;res.push(w.name+' arrives (Tidal Summons)');}}continue;}
-      if(rule==='auto'){u.arriving=true;res.push(u.name+' arrives automatically');continue;}if(rule==='no')continue;rollers.push(u);}
+      if(rule==='auto'){u.arriving=true;res.push(u.name+' arrives automatically');continue;}if(rule==='no'){noL.push(u);continue;}rollers.push(u);}
     /* each weight class rolls its dice together; the player then picks which regiments of that class arrive */
     const W=u=>/Light/.test(u.cls||'')?'Light':/Heavy/.test(u.cls||'')?'Heavy':'Medium';const groups={};
     rollers.forEach(u=>{const need=supReinfNeed(u,reinfRule(u.cls,R)==='roll4'?4:2),k=W(u)+'|'+need;(groups[k]=groups[k]||{cls:W(u),need,units:[],dice:[]}).units.push(u);});
     const G=Object.values(groups);
-    for(const g of G){g.dice=g.units.map(()=>d6());banner(N(side)+' reinforcements · '+g.cls+' ('+g.units.length+')',g.dice.map(v=>({v,cls:v<=g.need?'hit':'miss'})),'each die succeeds on '+g.need+' or less');await sleep(1400);}
-    if(rrL){const g=G.find(g=>g.dice.some(v=>v>g.need));if(g){const i=g.dice.findIndex(v=>v>g.need),v1=g.dice[i];g.dice[i]=d6();rrL=0;banner('Master Manipulator re-roll · '+g.cls,[{v:g.dice[i],cls:g.dice[i]<=g.need?'hit':'miss'}],'re-roll of '+v1);await sleep(1100);}}
+    for(const g of G){g.dice=g.units.map(()=>d6());g.first=g.dice.slice();g.notes=[];}
+    if(rrL){const g=G.find(g=>g.dice.some(v=>v>g.need));if(g){const i=g.dice.findIndex(v=>v>g.need),v1=g.dice[i];g.dice[i]=d6();rrL=0;g.notes.push('Master Manipulator re-rolled a '+v1+': now '+g.dice[i]+'.');}}
     if(supK(side)==='Infantry Tactics'&&!supMem(side).itUsed){const fails=G.reduce((a,g)=>a+g.dice.filter(v=>v>g.need).length,0);if(fails>=2||(fails&&R>=4)){state.sup=supMemo(side,{itUsed:true});res.push('Infantry Tactics: every failed Reinforcement Roll is re-rolled (once per game)');
-      for(const g of G){const ix=g.dice.map((v,i)=>v>g.need?i:-1).filter(i=>i>=0);if(!ix.length)continue;ix.forEach(i=>{g.dice[i]=d6();});banner('Infantry Tactics re-roll · '+g.cls,ix.map(i=>({v:g.dice[i],cls:g.dice[i]<=g.need?'hit':'miss'})),'needs '+g.need+' or less');await sleep(1100);}}}
+      for(const g of G){const ix=g.dice.map((v,i)=>v>g.need?i:-1).filter(i=>i>=0);if(!ix.length)continue;const was=ix.map(i=>g.dice[i]);ix.forEach(i=>{g.dice[i]=d6();});g.notes.push('Infantry Tactics re-rolled the failures ('+was.join(', ')+'): now '+ix.map(i=>g.dice[i]).join(', ')+'.');}}}
     bannerHide();
-    for(const g of G){const succ=g.dice.filter(v=>v<=g.need).length;let pick;
-      if(succ>=g.units.length)pick=g.units.slice();else if(!succ)pick=[];
-      else if((PVP()&&side===ME)||(!PVP()&&side===HU))pick=await reinfChoose(g,succ,side);
-      else pick=g.units.slice().sort((a,b)=>(+b.points||0)-(+a.points||0)).slice(0,succ);
+    const mine=(PVP()&&side===ME)||(!PVP()&&side===HU)||SBX();
+    const PK=(G.length||noL.length||res.length)?await reinfPanel(side,G,res.slice(),noL,mine):new Map();
+    for(const g of G){const succ=g.dice.filter(v=>v<=g.need).length;let pick=PK.get(g);
+      if(!pick){if(succ>=g.units.length)pick=g.units.slice();else if(!succ)pick=[];else pick=g.units.slice().sort((a,b)=>(+b.points||0)-(+a.points||0)).slice(0,succ);}
       res.push(g.cls+': rolled '+g.dice.join(', ')+' → '+succ+' of '+g.units.length+' arrive');
       g.units.forEach(u=>{if(pick.includes(u)){u.arriving=true;res.push(u.name+' arrives');}else res.push(u.name+' stays back');});}
     supAfterReinf(side,units,res);
@@ -3410,6 +3443,21 @@ function memOf(u){if(frFac(u)!=='Old Dominion')return null;const e=frEncy(u);con
 function odPts(side){if(SBX())return 2000;const L=state.setup&&state.setup[side];const n=(L&&+L.points)||(state.units||[]).filter(u=>u.side===side).reduce((a,u)=>a+(+u.points||0),0);return n>=500?n:2000;}
 function odTier(side,pool){const g=frG(side,'od'),n=+g[pool]||0,s=Math.trunc((odPts(side)-2000)/250)*2,wl=(state.units||[]).find(u=>u.side===side&&u.warlord);
   const t4ok=pool==='dark'&&wl&&/Xhiliarch|Mounted Strategos/.test(wl.charName||'');if(t4ok&&n>=23+s)return 4;return n>=18+s?3:n>=9+s?2:1;}
+function odThr(side){const s=Math.trunc((odPts(side)-2000)/250)*2;return [9+s,18+s,23+s];}
+function odT4ok(side){const wl=(state.units||[]).find(u=>u.side===side&&u.warlord);return !!(wl&&/Xhiliarch|Mounted Strategos/.test(wl.charName||''));}
+const ROMAN=['','I','II','III','IV'];
+/* a token gauge: count, tier, and how far to the next tier */
+function odGauge(side,pool,who){const n=+frG(side,'od')[pool]||0,t=odTier(side,pool),th=odThr(side),maxT=pool==='dark'&&odT4ok(side)?4:3,top=th[maxT-2]+2;
+  const nextAt=t<maxT?th[t-1]:null,name=pool==='dark'?'Dark Power':'Fallen Pantheon';
+  const b=bEl('button',{type:'button',className:'odg '+pool});b.title='Open the Faction rules panel to change the tokens';b.setAttribute('aria-label',(who?who+': ':'')+name+' '+n+' tokens, Tier '+ROMAN[t]+(nextAt!=null?', '+(nextAt-n)+' more to Tier '+ROMAN[t+1]:''));
+  const bar=bEl('div',{className:'odg-bar'});const fill=bEl('i');fill.style.width=Math.min(100,n/top*100)+'%';bar.append(fill);th.slice(0,maxT-1).forEach(v=>{const m=bEl('b');m.style.left=Math.min(100,v/top*100)+'%';bar.append(m);});
+  b.append(bEl('span',{className:'odg-n',textContent:String(n)}),bEl('span',{className:'odg-m'},[who?bEl('span',{className:'odg-who',textContent:who}):null,bEl('span',{className:'odg-l'},[bEl('span',{textContent:name}),bEl('span',{className:'odg-t',textContent:'Tier '+ROMAN[t]})].filter(Boolean)),bar,
+    bEl('span',{className:'odg-s',textContent:nextAt!=null?(nextAt-n)+' more to Tier '+ROMAN[t+1]+' (at '+nextAt+')':'Highest tier reached'})].filter(Boolean)));
+  b.onclick=()=>{frOpen=true;renderTurnbar();const d=document.querySelector('#turnbar .fr-panel');if(d)d.scrollIntoView({block:'nearest',behavior:'smooth'});};return b;}
+function renderOdTrk(){const el=$('od-trk');if(!el)return;el.innerHTML='';if(!state||['setup','review'].includes(state.step||'')){el.hidden=true;return;}
+  const sides=SBX()?['cs','nord']:PVP()?[ME,other(ME)]:[HU,AI];
+  sides.forEach(side=>{if(!frFacs(side).includes('Old Dominion'))return;const who=SBX()?(side==='cs'?'South':'North'):side===ME?(PN(side)||'You'):(PN(side)||N(side));el.append(odGauge(side,'dark',who),odGauge(side,'pant',who));});
+  el.hidden=!el.children.length;}
 function odLost(side){return (state.units||[]).filter(u=>u.side===side&&u.type!=='marker'&&animate(u)).reduce((a,u)=>a+(u.destroyed?(u.stands||0):Math.max(0,(u.stands||0)-live(u))),0);}
 /* Dweghom */
 function dwCreed(side){const g=frG(side,'dw');if(g.creed)return g.creed;const wl=(state.units||[]).find(u=>u.side===side&&u.warlord);const w=wl&&wl.charName||'';
@@ -3493,7 +3541,7 @@ function tfSeeds(u,d){return putState({units:state.units.map(x=>x.id===u.id?Obje
 
 /* always-visible summary of faction tokens and trackers */
 function frSummary(side,f){const g=k=>frG(side,k);
-  if(f==='Old Dominion'){const o=g('od');return ['Dark Power '+(+o.dark||0)+' · Tier '+odTier(side,'dark'),'Fallen Pantheon '+(+o.pant||0)+' · Tier '+odTier(side,'pant')];}
+  if(f==='Old Dominion'){const o=g('od');return ['Dark Power: '+(+o.dark||0)+' tokens (Tier '+ROMAN[odTier(side,'dark')]+')','Fallen Pantheon: '+(+o.pant||0)+' tokens (Tier '+ROMAN[odTier(side,'pant')]+')'];}
   if(f==='Nords'){const o=g('no');return ['Tribal Tactic: '+(o.round===(state.round||1)?o.tactic+' (this round)':o.used?'used':'available')];}
   if(f==="W'adrhŭn"){const o=g('wa');return ['Chant: '+((o.seq||[]).join(', ')||'no markers')+' ('+(o.seq||[]).length+'/3)'];}
   if(f==='Sorcerer Kings'){const o=g('sk');return [o.ritual?'Ritual: '+o.ritual+' '+(+o.rm||0)+'/'+(o.th||7):'No Ritual being prepared'];}
@@ -3522,7 +3570,8 @@ function frBlock(side,f,mine){const box=bEl('div',{className:'fr-blk'}),R=state.
   if(f==='City States'){const eid=(state.units||[]).filter(u=>u.side===side&&srAlive(u)&&/Eidolon/.test(u.charName||''));eid.forEach(u=>{const cur=cdirOf(u);box.append(frRow('Combat Directive · '+(u.short||u.name)+':',...Object.keys(CDIR).map(k=>{const b=abBtn(k,()=>cdirSet(u.id,k),'ab-tog'+(cur===k?' on':''));b.disabled=!!cur;return b;})));});
     if(!canStrat(side))return eid.length?lock(box):null;box.append(ptext('Strategic Stack and Direct Orders are applied automatically: hold a card face down once per round, and Entourage activations count as Strategic Stack activations (Inspired).'));return box;}
   if(f==='Old Dominion'){const g=frG(side,'od'),tD=odTier(side,'dark'),tP=odTier(side,'pant'),s=Math.trunc((odPts(side)-2000)/250)*2;
-    box.append(frRow('Dark Power '+(+g.dark||0)+' · Tier '+tD,frStep(side,'od','dark',+g.dark||0,0,40,'Dark Power tokens')),frRow('Fallen Pantheon '+(+g.pant||0)+' · Tier '+tP,frStep(side,'od','pant',+g.pant||0,0,40,'Fallen Pantheon tokens')));
+    {const gg=bEl('div',{className:'od-trk'});const a=odGauge(side,'dark'),b2=odGauge(side,'pant');a.onclick=b2.onclick=null;gg.append(a,b2);box.append(gg);}
+    box.append(frRow('Change Dark Power tokens:',frStep(side,'od','dark',+g.dark||0,0,40,'Dark Power tokens')),frRow('Change Fallen Pantheon tokens:',frStep(side,'od','pant',+g.pant||0,0,40,'Fallen Pantheon tokens')));
     box.append(ptext('Tiers at '+(odPts(side))+' points: II from '+(9+s)+', III from '+(18+s)+', IV from '+(23+s)+' (Dark Power IV only with Obdurate Bone and Stone or Glimmers of a Golden Age).'));
     if(g.soma!==R)box.append(frRow('Blasphemous Soma, round '+R+':',abBtn('+1 Dark Power',()=>frSet(side,'od',{dark:(+g.dark||0)+1,soma:R}),'ab-tog'),abBtn('+1 Fallen Pantheon',()=>frSet(side,'od',{pant:(+g.pant||0)+1,soma:R}),'ab-tog')));
     odPendingBox(side,box,g,mine);
