@@ -679,7 +679,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 08:04 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 08:42 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -3749,6 +3749,32 @@ function rlCompute(side,units,startV){const ok=u=>u.onTable&&!u.destroyed&&u.typ
   for(const {u,v} of L){const crossed=!rh(u.rules||[],'Pathfinders')&&en.some(e=>corners(e).some(p=>cs?p[1]>v+1e-6:p[1]<v-1e-6));if(!crossed){line=v;break;}}
   if(startV!=null)line=cs?Math.max(line,startV):Math.min(line,startV);return +Math.max(0,Math.min(48,line)).toFixed(2);}
 /* ---- state sanity on every save: cannot-be-Broken, first-time triggers, Reinforcement Lines ---- */
+/* casualties come off the back: keep the front edge where it was, then "Press the Attack" with any regiment the losses left stranded */
+function contactKeep(old,st){if(!old||!Array.isArray(old.units)||old===st)return;
+  const O=new Map(old.units.map(u=>[u.id,u])),onT=u=>!!u&&u.onTable&&!u.destroyed&&u.type!=='marker';
+  const same=(a,b)=>a.x===b.x&&a.y===b.y&&(a.facing||0)===(b.facing||0);
+  const posed=u=>act&&act.id===u.id&&act.pose?Object.assign({},u,act.pose):u;
+  const fwd=fc=>{const a=(fc||0)*Math.PI/180;return [Math.sin(a),Math.cos(a)];};
+  const shrunk=new Set();
+  st.units=st.units.map(u=>{const o=O.get(u.id);if(!onT(u)||!onT(o)||!same(u,o)||(u.files||1)!==(o.files||1))return u;
+    const n0=live(o),n1=live(u);if(n0===n1)return u;if(n1<n0)shrunk.add(u.id);
+    const k=(geom(o).d-geom(u).d)/2;if(Math.abs(k)<1e-9)return u;const f=fwd(u.facing);
+    if(act&&act.id===u.id&&act.pose&&act.pose.x!=null){const fp=fwd(act.pose.facing!=null?act.pose.facing:u.facing);act.pose.x+=fp[0]*k;act.pose.y+=fp[1]*k;}
+    return Object.assign({},u,{x:u.x+f[0]*k,y:u.y+f[1]*k});});
+  if(!shrunk.size)return;
+  const P=st.units,byI=new Map(P.map(u=>[u.id,u]));
+  const near=(a,list)=>list.filter(e=>onT(e)&&e.side!==a.side&&polyDist(corners(posed(a)),corners(posed(e)))<=0.3);
+  const prevEng=new Map();old.units.forEach(o=>{if(onT(o))prevEng.set(o.id,near(o,old.units).map(e=>e.id));});
+  for(let i=0;i<P.length;i++){const u=P[i],o=O.get(u.id);if(!onT(u)||!onT(o)||!same(u,o))continue;
+    const was=(prevEng.get(u.id)||[]).map(id=>byI.get(id)).filter(e=>onT(e));if(!was.length||!was.some(e=>shrunk.has(e.id)))continue;
+    if(near(u,P).length)continue;
+    for(const E of was.filter(e=>shrunk.has(e.id))){const U=posed(u),cp=closestPts(corners(U),corners(posed(E)));if(!cp||!(cp[0]>0.3)||cp[0]>8)continue;
+      const s2=(cp[0]-0.1)/cp[0],dx=(cp[2][0]-cp[1][0])*s2,dy=(cp[2][1]-cp[1][1])*s2,moved=Object.assign({},U,{x:U.x+dx,y:U.y+dy});
+      if(P.some(x=>x.id!==u.id&&onT(x)&&polyDist(corners(moved),corners(posed(x)))<=0.01))continue;
+      if(act&&act.id===u.id&&act.pose&&act.pose.x!=null){act.pose.x+=dx;act.pose.y+=dy;}
+      P[i]=Object.assign({},u,{x:u.x+dx,y:u.y+dy});byI.set(u.id,P[i]);
+      st.pressNote=(st.pressNote||[]).concat([(u.short||u.name)+' presses the attack on '+(E.short||E.name)+' ('+Math.round(cp[0]*10)/10+'″)']);break;}}
+  if(st.pressNote&&st.pressNote.length){const t=st.pressNote.join('; ');delete st.pressNote;setTimeout(()=>toast('Press the Attack: '+t+'.'),60);}}
 function sanitize(st){if(!st||!Array.isArray(st.units)||st.mode==='test'&&false)return st;const keep=state;state=st;
   try{supParagon(st);st.units=st.units.map(u=>{if(u.type==='marker')return u;let y=u;
       if((y.effects||[]).includes('Broken')&&(rh(y.rules,'In the Fold')&&srAllMods(y,/Origami/)||rh(y.rules,'Life for Glory')||hasGrant(y,'Awakened')||srHas(y,/^Cannot be Broken/)))y=Object.assign({},y,{effects:y.effects.filter(e=>e!=='Broken')});
@@ -3758,6 +3784,7 @@ function sanitize(st){if(!st||!Array.isArray(st.units)||st.mode==='test'&&false)
       if(y.onTable&&!y.destroyed&&itemFlag(y,'awake')&&!hasGrant(y,'Awakened'))y=grantU(y,'Awakened',awakenRules(y));
       if(rh(y.rules,'Gorged')&&!y.gorged){if((y.wounds||0)>0&&!y.wasHurt)y=Object.assign({},y,{wasHurt:true});else if(y.wasHurt&&(y.wounds||0)===0&&!y.destroyed)y=Object.assign({},y,{gorged:true});}
       return y;});
+    try{contactKeep(keep,st);}catch(e){console.error(e);}
     if(st.rlStart&&st.mode!=='test'&&['activations','picks','choose','supdecl','supremacy'].includes(st.step||'activations'))st.rl={cs:rlCompute('cs',st.units,st.rlStart.cs),nord:rlCompute('nord',st.units,st.rlStart.nord)};}
   catch(e){}finally{state=keep;}return st;}
 /* ---- extra regiment actions: extra Clash, free Volley, On Soaring Winds, Sweeping Step, Rooted Might ---- */
@@ -3833,7 +3860,7 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);try{await supOnAwaken(u);}catch(e){}if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,corners,polyDist,geom,live,lostOf,contactKeep,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
