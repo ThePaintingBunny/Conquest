@@ -1006,14 +1006,14 @@ function availableActions(u){
   const can=(type,why)=>out.push({type,why});
   const repeatOk=t=>t==='march'||t==='reform';
   const blocked=t=>{if(act.chargeFailed)return'The failed Charge ended this activation';if(act.occupyT||act.leaveT)return'Moving in or out of a building ends the activation';if(act.cur)return'Finish the current action first';if(cap)return'No actions left';if(firstMust&&t!=='march')return'An arriving regiment must March first';if(last&&last.type===t&&!repeatOk(t))return'Already used this activation';if(used.some(a=>a.type===t)&&!repeatOk(t))return'Already used this activation';return'';};
-  if(u.garrison){if(!eng.length&&(hasRule(u,/^Barrage/)||modHas(u,/^Barrage/))){can('volley',blocked('volley'));can('aim',aimWhy(u)||blocked('aim'));}if(eng.length)can('clash',blocked('clash'));if(!animate(u))can('inspire',inspWhy(u)||blocked('inspire'));
+  if(u.garrison){if(!eng.length&&(hasBarrage(u))){can('volley',blocked('volley'));can('aim',aimWhy(u)||blocked('aim'));}if(eng.length)can('clash',blocked('clash'));if(!animate(u))can('inspire',inspWhy(u)||blocked('inspire'));
     can('leave',used.length?'Leaving takes both actions: do it as the first action':broken?'':blocked('leave'));return out;}
   if(!eng.length&&!arrive&&tGarrisonNear(u).length)can('occupy',blocked('occupy'));
   if(!eng.length){
     can('march',blocked('march'));
     can('charge',arrive?'No Charge in the round a regiment arrives':blocked('charge'));
     can('reform',blocked('reform'));
-    if(hasRule(u,/^Barrage/)||modHas(u,/^Barrage/)){can('volley',blocked('volley'));can('aim',aimWhy(u)||blocked('aim'));}
+    if(hasBarrage(u)){can('volley',blocked('volley'));can('aim',aimWhy(u)||blocked('aim'));}
     if(broken)can('rally',blocked('rally'));
   }else{
     can('clash',blocked('clash'));can('creform',blocked('creform'));if(!animate(u))can('inspire',inspWhy(u)||blocked('inspire'));
@@ -1461,7 +1461,7 @@ function baseRules(u){const T=new Set();(u.temp||[]).forEach(g=>(g.rules||[]).fo
 function effStats(u){const S=u.stats||{},e=Object.assign({},S),why={};const p=prof(u,'reg');
   e.M=(+u.m||+S.M||0)+srMarchMod(u);if(e.M!==+baseStats(u).M)why.M='March changes this round';
   const hc=hitMods(u,p,'clash',null);e.C=hc.hitOn;why.C=hc.reroll6?'re-rolls failed 6s (bonus above 5)':(fxHas(u,/Inspired/)?'Inspired':'');
-  if(hasRule(u,/^Barrage/)||modHas(u,/^Barrage/)){const hv=hitMods(u,p,'volley',null);e.V=hv.hitOn;}
+  if(hasBarrage(u)){const hv=hitMods(u,p,'volley',null);e.V=hv.hitOn;}
   e.A=p.A;const mi=moraleInfo(u,u);e.R=mi.auto?'–':mi.R;why.R=mi.auto?'never tests':'includes its size'+(u.charName?' and the character’s Resolve':'');
   let D=+S.D||0;const rr=RU(u);if(rh(rr,'Shield')&&!u.garrison)D+=1;if(phalanx(u))D+=1;const bas=drawVal(u,/^Bastion\s*\((\d+)\)/);if(bas)D+=bas;e.D=D;if(D!==(+S.D||0))why.D='from the front'+(bas?', with Bastion':'');
   let Ev=supEvasion(u,+S.E||0);if(fxHas(u,/^Coils of the Serpent/)&&Ev<2)Ev+=1;e.E=Ev;e._why=why;return e;}
@@ -1748,7 +1748,7 @@ function volleyStands(A,T){const vr=volleyRange(A);if(!vr||!A||!T)return [];cons
   const TS=standsOf(T),others=all().filter(o=>o.onTable&&!o.destroyed&&o.id!==A.id&&o.id!==T.id&&o.type!=='marker'&&uSize(o)>=need).map(o=>({n:o.short||o.name,P:corners(o)}));
   const terr=terrainOf().filter(t=>(tHas(t,'Obstructing')||tHas(t,'Garrison'))&&tInfo(t).size>=need&&!A.garrison);
   const samples=[];TS.forEach(s=>{const P=s.poly;for(let i=0;i<4;i++){const a=P[i],b=P[(i+1)%4];for(let k=0;k<4;k++)samples.push([a[0]+(b[0]-a[0])*k/4,a[1]+(b[1]-a[1])*k/4]);}samples.push([(P[0][0]+P[2][0])/2,(P[0][1]+P[2][1])/2]);});
-  return volleyShooters(A,T).map(({s,f0})=>{const p=prof(A,s.kind,s.mod);if(!rx(p.rules,'Barrage')&&!rx(RU(A),'Barrage'))return {s,tok:s.tok,none:true,inRange:false,clear:false};
+  return volleyShooters(A,T).map(({s,f0})=>{const p=prof(A,s.kind,s.mod),pb=barrageOf(p.rules);if(!pb)return {s,tok:s.tok,none:true,inRange:false,clear:false};const R=rangeAdj(A,pb.range);
     let d=1e9,q0=null;TS.forEach(ts=>{const r=ptPoly(f0,ts.poly);if(r[0]<d){d=r[0];q0=r[1];}});
     const pts=[q0].concat(samples).filter(q=>q&&Math.hypot(q[0]-f0[0],q[1]-f0[1])<=R+1e-6&&volleyArcOk(A,q));
     const inRange=pts.length>0;let clear=false,blocker='',best=null;
@@ -2146,7 +2146,12 @@ function resolvePoint(spec){if(spec&&typeof spec==='object'&&isFinite(+spec.x)&&
   const z=zonesOf().find(z=>z.name.toLowerCase()===zn.toLowerCase());if(z)return {x:z.x,y:z.y,kind:'zone'};return null;}
 function seizeVal(u){if((u.effects||[]).includes('Broken'))return 0;if((u.abilities||[]).some(a=>/Brazen Race/.test(a[0])))return 6;if(frBase(u)==='Tontorr')return 6;if(u.type==='monster')return 3;if(/Light/.test(u.cls||''))return 0;return 1;}
 function inZone(poly,z){return inside([z.x,z.y],poly)||poly.some((p,i)=>segDist([z.x,z.y],p,poly[(i+1)%poly.length])<z.r-1e-6);}
-function volleyRange(u){const m=(u.rules||[]).concat(u.modProfiles?Object.values(u.modProfiles).flatMap(x=>x.rules||[]):[]).join(', ').match(/Barrage\s*\((\d+)\)\s*\(?\s*(\d+)/);return m?{shots:+m[1],range:(+m[2]+srRangeBonus(u))*(['cs','nord'].some(s=>supAct(s,'Skývald')&&supOf(s).choice==='Niflmire')?0.5:1)}:null;}
+/* Barrage of one profile, and of the regiment: any stand with Barrage (regiment, its character, auxiliary or modular stands) lets it Volley */
+function barrageOf(rules){const m=(rules||[]).join(', ').match(/Barrage\s*\((\d+)\)\s*\(?\s*(\d+)/);return m?{shots:+m[1],range:+m[2]}:null;}
+function rangeAdj(u,r){return (r+srRangeBonus(u))*(['cs','nord'].some(s=>supAct(s,'Skývald')&&supOf(s).choice==='Niflmire')?0.5:1);}
+function volleyRange(u){if(!u)return null;const P=[u.rules||[]];if(u.modProfiles)Object.values(u.modProfiles).forEach(x=>P.push(x.rules||[]));if(u.charName)P.push(chRulesX(u));if(u.aux!=null&&u.auxRules&&!auxDead(u))P.push(u.auxRules);
+  let best=null;P.forEach(r=>{const b=barrageOf(r);if(b&&(!best||b.range>best.range))best=b;});return best?{shots:best.shots,range:rangeAdj(u,best.range)}:null;}
+function hasBarrage(u){return !!volleyRange(u);}
 /* can this regiment Volley at that target: some stand within Barrage range and the target in its front arc */
 function volleyWhy(A,T){const vr=volleyRange(A);if(!vr)return 'It has no Barrage.';if(!standsOf(A).some(st=>polyDist(st.poly,corners(T))<=vr.range+1e-6))return (T.short||T.name)+' is out of range (Barrage range '+vr.range+'″ from its stands).';if(!frontArcHas(A,T))return (T.short||T.name)+' is not in its front arc.';
   const VS=volleyStands(A,T);if(!VS.some(v=>v.inRange))return (T.short||T.name)+' is out of range of every stand in its firing line (Barrage range '+vr.range+'″).';
@@ -4007,7 +4012,7 @@ function sanitize(st){if(!st||!Array.isArray(st.units)||st.mode==='test'&&false)
     if(st.rlStart&&st.mode!=='test'&&['activations','picks','choose','supdecl','supremacy'].includes(st.step||'activations'))st.rl={cs:rlCompute('cs',st.units,st.rlStart.cs),nord:rlCompute('nord',st.units,st.rlStart.nord)};}
   catch(e){}finally{state=keep;}return st;}
 /* ---- extra regiment actions: extra Clash, free Volley, On Soaring Winds, Sweeping Step, Rooted Might ---- */
-function srActions(u,out,used,eng,blocked){if(!act||act.cur)return;const R=RU(u),bar=hasRule(u,/^Barrage/)||modHas(u,/^Barrage/);
+function srActions(u,out,used,eng,blocked){if(!act||act.cur)return;const R=RU(u),bar=hasBarrage(u);
   if(act.sweepDone){out.length=0;return;}
   if(eng.length&&srHas(u,/^Raging Elements/)&&used.some(a=>a.type==='clash')&&!act.actions.some(a=>a.type==='xclash'))out.push({type:'xclash',why:'',free:true});
   const fv=bar&&!act.actions.some(a=>a.type==='xvolley')&&(act.freeVolley||(rh(R,'Spined Descent'))||(rh(R,'Eye of the Storm')&&srAirNow(u.side)));
@@ -4079,7 +4084,7 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);try{await supOnAwaken(u);}catch(e){}if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,volleyStands,volleyWhy,buildGroups,qaList,qaSpecOf,qaClean,tfRebuild,standsOf,render:()=>render(),planCharge,chargeFaces,placeCharge,corners,polyDist,geom,live,lostOf,contactKeep,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,volleyRange,buildUnits,ENCY:()=>ENCY,rx,rh,RU,volleyArcSpan,volleyStands,volleyWhy,buildGroups,qaList,qaSpecOf,qaClean,tfRebuild,standsOf,render:()=>render(),planCharge,chargeFaces,placeCharge,corners,polyDist,geom,live,lostOf,contactKeep,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
