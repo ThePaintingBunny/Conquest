@@ -995,17 +995,17 @@ function availableActions(u){
   const can=(type,why)=>out.push({type,why});
   const repeatOk=t=>t==='march'||t==='reform';
   const blocked=t=>{if(act.chargeFailed)return'The failed Charge ended this activation';if(act.occupyT||act.leaveT)return'Moving in or out of a building ends the activation';if(act.cur)return'Finish the current action first';if(cap)return'No actions left';if(firstMust&&t!=='march')return'An arriving regiment must March first';if(last&&last.type===t&&!repeatOk(t))return'Already used this activation';if(used.some(a=>a.type===t)&&!repeatOk(t))return'Already used this activation';return'';};
-  if(u.garrison){if(!eng.length&&(hasRule(u,/^Barrage/)||modHas(u,/^Barrage/))){can('volley',blocked('volley'));can('aim',blocked('aim'));}if(eng.length)can('clash',blocked('clash'));if(!animate(u))can('inspire',blocked('inspire'));
+  if(u.garrison){if(!eng.length&&(hasRule(u,/^Barrage/)||modHas(u,/^Barrage/))){can('volley',blocked('volley'));can('aim',aimWhy(u)||blocked('aim'));}if(eng.length)can('clash',blocked('clash'));if(!animate(u))can('inspire',inspWhy(u)||blocked('inspire'));
     can('leave',used.length?'Leaving takes both actions: do it as the first action':broken?'':blocked('leave'));return out;}
   if(!eng.length&&!arrive&&tGarrisonNear(u).length)can('occupy',blocked('occupy'));
   if(!eng.length){
     can('march',blocked('march'));
     can('charge',arrive?'No Charge in the round a regiment arrives':blocked('charge'));
     can('reform',blocked('reform'));
-    if(hasRule(u,/^Barrage/)||modHas(u,/^Barrage/)){can('volley',blocked('volley'));can('aim',blocked('aim'));}
+    if(hasRule(u,/^Barrage/)||modHas(u,/^Barrage/)){can('volley',blocked('volley'));can('aim',aimWhy(u)||blocked('aim'));}
     if(broken)can('rally',blocked('rally'));
   }else{
-    can('clash',blocked('clash'));can('creform',blocked('creform'));if(!animate(u))can('inspire',blocked('inspire'));
+    can('clash',blocked('clash'));can('creform',blocked('creform'));if(!animate(u))can('inspire',inspWhy(u)||blocked('inspire'));
     if(/Light|Medium/.test(u.cls||''))can('withdraw',blocked('withdraw'));
     if(broken)can('crally',blocked('crally'));
   }
@@ -1581,6 +1581,9 @@ function standsOf(u){const G=geom(u),a=(u.facing||0)*Math.PI/180,f=[Math.sin(a),
   return out;}
 function supportLost(u){if(rh(RU(u),'Iron Discipline'))return false;return engaged(u).some(e=>arcOf(u,[e.x,e.y])!=='front');}
 function hasImpact(u){if(!u||rh(RU(u),'Loose Formation'))return false;if(u.modProfiles&&Object.values(u.modProfiles).some(m=>rx(m.rules,'Impact')>0))return true;return rx(u.rules,'Impact')>0||(u.aux!=null&&rx(u.auxRules,'Impact')>0)||(u.char!=null&&rx(u.charRules,'Impact')>0);}
+function alwaysAim(u){const R=RU(u);return rh(R,'Deadshot')||rh(R,'Deadshots')||rh(R,'Aimed Shot');}
+function aimWhy(u){const R=RU(u);return rh(R,'Deadshot')||rh(R,'Deadshots')?'Always aiming (Deadshot)':rh(R,'Aimed Shot')?'Already aiming (Aimed Shot)':'';}
+function inspWhy(u){if(act&&act.id===u.id&&act.actions.some(a=>a.type==='inspire'))return '';return fxHas(u,/^Inspired/)||rh(u.rules||[],'Inspired')?'Already Inspired':'';}
 function hitMods(A,p,type,T){let base=type==='volley'?p.V:p.C,r6=false;const inFront=T&&cArcU(T,A)==='front',pike=T&&rh(RU(T),'Pike Formation')&&inFront&&fxHas(A,/charged/);
   if(type==='clash'&&T&&rh(RU(T),'Disruptive')&&inFront)base-=1;
   if(type==='clash'&&(tWater(A)||srClashWater(A)))base=Math.max(1,base-1);
@@ -1591,7 +1594,7 @@ function hitMods(A,p,type,T){let base=type==='volley'?p.V:p.C,r6=false;const inF
   if((type==='clash'||type==='impact')&&!pike&&rh((A.rules||[]).concat(fx(A)),'Shock')&&(type==='impact'||fxHas(A,/charged/)))base+=1;
   const prey=!!(T&&supPrey(A.side)&&supPrey(A.side).id===T.id);
   if(type==='clash'){const dread=engaged(A).some(e=>rh(RU(e),'Dread')||(e.char!=null&&rh(e.charRules,'Dread')));if((fxHas(A,/Inspired/)||prey)&&!fxHas(A,/^Hindered/)&&!fxHas(A,/^Refused a Duel/)&&!fxHas(A,/^Dissonance \(no Inspiration/)&&!fxHas(A,/Siphon Strength|Bane of Deeds/)&&!pike&&!rh(A.rules,'Automaton')&&!(A.effects||[]).includes('Broken')&&!dread){if(base+1>=5)r6=true;else base+=1;}}
-  if(type==='volley'){const aim=(act&&act.id===A.id&&act.actions.some(a=>a.type==='aim'))||rh(p.rules,'Deadshot')||rh(RU(A),'Aimed Shot')||prey;if(aim){if(base+1>=5)r6=true;else base+=1;}}
+  if(type==='volley'){const aim=(act&&act.id===A.id&&act.actions.some(a=>a.type==='aim'))||rh(p.rules,'Deadshot')||rh(p.rules,'Deadshots')||alwaysAim(A)||prey;if(aim){if(base+1>=5)r6=true;else base+=1;}}
   return {hitOn:Math.max(1,Math.min(6,base)),reroll6:r6};}
 function buildGroups(type,A,T){const st=standsOf(A),Tc=corners(T),groups={},sup=supportLost(A)?1:(rx(RU(A),'Support')||1);
   const tArc=cArcU(T,A),side=tArc==='left'||tArc==='right'||tArc==='rear',big=T.type==='monster'||T.type==='brute';
@@ -1618,7 +1621,7 @@ function moraleInfo(T,A){const s=T.stats||{},R0=s.R,broken=(T.effects||[]).inclu
   let R=+R0||0;const cR=T.charName?(+chStatsX(T).R||0):0;if(!broken&&!rh(T.charRules||[],'Refined Beyond Nature')&&!fxHas(T,/^Refused a Duel/))R=Math.max(R,cR);if(fxHas(T,/^Refused a Duel/)&&cR)R=Math.min(R,cR);const n=live(T),bonus=broken?0:(n>=10?3:n>=7?2:n>=4?1:0);R+=bonus+(fxHas(T,/^Cheerful/)?1:0)+(fxHas(T,/^Conviction/)&&R<4?1:0);
   const self=A&&A.id===T.id;const terr=(self||rh(RU(T),'Fearless')||rh(RU(T),'Bravery'))?0:Math.max(rx((A.rules||[]).concat(fx(A)),'Terrifying'),animate(A)?1:0,(rh(RU(A),'Wrathful Momentum')&&uSize(T)===1)?1:0,(cb&&cb.type==='clash'&&rh(RU(A),'Endless Hunger')&&uSize(T)<uSize(A))?2:0,(cb&&cb.type==='impact'&&fxHas(A,/^Glorious Charge/))?1:0);R-=terr;const arc0=self?'front':cArcU(T,A);if(phalanx(T)&&arc0==='front')R+=1;
   return {auto,R,bonus,terr,iron:rh(RU(T),'Iron Discipline'),arc:arc0,oblivious:rh(RU(T),'Oblivious'),indom:rx((T.rules||[]).concat(fx(T)),'Indomitable')};}
-function openCombat(o){setTimeout(()=>{const c=$('combat');if(c&&!c.hidden)try{c.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}},120);if(o&&o.type==='volley'&&o.tgt&&o.att){const T0=byId(o.tgt),A0=byId(o.att);if(T0&&A0&&fx(T0).some(x=>/^Prowling/.test(x))&&polyDist(corners(A0),corners(T0))>=8){toast('That regiment is Prowling: it cannot be seen from 8″ or more.');return;}}cb=Object.assign({step:'att',groups:null,cover:false,owner:HU},o);if(cb.type==='volley'&&cb.tgt&&rh((byId(cb.tgt)||{}).rules||[],'Loose Formation'))cb.cover=true;if(cb.type==='volley'&&cb.tgt&&cb.att){const cv=tCover(byId(cb.att),byId(cb.tgt));if(cv){cb.cover=true;cb.coverWhy=cv;}const lo=tLos(byId(cb.att),byId(cb.tgt),true);if(lo){const AA=byId(cb.att);if(rh(RU(AA),'Arcing Fire')&&!AA.garrison&&((act&&act.id===AA.id&&act.actions.some(a=>a.type==='aim'))||rh(RU(AA),'Aimed Shot'))){cb.arcing=true;setTimeout(()=>toast('Arcing Fire: no clear shot, so it fires at −1 Volley (a friendly regiment must see the target).'),30);}else setTimeout(()=>toast('Check Line of Sight: '+lo+' is in the way.'),30);}}if(cb.type==='freform'){cb.hits=0;cb.wounds=cb.preWounds;cb.step=cb.noMorale?'done':'mor';cb.extra=0;cb.groups=[];}else if(cb.type==='lethal'){cb.hits=cb.lethalHits;cb.step='def';cb.groups=[{label:cb.lethalLabel||'Lethal Demise',n:cb.lethalHits,nUse:cb.lethalHits,hits:cb.lethalHits,ones:0,red:cb.lethalRed||0,rolls:null}];}else if(cb.tgt)cb.groups=buildGroups(cb.type,byId(cb.att),byId(cb.tgt));renderCombat();renderCard();maybeAutoAI();try{$('combat').scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}}
+function openCombat(o){setTimeout(()=>{const c=$('combat');if(c&&!c.hidden)try{c.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}},120);if(o&&o.type==='volley'&&o.tgt&&o.att){const T0=byId(o.tgt),A0=byId(o.att);if(T0&&A0&&fx(T0).some(x=>/^Prowling/.test(x))&&polyDist(corners(A0),corners(T0))>=8){toast('That regiment is Prowling: it cannot be seen from 8″ or more.');return;}}cb=Object.assign({step:'att',groups:null,cover:false,owner:HU},o);if(cb.type==='volley'&&cb.tgt&&rh((byId(cb.tgt)||{}).rules||[],'Loose Formation'))cb.cover=true;if(cb.type==='volley'&&cb.tgt&&cb.att){const cv=tCover(byId(cb.att),byId(cb.tgt));if(cv){cb.cover=true;cb.coverWhy=cv;}const lo=tLos(byId(cb.att),byId(cb.tgt),true);if(lo){const AA=byId(cb.att);if(rh(RU(AA),'Arcing Fire')&&!AA.garrison&&((act&&act.id===AA.id&&act.actions.some(a=>a.type==='aim'))||alwaysAim(AA))){cb.arcing=true;setTimeout(()=>toast('Arcing Fire: no clear shot, so it fires at −1 Volley (a friendly regiment must see the target).'),30);}else setTimeout(()=>toast('Check Line of Sight: '+lo+' is in the way.'),30);}}if(cb.type==='freform'){cb.hits=0;cb.wounds=cb.preWounds;cb.step=cb.noMorale?'done':'mor';cb.extra=0;cb.groups=[];}else if(cb.type==='lethal'){cb.hits=cb.lethalHits;cb.step='def';cb.groups=[{label:cb.lethalLabel||'Lethal Demise',n:cb.lethalHits,nUse:cb.lethalHits,hits:cb.lethalHits,ones:0,red:cb.lethalRed||0,rolls:null}];}else if(cb.tgt)cb.groups=buildGroups(cb.type,byId(cb.att),byId(cb.tgt));renderCombat();renderCard();maybeAutoAI();try{$('combat').scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}}
 function maybeAutoAI(){if(PVP())return;if(cb&&!aiBusy&&!autoRunning){const A=base(cb.att);if(A&&A.side===AI&&cb.tgt){setTimeout(async()=>{if(autoRunning||aiBusy||!cb)return;autoRunning=true;try{await autoResolve();}finally{autoRunning=false;}},400);}}}
 let autoRunning=false;
 function closeCombat(){if(PVP()&&cb&&cb.owner!==HU)return;if(cb&&cb.inAct&&act&&act.cur&&(act.cur.type==='clash'||act.cur.type==='volley'))act.cur=null;cb=null;renderCombat();render();}
@@ -2140,7 +2143,7 @@ async function aiCast(id,spellName,targetId){const u=byId(id),sp=(u.spells||[]).
   return `the ${u.charName} casts ${sp.name} on ${T.short||T.name}: ${won?'it works':'it fails'}`;}
 /* ---------- planning ---------- */
 function heuristicPlan(u){const plan=[];if(!u.onTable){plan.push({do:'enter',edge:'own',at:36});const z=zoneControl().find(z=>z.holder!==AI)||zonesOf()[0];plan.push({do:'march',toward:'zone:'+z.name});plan.push({do:'march',toward:'zone:'+z.name});return plan;}
-  const eng=engaged(u);if(eng.length){plan.push({do:'inspire'},{do:'clash',target:eng[0].id});return plan;}
+  const eng=engaged(u);if(eng.length){if(!inspWhy(u))plan.push({do:'inspire'});plan.push({do:'clash',target:eng[0].id});return plan;}
   const o=optionsFor(u),ch=(o.enemies||[]).filter(e=>e.chargeNeedsRoll!=null&&e.chargeNeedsRoll<=4).sort((a,b)=>a.chargeNeedsRoll-b.chargeNeedsRoll)[0];
   if(ch&&!(u.arrivedRound===state.round)){plan.push({do:'charge',target:ch.id});return plan;}
   const near=(o.enemies||[]).sort((a,b)=>a.distance-b.distance)[0];if(near&&near.distance<=(u.m||0)*2+6){plan.push({do:'march',toward:'unit:'+near.id});const c2=near.distance-(u.m||0);if(c2<=(u.m||0)+3)plan.push({do:'charge',target:near.id});else plan.push({do:'march',toward:'unit:'+near.id});return plan;}
@@ -3819,7 +3822,7 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);try{await supOnAwaken(u);}catch(e){}if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
