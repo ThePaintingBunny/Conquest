@@ -3445,7 +3445,7 @@ function frPatch(side,k,p){const fr=JSON.parse(JSON.stringify(state.fr||{}));fr[
 function frSet(side,k,p,extra){return putState(Object.assign({fr:frPatch(side,k,p)},extra||{}));}
 function canStrat(side){const a=(state.army&&state.army[side])||[];if(a.length)return a.some(x=>/Strategic Stack/.test(x));return facOf(N(side))==='City States';}
 function directOrders(side){const a=(state.army&&state.army[side])||[];if(a.length)return a.some(x=>/Direct Orders/.test(x));return facOf(N(side))==='City States';}
-function noEntourage(u){return (frFac(u)==='Yoroni'&&!upgOf(u,/Purification Rites/))||srHas(u,/^Primal Cacophony/);}
+function noEntourage(u){return (frFac(u)==='Yoroni'&&!upgOf(u,/Purification Rites/))||srHas(u,/^Primal Cacophony/)||srHas(u,/Honor, a Void of Self/);}
 function stratU(u){return canStrat(u.side)&&(!u.fac||u.fac==='City States');}
 function ordersU(u){return directOrders(u.side)&&(!u.fac||u.fac==='City States');}
 /* temporary rules and stat changes that last until the end of the round */
