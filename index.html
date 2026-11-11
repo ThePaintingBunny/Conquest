@@ -648,6 +648,12 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
 .nb-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;background:#6B7178}.nb-dot.on{background:#5FBF77;box-shadow:0 0 6px #5FBF77}.nb-dot.off{background:#6B7178}
 .mm-name .pn-in{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.mm-name input{min-width:240px}
 .pres{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);padding:4px 10px;border:1px solid var(--edge);border-radius:999px}
+
+.tools .hint{flex:1 1 200px;min-width:0}
+.tools .score{margin-left:auto;flex:none;font-size:15px;align-items:center;gap:8px}
+.tools .score span{padding:3px 10px}
+.tools .score .vp-r{background:none;color:var(--muted);box-shadow:none;clip-path:none;font-family:inherit;font-weight:600;font-size:13px;padding:0 2px}
+.tools .score .vp-r:empty{display:none}
 </style>
 <style>.fan-note{max-width:1240px;margin:24px auto 32px;font-size:13px;color:var(--muted)}.fan-note a{color:inherit}</style>
 </head>
@@ -655,14 +661,14 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
 <div class="wrap">
   <div class="top">
     <div><h1>Vale of Banners</h1><div class="phase" id="phase">Waiting for the game state…</div><div class="fr-strip" id="fr-strip" hidden></div></div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" id="mm-open" title="Menu">☰ Menu</button><button type="button" class="btn ghost" id="en-open" aria-expanded="false">Encyclopedia</button><button type="button" class="btn ghost" id="set-open" aria-haspopup="dialog" title="Settings">⚙ Settings</button><span class="pres" id="pres" hidden></span><div class="score" aria-label="Victory points"><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" id="mm-open" title="Menu">☰ Menu</button><button type="button" class="btn ghost" id="en-open" aria-expanded="false">Encyclopedia</button><button type="button" class="btn ghost" id="set-open" aria-haspopup="dialog" title="Settings">⚙ Settings</button><span class="pres" id="pres" hidden></span></div>
   </div>
   <section class="mm" id="mm" hidden aria-label="Menu"></section>
   <div class="turnbar" id="turnbar" aria-live="polite"></div>
   <section class="ency" id="ency" hidden aria-label="Encyclopedia"><div class="en-head"><h2>Encyclopedia</h2><button type="button" class="btn ghost" id="en-close">Close</button></div><div class="en-facs" id="en-facs" role="group" aria-label="Faction"></div><div class="en-ctl"><input type="search" id="en-q" placeholder="Search every faction: a name, a rule like Impact or Fly…" aria-label="Search the encyclopedia"><div class="grp" role="group" aria-label="Show"><button type="button" data-k="all" aria-pressed="true">All</button><button type="button" data-k="char" aria-pressed="false">Characters</button><button type="button" data-k="reg" aria-pressed="false">Regiments</button></div></div><div id="en-info"></div><div class="en-grid" id="en-grid"></div></section><span id="ai-status" hidden></span>
   <section class="report" id="ai-report" hidden aria-live="polite"><div class="cb-head"><h2 id="air-title">Turn report</h2><button type="button" class="btn ghost" id="air-close">Close</button></div><div id="air-body"></div></section>
   <div class="main">
-    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false">📏 Ruler</button><span class="hint" id="tool-hint">Measure between two points, or tap two regiments for the closest distance.</span></div><div class="mapbox"><button type="button" class="leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel">Legend</button><div class="leg-panel" id="leg-panel" hidden></div>
+    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false">📏 Ruler</button><span class="hint" id="tool-hint">Measure between two points, or tap two regiments for the closest distance.</span><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div></div><div class="mapbox"><button type="button" class="leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel">Legend</button><div class="leg-panel" id="leg-panel" hidden></div>
     <svg id="board" viewBox="150 0 544 400" role="img" aria-labelledby="mt"><title id="mt">Battlefield with terrain, objectives and regiments</title>
       <style>.grass{fill:#86A85E}.patch{fill:#739650}.tuft{stroke:#5F8443}
       @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .grass{fill:#4C6A36}:root:not([data-theme="light"]) .patch{fill:#425E2F}:root:not([data-theme="light"]) .tuft{stroke:#37502A}}
@@ -741,7 +747,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 15:18 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-11 15:23 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1746,7 +1752,7 @@ function renderArmies(){
 function render(){
   if(!state)return;applyColors();bldUse(SBX()?'test':'main');if(SBX()){state.strategicHeld=true;}{const su=state.step==='setup';['.main','.roster','#view-hint','#last','.score'].forEach(q=>{const e=document.querySelector(q);if(e)e.hidden=su;});}drawTerrain();drawZones();
   $('phase').textContent=state.phase||'';
-  $('vp-cs').textContent=(PN('cs')?PN('cs')+' · ':'')+N('cs')+' '+(state.vp?.cs??0);$('vp-nord').textContent=(PN('nord')?PN('nord')+' · ':'')+N('nord')+' '+(state.vp?.nord??0);$('h-cs').textContent=WHO('cs');$('h-nord').textContent=WHO('nord');$('combat').classList.toggle('busy',aiBusy);
+  {const r=$('vp-round');if(r)r.textContent=SBX()?'Test field':(state.round?'Round '+state.round+(state.maxRounds?' of '+state.maxRounds:''):'');}$('vp-cs').textContent=(PN('cs')?PN('cs')+' · ':'')+N('cs')+' '+(state.vp?.cs??0);$('vp-nord').textContent=(PN('nord')?PN('nord')+' · ':'')+N('nord')+' '+(state.vp?.nord??0);$('h-cs').textContent=WHO('cs');$('h-nord').textContent=WHO('nord');$('combat').classList.toggle('busy',aiBusy);
   const ug=$('units'),mg=$('moves'),rg=$('rings');ug.innerHTML='';mg.innerHTML='';rg.innerHTML='';
   (state.moves||[]).forEach(m=>{const p=m.path||[];if(p.length<2)return;
     el('polyline',{points:p.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#F3E6C4','stroke-width':2,'stroke-dasharray':'5 4','marker-end':'url(#ah)',opacity:.75},mg);});
