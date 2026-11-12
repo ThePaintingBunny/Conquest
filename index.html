@@ -759,7 +759,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-11 22:12 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-12 06:31 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -985,7 +985,10 @@ function removalSeq(u){const rt=regTot(u),out=[];if(Array.isArray(u.order)){u.or
   if(!Array.isArray(u.order)){const FS=u.slotBase&&u.slotFiles?{slots:u.slotBase,files:u.slotFiles}:fullSlots(u),F=Math.max(1,FS.files||u.files||1),rk=[];for(let k=0;k<FS.slots.length;k+=F)rk.push(FS.slots.slice(k,k+F));
     /* rear rank first; within a rank work in from the ends so the survivors stay side by side */
     const ok=t=>t&&/^r\d+$/.test(t)&&t!=='r0'&&+t.slice(1)<rt;
-    rk.reverse().forEach(row=>{let a=row.filter(Boolean);while(a.length){const R=a[a.length-1],L=a[0];let t;if(ok(R))t=a.pop();else if(ok(L))t=a.shift();else{let j=-1;for(let m=a.length-1;m>=0;m--)if(ok(a[m])){j=m;break;}if(j<0)break;t=a.splice(j,1)[0];}const i=+t.slice(1);if(!out.includes(i))out.push(i);}});}
+    /* core rules: rearmost rank first; in it, the stand furthest from the Command Stand, alternating ends, the centre-most last */
+    const cmdCol=Math.max(0,FS.slots.indexOf('r0'))%F;let last=0;
+    rk.reverse().forEach(row=>{let cand=row.map((t,c)=>({t,c})).filter(o=>ok(o.t));while(cand.length){const md=Math.max(...cand.map(o=>Math.abs(o.c-cmdCol))),tied=cand.filter(o=>Math.abs(o.c-cmdCol)===md);
+      const pick=tied.length>1?(tied.find(o=>Math.sign(o.c-cmdCol)===-last)||tied[tied.length-1]):tied[0];last=Math.sign(pick.c-cmdCol)||last;cand=cand.filter(o=>o!==pick);const i=+pick.t.slice(1);if(!out.includes(i))out.push(i);}});}
   for(let i=rt-1;i>=1;i--)if(!out.includes(i))out.unshift(i);out.push(0);return out;}
 /* full-strength positions of every stand (command stand centre front, then the character, then the auxiliary) */
 function fullSlots(u){const rt=regTot(u),all=[];for(let i=0;i<rt;i++)all.push('r'+i);if(u.aux!=null&&u.auxStats)all.push('a');if(u.char!=null)all.push('c');const N0=all.length,fF=Math.max(1,Math.min(u.files||1,N0));
@@ -1299,7 +1302,7 @@ function chargeRollBtn(label,go,need){const b=document.createElement('button');b
 function resolveCharge(roll,reroll){const u=byId(act.id),c=act.cur;c.roll=roll;if(reroll)c.rerolled=true;
   const tg=byId(c.target);if(tg&&fxHas(tg,/^Whispered Illusion: Phantom Onslaught/)&&!c.wi){const mi=moraleInfo(u,u),v=d6();c.wi={v,R:mi.R,pass:mi.auto||v<=mi.R};toast('Phantom Onslaught: Resolve test '+v+' against '+mi.R+(c.wi.pass?' passed: −1″ Charge Distance.':' failed: no Shock and −2 Impact this round.'));if(!c.wi.pass&&!act.extraFx.includes('Phantom Onslaught (no Shock, Impact −2)'))act.extraFx.push('Phantom Onslaught (no Shock, Impact −2)');}
   const f=chargeFixed(u);const cd=(u.m||0)+(f!=null?f:roll+srChargeBonus(u,byId(c.target)))+(c.pu?2:0)-(c.wi&&c.wi.pass?1:0);c.cd=cd;
-  if(cd>=c.dist-1e-6){c.success=true;if(placeCharge()){c.stage='adjust';if(!aiBusy){c.animating=true;animateCharge(c.plan).then(()=>{c.animating=false;if(act&&act.cur===c)finishAction();else render();});}}else c.stage='blocked';}
+  if(cd>=c.dist-1e-6){c.success=true;if(placeCharge()){c.stage='adjust';if(!aiBusy&&(PVP()||SBX()||base(act.id).side!==AI)){const pl=c.plan;c.alts=(pl.alts&&pl.alts.length?pl.alts:[pl]);c.altI=Math.max(0,c.alts.indexOf(pl));c.stage='place';Object.assign(act.pose,{x:pl.start.x,y:pl.start.y,facing:pl.start.facing});act.tgtPose=null;render();return;}if(!aiBusy){c.animating=true;animateCharge(c.plan).then(()=>{c.animating=false;if(act&&act.cur===c)finishAction();else render();});}}else c.stage='blocked';}
   else if((hasRule(u,/Unstoppable/)||u.bearer)&&!c.rerolled&&chargeFixed(u)==null&&!noChargeReroll(u)){c.stage='reroll';}
   else failCharge();
   render();}
@@ -1380,7 +1383,11 @@ function planCharge(u0,t,cd){const u=Object.assign({},u0),start={x:u.x,y:u.y,fac
     for(let k=0;k<=Math.max(1,Math.ceil(Math.abs(c.dl)/2));k++){const P=PU(rotAbout(c.P2,c.pv,c.dl*k/Math.max(1,Math.ceil(Math.abs(c.dl)/2))));if(k&&polyOverlap(P,T))return 'the target';const b=block(P,false);if(b)return (window.__chgDbg?'D:':'')+b;}
     return block(PU(c.P3),true);};
   if(window.__chgDbg)window.__chgDbg.push({n:cands.length,top:cands.slice(0,400).map(c=>[c.th,c.sc.pairs,+c.s.toFixed(2),legal(c)])});
-  for(const c of cands){const r=legal(c);if(!r)return {ok:true,start,face:c.face,F:c.F,th:c.th,dir:c.dir,P1:c.P1,P2:c.P2,P3:c.P3,s:c.s,pv:c.pv,dl:c.dl,pairs:c.sc.pairs};why.push(r);}
+  {let first=null;const alts=[],seen=new Set();let ev=0;
+   for(const c of cands){if(first&&c.sc.pairs<first.pairs)break;const off=(c.P3.x-c.F.e[0])*c.F.along[0]+(c.P3.y-c.F.e[1])*c.F.along[1],key=c.face+':'+Math.round(off/0.25);
+     if(first&&(seen.has(key)||++ev>80))continue;const r=legal(c);if(r){if(!first)why.push(r);continue;}seen.add(key);
+     const o={ok:true,start,face:c.face,F:c.F,th:c.th,dir:c.dir,P1:c.P1,P2:c.P2,P3:c.P3,s:c.s,pv:c.pv,dl:c.dl,pairs:c.sc.pairs,off};if(!first)first=o;alts.push(o);}
+   if(first){alts.sort((a,b)=>a.face===b.face?a.off-b.off:(a.face<b.face?-1:1));first.alts=alts;return first;}}
   /* the charger cannot close the door: the target pivots instead, if it is not engaged */
   if(!engaged(t).filter(e=>e.id!==u.id).length&&t.type!=='marker')for(const c of cands){let r=sweep(k=>PU(c.th?wheelPose(start,u,c.dir,Math.abs(c.th)*k):start),Math.max(1,Math.ceil(Math.abs(c.th)/2)));
     if(!r){const a=c.P1.facing*Math.PI/180,f=[Math.sin(a),Math.cos(a)];r=sweep(k=>PU(Object.assign({},c.P1,{x:c.P1.x+f[0]*c.s*k,y:c.P1.y+f[1]*c.s*k})),Math.max(1,Math.ceil(c.s/0.25)));}
@@ -1391,6 +1398,13 @@ function planCharge(u0,t,cd){const u=Object.assign({},u0),start={x:u.x,y:u.y,fac
     return {ok:true,start,face:c.face,F:F2,th:c.th,dir:c.dir,P1:c.P1,P2:c.P2,P3,s:c.s,pv:c.pv,dl:0,tgtPose:{x:TF.x,y:TF.y,facing:TF.facing},pairs:c.sc.pairs};}
   const w=why.filter(Boolean);return {ok:false,start,why:w.length?[...new Set(w)].slice(0,2).join(' and '):(cands.length?'':'no straight Charge Move reaches the '+faces.join(' or ')+' within '+cd+'″')};}
 /* play the Charge Move: wheel, straight move, close the door */
+async function chargeGo(){const c=act.cur;if(!c||c.stage!=='place')return;const pl=c.alts[c.altI]||c.plan;c.plan=pl;Object.assign(c,{face:pl.face,e:pl.F.e,n:pl.F.n,along:pl.F.along,half:pl.F.half});act.tgtPose=null;
+  c.stage='adjust';c.animating=true;render();animateCharge(pl).then(()=>{c.animating=false;if(act&&act.cur===c)finishAction();else render();});}
+function drawChargeGhost(g){const c=act.cur,pl=c.alts[c.altI]||c.plan;if(!pl)return;const u0=base(act.id);
+  const pts=[[pl.start.x,pl.start.y],[pl.P1.x,pl.P1.y],[pl.P2.x,pl.P2.y],[pl.P3.x,pl.P3.y]];el('polyline',{points:pts.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#FFE58A','stroke-width':2,'stroke-dasharray':'5 4',opacity:.9},g);
+  c.alts.forEach((a,i)=>{if(i===c.altI)return;el('circle',{cx:px(a.P3.x),cy:py(a.P3.y),r:3,fill:'#FFE58A',opacity:.45},g);});
+  standsOf(Object.assign({},u0,{x:pl.P3.x,y:pl.P3.y,facing:pl.P3.facing})).forEach(s=>el('polygon',{points:s.poly.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:COL[u0.side]?COL[u0.side].fill:'#888','fill-opacity':.35,stroke:'#FFE58A','stroke-width':1.4,'stroke-dasharray':'3 2'},g));
+  if(pl.tgtPose){const t=base(c.target);if(t)standsOf(Object.assign({},t,pl.tgtPose)).forEach(s=>el('polygon',{points:s.poly.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#FFFFFF','stroke-width':1.2,'stroke-dasharray':'3 2',opacity:.8},g));}}
 async function animateCharge(pl){const u=byId(act.id);Object.assign(act.pose,{x:pl.start.x,y:pl.start.y,facing:pl.start.facing});
   if(pl.th)await frames(Math.round(250+350*Math.abs(pl.th)/90),e=>{const p=wheelPose(pl.start,u,pl.dir,Math.abs(pl.th)*e);Object.assign(act.pose,{x:p.x,y:p.y,facing:p.facing});});
   {const a=pl.P1.facing*Math.PI/180,f=[Math.sin(a),Math.cos(a)];await frames(Math.round(Math.min(1400,250+110*pl.s)),e=>{Object.assign(act.pose,{x:pl.P1.x+f[0]*pl.s*e,y:pl.P1.y+f[1]*pl.s*e,facing:pl.P1.facing});});}
@@ -1750,10 +1764,17 @@ function renderCard(){
     if(c.stage==='adjust'){const pl=c.plan||{};const steps=[];if(pl.th)steps.push('wheels '+Math.abs(pl.th)+'° '+pl.dir);if(pl.s!=null)steps.push('moves '+pl.s.toFixed(1)+'″ straight in');if(pl.tgtPose)steps.push('cannot close the door, so '+(t.short||t.name)+' pivots to face it');else if(pl.dl)steps.push('closes the door '+Math.abs(Math.round(pl.dl))+'°');
        $('c-cur-read').textContent=c.animating?'Charging…':pl.ok?`Charge succeeds: ${c.roll?c.roll+' + ':''}${M}${jug?' + 5':''} = ${c.cd}″ against ${c.dist.toFixed(1)}″. It ${steps.join(', ')} into the target’s ${c.face}${pl.pairs?', with '+pl.pairs+' stand contact'+(pl.pairs===1?'':'s'):''}. This is the legal Charge with the most contact. The Impact Attacks follow; the Charge is finished once they are resolved.`:`Charge succeeds. Placed by hand flush with the target’s ${c.face}: drag along the face if needed, then press Confirm position. The Impact Attacks follow.`;
        if(c.animating)$('done-act').hidden=true;}
+    if(c.stage==='place'){const pl=c.alts[c.altI]||c.plan,n=c.alts.length;const steps=[];if(pl.th)steps.push('wheels '+Math.abs(pl.th)+'° '+pl.dir);if(pl.s!=null)steps.push('moves '+pl.s.toFixed(1)+'″ straight in');if(pl.tgtPose)steps.push((t.short||t.name)+' pivots to face it');else if(pl.dl)steps.push('closes the door '+Math.abs(Math.round(pl.dl))+'°');
+      $('c-cur-read').textContent=`Charge succeeds: ${c.roll?c.roll+' + ':''}${M}${jug?' + 5':''} = ${c.cd}″ against ${c.dist.toFixed(1)}″. The see-through regiment shows where it will end: it ${steps.join(', ')} into the ${c.face}${pl.pairs?', '+pl.pairs+' stand contact'+(pl.pairs===1?'':'s'):''}.`+(n>1?` ${n} end positions give this most contact; choose one (the dots mark the others).`:'');$('done-act').hidden=true;
+      if(n>1){const r=document.createElement('div');r.className='row';const lab=document.createElement('span');lab.className='hint';lab.textContent='End position '+(c.altI+1)+' of '+n;
+        const pv=document.createElement('button');pv.type='button';pv.className='btn ghost';pv.textContent='◀';pv.setAttribute('aria-label','Previous end position');pv.onclick=()=>{c.altI=(c.altI-1+n)%n;render();};
+        const nx=document.createElement('button');nx.type='button';nx.className='btn ghost';nx.textContent='▶';nx.setAttribute('aria-label','Next end position');nx.onclick=()=>{c.altI=(c.altI+1)%n;render();};
+        const sl=document.createElement('input');sl.type='range';sl.min=0;sl.max=n-1;sl.value=c.altI;sl.setAttribute('aria-label','End position along the enemy');sl.oninput=()=>{c.altI=+sl.value;render();};r.append(pv,sl,nx,lab);chg.appendChild(r);}
+      const go=document.createElement('button');go.type='button';go.className='btn';go.textContent='Charge!';go.onclick=chargeGo;chg.appendChild(go);}
     if(c.stage==='blocked'){const pl=c.plan||{};$('c-cur-read').textContent=`The Charge Roll is enough (${c.cd}″ against ${c.dist.toFixed(1)}″), but there is no legal Charge Move into ${t.short||t.name}`+(pl.why?': it is blocked by '+pl.why:'')+'. Under the rules the Charge fails: it moves straight forward the Charge Roll and halts 1″ from enemies.';$('done-act').hidden=true;
        const b1=document.createElement('button');b1.type='button';b1.className='btn';b1.textContent='Charge fails';b1.onclick=()=>{failCharge();render();};chg.appendChild(b1);
        const b2=document.createElement('button');b2.type='button';b2.className='btn ghost';b2.textContent='Place it by hand instead';b2.onclick=()=>{placeChargeFlush();c.stage='adjust';c.plan=null;render();toast('Placed flush with the target. Drag along the face if needed, then press Confirm position.');};chg.appendChild(b2);}
-    $('cancel-act').hidden=c.stage==='adjust'||c.stage==='blocked';
+    $('cancel-act').hidden=c.stage==='adjust'||c.stage==='blocked'||c.stage==='place';
   }else{$('cancel-act').hidden=false;}
   if(c&&c.type==='cast'){$('c-ctl').hidden=true;$('done-act').hidden=true;}
   if(c&&c.type==='volley'&&c.stage==='target'&&(rh(RU(u),'Arcing Fire')||(u.charName&&rh(chRulesX(u),'Arcing Fire')))){const w=arcingWhy(u),b=document.createElement('button');b.type='button';b.className='btn'+(c.arcing?'':' ghost');b.setAttribute('aria-pressed',String(!!c.arcing));
@@ -1821,6 +1842,7 @@ function render(){
   if(act&&act.actions.length){const pts=[[act.actions[0].from.x,act.actions[0].from.y]].concat(act.actions.map(a=>[a.to.x,a.to.y]));el('polyline',{points:pts.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#E8C65A','stroke-width':1.6,'stroke-dasharray':'4 3'},rg);}
   all().filter(u=>u.onTable).forEach(u=>drawUnit(u,ug));
   if(act&&act.cur&&act.cur.type==='charge'&&act.cur.stage==='target'){try{drawChargeNeeds(byId(act.id),ug);}catch(e){console.error(e);}}
+  if(act&&act.cur&&act.cur.type==='charge'&&act.cur.stage==='place'){try{drawChargeGhost(ug);}catch(e){console.error(e);}}
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyNeeds(byId(act.id),ug);const ts=act.cur.sel&&byId(act.cur.sel);if(ts){drawVolleyLines(byId(act.id),ts,rg,arcingOn(byId(act.id)));const gs=ug.querySelector('g[data-id="'+ts.id+'"]');if(gs)gs.classList.add('vsel');}}catch(e){console.error(e);}}
   $('last').innerHTML='';const b=document.createElement('b');b.textContent=(state.lastTitle||'Last move')+': ';$('last').append(b,document.createTextNode(state.lastText||'No moves yet.'));
   renderArmies();
