@@ -1832,6 +1832,10 @@ function render(){
   all().filter(u=>u.onTable).forEach(u=>drawUnit(u,ug));
   if(act&&act.cur&&act.cur.type==='charge'&&act.cur.stage==='target'){try{drawChargeNeeds(byId(act.id),ug);}catch(e){console.error(e);}}
   if(act&&act.cur&&act.cur.type==='charge'&&act.cur.stage==='place'){try{drawChargeGhost(ug);}catch(e){console.error(e);}}
+  /* March / Reform preview: the regiment you drag is where it will end; a see-through outline marks where it started (Cancel returns it there) */
+  if(act&&act.cur&&act.cur.start&&MOVE1.includes(act.cur.type)){try{const u0=base(act.id),st=act.cur.start;const moved=Math.hypot(act.pose.x-st.x,act.pose.y-st.y)>0.05||Math.abs(angDiff(act.pose.facing||0,st.facing||0))>0.5||(act.pose.files!=null&&st.files!=null&&act.pose.files!==st.files);
+    if(moved){const gg=el('g',{'pointer-events':'none'},rg);standsOf(Object.assign({},u0,st)).forEach(s2=>el('polygon',{points:s2.poly.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:COL[u0.side]?COL[u0.side].fill:'#888','fill-opacity':.18,stroke:'#F3E6C4','stroke-width':1,'stroke-dasharray':'3 3',opacity:.8},gg));
+      const e=near1(act.cur);if(e)standsOf(byId(act.id)).forEach(s2=>el('polygon',{points:s2.poly.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#E57373','stroke-width':2},gg));}}catch(e){console.error(e);}}
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyNeeds(byId(act.id),ug);const ts=act.cur.sel&&byId(act.cur.sel);if(ts){drawVolleyLines(byId(act.id),ts,rg,arcingOn(byId(act.id)));const gs=ug.querySelector('g[data-id="'+ts.id+'"]');if(gs)gs.classList.add('vsel');}}catch(e){console.error(e);}}
   $('last').innerHTML='';const b=document.createElement('b');b.textContent=(state.lastTitle||'Last move')+': ';$('last').append(b,document.createTextNode(state.lastText||'No moves yet.'));
   renderArmies();
