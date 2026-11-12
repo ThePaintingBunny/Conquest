@@ -329,7 +329,9 @@ function availableActions(u) {
   if (act.entering && !act.placed) return out;
   const used = act.actions.filter(a => !a.free),
     last = used[used.length - 1],
-    n = act.actions.length,
+    n = act.actions.filter(
+      a => a.type !== 'xreform'
+    ).length /* out-of-sequence actions do not count towards the 3 */,
     eng = engaged(u);
   const broken = (u.effects || []).includes('Broken'),
     arrive = act.entering || act.arrivedThisRound;
@@ -364,7 +366,14 @@ function availableActions(u) {
   if (!eng.length && !arrive && tGarrisonNear(u).length) can('occupy', blocked('occupy'));
   if (!eng.length) {
     can('march', blocked('march'));
-    can('charge', arrive ? 'No Charge in the round a regiment arrives' : blocked('charge'));
+    can(
+      'charge',
+      arrive
+        ? 'No Charge in the round a regiment arrives'
+        : broken
+          ? 'A Broken regiment cannot Charge'
+          : blocked('charge')
+    );
     can('reform', blocked('reform'));
     if (hasBarrage(u)) {
       can('volley', blocked('volley'));

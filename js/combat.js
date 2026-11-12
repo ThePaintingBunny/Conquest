@@ -2064,9 +2064,17 @@ async function saveActivation() {
           arriving: false,
           activated: true,
           arrivedRound: act.entering ? state.round : x.arrivedRound,
-          effects: (x.effects || []).concat(
-            act.extraFx.filter(f => !(x.effects || []).includes(f) && !/charged|Inspire action/.test(f))
-          )
+          effects: (x.effects || [])
+            .filter(
+              f =>
+                !(
+                  f === 'Broken' &&
+                  act.actions.some(a => (a.type === 'rally' || a.type === 'crally') && !a.failed)
+                )
+            )
+            .concat(
+              act.extraFx.filter(f => !(x.effects || []).includes(f) && !/charged|Inspire action/.test(f))
+            )
         })
   );
   (act.postFx || []).forEach(([id, src]) => {

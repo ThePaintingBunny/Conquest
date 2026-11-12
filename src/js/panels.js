@@ -1316,7 +1316,9 @@ function renderCard() {
       w.push(
         'Within 1″ of ' +
           (e.short || e.name) +
-          ': a March or Reform must stay at least 1″ from enemy regiments (only a Charge makes contact).'
+          (e.terr
+            ? ': a March or Reform must stay at least 1″ from Garrison and Impassable terrain.'
+            : ': a March or Reform must stay at least 1″ from enemy regiments (only a Charge makes contact).')
       );
   }
   if (w.length) {

@@ -1,10 +1,33 @@
 /* Movement rules: the 1″ rule near enemies, and the charge and volley overlays. */
 /* March restriction (core rules): a regiment may not March to within 1″ of an enemy regiment; only a Charge brings it into contact */
 const MOVE1 = ['march', 'reform', 'fluid', 'hammer', 'dtmarch', 'fadv'];
+/* how close a regiment outline comes to a terrain piece (0 = touching or overlapping; up to 1″ is checked) */
+function terrGap(P, t, ys) {
+  for (let g = 0; g <= 1.0001; g += 0.05) {
+    if (polyHitsEllipse(P, { x: t.x, y: t.y, rx: t.rx + g, ry: t.ry * (ys || 1) + g }, 1)) return g;
+  }
+  return 9;
+}
+/* A March or Reform may not end within 1″ of an enemy regiment, Garrison terrain or Impassable terrain
+   (unless it started closer; then it may not get closer). Fly ignores Impassable terrain. */
 function near1(c, pose) {
   const u = Object.assign({}, base(act.id), pose || act.pose),
     uc = corners(u),
     st = corners(Object.assign({}, base(act.id), c.start));
+  const tr = u.garrison
+    ? null
+    : terrainOf().find(t => {
+        const imp = tHas(t, 'Impassable');
+        if (!imp && !tHas(t, 'Garrison')) return false;
+        if (imp && rh(RU(u), 'Fly')) return false;
+        const ys = imp ? 0.85 : 1,
+          g = terrGap(uc, t, ys);
+        return g < 1 - 1e-3 && g < terrGap(st, t, ys) - 1e-3;
+      });
+  if (tr) {
+    const ys = tHas(tr, 'Impassable') ? 0.85 : 1;
+    return { short: tInfo(tr).name, name: tInfo(tr).name, terr: true, dist: terrGap(uc, tr, ys) };
+  }
   return (
     all().find(
       e =>
@@ -37,14 +60,40 @@ function finishAction() {
       if (aiBusy || (!PVP() && base(act.id).side === AI)) pullBack(act.cur);
       else {
         toast(
-          'A regiment may not March or Reform to within 1″ of an enemy regiment (' +
-            (e.short || e.name) +
-            ' is ' +
-            polyDist(corners(byId(act.id)), corners(e)).toFixed(1) +
-            '″ away). Only a Charge brings it into contact. Move it back, or Cancel.'
+          e.terr
+            ? 'A regiment may not March or Reform to within 1″ of ' +
+                e.name +
+                ' (Garrison and Impassable terrain need 1″ of space; it is ' +
+                e.dist.toFixed(1) +
+                '″ away). Move it back, or Cancel.'
+            : 'A regiment may not March or Reform to within 1″ of an enemy regiment (' +
+                (e.short || e.name) +
+                ' is ' +
+                polyDist(corners(byId(act.id)), corners(e)).toFixed(1) +
+                '″ away). Only a Charge brings it into contact. Move it back, or Cancel.'
         );
         return;
       }
+    }
+  }
+  /* Reform: no stand may move further than the regiment's March (checked stand by stand, in formation order) */
+  if (act.cur && act.cur.type === 'reform' && act.cur.start) {
+    try {
+      const u0 = base(act.id),
+        A = standsOf(Object.assign({}, u0, act.cur.start)),
+        B = standsOf(byId(act.id)),
+        mid = s => [(s.poly[0][0] + s.poly[2][0]) / 2, (s.poly[0][1] + s.poly[2][1]) / 2],
+        far = Math.max(
+          0,
+          ...B.map((s, i) => (A[i] ? Math.hypot(mid(s)[0] - mid(A[i])[0], mid(s)[1] - mid(A[i])[1]) : 0))
+        ),
+        M = +u0.m || 0;
+      if (M && far > M + 0.25)
+        toast(
+          `Check this Reform: a stand moves about ${far.toFixed(1)}″, more than its March of ${M}″. No stand may move further than its March during a Reform.`
+        );
+    } catch (e) {
+      console.error(e);
     }
   }
   if (act.cur && act.cur.type === 'creform') {
@@ -120,8 +169,9 @@ function finishAction() {
       });
       entry.pushed = pushes.map(p => ({ id: p.id, moved: p.moved }));
       toast(
-        pushes.map(p => `${p.name} is pushed ${p.moved.toFixed(1)}″ directly away from the charger`).join('; ') +
-          (pushes.some(p => p.gap < 1 - 1e-3) ? ' (as far as there is room).' : ', to 1″ away.')
+        pushes
+          .map(p => `${p.name} is pushed ${p.moved.toFixed(1)}″ directly away from the charger`)
+          .join('; ') + (pushes.some(p => p.gap < 1 - 1e-3) ? ' (as far as there is room).' : ', to 1″ away.')
       );
     }
     entry.target = c.target;
@@ -197,6 +247,11 @@ function finishAction() {
   }
   srFinishAction(u, c, entry);
   act.actions.push(entry);
+  if (entry.type === 'rally' || entry.type === 'crally')
+    toast(
+      (byId(act.id).short || byId(act.id).name) +
+        ' Rallies: it is no longer Broken (from the end of this activation).'
+    );
   act.cur = null;
   render();
   if (TM && TM.wounds) {
@@ -733,12 +788,22 @@ function chargeLos(u, t) {
     from.push([u.x + (f[0] * G.d) / 2 + r[0] * o, u.y + (f[1] * G.d) / 2 + r[1] * o]);
   }
   const T = corners(t),
-    to = T.concat(T.map((p, i) => [(p[0] + T[(i + 1) % 4][0]) / 2, (p[1] + T[(i + 1) % 4][1]) / 2]), [[t.x, t.y]]).filter(
-      p => arcOf(u, p) === 'front'
-    );
+    to = T.concat(
+      T.map((p, i) => [(p[0] + T[(i + 1) % 4][0]) / 2, (p[1] + T[(i + 1) % 4][1]) / 2]),
+      [[t.x, t.y]]
+    ).filter(p => arcOf(u, p) === 'front');
   if (!to.length) return { ok: false, by: 'nothing (the target is not in the front arc)' };
   const walls = all()
-    .filter(o => o.onTable && !o.destroyed && o.id !== u.id && o.id !== t.id && o.type !== 'marker' && uSize(o) >= sa && uSize(o) >= st)
+    .filter(
+      o =>
+        o.onTable &&
+        !o.destroyed &&
+        o.id !== u.id &&
+        o.id !== t.id &&
+        o.type !== 'marker' &&
+        uSize(o) >= sa &&
+        uSize(o) >= st
+    )
     .map(o => ({ name: o.short || o.name, P: shrinkPoly(corners(o), 0.05) }));
   const terr = terrainOf().filter(x => {
     if (!tHas(x, 'Obstructing') && !tHas(x, 'Garrison')) return false;
@@ -827,7 +892,10 @@ function setChargeTarget(t) {
   }
   /* legality before the roll: Line of Sight, then is there any legal Charge Move into the target with the best possible roll? */
   const st0 = act.cur.start || u,
-    los = chargeLos(Object.assign({}, u, { x: st0.x, y: st0.y, facing: st0.facing != null ? st0.facing : u.facing }), t);
+    los = chargeLos(
+      Object.assign({}, u, { x: st0.x, y: st0.y, facing: st0.facing != null ? st0.facing : u.facing }),
+      t
+    );
   if (!los.ok) {
     act.cur.illegal = { target: t.id, name: t.short || t.name, why: '', los: los.by, fail: null };
     render();
