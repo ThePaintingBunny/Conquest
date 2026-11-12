@@ -1040,11 +1040,21 @@ function wheelPose(p,u,dir,deg){const G=geom(Object.assign({},u,p)),a=(p.facing|
   return Object.assign({},p,{x:P[0]+vx*Math.cos(th)+vy*Math.sin(th),y:P[1]-vx*Math.sin(th)+vy*Math.cos(th),facing:(((p.facing||0)+s*deg)%360+360)%360});}
 function marchUsedCommitted(c){return (c.segs||[]).reduce((a,s)=>a+s.cost,0);}
 function marchUsed(c){return marchUsedCommitted(c)+(c.pending?c.pending.cost:0);}
-function marchApply(mode,amt){const c=act.cur,u=base(act.id),S0=c.segStart,G=geom(Object.assign({},u,S0)),a=(S0.facing||0)*Math.PI/180,f=[Math.sin(a),Math.cos(a)],r=[Math.cos(a),-Math.sin(a)],rem=c.budget-marchUsedCommitted(c);let np,cost;
+function marchPose(mode,amt){const c=act.cur,u=base(act.id),S0=c.segStart,G=geom(Object.assign({},u,S0)),a=(S0.facing||0)*Math.PI/180,f=[Math.sin(a),Math.cos(a)],r=[Math.cos(a),-Math.sin(a)],rem=c.budget-marchUsedCommitted(c);let np,cost;
   if(mode==='fwd'){cost=amt;np={x:S0.x+f[0]*amt,y:S0.y+f[1]*amt};}
   else if(mode==='back'){cost=2*amt;np={x:S0.x-f[0]*amt,y:S0.y-f[1]*amt};}
   else if(mode==='sright'||mode==='sleft'){const sg=mode==='sright'?1:-1;cost=2*amt;np={x:S0.x+r[0]*amt*sg,y:S0.y+r[1]*amt*sg};}
   else{cost=G.w*amt*Math.PI/180;np=wheelPose(S0,u,mode==='wright'?'right':'left',amt);}
+  return {np,cost,rem,S0};}
+/* the typed March step, shown as a see-through regiment where it would end before you press Apply */
+function marchGhost(){const ug=$('units');if(!ug)return;let g=$('mghost');if(!g){g=el('g',{id:'mghost','pointer-events':'none'},ug.parentNode);}else if(g.parentNode.lastChild!==g)g.parentNode.appendChild(g);g.innerHTML='';
+  const c=act&&act.cur;if(!c||!c.segs||c.previewAmt==null||!(c.previewAmt>0)||c.pending)return;let P;try{P=marchPose(c.mode,c.previewAmt);}catch(e){return;}
+  const u0=base(act.id),gu=Object.assign({},u0,act.pose,P.np),bad=P.cost>P.rem+1e-6,near=(()=>{try{return near1(c,Object.assign({},act.pose,P.np));}catch(e){return null;}})(),col=bad||near||overlapsAny(gu)?'#E57373':'#FFE58A';
+  el('line',{x1:px(P.S0.x),y1:py(P.S0.y),x2:px(P.np.x),y2:py(P.np.y),stroke:col,'stroke-width':1.6,'stroke-dasharray':'4 3'},g);
+  standsOf(gu).forEach(s2=>el('polygon',{points:s2.poly.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:COL[u0.side]?COL[u0.side].fill:'#888','fill-opacity':.35,stroke:col,'stroke-width':1.4,'stroke-dasharray':'3 2'},g));
+  const t=el('text',{x:px(P.np.x),y:py(P.np.y)-geom(gu).d*S/2-8,'text-anchor':'middle',fill:col,'font-size':12,'font-weight':700,'font-family':'Alegreya Sans, sans-serif',stroke:'#1C2421','stroke-width':3,'paint-order':'stroke'},g);
+  t.textContent=bad?'Too far: costs '+P.cost.toFixed(1)+'″, '+P.rem.toFixed(1)+'″ left':near?'Within 1″ of '+(near.short||near.name):'Ends here · '+P.cost.toFixed(1)+'″ of March';}
+function marchApply(mode,amt){const c=act.cur,u=base(act.id),{np,cost,rem}=marchPose(mode,amt);
   if(cost>rem+1e-6){toast(`That costs ${cost.toFixed(1)}″ but only ${rem.toFixed(1)}″ is left.`);return false;}
   Object.assign(act.pose,np);c.segs.push({mode,amt,cost});c.pending=null;c.segStart={x:act.pose.x,y:act.pose.y,facing:act.pose.facing,files:act.pose.files};render();return true;}
 function marchUndo(){const c=act.cur;c.segs.pop();const segs=c.segs.slice();c.segs=[];c.pending=null;const p={x:c.start.x,y:c.start.y,facing:c.start.facing,files:c.start.files};c.segStart=Object.assign({},p);Object.assign(act.pose,p);segs.forEach(s=>marchApply(s.mode,s.amt));render();}
@@ -1069,6 +1079,7 @@ function renderMarchUI(c,chg){const used=marchUsed(c),rem=c.budget-used,dirSeg=c
   const mx=wheel?Math.floor(rem/per):(c.mode==='fwd'?rem:rem/2);inp.value=String(Math.max(0,+mx.toFixed(1)));inp.setAttribute('aria-label',wheel?'Wheel angle in degrees':'Distance in inches');
   inp.style.cssText='width:80px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px';
   const lab=document.createElement('span');lab.className='read';lab.textContent=wheel?`° (${per.toFixed(2)}″ of March per degree)`:'″';
+  c.previewAmt=parseFloat(inp.value);inp.oninput=()=>{c.previewAmt=parseFloat(inp.value);marchGhost();};
   const ap=document.createElement('button');ap.type='button';ap.className='btn ghost';ap.textContent='Apply';ap.onclick=()=>{const v=parseFloat(inp.value);if(!(v>0)){toast('Enter an amount above 0.');return;}if(c.mode[0]!=='w'&&cls&&c.mode!==cls){toast('A March goes in one direction only. Wheels are still allowed.');return;}marchApply(c.mode,v);};
   const un=document.createElement('button');un.type='button';un.className='btn ghost';un.textContent='Undo last step';un.disabled=!c.segs.length;un.onclick=marchUndo;
   row.append(inp,lab,ap,un);chg.appendChild(row);
@@ -1829,13 +1840,11 @@ function render(){
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyZones(byId(act.id),rg);}catch(e){console.error(e);}}
   if(act&&act.cur&&act.cur.type==='charge'&&(act.cur.stage==='target'||act.cur.stage==='roll')){try{drawChargeZones(byId(act.id),rg);}catch(e){console.error(e);}}
   if(act&&act.actions.length){const pts=[[act.actions[0].from.x,act.actions[0].from.y]].concat(act.actions.map(a=>[a.to.x,a.to.y]));el('polyline',{points:pts.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#E8C65A','stroke-width':1.6,'stroke-dasharray':'4 3'},rg);}
-  all().filter(u=>u.onTable).forEach(u=>drawUnit(u,ug));
+  all().filter(u=>u.onTable).forEach(u=>drawUnit(u,ug));setTimeout(()=>{try{marchGhost();}catch(e){}},0);
   if(act&&act.cur&&act.cur.type==='charge'&&act.cur.stage==='target'){try{drawChargeNeeds(byId(act.id),ug);}catch(e){console.error(e);}}
   if(act&&act.cur&&act.cur.type==='charge'&&act.cur.stage==='place'){try{drawChargeGhost(ug);}catch(e){console.error(e);}}
-  /* March / Reform preview: the regiment you drag is where it will end; a see-through outline marks where it started (Cancel returns it there) */
-  if(act&&act.cur&&act.cur.start&&MOVE1.includes(act.cur.type)){try{const u0=base(act.id),st=act.cur.start;const moved=Math.hypot(act.pose.x-st.x,act.pose.y-st.y)>0.05||Math.abs(angDiff(act.pose.facing||0,st.facing||0))>0.5||(act.pose.files!=null&&st.files!=null&&act.pose.files!==st.files);
-    if(moved){const gg=el('g',{'pointer-events':'none'},rg);standsOf(Object.assign({},u0,st)).forEach(s2=>el('polygon',{points:s2.poly.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:COL[u0.side]?COL[u0.side].fill:'#888','fill-opacity':.18,stroke:'#F3E6C4','stroke-width':1,'stroke-dasharray':'3 3',opacity:.8},gg));
-      const e=near1(act.cur);if(e)standsOf(byId(act.id)).forEach(s2=>el('polygon',{points:s2.poly.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#E57373','stroke-width':2},gg));}}catch(e){console.error(e);}}
+  /* moving a regiment closer than 1″ to an enemy: red outline */
+  if(act&&act.cur&&act.cur.start&&MOVE1.includes(act.cur.type)){try{const e=near1(act.cur);if(e){const gg=el('g',{'pointer-events':'none'},rg);standsOf(byId(act.id)).forEach(s2=>el('polygon',{points:s2.poly.map(q=>px(q[0])+','+py(q[1])).join(' '),fill:'none',stroke:'#E57373','stroke-width':2},gg));}}catch(e){console.error(e);}}
   if(act&&act.cur&&act.cur.type==='volley'&&act.cur.stage==='target'){try{drawVolleyNeeds(byId(act.id),ug);const ts=act.cur.sel&&byId(act.cur.sel);if(ts){drawVolleyLines(byId(act.id),ts,rg,arcingOn(byId(act.id)));const gs=ug.querySelector('g[data-id="'+ts.id+'"]');if(gs)gs.classList.add('vsel');}}catch(e){console.error(e);}}
   $('last').innerHTML='';const b=document.createElement('b');b.textContent=(state.lastTitle||'Last move')+': ';$('last').append(b,document.createTextNode(state.lastText||'No moves yet.'));
   renderArmies();
