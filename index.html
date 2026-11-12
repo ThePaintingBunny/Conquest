@@ -300,6 +300,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);borde
 .ab-mini{display:grid;grid-template-columns:repeat(8,minmax(26px,38px));border:1px solid var(--line);border-radius:6px;overflow:hidden;text-align:center;font-variant-numeric:tabular-nums;width:max-content;max-width:100%}
 .ab-mk{font-size:10px;color:var(--muted);background:var(--panel);padding:1px 0;grid-row:1}
 .ab-mv{font-size:14px;font-weight:700;padding:2px 0;grid-row:2}
+.opt-info{flex-basis:100%;width:100%;white-space:pre-line;font-size:13px;line-height:1.4;padding:6px 9px;margin:4px 0 2px;border-left:3px solid var(--accent,#c9a14a);background:rgba(127,127,127,.09);border-radius:4px;color:var(--ink)}
 .ab-rules{font-size:13px;color:var(--ink);opacity:.85}
 .ab-opts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .ab-opts .ab-lab-t{flex-basis:100%}
@@ -765,7 +766,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-12 08:42 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-12 08:54 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -2950,6 +2951,16 @@ const OFF={
 /* Veteran upgrades bought in the builder: their text is the bonus */
 function vetBonus(d){d=String(d||'').trim();let m;if((m=d.match(/^([A-Z][A-Za-z ]+?)\s*\+(\d)$/)))return {r:[m[1]+' (+'+m[2]+')']};if((m=d.match(/^\+(\d)\s+(Clash|Attacks|Resolve|March)$/i)))return {s:{[{clash:'C',attacks:'A',resolve:'R',march:'M'}[m[2].toLowerCase()]]:+m[1]}};
   if((m=d.match(/^(.+?)\s+vs\.?\s+Volleys$/i)))return {r:[m[1]+' against Volleys']};return null;}
+function optInfo(o){if(!o)return '';const d=o.detail||'';let t='';const gi=x=>{try{return ruleInfo(x,bld.fac)||'';}catch(e){return '';}};
+  if(o.kind==='off'){t=(OFF[o.name]&&OFF[o.name].t)||gi(o.name)||(d?d:'');return 'Officer · '+o.name+(o.cost?' (+'+o.cost+' pts)':'')+': '+(t||'no rules text available for this officer.');}
+  if(o.kind==='vet'){const g=gi(d);return 'Veteran (+'+o.cost+' pts): the regiment gains '+(d||'its veteran upgrade')+(g?'. '+g.replace(/\n/g,' · '):'.');}
+  if(o.kind==='aux'){let u=null;try{u=bldUnit(o.name);}catch(e){}const ab=u?(u.abilities||[]).map(a=>a[0]).filter(Boolean).slice(0,6).join(', '):'';return 'Auxiliary (+'+o.cost+' pts): adds a '+o.name+' stand to the regiment (one Auxiliary per regiment)'+(ab?'. Its rules: '+ab:'')+'.';}
+  if(o.kind==='order')return o.name+' (+'+o.cost+' pts): '+d+'.';
+  t=d||gi(o.name);return o.name+(o.cost?' (+'+o.cost+' pts)':'')+': '+(t?t.replace(/\n/g,' · '):'no rules text available.');}
+function upgInfo(e){return e[1]+' · '+e[0]+' · '+(e[2]?e[2]+' pts':'free')+(e[3]?' · for '+e[3]:'')+': '+(e[4]||'');}
+/* an info line under a row of options: shows the hovered/focused button, otherwise what is selected */
+function infoLine(defTxt){const d=bEl('div',{className:'opt-info'});d.setAttribute('aria-live','polite');const show=t=>{d.textContent=t||defTxt||'Hover or tap and hold an option to see what it does.';};show();d._show=show;d._def=()=>show();return d;}
+function hookInfo(bt,txt,box){bt.title=txt;bt.addEventListener('mouseenter',()=>box._show(txt));bt.addEventListener('focus',()=>box._show(txt));bt.addEventListener('mouseleave',()=>box._def());bt.addEventListener('blur',()=>box._def());let tm=null;bt.addEventListener('touchstart',()=>{tm=setTimeout(()=>box._show(txt),350);},{passive:true});bt.addEventListener('touchend',()=>clearTimeout(tm));}
 function offNames(u){return (u.abilities||[]).filter(a=>OFF[a[0]]&&/^Officer\b/.test(String(a[1]||''))).map(a=>a[0]);}
 function offOn(u,k){if(!u||u.destroyed)return false;return offNames(u).some(n=>OFF[n][k]&&!(n==='Catabolic Node'&&u.nodeGone));}
 function applyOfficers(u){const add=(r,s)=>{(r||[]).forEach(x=>{if(!u.rules.includes(x))u.rules.push(x);});
@@ -3265,8 +3276,8 @@ function abRegCard(f,w,wi,r,ri,choices){const c=bldUnit(w.char),led=w.joins===ri
     if(row.children.length)card.append(row);
     const O=regOptions(u);if(O.opts.length){const offN=(r.opts||[]).filter(n=>(O.opts.find(o=>o.name===n)||{}).kind==='off').length,hasAux=(r.opts||[]).some(n=>(O.opts.find(z=>z.name===n)||{}).kind==='aux');
       const og=bEl('div',{className:'ab-opts'});og.append(bEl('span',{className:'ab-lab-t',textContent:'Options'+(O.max!=null?' (officers: up to '+O.max+')':'')}));
-      O.opts.forEach(o=>{const on=(r.opts||[]).includes(o.name);const t=abBtn((on?'✓ ':'')+o.name+(o.detail?' ('+o.detail+')':'')+' +'+o.cost,()=>{r.opts=r.opts||[];if(on)r.opts=r.opts.filter(n=>n!==o.name);else r.opts.push(o.name);abRe();},'ab-tog'+(on?' on':''));t.setAttribute('aria-pressed',String(on));
-        if(!on&&((o.kind==='off'&&O.max!=null&&offN>=O.max)||(o.kind==='aux'&&hasAux)))t.disabled=true;og.append(t);});card.append(og);}}
+      const oi=infoLine((r.opts||[]).length?(r.opts||[]).map(n=>optInfo(O.opts.find(o=>o.name===n))).filter(Boolean).join('\n'):null);O.opts.forEach(o=>{const on=(r.opts||[]).includes(o.name);const t=abBtn((on?'✓ ':'')+o.name+(o.detail?' ('+o.detail+')':'')+' +'+o.cost,()=>{r.opts=r.opts||[];if(on)r.opts=r.opts.filter(n=>n!==o.name);else r.opts.push(o.name);abRe();},'ab-tog'+(on?' on':''));t.setAttribute('aria-pressed',String(on));
+        if(!on&&((o.kind==='off'&&O.max!=null&&offN>=O.max)||(o.kind==='aux'&&hasAux)))t.disabled=true;hookInfo(t,optInfo(o),oi);og.append(t);});og.append(oi);card.append(og);}}
   card.append(abUpgrades(r.custom=r.custom||[],'w'+wi+'r'+ri,'Add upgrade'));
   return card;}
 function abPicker(f,w,wi,choices){const R=wbRules(bldUnit(w.char)),box=bEl('div',{className:'ab-pick'});box.append(bEl('div',{className:'ab-pickh'},[bEl('strong',{textContent:'Choose a regiment for this warband'}),abBtn('Cancel',()=>{abPick=null;renderTurnbar();},'ab-ghost ab-small')]));
@@ -3416,12 +3427,12 @@ function qaForm(spec,onChange,adding){const s=qaClean(spec),box=bEl('div',{class
     if(!C.length)box.lastChild.append(bEl('span',{className:'ab-note',textContent:'No character in this faction can join it.'}));
     const b=bldBase(u);if(!/^1 stand/.test(u.stands||''))row('Stands',abStepper(s.stands,b,12,v=>set({stands:v}),'stands'),bEl('span',{className:'ab-note',textContent:'at least '+b+(s.char?', plus the character':'')}));
     const RO=withBld({fac:s.fac,wbs:[],warlord:0},()=>regOptions(u)),O=RO.opts;if(O.length){const r=row('Options');const nOff=s.opts.filter(n=>(O.find(o=>o.name===n)||{}).kind==='off').length;
-      O.forEach(o=>{const on=s.opts.includes(o.name),full=!on&&o.kind==='off'&&RO.max!=null&&nOff>=RO.max,auxTaken=!on&&o.kind==='aux'&&s.opts.some(n=>(O.find(q=>q.name===n)||{}).kind==='aux');
-        const bt=abBtn((on?'✓ ':'')+o.name,()=>set({opts:on?s.opts.filter(n=>n!==o.name):s.opts.concat([o.name])}),'ab-tog'+(on?' on':''));bt.title=(o.detail||'')+(o.cost?' · '+o.cost+' pts':'')+(full?' · officer limit reached':auxTaken?' · one auxiliary only':'');bt.disabled=full||auxTaken;bt.setAttribute('aria-pressed',String(on));r.append(bt);});}}
+      const oi=infoLine(s.opts.length?s.opts.map(n=>optInfo(O.find(o=>o.name===n))).join('\n'):null);O.forEach(o=>{const on=s.opts.includes(o.name),full=!on&&o.kind==='off'&&RO.max!=null&&nOff>=RO.max,auxTaken=!on&&o.kind==='aux'&&s.opts.some(n=>(O.find(q=>q.name===n)||{}).kind==='aux');
+        const bt=abBtn((on?'✓ ':'')+o.name,()=>set({opts:on?s.opts.filter(n=>n!==o.name):s.opts.concat([o.name])}),'ab-tog'+(on?' on':''));bt.title=(o.detail||'')+(o.cost?' · '+o.cost+' pts':'')+(full?' · officer limit reached':auxTaken?' · one auxiliary only':'');bt.disabled=full||auxTaken;bt.setAttribute('aria-pressed',String(on));hookInfo(bt,optInfo(o)+(full?' · officer limit reached':auxTaken?' · one auxiliary only':''),oi);r.append(bt);});r.after(oi);}}
   const L=qaLeader(s);
-  if(L){const U=(UPG[s.fac]||{list:[]}).list;if(U.length&&!charNoUpg(L)){const r=row('Upgrades · '+L.name);
+  if(L){const U=(UPG[s.fac]||{list:[]}).list;if(U.length&&!charNoUpg(L)){const r=row('Upgrades · '+L.name);const ui=infoLine(s.upg.length?s.upg.map(n=>{const e=U.find(x=>x[1]===n);return e?upgInfo(e):n;}).join('\n'):null);r.after(ui);
       withBld({fac:s.fac,wbs:[{char:L.name,regs:[],upg:s.upg}],warlord:s.warlord?0:-1},()=>U.forEach(e=>{const on=s.upg.includes(e[1]);let why='';try{why=on?'':upgWhy(e,L,0);}catch(x){}if(/^Taken/.test(why||''))why='';
-        const bt=abBtn((on?'✓ ':'')+e[1],()=>set({upg:on?s.upg.filter(n=>n!==e[1]):s.upg.concat([e[1]])}),'ab-tog'+(on?' on':''));bt.title=e[0]+' · '+(e[2]?e[2]+' pts':'free')+' · '+e[4]+(why?' · '+why:'');bt.disabled=!!why&&!on;bt.setAttribute('aria-pressed',String(on));r.append(bt);}));}
+        const bt=abBtn((on?'✓ ':'')+e[1],()=>set({upg:on?s.upg.filter(n=>n!==e[1]):s.upg.concat([e[1]])}),'ab-tog'+(on?' on':''));hookInfo(bt,upgInfo(e)+(why?' · '+why:''),ui);bt.disabled=!!why&&!on;bt.setAttribute('aria-pressed',String(on));r.append(bt);}));}
     if(canWarlord(L)){const bt=abBtn((s.warlord?'★ ':'')+'Warlord',()=>set({warlord:!s.warlord}),'ab-tog'+(s.warlord?' on':''));bt.setAttribute('aria-pressed',String(!!s.warlord));row('Warlord',bt);}}
   return box;}
 
