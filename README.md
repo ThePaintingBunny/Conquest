@@ -6,7 +6,8 @@ A browser battle map for **Conquest: The Last Argument of Kings**: build your ar
 
 ## Features
 
-- **Main menu:** Continue, Single player, Multiplayer, Test field, Army builder, Encyclopedia and Settings, with a lobby for each kind of game and an in-game menu (☰ Menu).
+- **Main menu:** Continue, Single player, Multiplayer, Test field, Army builder, Combat calculator, Encyclopedia and Settings, with a lobby for each kind of game and an in-game menu (☰ Menu).
+- **Combat calculator:** build two regiments as in the army builder (characters, upgrades, options, Inspired, Supremacy), then see their profiles side by side, the average wounds of each Impact, Clash and Volley, and how often each wins a whole fight, all rolled with the game's own combat rules.
 - **Battle map:** a 6×4 ft table with terrain (random or placed by hand), objective zones and markers for all 12 scenarios, and scoring for each round.
 - **Full turn flow:** reinforcements, hidden Command Stacks, the Supremacy roll-off, the Strategic Stack, marching, charges, and combat with automatic dice (Clash, Impact, Volley, Morale, Die Fighting, Lethal Demise).
 - **Army builder:** choose a faction and add regiments and characters. The profiles come from the built-in encyclopedia, so no API key is needed.

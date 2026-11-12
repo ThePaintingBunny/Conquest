@@ -650,6 +650,12 @@ body.mm-on:not(.mm-lobby) .top{display:none}
 .mm-net{border:1px solid var(--edge);border-radius:6px;padding:10px 12px;background:#1A1E22}
 .mm-net h3{margin:0 0 4px}
 .mm-body{display:flex;flex-direction:column;gap:10px}
+.cc-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}.cc-side{border:1px solid var(--edge);border-radius:6px;padding:10px 12px;background:#1A1E22;display:flex;flex-direction:column;gap:6px;min-width:0}
+.cc-side h3{margin:0;font-family:var(--display);letter-spacing:.06em}.cc-side.a h3{color:#E9A39B}.cc-side.b h3{color:#9DBEE6}
+.cc-box{border:1px solid var(--edge);border-radius:6px;padding:10px 12px;background:#1A1E22;overflow-x:auto}.cc-box h3{margin:0 0 6px;font-family:var(--display);letter-spacing:.06em}
+.cc-tbl{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}.cc-tbl th,.cc-tbl td{padding:4px 8px;border-bottom:1px solid var(--edge);text-align:center}.cc-tbl th:first-child,.cc-tbl td:first-child{text-align:left}
+.cc-tbl td.win{color:#A9D8B0;font-weight:700}.cc-bar{display:flex;height:22px;border-radius:4px;overflow:hidden;margin:6px 0;font-size:12px;font-weight:700}.cc-bar span{display:flex;align-items:center;justify-content:center;color:#14171A;min-width:0;white-space:nowrap;overflow:hidden}
+.cc-bar .a{background:#E9A39B}.cc-bar .b{background:#9DBEE6}.cc-bar .d{background:#8A8F96}
 body.mm-ov .mm{position:fixed;inset:0;z-index:70;max-width:none;margin:0;background:rgba(10,12,14,.86);backdrop-filter:blur(3px);overflow:auto;padding:24px 16px}
 body.mm-ov .mm-in{max-width:900px;margin:0 auto}
 
@@ -759,7 +765,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-12 08:12 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-12 08:23 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -4384,6 +4390,7 @@ function contactKeep(old,st){if(!old||!Array.isArray(old.units)||old===st)return
   if(st.pressNote&&st.pressNote.length){const t=st.pressNote.join('; ');delete st.pressNote;setTimeout(()=>toast('Press the Attack: '+t+'.'),60);}}
 /* Broken and Shattered (core rules): losing half or more (rounded up) of the stands it had at the start of the round, or since it last Rallied, Breaks a regiment at once;
    once Broken, losing half or more of the stands it had at that moment Shatters it. Characters count as stands. Both can happen in one action. */
+let quietBreak=false;
 function breakImmune(y){return rh(y.rules||[],'Dauntless')||noBreak(y)||rh(y.rules||[],'Life for Glory')||(rh(y.rules||[],'In the Fold')&&srAllMods(y,/Origami/));}
 function shatterImmune(y){const t=(y.rules||[]).concat((y.abilities||[]).map(a=>a[0]+' '+a[1]),fx(y)).join(' | ');return frFac(y)==='Dweghom'||/cannot be Shattered|Written in Bones/i.test(t);}
 function breakCheck(old,st){const O=new Map(((old&&old.units)||[]).map(u=>[u.id,u])),rnd=st.round||0,notes=[];
@@ -4398,7 +4405,7 @@ function breakCheck(old,st){const O=new Map(((old&&old.units)||[]).map(u=>[u.id,
       else{const at=rs-Math.ceil(rs/2);y=Object.assign({},y,{effects:(y.effects||[]).concat(['Broken']),broke:at});notes.push((y.short||y.name)+' is Broken');}}
     if((y.effects||[]).includes('Broken')&&y.broke!=null&&y.broke>=1&&y.broke-n>=Math.ceil(y.broke/2)&&!shatterImmune(y)){y=Object.assign({},y,{onTable:false,destroyed:true,status:'Shattered',destroyedRound:rnd,dyingFight:false});notes.push((y.short||y.name)+' is Shattered and flees the field');}
     return y;});
-  if(notes.length){st.lastText=(st.lastText?st.lastText+' ':'')+notes.join('. ')+'.';setTimeout(()=>toast(notes.join(' · ')+'.'),80);}}
+  if(notes.length&&!quietBreak){st.lastText=(st.lastText?st.lastText+' ':'')+notes.join('. ')+'.';setTimeout(()=>toast(notes.join(' · ')+'.'),80);}}
 function sanitize(st){if(!st||!Array.isArray(st.units)||st.mode==='test'&&false)return st;const keep=state;state=st;
   try{try{if(!st._undo)breakCheck(keep,st);delete st._undo;}catch(e){console.error(e);}supParagon(st);st.units=st.units.map(u=>{if(u.type==='marker')return u;let y=u;
       if((y.effects||[]).includes('Broken')&&(rh(y.rules,'In the Fold')&&srAllMods(y,/Origami/)||rh(y.rules,'Life for Glory')||hasGrant(y,'Awakened')||srHas(y,/^Cannot be Broken/)))y=Object.assign({},y,{effects:y.effects.filter(e=>e!=='Broken')});
@@ -4499,7 +4506,7 @@ async function srAfterStrain(u){const B=srFriends(u).filter(x=>rh(x.rules,'Indis
 function srDrum(u){return (state.units||[]).some(x=>x.side===u.side&&srAlive(x)&&rh(x.rules,'Drum Beat')&&(x.id===u.id||srNear(x,u,10)));}
 async function awaken(id,why){await awaken0(id,why);const u=base(id);try{await supOnAwaken(u);}catch(e){}if(u&&rh(u.rules,'Testaments to Honor')){for(const x of srFriends(u).filter(x=>x.type!=='monster'&&frRoles(x).includes('Clan')&&srNear(x,u,6)&&!hasGrant(x,'Awakened')))await awaken0(x.id,'Testaments to Honor');}}
 
-try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,sanitize,regOptions,withBld,joinable,wbProblems,bldToList,availableActions,startActivation,startAction,moraleInfo,hitMods,layout,offNames,offOn,getAct:()=>act,getCb:()=>cb,srOnCharge,saveActivation,qaChars,cardName,runAITurn,frOptions,frRoles,chAbil,cardIdeal,yMatch,breakCheck,frRoundEnd,noEntourage,openCombat,hasBarrage,resolveSpell,spellsOf,whoami:()=>myId,lobbyNow:()=>lobby,presencePing,arcingWhy,friendSees,fxBarrage,encyOpt,chRulesX,volleyRange,UPG:()=>UPG,buildUnits,ENCY:()=>ENCY,rx,rh,RU,volleyArcSpan,volleyStands,volleyWhy,buildGroups,qaList,qaSpecOf,qaClean,tfRebuild,standsOf,render:()=>render(),planCharge,chargeFaces,placeCharge,corners,polyDist,geom,live,lostOf,contactKeep,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
+try{Object.defineProperty(window,'__sr',{value:{fx,dRules,RU,rlCompute,decayN,srChargeBonus,srMarchMod,vgOf,buildGroups,hitMods,defInfo,moraleInfo,inspWhy,aimWhy,sanitize,regOptions,withBld,joinable,wbProblems,bldToList,availableActions,startActivation,startAction,moraleInfo,hitMods,layout,offNames,offOn,getAct:()=>act,getCb:()=>cb,srOnCharge,saveActivation,qaChars,cardName,runAITurn,frOptions,frRoles,chAbil,cardIdeal,yMatch,breakCheck,frRoundEnd,noEntourage,openCombat,hasBarrage,resolveSpell,spellsOf,calcBuild,calcPlace,calcSandbox,calcAttack,whoami:()=>myId,lobbyNow:()=>lobby,presencePing,arcingWhy,friendSees,fxBarrage,encyOpt,chRulesX,volleyRange,UPG:()=>UPG,buildUnits,ENCY:()=>ENCY,rx,rh,RU,volleyArcSpan,volleyStands,volleyWhy,buildGroups,qaList,qaSpecOf,qaClean,tfRebuild,standsOf,render:()=>render(),planCharge,chargeFaces,placeCharge,corners,polyDist,geom,live,lostOf,contactKeep,byId,base,chargeMax,srSeizeStands,zoneControl,seizeVal,sanitize,srStat,prof,canHeal,noEntourage,hitSources,rrPlan,srOnCharge,srChantBonus,frRoundOptions,srActions,availableActions,getQ:()=>cbQueue,validCards,cardAvail,cardPick,effStats,effRules,baseRules,layout,slayChar,glimApply,mwExtra,defInfo,frRoles,supRoles,supMem,supOf,supOptions,supChoiceNeeded,aolTry,supBloom,glimmerN,seasonNow,aiDuel,startAction,mmSides,privOk,fodder6,srStrain,frontArcHas,duelist,duelTargets,duelOdds,duelStrike,isMChar,getCb:()=>cb,setCb:v=>{cb=v;},setAct:v=>{act=v;},getState:()=>state,setState:v=>{state=v;}},configurable:true});}catch(e){}
 /* ================= Duels (core rules, Characters chapter) =================
    A [Character] (or a Monster [Character] / Arrogance regiment) challenges an enemy [Character] attached to a regiment in contact with its own.
    The defender may refuse (penalties unless Bodyguard(s)/Refined Beyond Nature; Broken regiments cannot refuse; one refusal per round).
@@ -4932,6 +4939,88 @@ function mmSetupStep(){return !!state&&state.mode!=='test'&&['setup','review'].i
 function mmCurrent(){if(!state)return null;if(mmOverlay)return mmPage&&mmPage!=='single'&&mmPage!=='multi'?mmPage:'home';
   if(mmSetupStep()){if(mmPage)return mmPage;const n=mmNet();if(state.step==='review')return PVP()?'multi':'single';if((n&&n.mode&&n.mode!=='local')||(PVP()&&Object.values(state.seats||{}).some(Boolean)))return 'multi';return 'home';}
   return null;}
+/* ---------- Combat calculator: two regiments, the game's own combat rules, simulated many times ---------- */
+let calc={A:{fac:'',unit:'',char:'',stands:null,opts:[],upg:[],warlord:false},B:{fac:'',unit:'',char:'',stands:null,opts:[],upg:[],warlord:false},charge:'A',arc:'front',range:12,fx:{A:{},B:{}},res:null,busy:false,err:''};
+const CALC_FX=[['Inspired','Inspired','Inspired'],['Broken','Broken (starts Broken)','Broken'],['Sup','Supremacy Ability active (Warlord)','sup']];
+function calcBuild(k,side){const s=calc[k];if(!s.fac||!s.unit)return null;const L=qaList(s);if(!L||!L.units.length)return null;const u=buildUnits(side,L)[0];u.id='c'+k;u.onTable=true;u.effects=(u.effects||[]).slice();
+  const F=calc.fx[k]||{};if(F.Inspired)u.effects.push('Inspired (calculator)');if(F.Broken)u.effects.push('Broken');let v=u;if(F.ideal&&IDEAL[F.ideal])v=grantU(v,'Ideal Card: '+F.ideal,IDEAL[F.ideal][1]||[],IDEAL[F.ideal][2]||null);return v;}
+function calcSandbox(units,fn){const sS=state,sC=cb,sA=act,sq=quietBreak;state=Object.assign({},sS,{units,sup:{},fr:{},round:1,mode:'test',turn:'cs',step:'activations'});cb=null;act=null;quietBreak=true;
+  try{return fn();}finally{state=sS;cb=sC;act=sA;quietBreak=sq;}}
+/* place the attacker X against the defender Y on the arc chosen (front, flank or rear); for a volley, straight in front at the range */
+function calcPlace(X,Y,arc,dist){Object.assign(Y,{x:36,y:24});Object.assign(X,{x:36,facing:0});const GX=geom(X),GY=geom(Y);
+  if(dist!=null){Y.facing=180;X.y=24-GY.d/2-GX.d/2-dist;return;}
+  if(arc==='rear'){Y.facing=0;X.y=24-GY.d/2-GX.d/2;}else if(arc==='flank'){Y.facing=90;X.y=24-GY.w/2-GX.d/2;}else{Y.facing=180;X.y=24-GY.d/2-GX.d/2;}}
+function calcSup(units){['cs','nord'].forEach((side,i)=>{const k=i?'B':'A';if(!(calc.fx[k]||{}).sup)return;try{const S=supOf(side);if(S&&S.d&&S.d.g){const r=supApply(state.units,side,S,null);if(Array.isArray(r))state.units=r;}}catch(e){}});}
+function calcAttack(type,Xid,Yid){const X=base(Xid),Y=base(Yid);cb={type,att:Xid,tgt:Yid,groups:null,step:'att',forceContact:type!=='volley',inAct:false};
+  if(type==='volley'){try{cb.vst=volleyStands(X,Y);}catch(e){}}
+  let G=buildGroups(type,X,Y);G=(Array.isArray(G)?G:Object.values(G)).map(g=>Object.assign({},g)).filter(g=>g.n>0);cb.groups=G;if(!G.length){cb=null;return {w:0,mw:0,hits:0,att:0};}
+  const parry=hitParry(Y);let att=0;G.forEach(g=>{att+=g.n;rollHits(g,g.n,parry);});const hits=G.reduce((a,g)=>a+(g.hits||0),0);rollDef(Y);const w=cb.wounds||0;let mw=0;
+  const mi=moraleInfo(Y,X);if(w&&!mi.auto){rollMor(Y);mw=cb.extra||0;}cb=null;return {w,mw,hits,att};}
+function calcApply(Yid,tot){const Y=base(Yid);if(!Y||Y.destroyed||!tot)return;const old={units:state.units,round:state.round};const AL=allocate(Y,tot);
+  const st={round:state.round,units:state.units.map(x=>x.id===Yid?Object.assign({},x,{wounds:AL.w,auxWounds:AL.aw},AL.dead?{onTable:false,destroyed:true,status:'Destroyed'}:{}):x)};breakCheck(old,st);state.units=st.units;}
+function calcStats(arr){const n=arr.length||1,m=arr.reduce((a,b)=>a+b,0)/n;return {avg:m,min:Math.min(...arr),max:Math.max(...arr)};}
+/* one exchange, many times: hits, wounds after saves, extra wounds from failed Morale */
+function calcExchange(type,attK,N){const X0=calcBuild(attK,attK==='A'?'cs':'nord'),Y0=calcBuild(attK==='A'?'B':'A',attK==='A'?'nord':'cs');if(!X0||!Y0)return null;
+  if(type==='volley'&&!hasBarrage(X0))return {none:'No Barrage'};
+  /* the chosen arc is where the charger hits; the regiment that was charged strikes back from its front */
+  calcPlace(X0,Y0,calc.charge===attK?calc.arc:'front',type==='volley'?(+calc.range||12):null);if(type==='volley'){Y0.facing=180;}
+  return calcSandbox([X0,Y0],()=>{calcSup();const W=[],M=[],T=[],H=[],K=[];let att=0;const st=Y0.stats||{},Wst=+st.W||1;
+    if(type==='volley'){const vs=(volleyStands(base(X0.id),base(Y0.id))||[]);if(!vs.some(v=>v.inRange))return {none:'Out of range at '+calc.range+'″'};}
+    if(type==='impact'){const G=buildGroups('impact',base(X0.id),base(Y0.id));if(!(Array.isArray(G)?G:Object.values(G)).some(g=>g.n>0))return {none:'No Impact attacks'};}
+    for(let i=0;i<N;i++){const r=calcAttack(type,X0.id,Y0.id);att=r.att;H.push(r.hits);W.push(r.w);M.push(r.mw);T.push(r.w+r.mw);K.push(Math.floor(r.w/Wst+r.mw/Wst));}
+    const tot=calcStats(T),P=T.filter(x=>x>=Wst).length/N;return {att,hits:calcStats(H).avg,w:calcStats(W).avg,mw:calcStats(M).avg,tot:tot.avg,max:tot.max,pStand:P,stands:calcStats(T.map(x=>Math.floor(x/Wst))).avg};});}
+/* a whole fight: the charger hits first (Impacts, then its Clash), then both Clash each round in turn, with stands, Morale, Broken and Shattered applied */
+function calcFight(N,maxR){const chA=calc.charge!=='B',Xk=chA?'A':'B',Yk=chA?'B':'A';const X0=calcBuild(Xk,Xk==='A'?'cs':'nord'),Y0=calcBuild(Yk,Yk==='A'?'cs':'nord');if(!X0||!Y0)return null;calcPlace(X0,Y0,calc.arc,null);
+  const res={A:0,B:0,draw:0,rounds:0,leftA:0,leftB:0,n:N,maxR};
+  calcSandbox([X0,Y0],()=>{calcSup();const init=JSON.parse(JSON.stringify(state.units));
+    for(let i=0;i<N;i++){state.units=JSON.parse(JSON.stringify(init));let r=1,end=null;
+      for(;r<=maxR&&!end;r++){state.round=r;state.units=state.units.map(u=>u);{const st={round:r,units:state.units};breakCheck({units:state.units,round:r},st);state.units=st.units;}
+        const order=r===1||Math.random()<0.5?[[X0.id,Y0.id],[Y0.id,X0.id]]:[[Y0.id,X0.id],[X0.id,Y0.id]];
+        if(r===1&&calc.charge!=='none'){const t=calcAttack('impact',X0.id,Y0.id);calcApply(Y0.id,t.w+t.mw);}
+        for(const [a,d] of order){const A=base(a),D=base(d);if(!A||A.destroyed||!D||D.destroyed)break;const t=calcAttack('clash',a,d);calcApply(d,t.w+t.mw);}
+        const xd=base(X0.id).destroyed,yd=base(Y0.id).destroyed;if(xd||yd)end=xd&&yd?'draw':xd?Yk:Xk;}
+      const frac=u=>{const b=base(u.id);return b.destroyed?0:live(b)/Math.max(1,live(u));};
+      if(end==='draw'||!end)res.draw++;else res[end]++;res.rounds+=Math.min(r-1,maxR);res['left'+Xk]+=frac(X0);res['left'+Yk]+=frac(Y0);}});
+  res.rounds/=N;res.leftA/=N;res.leftB/=N;return res;}
+function calcRun(){if(calc.busy)return;calc.err='';if(!calcBuild('A','cs')||!calcBuild('B','nord')){calc.err='Choose a regiment for both sides first.';render();return;}calc.busy=true;calc.res=null;render();
+  setTimeout(()=>{try{const N=1000;const R={};
+    R.clashA=calcExchange('clash','A',N);R.clashB=calcExchange('clash','B',N);R.impA=calc.charge==='A'?calcExchange('impact','A',N):null;R.impB=calc.charge==='B'?calcExchange('impact','B',N):null;
+    R.volA=calcExchange('volley','A',N);R.volB=calcExchange('volley','B',N);R.fight=calcFight(300,6);calc.res=R;}catch(e){console.error(e);calc.err='The calculation hit a problem: '+e.message;}calc.busy=false;render();},30);}
+function calcPage(inner,head){head('Combat calculator','Two regiments, the game’s own combat rules, rolled thousands of times. Build each side as in the army builder.',{label:mmOverlay?'Menu':'Main menu',fn:()=>mmGo(mmOverlay?'home':null)});
+  const cols=bEl('div',{className:'cc-cols'});inner.append(cols);
+  ['A','B'].forEach(k=>{const box=bEl('div',{className:'cc-side '+k.toLowerCase()});box.append(bEl('h3',{textContent:'Regiment '+k}));
+    box.append(qaForm(calc[k],sp=>{calc[k]=sp;calc.res=null;render();},true));
+    const u=calc[k].unit?calcBuild(k,k==='A'?'cs':'nord'):null;
+    if(u){const F=calc.fx[k]=calc.fx[k]||{};const r=bEl('div',{className:'tf-row qa-row'});r.append(bEl('span',{className:'qa-l',textContent:'Effects'}));
+      CALC_FX.forEach(([key,label])=>{if(key==='Sup'&&!calc[k].warlord)return;const on=!!F[key==='Sup'?'sup':key];const b=abBtn((on?'✓ ':'')+label,()=>{F[key==='Sup'?'sup':key]=!on;calc.res=null;render();},'ab-tog'+(on?' on':''));b.setAttribute('aria-pressed',String(on));r.append(b);});
+      if(frFac(u)==='Yoroni'){const sl=bEl('select',{className:'tf-in qa-sel'});sl.setAttribute('aria-label','Ideal Card');[['','No Ideal Card effect']].concat(Object.keys(IDEAL).map(i=>[i,i+' Ideal Card · '+IDEAL[i][0]])).forEach(([v,t])=>sl.append(bEl('option',{value:v,textContent:t})));sl.value=F.ideal||'';sl.onchange=()=>{F.ideal=sl.value;calc.res=null;render();};r.append(sl);}
+      box.append(r);}
+    cols.append(box);});
+  const set=bEl('div',{className:'cc-box'});set.append(bEl('h3',{textContent:'The fight'}));
+  const sel=(label,val,opts,fn)=>{const e=bEl('select',{className:'tf-in qa-sel'});e.setAttribute('aria-label',label);opts.forEach(([v,t])=>e.append(bEl('option',{value:v,textContent:t})));e.value=val;e.onchange=()=>fn(e.value);return e;};
+  const row=(l,...k)=>{const r=bEl('div',{className:'tf-row qa-row'});r.append(bEl('span',{className:'qa-l',textContent:l}),...k);set.append(r);};
+  row('Who charges',sel('Who charges',calc.charge,[['A','Regiment A charges (Impacts, strikes first)'],['B','Regiment B charges'],['none','No charge: both are already engaged']],v=>{calc.charge=v;calc.res=null;render();}));
+  row('Contact on the',sel('Arc',calc.arc,[['front','front of the defender'],['flank','flank of the defender'],['rear','rear of the defender']],v=>{calc.arc=v;calc.res=null;render();}));
+  {const i=bEl('input',{type:'number',className:'tf-in',min:'1',max:'36',step:'1',value:String(calc.range)});i.setAttribute('aria-label','Volley range in inches');i.style.width='70px';i.onchange=()=>{calc.range=Math.max(1,Math.min(36,+i.value||12));calc.res=null;render();};row('Volley range',i,bEl('span',{className:'ab-note',textContent:'inches, for the Volley numbers'}));}
+  const go=bEl('button',{type:'button',className:'btn',textContent:calc.busy?'Calculating…':'Calculate'});go.disabled=calc.busy;go.onclick=calcRun;set.append(bEl('div',{className:'row'},[go]));if(calc.err)set.append(ptext(calc.err,'hint'));inner.append(set);
+  const uA=calc.A.unit?calcBuild('A','cs'):null,uB=calc.B.unit?calcBuild('B','nord'):null;
+  if(uA&&uB){const box=bEl('div',{className:'cc-box'});box.append(bEl('h3',{textContent:'Profiles side by side'}));const t=bEl('table',{className:'cc-tbl'});const tr=(c,cls)=>{const r=bEl('tr');c.forEach((x,i)=>r.append(bEl(i===0?'th':'td',{textContent:String(x),className:(cls&&cls[i])||''})));t.append(r);};
+    const nm=u=>(u.charName?u.charName+' + ':'')+(u.short||u.name);tr(['',nm(uA),nm(uB)]);
+    const hi=(a,b,low)=>{a=+a;b=+b;if(isNaN(a)||isNaN(b)||a===b)return ['','',''];return low?['',a<b?'win':'',b<a?'win':'']:['',a>b?'win':'',b>a?'win':''];};
+    [['March','M'],['Volley','V'],['Clash','C'],['Attacks','A'],['Wounds','W'],['Resolve','R'],['Defense','D'],['Evasion','E']].forEach(([l,k])=>{const a=uA.stats[k],b=uB.stats[k];tr([l,a==null?'–':a,b==null?'–':b],hi(a,b));});
+    const tw=u=>(+u.stats.W||0)*regTot(u)+(u.aux!=null&&u.auxStats?(+u.auxStats.W||0):0);tr(['Stands',live(uA),live(uB)],hi(live(uA),live(uB)));tr(['Wounds in total',tw(uA),tw(uB)],hi(tw(uA),tw(uB)));
+    if(uA.points||uB.points)tr(['Points',uA.points||'–',uB.points||'–'],['','','']);
+    const sr=u=>(u.rules||[]).concat(u.charName?(u.charRules||[]).map(r=>r+' (character)'):[]).join(', ')||'–';tr(['Special rules',sr(uA),sr(uB)]);box.append(t);inner.append(box);}
+  const R=calc.res;if(!R)return;
+  {const box=bEl('div',{className:'cc-box'});box.append(bEl('h3',{textContent:'Wound calculator · average per attack'}));box.append(ptext('Each line is one attack rolled 1,000 times with the game’s own rules: hits, Defense saves, then Morale tests (failed Morale tests add wounds).','hint'));
+    const t=bEl('table',{className:'cc-tbl'});const hr=bEl('tr');['Attack','Attacks','Hits','Wounds','+ Morale','Total','Max seen','Kills a stand'].forEach(h=>hr.append(bEl('th',{textContent:h})));t.append(hr);
+    const line=(lab,r)=>{const tr=bEl('tr');tr.append(bEl('td',{textContent:lab}));if(!r){tr.append(bEl('td',{colSpan:7,textContent:'–'}));}else if(r.none){tr.append(bEl('td',{colSpan:7,textContent:r.none}));}
+      else[r.att,r.hits.toFixed(1),r.w.toFixed(2),r.mw.toFixed(2),r.tot.toFixed(2),r.max,Math.round(r.pStand*100)+'%'].forEach(v=>tr.append(bEl('td',{textContent:String(v)})));t.append(tr);};
+    if(R.impA)line('A Impacts into B',R.impA);line('A Clashes B'+(calc.charge==='A'&&calc.arc!=='front'?' ('+calc.arc+')':''),R.clashA);line('A Volleys B ('+calc.range+'″)',R.volA);if(R.impB)line('B Impacts into A',R.impB);line('B Clashes A'+(calc.charge==='B'&&calc.arc!=='front'?' ('+calc.arc+')':''),R.clashB);line('B Volleys A ('+calc.range+'″)',R.volB);box.append(t);inner.append(box);}
+  if(R.fight){const F=R.fight,box=bEl('div',{className:'cc-box'});box.append(bEl('h3',{textContent:'Combat potential · who wins the fight'}));
+    const pa=F.A/F.n*100,pb=F.B/F.n*100,pd=F.draw/F.n*100;const bar=bEl('div',{className:'cc-bar'});[['a',pa,'A '],['d',pd,''],['b',pb,'B ']].forEach(([c,v,l])=>{if(v<=0)return;const sp=bEl('span',{className:c,textContent:v>=8?l+Math.round(v)+'%':''});sp.style.width=v+'%';bar.append(sp);});box.append(bar);
+    box.append(ptext(`Out of ${F.n} fights of up to ${F.maxR} rounds (${calc.charge==='none'?'already engaged':(calc.charge==='A'?'A':'B')+' charges'}, contact on the ${calc.arc}): Regiment A wins ${Math.round(pa)}%, Regiment B wins ${Math.round(pb)}%, and ${Math.round(pd)}% are still fighting after ${F.maxR} rounds. A fight lasts ${F.rounds.toFixed(1)} rounds on average; A keeps ${Math.round(F.leftA*100)}% of its stands and B ${Math.round(F.leftB*100)}%.`));
+    box.append(ptext('Winning means the other regiment is destroyed or Shattered. Each round both regiments Clash once (the order after the first round is random), with stands lost, Morale, Broken and Shattered applied. Movement, other regiments, spells and choices during the game are not included.','hint'));inner.append(box);}}
 function mmGo(p){mmPage=p;render();try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){}}
 async function mmStart(kind){mmOverlay=false;
   if(kind==='test'){mmPage=null;await tfEnter();return;}
@@ -4955,6 +5044,7 @@ function renderMenu(){const box=$('mm');if(!box||!state)return;const page=mmCurr
     grid.append(mmCard('Multiplayer',bs('Play a friend online: take a seat, bring your army, ready up'),'⚑',()=>mmStart('multi'),bz));
     grid.append(mmCard('Test field',bs('Drop single regiments for either side and try out rules freely'),'⚗',()=>mmStart('test'),bz));
     grid.append(mmCard('Army builder','Build, check and save your armies','✎',()=>{mmGo('army');}));
+    grid.append(mmCard('Combat calculator','Pit two regiments against each other: wounds per attack and who wins the fight','⚖',()=>{mmGo('calc');}));
     grid.append(mmCard('Encyclopedia','Every faction, unit and special rule','📖',()=>{if(mmOverlay){mmOverlay=false;mmPage=null;render();}$('en-open').click();setTimeout(()=>{try{$('ency').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},60);},{small:true}));
     grid.append(mmCard('Settings','Dice speed, animations and display','⚙',()=>{$('set-open').click();},{small:true}));
     const n=mmNet();if(n&&n.openSettings)grid.append(mmCard('Claude settings','API key and models for playing Claude here','✦',()=>n.openSettings(),{small:true}));
@@ -4964,6 +5054,7 @@ function renderMenu(){const box=$('mm');if(!box||!state)return;const page=mmCurr
       lv.onclick=async()=>{if(!mmLeaveArm){mmLeaveArm=true;renderMenu();setTimeout(()=>{mmLeaveArm=false;renderMenu();},5000);return;}mmLeaveArm=false;mmOverlay=false;mmPage=null;await newGameNow();};
       row.append(bEl('button',{type:'button',className:'btn',textContent:'Back to the game',onclick:()=>{mmOverlay=false;render();}}),lv);inner.append(row);}
     return;}
+  if(page==='calc'){try{calcPage(inner,head);}catch(e){console.error(e);inner.append(ptext('The calculator could not be shown: '+e.message,'hint'));}return;}
   if(page==='army'){head('Army builder','Build an army, check it is legal, and save it on this device. Saved armies can be loaded in any lobby.',{label:mmOverlay?'Menu':'Main menu',fn:()=>mmGo(mmOverlay?'home':null)});
     const body=bEl('div',{className:'mm-body'});inner.append(body);try{bldUse('main');}catch(e){}
     const mk=(t,fn,ghost)=>{const b=bEl('button',{type:'button',className:'btn'+(ghost?' ghost':''),textContent:t});b.onclick=fn;return b;};
