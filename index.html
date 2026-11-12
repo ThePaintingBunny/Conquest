@@ -759,7 +759,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-12 08:09 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-12 08:12 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -1089,9 +1089,11 @@ function renderMarchUI(c,chg){const used=marchUsed(c),rem=c.budget-used,dirSeg=c
   const row=document.createElement('div');row.className='row';const inp=document.createElement('input');inp.type='number';inp.id='march-amt';inp.min='0';inp.step=wheel?'5':'0.5';
   const mx=wheel?Math.floor(rem/per):(c.mode==='fwd'?rem:rem/2);inp.value=String(Math.max(0,+mx.toFixed(1)));inp.setAttribute('aria-label',wheel?'Wheel angle in degrees':'Distance in inches');
   inp.style.cssText='width:80px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px';
-  const lab=document.createElement('span');lab.className='read';lab.textContent=wheel?`° (${per.toFixed(2)}″ of March per degree)`:'″';
-  c.previewAmt=parseFloat(inp.value);inp.oninput=()=>{c.previewAmt=parseFloat(inp.value);marchGhost();};
-  const ap=document.createElement('button');ap.type='button';ap.className='btn ghost';ap.textContent='Apply';ap.onclick=()=>{const v=parseFloat(inp.value);if(!(v>0)){toast('Enter an amount above 0.');return;}if(c.mode[0]!=='w'&&cls&&c.mode!==cls){toast('A March goes in one direction only. Wheels are still allowed.');return;}marchApply(c.mode,v);};
+  const lab=document.createElement('span');lab.className='read';lab.textContent=wheel?`° (up to ${Math.floor(mx)}°; ${per.toFixed(2)}″ of March per degree)`:`″ (up to ${Math.max(0,Math.floor(mx*10+1e-6)/10)}″)`;
+  /* never more than the March left: the box stops at the maximum for this direction */
+  const mxV=Math.max(0,Math.floor(mx*10+1e-6)/10);inp.max=String(mxV);const clampV=()=>{let v=parseFloat(inp.value);if(v>mxV){v=mxV;inp.value=String(mxV);}if(v<0){v=0;inp.value='0';}return v;};
+  c.previewAmt=clampV();inp.oninput=()=>{c.previewAmt=clampV();marchGhost();};
+  const ap=document.createElement('button');ap.type='button';ap.className='btn ghost';ap.textContent='Apply';ap.onclick=()=>{const v=clampV();if(!(v>0)){toast(mxV>0?'Enter an amount above 0.':'No March left for this direction.');return;}if(c.mode[0]!=='w'&&cls&&c.mode!==cls){toast('A March goes in one direction only. Wheels are still allowed.');return;}marchApply(c.mode,v);};
   const un=document.createElement('button');un.type='button';un.className='btn ghost';un.textContent='Undo last step';un.disabled=!c.segs.length;un.onclick=marchUndo;
   row.append(inp,lab,ap,un);chg.appendChild(row);
   chg.appendChild(ptext(wheel?`Wheel ${c.mode==='wright'?'right':'left'}: the ${c.mode==='wright'?'right':'left'} front corner stays put and the ${c.mode==='wright'?'left':'right'} end swings round; the March used is how far that outer front corner travels. Drag to turn, or type the angle.`:'Drag the regiment to move it in the chosen direction, or type an amount and Apply.'));
