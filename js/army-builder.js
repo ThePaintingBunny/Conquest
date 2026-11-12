@@ -173,9 +173,6 @@ function regOptions(u) {
       ['Oathsworn', 5, 'Command Stand may Die Fighting']
     ].forEach(([n, c, d]) => out.push({ name: n, cost: c, kind: 'order', detail: d }));
   }
-  let max = null;
-  const mx = t.match(/up to (\d+)|\((\d+)\)|\bone\b/i);
-  if (mx && /officer/i.test(t)) max = mx[1] ? +mx[1] : mx[2] ? +mx[2] : 1;
   t.split(/;\s*/).forEach(seg => {
     const head = ((seg.match(/^([^:]*):/) || [])[1] || '').trim();
     /* only real purchases: Officers, Auxiliaries, Veteran and plain Options. Memory of Old, Empowerment and notes are rules, not upgrades */
@@ -198,7 +195,8 @@ function regOptions(u) {
       out.push({ name: kind === 'vet' ? 'Veteran' : nm, cost: +m[2], kind, detail: m[3] || '' });
     }
   });
-  return { opts: out, max };
+  /* a regiment may take only one Officer; Auxiliaries, Veterans and other options do not count towards it */
+  return { opts: out, max: out.some(o => o.kind === 'off') ? 1 : null };
 }
 function rowPts(r) {
   if (r.modular) return modPts(r.modular) + (r.custom || []).reduce((a, c) => a + (+c.pts || 0), 0);
@@ -250,6 +248,13 @@ function wbProblems(w) {
   if (R.none) return w.regs.length ? [c.name + ' has no warband of its own.'] : [];
   w.regs.forEach(r => {
     if (r.modular) modProblems(r.modular).forEach(t => p.push(t));
+    /* one Officer per regiment (an Auxiliary is not an Officer) */
+    const ru = r.unit && bldUnit(r.unit);
+    if (ru && (r.opts || []).length) {
+      const O = regOptions(ru).opts,
+        offs = r.opts.filter(n => (O.find(o => o.name === n) || {}).kind === 'off');
+      if (offs.length > 1) p.push(`${r.unit}: only one Officer per regiment (has ${offs.join(' and ')}).`);
+    }
   });
   const n = w.regs.length,
     cat = r => {
@@ -1169,7 +1174,7 @@ function abRegCard(f, w, wi, r, ri, choices) {
       og.append(
         bEl('span', {
           className: 'ab-lab-t',
-          textContent: 'Options' + (O.max != null ? ' (officers: up to ' + O.max + ')' : '')
+          textContent: 'Options' + (O.max != null ? ' (one Officer; an Auxiliary does not count)' : '')
         })
       );
       const oi = infoLine(
