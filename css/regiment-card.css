@@ -1,0 +1,391 @@
+:root {
+  --parch: #f6eedb;
+  --parch-2: #eadbb8;
+  --parch-3: #fbf6ea;
+  --leather: #3b2a1a;
+  --leather-2: #5a4026;
+  --trim: #b0832f;
+  --trim-2: #d9b25e;
+  --quill: #2b2116;
+  --quill-2: #6b5638;
+  --seal: #8e2f2f;
+  --side: var(--trim);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --parch: #211a12;
+    --parch-2: #171209;
+    --parch-3: #2a2117;
+    --leather: #0f0b06;
+    --leather-2: #2e2214;
+    --trim: #c99a45;
+    --trim-2: #e6c27a;
+    --quill: #eee3cc;
+    --quill-2: #bfaf91;
+    --seal: #b4473b;
+  }
+}
+:root[data-theme='dark'] {
+  --parch: #211a12;
+  --parch-2: #171209;
+  --parch-3: #2a2117;
+  --leather: #0f0b06;
+  --leather-2: #2e2214;
+  --trim: #c99a45;
+  --trim-2: #e6c27a;
+  --quill: #eee3cc;
+  --quill-2: #bfaf91;
+  --seal: #b4473b;
+}
+[data-ui='parch'] .card {
+  color: var(--quill);
+  background:
+    radial-gradient(120% 60% at 50% 0%, var(--parch-3), transparent 70%),
+    linear-gradient(180deg, var(--parch), var(--parch-2));
+  border: 1px solid var(--trim);
+  box-shadow:
+    inset 0 0 0 3px var(--parch),
+    inset 0 0 0 4px color-mix(in srgb, var(--trim) 55%, transparent),
+    0 6px 18px -10px rgba(40, 25, 5, 0.45);
+  padding: 16px 16px 14px;
+  position: relative;
+}
+[data-ui='parch'] .card::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 0;
+  width: 28px;
+  height: 40px;
+  background: var(--side);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+  opacity: 0.95;
+}
+[data-ui='parch'] .card > div:first-child {
+  padding-left: 38px;
+  min-height: 40px;
+}
+[data-ui='parch'] .card h2 {
+  color: var(--quill);
+  font-size: 21px;
+  letter-spacing: 0.01em;
+}
+[data-ui='parch'] .card .meta {
+  color: var(--quill-2);
+  font-style: italic;
+}
+[data-ui='parch'] .card .hint,
+[data-ui='parch'] .card .read {
+  color: var(--quill-2);
+}
+[data-ui='parch'] .card .stats {
+  border: 1px solid var(--trim);
+  border-radius: 6px;
+  background: var(--parch-3);
+  box-shadow: 0 1px 0 var(--parch-3);
+}
+[data-ui='parch'] .card .stats .k {
+  background: var(--leather);
+  color: var(--trim-2);
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+[data-ui='parch'] .card .stats .v {
+  font-family: var(--display);
+  font-size: 18px;
+  color: var(--quill);
+}
+[data-ui='parch'] .card .stats div + div:not(:nth-child(9)) {
+  border-left: 1px solid color-mix(in srgb, var(--trim) 35%, transparent);
+}
+[data-ui='parch'] .card .sec h3 {
+  color: var(--quill-2);
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+[data-ui='parch'] .card .sec h3::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--trim), transparent);
+}
+[data-ui='parch'] .card .sec h3::before {
+  content: '\2766';
+  color: var(--trim);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+[data-ui='parch'] .card .chip {
+  background: var(--parch-3);
+  border-color: color-mix(in srgb, var(--trim) 60%, var(--quill-2));
+  color: var(--quill);
+}
+[data-ui='parch'] .card .chip.fx {
+  background: linear-gradient(180deg, var(--trim-2), var(--trim));
+  border-color: var(--trim);
+  color: #2a1d08;
+  font-weight: 600;
+}
+[data-ui='parch'] .card .rules b {
+  font-family: var(--display);
+  color: var(--quill);
+}
+[data-ui='parch'] .card .btn {
+  background: linear-gradient(180deg, var(--trim-2), var(--trim));
+  color: #241805;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 0 rgba(60, 40, 10, 0.35);
+  border: 1px solid #8c6522;
+}
+[data-ui='parch'] .card .btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+[data-ui='parch'] .card .btn.ghost {
+  background: var(--parch-3);
+  color: var(--quill);
+  border: 1px solid color-mix(in srgb, var(--trim) 70%, var(--quill-2));
+  box-shadow: none;
+}
+[data-ui='parch'] .card input[type='text'],
+[data-ui='parch'] .card select {
+  background: var(--parch-3);
+  border-color: color-mix(in srgb, var(--trim) 50%, var(--quill-2));
+  color: var(--quill);
+}
+[data-ui='parch'] .card .grp {
+  border-color: color-mix(in srgb, var(--trim) 60%, var(--quill-2));
+}
+[data-ui='parch'] .card .grp button {
+  background: var(--parch-3);
+  color: var(--quill);
+}
+[data-ui='parch'] .card .grp button + button {
+  border-left-color: color-mix(in srgb, var(--trim) 40%, transparent);
+}
+[data-ui='parch'] .card .grp button[aria-pressed='true'] {
+  background: var(--leather);
+  color: var(--trim-2);
+}
+[data-ui='parch'] .card .meter {
+  background: var(--parch-3);
+  border-color: var(--trim);
+  height: 10px;
+}
+[data-ui='parch'] .card .meter i {
+  background: linear-gradient(90deg, var(--trim), var(--trim-2));
+}
+[data-ui='parch'] .card .meter.full i {
+  background: var(--seal);
+}
+/* activation: orders sheet */
+[data-ui='parch'] .actp.live {
+  background: var(--parch-3);
+  border: 1px solid var(--trim);
+  border-radius: 10px;
+  padding: 0 12px 12px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--side) 22%, transparent);
+  overflow: hidden;
+}
+[data-ui='parch'] .actp.live .actp-head {
+  margin: 0 -12px;
+  padding: 9px 12px;
+  background: linear-gradient(90deg, var(--leather), var(--leather-2));
+  border-bottom: 2px solid var(--side);
+}
+[data-ui='parch'] .actp.live .actp-head h3 {
+  color: var(--trim-2);
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+[data-ui='parch'] .actp.live .actp-pips {
+  color: #e9d9b4;
+}
+[data-ui='parch'] .actp-pips i {
+  border-color: var(--trim-2);
+}
+[data-ui='parch'] .actp-pips i.on {
+  background: var(--trim-2);
+  box-shadow: 0 0 6px var(--trim-2);
+}
+[data-ui='parch'] .actp-step {
+  border-top: 1px dashed color-mix(in srgb, var(--trim) 60%, transparent);
+}
+[data-ui='parch'] .actp-lbl {
+  font-family: var(--display);
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  color: var(--quill);
+}
+[data-ui='parch'] .actp-lbl .num {
+  width: 24px;
+  height: 24px;
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--side) 70%, #fff),
+    var(--side) 60%,
+    color-mix(in srgb, var(--side) 70%, #000)
+  );
+  color: #fff;
+  font-family: var(--display);
+  font-size: 13px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+[data-ui='parch'] .actp-step.done .actp-lbl .num {
+  background: radial-gradient(circle at 35% 30%, #bbb, #7c7c7c 60%, #555);
+}
+[data-ui='parch'] .actp-state {
+  font-family: var(--body);
+  color: var(--quill-2);
+  font-style: italic;
+}
+[data-ui='parch'] .dn {
+  background: var(--parch);
+  border: 1px solid color-mix(in srgb, var(--trim) 45%, transparent);
+  border-left: 3px solid var(--trim);
+  border-radius: 6px;
+}
+[data-ui='parch'] .dn-i {
+  color: var(--trim);
+}
+[data-ui='parch'] .dn.ref {
+  background: transparent;
+  border-style: dashed;
+  border-left-style: solid;
+  color: var(--quill-2);
+}
+[data-ui='parch'] .dn.ref b {
+  color: var(--quill);
+}
+[data-ui='parch'] .dn-btn {
+  background: var(--parch);
+  border: 1px solid color-mix(in srgb, var(--trim) 55%, transparent);
+  color: var(--quill);
+  border-radius: 6px;
+  padding: 7px 10px 7px 30px;
+  position: relative;
+}
+[data-ui='parch'] .dn-btn::before {
+  content: '\2726';
+  position: absolute;
+  left: 10px;
+  top: 7px;
+  color: var(--trim);
+}
+[data-ui='parch'] .dn-btn.pri {
+  background: linear-gradient(180deg, var(--parch-3), var(--parch));
+  border-color: var(--trim);
+  box-shadow: inset 0 0 0 1px var(--trim);
+}
+[data-ui='parch'] .dn-btn:hover:not(:disabled) {
+  border-color: var(--trim);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--trim) 35%, transparent);
+}
+[data-ui='parch'] .dn-h {
+  font-family: var(--display);
+  letter-spacing: 0.06em;
+  color: var(--quill-2);
+}
+[data-ui='parch'] .actp-done li {
+  background: var(--parch);
+  border: 1px solid color-mix(in srgb, var(--trim) 45%, transparent);
+  border-radius: 6px;
+}
+[data-ui='parch'] .actp-done .ck {
+  color: #fff;
+  background: var(--ok);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 11px;
+  align-self: center;
+}
+[data-ui='parch'] .actp-done b {
+  font-family: var(--display);
+  font-weight: 700;
+}
+[data-ui='parch'] .actp-cur {
+  background: var(--parch);
+  border: 1px solid var(--trim);
+  border-left: 4px solid var(--side);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px var(--parch-3);
+}
+[data-ui='parch'] .actp-cur #c-cur-read {
+  color: var(--quill);
+}
+[data-ui='parch'] .actp.live .act {
+  background: var(--parch);
+  border: 1px solid color-mix(in srgb, var(--trim) 50%, transparent);
+  border-radius: 8px;
+  color: var(--quill);
+  padding: 8px 10px 8px 40px;
+  position: relative;
+  min-height: 54px;
+  transition:
+    transform 0.08s,
+    box-shadow 0.12s,
+    border-color 0.12s;
+}
+[data-ui='parch'] .actp.live .act::before {
+  content: attr(data-ico);
+  position: absolute;
+  left: 8px;
+  top: 9px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--leather);
+  color: var(--trim-2);
+  font-size: 13px;
+  line-height: 1;
+  font-family: 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'DejaVu Sans', sans-serif;
+}
+[data-ui='parch'] .actp.live .act span {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+}
+[data-ui='parch'] .actp.live .act small {
+  color: var(--quill-2);
+}
+[data-ui='parch'] .actp.live .act:hover:not(:disabled) {
+  border-color: var(--trim);
+  box-shadow:
+    0 2px 0 var(--trim),
+    0 0 0 1px var(--trim);
+  transform: translateY(-1px);
+}
+[data-ui='parch'] .actp.live .act:hover:not(:disabled)::before {
+  background: var(--side);
+  color: #fff;
+}
+[data-ui='parch'] .actp.live .act:disabled {
+  opacity: 0.5;
+}
+[data-ui='parch'] .actp-foot {
+  border-top: 1px dashed color-mix(in srgb, var(--trim) 60%, transparent);
+}
+[data-ui='parch'] .card .fr-box h3,
+[data-ui='parch'] .card #c-fac h3 {
+  font-family: var(--display);
+}
+[data-ui='parch'] .card .warn {
+  color: var(--seal);
+  font-weight: 500;
+}
+
+/* ===== Theme: Sleek ===== */

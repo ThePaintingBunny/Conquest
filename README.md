@@ -34,9 +34,13 @@ Claude needs an [Anthropic API key](https://console.anthropic.com/):
 ## How it's built
 
 - **No build step and no server.** The site is plain files on GitHub Pages.
-- **Game:** `src/game.html`, the same page that runs as a Claude artifact.
+- **Game:** `src/`, the same page that runs as a Claude artifact:
+  - `src/index.html`: the markup only, with the stylesheets and scripts it loads, in order.
+  - `src/css/`: styles by area (`base.css` for layout, `regiment-card.css`, `themes.css`, `regiment-tab.css`, `menu.css`).
+  - `src/js/`: the game, one file per feature (`charge.js`, `combat.js`, `army-builder.js`, `spells.js`, `calculator.js`, …). Each file opens with a one-line note on what it holds. The files share one global scope and load in the order listed in `index.html`; `main.js` starts the game and loads last.
+  - `src/js/data/`: rules data from the army lists (factions and units, upgrades, spells, Supremacy Abilities, officers, glossary, terrain).
 - **Standalone runtime:** `shim.js` replaces Claude's runtime. It keeps game data in local storage, syncs online games through Firebase Cloud Firestore (or, if Firebase isn't configured, relays moves through a free public MQTT broker with the host's browser as referee), and calls Claude with the player's own API key.
-- **Building the site:** `tools/build.py` wraps `src/game.html` into `index.html`. After editing the game, run `python3 tools/build.py` and commit both files.
+- **Building the site:** `tools/build.py` copies `src/` to the site root (`index.html`, `css/`, `js/`), adds `shim.js` and the footer, and stamps every file link with the build version so browsers never mix old and new files. After editing the game, run `python3 tools/build.py` and commit `src/` and the built files together.
 
 ### Publishing with GitHub Pages
 
