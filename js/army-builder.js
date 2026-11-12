@@ -162,6 +162,9 @@ function wbChoices(c) {
   return out;
 }
 /* regiment options parsed from the encyclopedia text */
+/* Faction army lists that cap Officers per regiment where the paraphrased entries lost the number
+   (City States 2026 post-Adepticon list: up to one Officer per regiment). */
+const OFFICER_LIMIT = { 'City States': 1 };
 function regOptions(u) {
   const t = String(u.options || '');
   const out = [];
@@ -204,7 +207,8 @@ function regOptions(u) {
       n = (seg.match(/(\d+)/) || [])[1],
       cmd = u.cmd || {},
       room = Math.max(0, 4 - (cmd.leader ? 1 : 0) - (cmd.bearer ? 1 : 0));
-    max = n ? Math.min(+n, room) : room;
+    const fl = OFFICER_LIMIT[u.fac || bld.fac];
+    max = n ? Math.min(+n, room) : fl != null ? Math.min(fl, room) : room;
   }
   return { opts: out, max };
 }
