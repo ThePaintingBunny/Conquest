@@ -410,7 +410,10 @@ function qaForm(spec, onChange, adding) {
       )
     );
     if (s.fac) {
-      const U = qaUnits(s.fac);
+      /* listed alphabetically */
+      const U = qaUnits(s.fac)
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name));
       row(
         'Regiment',
         sel(
@@ -434,7 +437,9 @@ function qaForm(spec, onChange, adding) {
   const u = qaUnitE(s.fac, s.unit);
   if (!u) return box;
   if (u.kind !== 'char') {
-    const C = qaChars(s.fac, s.unit);
+    const C = qaChars(s.fac, s.unit)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
     row(
       'Led by',
       sel('Character', s.char, [['', 'No character']].concat(C.map(c => [c.name, c.name])), v =>
