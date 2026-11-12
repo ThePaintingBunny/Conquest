@@ -975,14 +975,15 @@ function renderCard() {
         (fx0 != null
           ? `Cream: within its fixed ${chargeMax(u)}″ Charge. `
           : `Cream: within its March of ${M}″, so any roll reaches. Orange: reachable with a good enough roll, up to ${chargeMax(u)}″. `) +
-        'Hover an enemy to see the distance and the roll it needs. Claude checks Line of Sight.';
+        'Hover an enemy to see the distance and the roll it needs. Line of Sight and a legal Charge Move are checked before you roll.';
       const ill = c.illegal;
       if (ill) {
         const box = document.createElement('div');
         box.className = 'chg-illegal';
         const p = document.createElement('p');
-        p.textContent =
-          `No legal Charge against ${ill.name}` +
+        p.textContent = ill.los
+          ? `No Line of Sight to ${ill.name}: ${ill.los} blocks every sight line from this regiment's front. No roll was made and the action is not used.`
+          : `No legal Charge against ${ill.name}` +
           (ill.why ? `: the Charge Move is blocked by ${ill.why}` : '') +
           '. No roll was made and the action is not used.' +
           (ill.fail
@@ -1082,6 +1083,8 @@ function renderCard() {
       else if (pl.dl) steps.push('closes the door ' + Math.abs(Math.round(pl.dl)) + '°');
       $('c-cur-read').textContent =
         `Charge succeeds: ${c.roll ? c.roll + ' + ' : ''}${M}${jug ? ' + 5' : ''} = ${c.cd}″ against ${c.dist.toFixed(1)}″. The see-through regiment shows where it will end: it ${steps.join(', ')} into the ${c.face}${pl.pairs ? ', ' + pl.pairs + ' stand contact' + (pl.pairs === 1 ? '' : 's') : ''}.` +
+        (pl.push && pl.push.length ? ` ${pl.push.join(' and ')} ${pl.push.length > 1 ? 'are' : 'is'} in the way and will be pushed up to 1″ directly away.` : '') +
+        ' Any other unengaged enemy left within 1″ is pushed up to 1″ away when the Charge ends.' +
         (n > 1 ? ` ${n} end positions give this most contact; choose one (the dots mark the others).` : '');
       $('done-act').hidden = true;
       if (n > 1) {

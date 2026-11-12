@@ -312,6 +312,53 @@ function terrBlockPoly(u, P) {
   }
   return null;
 }
+/* Push an enemy regiment directly away from a point, at most 1″, so that it clears the given outlines.
+   need: the smallest gap that must be reached (else null); want: stop once this gap is reached.
+   Returns { x, y, gap, moved } or null. Blocked by the table edge, other regiments and Impassable terrain. */
+function pushAway(o, polys, from, need, want, ignore) {
+  const dx = o.x - from[0],
+    dy = o.y - from[1],
+    L = Math.hypot(dx, dy) || 1,
+    dir = [dx / L, dy / L];
+  const rest = all().filter(
+    x => x.onTable && !x.destroyed && x.id !== o.id && !(ignore || []).includes(x.id)
+  );
+  const gapOf = C => Math.min(...polys.map(P => polyDist(P, C)));
+  let best = null;
+  for (let k = 0.05; k <= 1.0001; k += 0.05) {
+    const p = { x: o.x + dir[0] * k, y: o.y + dir[1] * k },
+      C = corners(Object.assign({}, o, p));
+    if (!C.every(q => q[0] >= -0.01 && q[0] <= 72.01 && q[1] >= -0.01 && q[1] <= 48.01)) break;
+    if (rest.some(x => polyDist(C, corners(x)) <= 0.01)) break;
+    if (terrBlockPoly(o, C)) break;
+    const g = gapOf(C);
+    if (g > need && (!best || g > best.gap)) best = { x: +p.x.toFixed(3), y: +p.y.toFixed(3), gap: g, moved: +k.toFixed(2) };
+    if (g >= want - 1e-6) break;
+  }
+  return best;
+}
+/* After a Charge: unengaged enemy regiments (other than the target) within 1″ of the charger are pushed up to 1″ directly away. */
+function chargePushes(u, targetId) {
+  const C = corners(u),
+    out = [];
+  all()
+    .filter(
+      o =>
+        o.onTable &&
+        !o.destroyed &&
+        o.side !== u.side &&
+        o.id !== targetId &&
+        o.type !== 'marker' &&
+        !engaged(o).some(e => e.id !== u.id)
+    )
+    .forEach(o => {
+      const d = polyDist(C, corners(o));
+      if (d >= 1 - 1e-6) return;
+      const r = pushAway(o, [C], [u.x, u.y], Math.max(d, 0.01), 1, [u.id]);
+      if (r && r.gap > d + 1e-3) out.push({ id: o.id, name: o.short || o.name, x: r.x, y: r.y, moved: r.moved, gap: r.gap });
+    });
+  return out;
+}
 function chgFaceGeom(t, face) {
   const Gt = geom(t),
     at = ((t.facing || 0) * Math.PI) / 180,
@@ -348,8 +395,27 @@ function chargeFaces(u, t) {
     fc = [Math.sin(ac), Math.cos(ac)],
     rc = [Math.cos(ac), -Math.sin(ac)],
     cnt = { front: 0, rear: 0, left: 0, right: 0 };
-  standsOf(u)
-    .filter(s => s.rank === 0)
+  const S = standsOf(u);
+  if (S.length === 1) {
+    /* "A Single Stand Regiment Charges a Target Regiment in the facing the majority of its Stand is in" */
+    const [a, b, , d] = S[0].poly,
+      N = 12;
+    for (let i = 0; i < N; i++)
+      for (let j = 0; j < N; j++) {
+        const x = (i + 0.5) / N,
+          y = (j + 0.5) / N;
+        cnt[
+          arcOf(t, [
+            a[0] + (b[0] - a[0]) * x + (d[0] - a[0]) * y,
+            a[1] + (b[1] - a[1]) * x + (d[1] - a[1]) * y
+          ])
+        ]++;
+      }
+    const m1 = Math.max(...Object.values(cnt));
+    return Object.keys(cnt).filter(k => cnt[k] === m1 && m1 > 0);
+  }
+  /* "A Stand may find itself in more than one facing": it counts toward each of them */
+  S.filter(s => s.rank === 0)
     .forEach(s => {
       const fs = new Set(
         s.poly
@@ -411,18 +477,25 @@ function planCharge(u0, t, cd) {
     others.filter(o => o.side === u.side && o.type !== 'marker' && engaged(o).length).map(o => o.id)
   );
   const why = [];
+  const fly = rh(RU(u), 'Fly'); /* Fly: may Charge over friendly regiments, even engaged ones, but not end on them */
   let blkPoly = null; /* outline of whatever blocked the last check (a regiment), for the failure preview */
-  const block = (P, final) => {
+  const block = (P, final, pz) => {
     blkPoly = null;
     if (!onEdge(P)) return 'the table edge';
     for (const o of others) {
       const C = corners(o);
       if (o.side !== u.side) {
         if (polyDist(P, C) <= 0.01) {
+          /* while finalising the Charge an unengaged enemy in the way is pushed up to 1″ directly away */
+          if (pz && o.type !== 'marker' && !engaged(o).length) {
+            pz.add(o.id);
+            continue;
+          }
           blkPoly = C;
           return o.short || o.name;
         }
-      } else if ((final || engF.has(o.id)) && polyOverlap(P, C)) {
+      } else if ((final || (engF.has(o.id) && !fly)) && polyOverlap(P, C)) {
+        /* friends: unengaged ones may be passed through, engaged ones only by a Fly regiment; no one may end on top of another */
         blkPoly = C;
         return o.short || o.name;
       }
@@ -474,7 +547,12 @@ function planCharge(u0, t, cd) {
     }
   }
   cands.sort(
-    (a, b) => b.sc.pairs - a.sc.pairs || b.sc.len - a.sc.len || a.s - b.s || Math.abs(a.th) - Math.abs(b.th)
+    /* most stands in contact, then the longest stretch of the charged face, then the least turning (free Wheel + closing the door), then the shortest move */
+    (a, b) =>
+      b.sc.pairs - a.sc.pairs ||
+      b.sc.len - a.sc.len ||
+      Math.abs(a.th) + Math.abs(a.dl) - (Math.abs(b.th) + Math.abs(b.dl)) ||
+      a.s - b.s
   );
   let failAt = null; /* where the last legality check failed: { phase, f } */
   const sweep = (fn, n, final) => {
@@ -516,6 +594,8 @@ function planCharge(u0, t, cd) {
         return (window.__chgDbg ? 'M:' : '') + r;
       }
     }
+    const pz = new Set(),
+      doorPolys = [];
     for (let k = 0; k <= Math.max(1, Math.ceil(Math.abs(c.dl) / 2)); k++) {
       const nd = Math.max(1, Math.ceil(Math.abs(c.dl) / 2));
       const P = PU(rotAbout(c.P2, c.pv, (c.dl * k) / nd));
@@ -524,15 +604,31 @@ function planCharge(u0, t, cd) {
         failAt = { phase: 'door', f: (k - 1) / nd, fHit: k / nd };
         return 'the target';
       }
-      const b = block(P, false);
+      const b = block(P, false, pz);
       if (b) {
         failAt = { phase: 'door', f: Math.max(0, (k - 1) / nd), fHit: k / nd };
         return (window.__chgDbg ? 'D:' : '') + b;
       }
+      doorPolys.push(P);
     }
-    const fb = block(PU(c.P3), true);
-    if (fb) failAt = { phase: 'final', f: 1, fHit: 1 };
-    return fb;
+    const fb = block(PU(c.P3), true, pz);
+    if (fb) {
+      failAt = { phase: 'final', f: 1, fHit: 1 };
+      return fb;
+    }
+    doorPolys.push(PU(c.P3));
+    c.push = [];
+    for (const id of pz) {
+      const o = byId(id),
+        r = pushAway(o, doorPolys, [c.P3.x, c.P3.y], 0.01, 1, [u.id, t.id]);
+      if (!r) {
+        blkPoly = corners(o);
+        failAt = { phase: 'final', f: 1, fHit: 1 };
+        return (o.short || o.name) + ' (it cannot be pushed 1″ away)';
+      }
+      c.push.push(o.short || o.name);
+    }
+    return null;
   };
   if (window.__chgDbg)
     window.__chgDbg.push({
@@ -585,6 +681,7 @@ function planCharge(u0, t, cd) {
         pv: c.pv,
         dl: c.dl,
         pairs: c.sc.pairs,
+        push: c.push || [],
         off
       };
       if (!first) first = o;
