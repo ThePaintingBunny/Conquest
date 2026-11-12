@@ -195,8 +195,18 @@ function regOptions(u) {
       out.push({ name: kind === 'vet' ? 'Veteran' : nm, cost: +m[2], kind, detail: m[3] || '' });
     }
   });
-  /* a regiment may take only one Officer; Auxiliaries, Veterans and other options do not count towards it */
-  return { opts: out, max: out.some(o => o.kind === 'off') ? 1 : null };
+  /* Officers: each one at most once (army lists 2026). The regiment's own entry may set a number ("Officers (up to 2)",
+     "Officer (1)"); otherwise the core limit applies: a Command Stand holds at most four Command Models, Leader and
+     Standard Bearer included. Auxiliaries, Veterans and other options do not count. */
+  let max = null;
+  if (out.some(o => o.kind === 'off')) {
+    const seg = (t.match(/Officers?\s*\(([^)]*)\)\s*:/i) || [])[1] || '',
+      n = (seg.match(/(\d+)/) || [])[1],
+      cmd = u.cmd || {},
+      room = Math.max(0, 4 - (cmd.leader ? 1 : 0) - (cmd.bearer ? 1 : 0));
+    max = n ? Math.min(+n, room) : room;
+  }
+  return { opts: out, max };
 }
 function rowPts(r) {
   if (r.modular) return modPts(r.modular) + (r.custom || []).reduce((a, c) => a + (+c.pts || 0), 0);
@@ -253,7 +263,9 @@ function wbProblems(w) {
     if (ru && (r.opts || []).length) {
       const O = regOptions(ru).opts,
         offs = r.opts.filter(n => (O.find(o => o.name === n) || {}).kind === 'off');
-      if (offs.length > 1) p.push(`${r.unit}: only one Officer per regiment (has ${offs.join(' and ')}).`);
+      const mx = regOptions(ru).max;
+      if (mx != null && offs.length > mx)
+        p.push(`${r.unit}: at most ${mx} Officer${mx === 1 ? '' : 's'} (has ${offs.join(' and ')}).`);
     }
   });
   const n = w.regs.length,
@@ -1174,7 +1186,9 @@ function abRegCard(f, w, wi, r, ri, choices) {
       og.append(
         bEl('span', {
           className: 'ab-lab-t',
-          textContent: 'Options' + (O.max != null ? ' (one Officer; an Auxiliary does not count)' : '')
+          textContent:
+            'Options' +
+            (O.max != null ? ' (Officers: up to ' + O.max + ', each once; an Auxiliary does not count)' : '')
         })
       );
       const oi = infoLine(

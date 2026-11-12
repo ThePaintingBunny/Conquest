@@ -481,12 +481,21 @@ function qaForm(spec, onChange, adding) {
         bt.title =
           (o.detail || '') +
           (o.cost ? ' · ' + o.cost + ' pts' : '') +
-          (full ? ' · one Officer per regiment' : auxTaken ? ' · one Auxiliary only' : '');
+          (full
+            ? ' · Officer limit reached (' + RO.max + ' for this regiment)'
+            : auxTaken
+              ? ' · one Auxiliary only'
+              : '');
         bt.disabled = full || auxTaken;
         bt.setAttribute('aria-pressed', String(on));
         hookInfo(
           bt,
-          optInfo(o) + (full ? ' · one Officer per regiment' : auxTaken ? ' · one Auxiliary only' : ''),
+          optInfo(o) +
+            (full
+              ? ' · Officer limit reached (' + RO.max + ' for this regiment)'
+              : auxTaken
+                ? ' · one Auxiliary only'
+                : ''),
           oi
         );
         r.append(bt);
