@@ -1952,13 +1952,26 @@ $('f-more').onclick = () => form(1);
 $('done-act').onclick = finishAction;
 $('cancel-act').onclick = cancelAction;
 $('abort').onclick = abort;
-$('ruler').onclick = () => {
-  ruler = !ruler;
+function toggleRuler(on) {
+  ruler = on == null ? !ruler : !!on;
   $('ruler').setAttribute('aria-pressed', ruler);
   rA = rB = null;
   lastHover = null;
   drawRuler();
-};
+}
+$('ruler').onclick = () => toggleRuler();
+/* hotkey: R toggles the ruler, Escape turns it off (not while typing, not with Ctrl/Cmd/Alt, not under a menu page) */
+document.addEventListener('keydown', ev => {
+  if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.repeat) return;
+  const tg = ev.target;
+  if (/INPUT|TEXTAREA|SELECT/.test(tg.tagName) || tg.isContentEditable) return;
+  if (mmCurrent()) return;
+  if (ev.key === 'r' || ev.key === 'R') {
+    ev.preventDefault();
+    toggleRuler();
+    toast(ruler ? 'Ruler on (R or Esc to turn off).' : 'Ruler off.');
+  } else if (ev.key === 'Escape' && ruler) toggleRuler(false);
+});
 $('set-open').onclick = () => openSettings();
 $('mm-open').onclick = () => {
   if (mmCurrent() && !mmOverlay) {
