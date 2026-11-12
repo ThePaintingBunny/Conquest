@@ -322,6 +322,21 @@ async function exClash(st) {
   const why = canDo('clash');
   if (why) return 'could not clash (' + why + ')';
   if (availableActions(byId(act.id)).some(a => a.type === 'assassin' && !a.why)) return exAssassin();
+  if (nodeClashOffer(byId(act.id))) {
+    /* Claude always detonates a Catabolic Node when it declares a Clash, resolving the blast first */
+    act.nodeAsked = true;
+    logAI('detonates its Catabolic Node');
+    offNode(byId(act.id));
+    for (let g = 0; g < 60 && (cb || cbQueue.length); g++) {
+      if (!cb) {
+        await sleep(200);
+        continue;
+      }
+      await autoResolve();
+    }
+    const A = byId(act.id);
+    if (!A || A.destroyed || !engaged(A).length) return 'detonated its Catabolic Node; no Clash followed';
+  }
   startAction('clash');
   if (cb && !cb.tgt) {
     const ch = cb.choices || [];

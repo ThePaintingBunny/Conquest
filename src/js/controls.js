@@ -461,6 +461,12 @@ function startAction(type) {
     Object.assign(act.cur, { segs: [], segStart: Object.assign({}, st), mode: 'fwd', pending: null });
   if (type === 'clash') {
     act.cur = { type, start: st, budget: 0, moving: false, reshape: false };
+    if (nodeClashOffer(u)) {
+      act.cur.stage = 'node';
+      render();
+      toast('Catabolic Node: detonate it before the Clash?');
+      return;
+    }
     const eng = engaged(u);
     if (eng.length === 1) openCombat({ type: 'clash', att: act.id, tgt: eng[0].id, inAct: true });
     else openCombat({ type: 'clash', att: act.id, tgt: null, choices: eng.map(e => e.id), inAct: true });

@@ -1255,7 +1255,36 @@ function renderCard() {
               ' Claude checks Line of Sight.'
             );
           })()
-        : ACT[c.type].n + ': roll it in the combat panel under the map.';
+        : c.type === 'clash' && c.stage === 'node'
+          ? 'Clash declared. Catabolic Node: detonate it first? Every enemy engaged with this regiment takes 1D6+4 Hits (one D6 for all) and this regiment takes Hits equal to the D6. No Morale Tests. The Node is then removed, and the Clash follows against whoever is still in contact.'
+          : ACT[c.type].n + ': roll it in the combat panel under the map.';
+    if (c.type === 'clash' && c.stage === 'node') {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const y = document.createElement('button');
+      y.type = 'button';
+      y.className = 'btn';
+      y.textContent = 'Detonate, then Clash';
+      y.onclick = () => {
+        c.stage = null;
+        nodeThenClash(u);
+        render();
+      };
+      const n = document.createElement('button');
+      n.type = 'button';
+      n.className = 'btn ghost';
+      n.textContent = 'Clash without detonating';
+      n.onclick = () => {
+        c.stage = null;
+        act.nodeAsked = true;
+        const eng = engaged(u);
+        if (eng.length === 1) openCombat({ type: 'clash', att: act.id, tgt: eng[0].id, inAct: true });
+        else openCombat({ type: 'clash', att: act.id, tgt: null, choices: eng.map(e => e.id), inAct: true });
+        render();
+      };
+      row.append(y, n);
+      chg.appendChild(row);
+    }
   }
   act.actions.forEach((a, i) => {
     const li = document.createElement('li');

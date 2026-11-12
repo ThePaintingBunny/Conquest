@@ -652,6 +652,7 @@ function moraleInfo(T, A) {
   };
 }
 function openCombat(o) {
+  if (o && o.type === 'clashAfterNode') return clashAfterNode(o);
   setTimeout(() => {
     const c = $('combat');
     if (c && !c.hidden)
@@ -1551,6 +1552,7 @@ async function recordCombat0() {
       lethal: 'Lethal Demise',
       freform: 'Fighting Reform'
     };
+  if (cb.type === 'lethal' && cb.lethalLabel) LBL.lethal = cb.lethalLabel;
   const sum = {
     type: cb.type,
     attacker: cb.att,
@@ -1680,6 +1682,11 @@ async function recordCombat0() {
         ? cb.groups.reduce((a, g) => a + (g.rolls || []).filter(r => r.v === 6).length, 0)
         : 0,
     ldHits = ldHits0 + caHits;
+  /* a Catabolic Node also detonates when its regiment is destroyed (not when its own blast destroys it: it is already gone) */
+  const nodeFoes =
+    dead && offOn(T, 'node') && !(cb.lethalLabel === 'Catabolic Node' && cb.att === T.id)
+      ? engaged(T).map(e => e.id)
+      : [];
   const units = state.units.map(u =>
     u.id !== cb.tgt
       ? u.id === cb.att && cb.dieFight && A.dyingFight
@@ -1747,6 +1754,7 @@ async function recordCombat0() {
       resume = cb.resumeAct,
       thenDie = cb.thenDie;
     cb = null;
+    if (nodeFoes.length) nodeOnDeath(T, nodeFoes);
     if (ldHits) {
       if (inA && act && act.cur) act.cur.combat = sum;
       render();

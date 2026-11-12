@@ -971,12 +971,6 @@ function srActions(u, out, used, eng, blocked) {
     !act.actions.some(a => a.type === 'xclash')
   )
     out.push({ type: 'xclash', why: '', free: true });
-  if (eng.length && offOn(u, 'node'))
-    out.push({
-      type: 'node',
-      why: used.some(a => a.type === 'clash') ? 'Only when it declares a Clash (before its Clash)' : '',
-      free: true
-    });
   if (offOn(u, 'flame') && frontFoes(u).length) {
     out.push({
       type: 'flame',
@@ -1140,6 +1134,72 @@ function srStartAction(type) {
     return true;
   }
   return false;
+}
+/* Catabolic Node: "upon declaring a Clash Action you may choose for this Catabolic Node to Detonate".
+   Pressing Clash asks first; a detonation is resolved in full before the Clash opens against whoever is still engaged. */
+function nodeClashOffer(u) {
+  return !!(u && offOn(u, 'node') && engaged(u).length && act && !act.nodeAsked);
+}
+function nodeThenClash(u) {
+  act.nodeAsked = true;
+  offNode(u);
+  srQueue({ type: 'clashAfterNode', att: u.id });
+}
+/* opens the Clash that was declared before the detonation, once its Hits are resolved */
+function clashAfterNode(o) {
+  const A = byId(o.att);
+  if (!act || act.id !== o.att || !act.cur || act.cur.type !== 'clash') return;
+  if (!A || A.destroyed || !A.onTable || !live(A)) {
+    act.cur = null;
+    toast('The regiment was destroyed by its own Catabolic Node, so its Clash never happens.');
+    render();
+    return;
+  }
+  const eng = engaged(A);
+  if (!eng.length) {
+    toast(
+      'No enemy is left in contact after the detonation: the Clash has no target and the action is spent.'
+    );
+    finishAction();
+    return;
+  }
+  toast('Catabolic Node resolved. Now the Clash.');
+  if (eng.length === 1) openCombat({ type: 'clash', att: A.id, tgt: eng[0].id, inAct: true });
+  else openCombat({ type: 'clash', att: A.id, tgt: null, choices: eng.map(e => e.id), inAct: true });
+  render();
+}
+/* "When this Regiment is destroyed ... you may choose for this Catabolic Node to Detonate": the regiment is gone, so the
+   blast only hits the enemies that were engaged with it. Detonates automatically, as there is no cost left to weigh. */
+function nodeOnDeath(T, foes) {
+  const d = d6();
+  const ids = foes.filter(id => {
+    const e = byId(id);
+    return e && e.onTable && !e.destroyed;
+  });
+  if (!ids.length) return;
+  putState({
+    units: state.units.map(x => (x.id === T.id ? Object.assign({}, x, { nodeGone: true }) : x)),
+    lastTitle: N(T.side) + ' · Catabolic Node',
+    lastText: `${T.short || T.name} is destroyed and its Catabolic Node detonates: rolled ${d}, every enemy that was engaged with it takes ${d + 4} Hits, no Morale.`
+  }).catch(() => {});
+  toast(
+    `${T.short || T.name} is destroyed: its Catabolic Node detonates (rolled ${d}), ${d + 4} Hits on each enemy it was engaged with.`
+  );
+  ids.forEach(id => {
+    const e = byId(id);
+    srQueue({
+      type: 'lethal',
+      att: T.id,
+      tgt: id,
+      inAct: false,
+      lethalHits: d + 4,
+      lethalX: 0,
+      lethalLost: 0,
+      lethalLabel: 'Catabolic Node',
+      selfTitle: 'Catabolic Node',
+      selfText: `${T.short || T.name} is destroyed and its Catabolic Node detonates (rolled ${d}): ${e.short || e.name} takes ${d + 4} Hits. No Morale Tests.`
+    });
+  });
 }
 /* Catabolic Node: Detonate */
 function offNode(u) {

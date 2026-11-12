@@ -40,7 +40,7 @@ const OFF = {
   'Seasoned Veteran': { r: ['Hardened (1)'], t: 'Hardened (1).' },
   'Catabolic Node': {
     node: true,
-    t: 'Detonate (free, while engaged, before its Clash): every engaged enemy takes D6+4 Hits and this regiment takes the D6 rolled, no Morale. The Node is then gone.'
+    t: 'When this regiment declares a Clash (you are asked when you press Clash) or is destroyed, it may Detonate: every engaged enemy takes 1D6+4 Hits (one D6 for all) and this regiment takes Hits equal to the D6, no Morale Tests. The Node is then removed.'
   },
   'Ward Preceptor': {
     r: ['Tenacious (1)'],
