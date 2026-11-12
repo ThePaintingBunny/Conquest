@@ -332,7 +332,8 @@ function pushAway(o, polys, from, need, want, ignore) {
     if (rest.some(x => polyDist(C, corners(x)) <= 0.01)) break;
     if (terrBlockPoly(o, C)) break;
     const g = gapOf(C);
-    if (g > need && (!best || g > best.gap)) best = { x: +p.x.toFixed(3), y: +p.y.toFixed(3), gap: g, moved: +k.toFixed(2) };
+    if (g > need && (!best || g > best.gap))
+      best = { x: +p.x.toFixed(3), y: +p.y.toFixed(3), gap: g, moved: +k.toFixed(2) };
     if (g >= want - 1e-6) break;
   }
   return best;
@@ -355,7 +356,8 @@ function chargePushes(u, targetId) {
       const d = polyDist(C, corners(o));
       if (d >= 1 - 1e-6) return;
       const r = pushAway(o, [C], [u.x, u.y], Math.max(d, 0.01), 1, [u.id]);
-      if (r && r.gap > d + 1e-3) out.push({ id: o.id, name: o.short || o.name, x: r.x, y: r.y, moved: r.moved, gap: r.gap });
+      if (r && r.gap > d + 1e-3)
+        out.push({ id: o.id, name: o.short || o.name, x: r.x, y: r.y, moved: r.moved, gap: r.gap });
     });
   return out;
 }
@@ -415,15 +417,14 @@ function chargeFaces(u, t) {
     return Object.keys(cnt).filter(k => cnt[k] === m1 && m1 > 0);
   }
   /* "A Stand may find itself in more than one facing": it counts toward each of them */
-  S.filter(s => s.rank === 0)
-    .forEach(s => {
-      const fs = new Set(
-        s.poly
-          .concat([[s.poly.reduce((a, p) => a + p[0], 0) / 4, s.poly.reduce((a, p) => a + p[1], 0) / 4]])
-          .map(p => arcOf(t, p))
-      );
-      fs.forEach(f => cnt[f]++);
-    });
+  S.filter(s => s.rank === 0).forEach(s => {
+    const fs = new Set(
+      s.poly
+        .concat([[s.poly.reduce((a, p) => a + p[0], 0) / 4, s.poly.reduce((a, p) => a + p[1], 0) / 4]])
+        .map(p => arcOf(t, p))
+    );
+    fs.forEach(f => cnt[f]++);
+  });
   if (!Object.values(cnt).some(Boolean))
     for (let i = 0; i < Gc.files; i++) {
       const o = -Gc.w / 2 + Gc.sw * (i + 0.5);
@@ -477,7 +478,10 @@ function planCharge(u0, t, cd) {
     others.filter(o => o.side === u.side && o.type !== 'marker' && engaged(o).length).map(o => o.id)
   );
   const why = [];
-  const fly = rh(RU(u), 'Fly'); /* Fly: may Charge over friendly regiments, even engaged ones, but not end on them */
+  const fly = rh(
+    RU(u),
+    'Fly'
+  ); /* Fly: may Charge over friendly regiments, even engaged ones, but not end on them */
   let blkPoly = null; /* outline of whatever blocked the last check (a regiment), for the failure preview */
   const block = (P, final, pz) => {
     blkPoly = null;
@@ -856,7 +860,11 @@ async function previewChargeFail() {
         g
       );
     }
-    el('circle', { cx: px(pt[0]), cy: py(pt[1]), r: 9, fill: 'none', stroke: '#E57373', 'stroke-width': 2.5 }, g);
+    el(
+      'circle',
+      { cx: px(pt[0]), cy: py(pt[1]), r: 9, fill: 'none', stroke: '#E57373', 'stroke-width': 2.5 },
+      g
+    );
     el('circle', { cx: px(pt[0]), cy: py(pt[1]), r: 3, fill: '#E57373' }, g);
     const t = el(
       'text',
@@ -923,6 +931,16 @@ async function chargeGo() {
     if (act && act.cur === c) finishAction();
     else render();
   });
+}
+function redrawChargeGhost() {
+  const g = $('cghost');
+  if (!g || !act || !act.cur || act.cur.stage !== 'place') return render();
+  g.innerHTML = '';
+  try {
+    drawChargeGhost(g);
+  } catch (e) {
+    console.error(e);
+  }
 }
 function drawChargeGhost(g) {
   const c = act.cur,

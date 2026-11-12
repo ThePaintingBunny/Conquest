@@ -984,11 +984,11 @@ function renderCard() {
         p.textContent = ill.los
           ? `No Line of Sight to ${ill.name}: ${ill.los} blocks every sight line from this regiment's front. No roll was made and the action is not used.`
           : `No legal Charge against ${ill.name}` +
-          (ill.why ? `: the Charge Move is blocked by ${ill.why}` : '') +
-          '. No roll was made and the action is not used.' +
-          (ill.fail
-            ? ` The planner's best try ${ill.fail.th ? 'wheels ' + Math.abs(ill.fail.th) + '° ' + ill.fail.dir + ', then ' : ''}moves straight in towards the ${ill.fail.face}.`
-            : '');
+            (ill.why ? `: the Charge Move is blocked by ${ill.why}` : '') +
+            '. No roll was made and the action is not used.' +
+            (ill.fail
+              ? ` The planner's best try ${ill.fail.th ? 'wheels ' + Math.abs(ill.fail.th) + '° ' + ill.fail.dir + ', then ' : ''}moves straight in towards the ${ill.fail.face}.`
+              : '');
         box.appendChild(p);
         if (ill.fail) {
           const bp = document.createElement('button');
@@ -1074,18 +1074,24 @@ function renderCard() {
       if (c.animating) $('done-act').hidden = true;
     }
     if (c.stage === 'place') {
-      const pl = c.alts[c.altI] || c.plan,
-        n = c.alts.length;
-      const steps = [];
-      if (pl.th) steps.push('wheels ' + Math.abs(pl.th) + '° ' + pl.dir);
-      if (pl.s != null) steps.push('moves ' + pl.s.toFixed(1) + '″ straight in');
-      if (pl.tgtPose) steps.push((t.short || t.name) + ' pivots to face it');
-      else if (pl.dl) steps.push('closes the door ' + Math.abs(Math.round(pl.dl)) + '°');
-      $('c-cur-read').textContent =
-        `Charge succeeds: ${c.roll ? c.roll + ' + ' : ''}${M}${jug ? ' + 5' : ''} = ${c.cd}″ against ${c.dist.toFixed(1)}″. The see-through regiment shows where it will end: it ${steps.join(', ')} into the ${c.face}${pl.pairs ? ', ' + pl.pairs + ' stand contact' + (pl.pairs === 1 ? '' : 's') : ''}.` +
-        (pl.push && pl.push.length ? ` ${pl.push.join(' and ')} ${pl.push.length > 1 ? 'are' : 'is'} in the way and will be pushed up to 1″ directly away.` : '') +
-        ' Any other unengaged enemy left within 1″ is pushed up to 1″ away when the Charge ends.' +
-        (n > 1 ? ` ${n} end positions give this most contact; choose one (the dots mark the others).` : '');
+      const n = c.alts.length;
+      /* the description of the chosen end position; also refreshed while the slider is dragged */
+      const placeRead = () => {
+        const pl = c.alts[c.altI] || c.plan;
+        const steps = [];
+        if (pl.th) steps.push('wheels ' + Math.abs(pl.th) + '° ' + pl.dir);
+        if (pl.s != null) steps.push('moves ' + pl.s.toFixed(1) + '″ straight in');
+        if (pl.tgtPose) steps.push((t.short || t.name) + ' pivots to face it');
+        else if (pl.dl) steps.push('closes the door ' + Math.abs(Math.round(pl.dl)) + '°');
+        $('c-cur-read').textContent =
+          `Charge succeeds: ${c.roll ? c.roll + ' + ' : ''}${M}${jug ? ' + 5' : ''} = ${c.cd}″ against ${c.dist.toFixed(1)}″. The see-through regiment shows where it will end: it ${steps.join(', ')} into the ${c.face}${pl.pairs ? ', ' + pl.pairs + ' stand contact' + (pl.pairs === 1 ? '' : 's') : ''}.` +
+          (pl.push && pl.push.length
+            ? ` ${pl.push.join(' and ')} ${pl.push.length > 1 ? 'are' : 'is'} in the way and will be pushed up to 1″ directly away.`
+            : '') +
+          ' Any other unengaged enemy left within 1″ is pushed up to 1″ away when the Charge ends.' +
+          (n > 1 ? ` ${n} end positions give this most contact; choose one (the dots mark the others).` : '');
+      };
+      placeRead();
       $('done-act').hidden = true;
       if (n > 1) {
         const r = document.createElement('div');
@@ -1117,10 +1123,14 @@ function renderCard() {
         sl.max = n - 1;
         sl.value = c.altI;
         sl.setAttribute('aria-label', 'End position along the enemy');
+        /* dragging only redraws the see-through regiment and the text, so the slider keeps the pointer */
         sl.oninput = () => {
           c.altI = +sl.value;
-          render();
+          lab.textContent = 'End position ' + (c.altI + 1) + ' of ' + n;
+          placeRead();
+          redrawChargeGhost();
         };
+        sl.onchange = () => render();
         r.append(pv, sl, nx, lab);
         chg.appendChild(r);
       }
@@ -1638,7 +1648,7 @@ function render() {
   }
   if (act && act.cur && act.cur.type === 'charge' && act.cur.stage === 'place') {
     try {
-      drawChargeGhost(ug);
+      drawChargeGhost(el('g', { id: 'cghost' }, ug));
     } catch (e) {
       console.error(e);
     }
