@@ -858,7 +858,7 @@ function renderCard() {
     go.textContent = 'Go to the dice';
     go.onclick = () => {
       try {
-        $('combat').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        revealIn($('combat'), 'start');
       } catch (e) {}
     };
     box.appendChild(go);
@@ -1539,7 +1539,31 @@ function renderArmies() {
   });
   renderTabs();
 }
+/* Fit the board to the screen: as tall as the space below the top bars allows (on wide screens only).
+   When the bars above are very tall (tools opened), the board keeps a usable size and the page scrolls instead. */
+function fitBoard() {
+  const b = $('board');
+  if (!b) return;
+  if (innerWidth <= 900) {
+    b.style.maxHeight = '';
+    return;
+  }
+  const top = b.getBoundingClientRect().top + scrollY,
+    vh = innerHeight;
+  b.style.maxHeight = Math.max(320, vh - Math.min(top, vh * 0.4) - 18) + 'px';
+}
+addEventListener('resize', () => requestAnimationFrame(fitBoard));
+/* Bring something into view. Inside the side column (wide screens) only the column scrolls, never the page. */
+function revealIn(el, block) {
+  if (!el) return;
+  const rc = el.closest && el.closest('.rcol');
+  if (rc && innerWidth > 900) {
+    const top = el.getBoundingClientRect().top - rc.getBoundingClientRect().top + rc.scrollTop - 6;
+    rc.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  } else el.scrollIntoView({ behavior: 'smooth', block: block || 'nearest' });
+}
 function render() {
+  requestAnimationFrame(fitBoard);
   if (!state) return;
   applyColors();
   bldUse(SBX() ? 'test' : 'main');
@@ -1727,6 +1751,8 @@ function render() {
   const b = document.createElement('b');
   b.textContent = (state.lastTitle || 'Last move') + ': ';
   $('last').append(b, document.createTextNode(state.lastText || 'No moves yet.'));
+  /* one line above the board; a click shows the whole message */
+  if (!$('last').onclick) $('last').onclick = () => $('last').classList.toggle('open');
   renderArmies();
   renderCard();
   try {

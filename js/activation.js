@@ -367,8 +367,17 @@ function abort() {
   } else render();
   toast('Activation undone.');
 }
+/* messages float over the board and fade after a few seconds (longer messages stay longer); click to dismiss */
+let toastTimer = null;
 function toast(t) {
-  $('toast').textContent = t;
+  const e = $('toast');
+  if (!e) return;
+  e.textContent = t || '';
+  clearTimeout(toastTimer);
+  e.classList.toggle('show', !!t);
+  if (!e.onclick) e.onclick = () => e.classList.remove('show');
+  if (t)
+    toastTimer = setTimeout(() => e.classList.remove('show'), Math.min(14000, Math.max(4500, t.length * 60)));
 }
 function setPose(p) {
   if (!act) return;

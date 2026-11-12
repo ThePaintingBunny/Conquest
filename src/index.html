@@ -17,7 +17,7 @@
   <section class="ency" id="ency" hidden aria-label="Encyclopedia"><div class="en-head"><h2>Encyclopedia</h2><button type="button" class="btn ghost" id="en-close">Close</button></div><div class="en-facs" id="en-facs" role="group" aria-label="Faction"></div><div class="en-ctl"><input type="search" id="en-q" placeholder="Search every faction: a name, a rule like Impact or Fly…" aria-label="Search the encyclopedia"><div class="grp" role="group" aria-label="Show"><button type="button" data-k="all" aria-pressed="true">All</button><button type="button" data-k="char" aria-pressed="false">Characters</button><button type="button" data-k="reg" aria-pressed="false">Regiments</button></div></div><div id="en-info"></div><div class="en-grid" id="en-grid"></div></section><span id="ai-status" hidden></span>
   <section class="report" id="ai-report" hidden aria-live="polite"><div class="cb-head"><h2 id="air-title">Turn report</h2><button type="button" class="btn ghost" id="air-close">Close</button></div><div id="air-body"></div></section>
   <div class="main">
-    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false" title="Ruler (R)" aria-keyshortcuts="R">📏 Ruler</button><span class="hint" id="tool-hint">Measure between two points, or tap two regiments for the closest distance.</span><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div><div class="od-trk" id="od-trk" hidden aria-label="Old Dominion Power tokens"></div></div><div class="mapbox"><button type="button" class="leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel">Legend</button><div class="leg-panel" id="leg-panel" hidden></div>
+    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false" title="Ruler (R): Measure between two points, or tap two regiments for the closest distance." aria-keyshortcuts="R">📏 Ruler</button><div class="last" id="last" title="Click to show the whole message">No moves yet.</div><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div><div class="od-trk" id="od-trk" hidden aria-label="Old Dominion Power tokens"></div></div><div class="mapbox"><p class="toast" id="toast" role="status" aria-live="polite"></p><button type="button" class="leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel">Legend</button><div class="leg-panel" id="leg-panel" hidden></div>
     <svg id="board" viewBox="150 0 544 400" role="img" aria-labelledby="mt"><title id="mt">Battlefield with terrain, objectives and regiments</title>
       <style>.grass{fill:#86A85E}.patch{fill:#739650}.tuft{stroke:#5F8443}
       @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .grass{fill:#4C6A36}:root:not([data-theme="light"]) .patch{fill:#425E2F}:root:not([data-theme="light"]) .tuft{stroke:#37502A}}
@@ -37,10 +37,10 @@
       <g id="rings"></g><g id="moves"></g><g id="units"></g><g id="rulerg"></g>
     </svg>
     </div>
-    <section class="combat" id="combat" hidden aria-live="polite"><div class="cb-head"><h2 id="cb-title">Combat</h2><button type="button" class="btn ghost" id="cb-close">Close</button></div><div id="cb-body" class="sec"></div></section>
     </div>
 
     <div class="rcol">
+    <section class="combat" id="combat" hidden aria-live="polite"><div class="cb-head"><h2 id="cb-title">Combat</h2><button type="button" class="btn ghost" id="cb-close">Close</button></div><div id="cb-body" class="sec"></div></section>
     <div class="rtabs" role="tablist" aria-label="Side panel"><button type="button" role="tab" id="tab-reg" aria-selected="true">Regiment</button><button type="button" role="tab" id="tab-army" aria-selected="false">Armies</button></div>
     <aside class="card" id="card" aria-live="polite">
       <div class="rh"><h2 id="c-name">Choose a regiment</h2><div class="meta" id="c-meta">Click a regiment on the table or in the rosters below.</div><div class="rbadges" id="c-badges" hidden></div></div>
@@ -74,7 +74,6 @@
           <input type="text" id="note" placeholder="Note for the log (optional)" maxlength="200" aria-label="Note for Claude">
           <div class="row"><button type="button" class="btn" id="end">End activation</button><button type="button" class="btn ghost" id="abort">Undo activation</button></div>
         </div>
-        <p class="hint" id="toast" role="status"></p>
       </div>
       <div class="sec" id="c-char" hidden></div>
       <div class="rsub" id="c-subtabs" role="tablist" aria-label="Regiment details" hidden><button type="button" role="tab" data-p="prof">Profile</button><button type="button" role="tab" data-p="rules">Rules</button><button type="button" role="tab" data-p="abil">Abilities</button></div>
@@ -93,7 +92,6 @@
     </div>
   </div>
 
-  <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform. R toggles the ruler.</p>
 </div>
 <!-- runtime -->

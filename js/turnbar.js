@@ -359,6 +359,11 @@ function renderTurnbar() {
   } catch (e) {
     console.error(e);
   }
+  try {
+    foldTurnbar(tb0);
+  } catch (e) {
+    console.error(e);
+  }
   if (fid) {
     const e = document.getElementById(fid);
     if (e && !e.disabled) {
@@ -368,6 +373,53 @@ function renderTurnbar() {
       } catch (err) {}
     }
   }
+}
+/* ---------- The turn bar keeps one status row; reference sections and tools fold behind one toggle ---------- */
+const tbMoreOpen = {};
+function foldTurnbar(tb) {
+  if (!tb || aiBusy) return;
+  const kids = [...tb.children];
+  let fold, key, label;
+  if (SBX()) {
+    const i = kids.findIndex(k => k.classList && k.classList.contains('tf-row'));
+    fold = i >= 0 ? kids.slice(i + 1) : [];
+    key = 'test';
+    label = 'Test field tools';
+  } else {
+    fold = kids.filter(k => k.tagName === 'DETAILS' || (k.classList && k.classList.contains('ng')));
+    key = 'game';
+    label = 'Game info';
+  }
+  if (!fold.length) return;
+  if (tbMoreOpen[key] == null) {
+    let v = null;
+    try {
+      v = localStorage.getItem('tbMore:' + key);
+    } catch (e) {}
+    /* the test field starts open on an empty table, so the tools are there when you need them */
+    tbMoreOpen[key] = v != null ? v === '1' : key === 'test' && !(state.units || []).length;
+  }
+  const d = document.createElement('details');
+  d.className = 'tb-more';
+  d.open = tbMoreOpen[key];
+  const sm = document.createElement('summary');
+  sm.textContent = label;
+  sm.title =
+    key === 'test'
+      ? 'Add regiments, terrain, colours and conditions'
+      : 'Victory conditions, army and faction rules, host console, new game';
+  const body = document.createElement('div');
+  body.className = 'tb-more-body';
+  fold.forEach(k => body.appendChild(k));
+  d.append(sm, body);
+  d.addEventListener('toggle', () => {
+    requestAnimationFrame(fitBoard);
+    tbMoreOpen[key] = d.open;
+    try {
+      localStorage.setItem('tbMore:' + key, d.open ? '1' : '0');
+    } catch (e) {}
+  });
+  tb.appendChild(d);
 }
 /* ---------- Host override console: for when the game gets stuck ---------- */
 let ovrOpen = false;

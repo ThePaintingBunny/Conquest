@@ -663,7 +663,7 @@ function openCombat(o) {
     const c = $('combat');
     if (c && !c.hidden)
       try {
-        c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        revealIn(c);
       } catch (e) {}
   }, 120);
   if (o && o.type === 'volley' && o.tgt && o.att) {
@@ -721,7 +721,7 @@ function openCombat(o) {
   renderCard();
   maybeAutoAI();
   try {
-    $('combat').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    revealIn($('combat'));
   } catch (e) {}
 }
 function maybeAutoAI() {
@@ -1100,6 +1100,15 @@ function ptext(t, cls) {
 function renderCombat() {
   if (cb && !cb.uid) cb.uid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   renderCombat0();
+  /* when a new step appears (hits rolled, Defense rolled ...), scroll the side column to it */
+  try {
+    const steps = document.querySelectorAll('#combat .cstep'),
+      k = (cb && cb.uid) + ':' + steps.length;
+    if (cb && steps.length > 1 && renderCombat.stepKey !== k && renderCombat.stepUid === cb.uid)
+      revealIn(steps[steps.length - 1]);
+    renderCombat.stepKey = k;
+    renderCombat.stepUid = cb && cb.uid;
+  } catch (e) {}
   if (cb) cbGate();
   cbSync();
   if (act && !renderCombat.busy) {
