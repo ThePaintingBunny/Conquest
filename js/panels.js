@@ -976,12 +976,40 @@ function renderCard() {
           ? `Cream: within its fixed ${chargeMax(u)}″ Charge. `
           : `Cream: within its March of ${M}″, so any roll reaches. Orange: reachable with a good enough roll, up to ${chargeMax(u)}″. `) +
         'Hover an enemy to see the distance and the roll it needs. Claude checks Line of Sight.';
+      const ill = c.illegal;
+      if (ill) {
+        const box = document.createElement('div');
+        box.className = 'chg-illegal';
+        const p = document.createElement('p');
+        p.textContent =
+          `No legal Charge against ${ill.name}` +
+          (ill.why ? `: the Charge Move is blocked by ${ill.why}` : '') +
+          '. No roll was made and the action is not used.' +
+          (ill.fail
+            ? ` The planner's best try ${ill.fail.th ? 'wheels ' + Math.abs(ill.fail.th) + '° ' + ill.fail.dir + ', then ' : ''}moves straight in towards the ${ill.fail.face}.`
+            : '');
+        box.appendChild(p);
+        if (ill.fail) {
+          const bp = document.createElement('button');
+          bp.type = 'button';
+          bp.className = 'btn ghost';
+          bp.textContent = 'Preview why it fails';
+          bp.title = 'Play the attempted Charge Move as a see-through regiment, stopping where it is blocked';
+          bp.onclick = previewChargeFail;
+          box.appendChild(bp);
+        }
+        chg.appendChild(box);
+      }
     }
     if (c.stage === 'roll') {
       const need = Math.max(1, Math.ceil(c.dist - M - 1e-6));
       $('c-cur-read').textContent = jug
         ? `Charge against ${t.short || t.name}, ${c.dist.toFixed(1)}″ away. Juggernaut: the Charge Distance is always ${M + 5}″.`
-        : `Charge against ${t.short || t.name}, ${c.dist.toFixed(1)}″ away. Charge Distance is ${M}″ plus the Charge Roll, so you need ${need} or more on the Charge Roll.`;
+        : `Charge against ${t.short || t.name}, ${(c.straight != null ? c.straight : c.dist).toFixed(1)}″ away.` +
+          (c.straight != null && c.dist > c.straight + 0.05
+            ? ` The shortest legal Charge Move into it is ${c.dist.toFixed(1)}″ (the straight line is blocked or does not meet a facing).`
+            : '') +
+          ` A legal Charge Move exists. Charge Distance is ${M}″ plus the Charge Roll, so you need ${need} or more on the Charge Roll.`;
       chg.appendChild(
         jug
           ? (() => {

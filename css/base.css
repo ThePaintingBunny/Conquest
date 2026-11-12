@@ -2566,3 +2566,17 @@ textarea {
 }
 
 /* ===== Regiment card theme: campaign parchment with gilt trim ===== */
+
+/* a Charge that cannot be made: the reason, and the preview button */
+.chg-illegal {
+  border-left: 3px solid #e57373;
+  background: rgba(229, 115, 115, 0.1);
+  border-radius: 4px;
+  padding: 6px 9px;
+  margin: 6px 0;
+}
+.chg-illegal p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}

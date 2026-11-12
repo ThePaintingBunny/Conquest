@@ -411,13 +411,21 @@ function planCharge(u0, t, cd) {
     others.filter(o => o.side === u.side && o.type !== 'marker' && engaged(o).length).map(o => o.id)
   );
   const why = [];
+  let blkPoly = null; /* outline of whatever blocked the last check (a regiment), for the failure preview */
   const block = (P, final) => {
+    blkPoly = null;
     if (!onEdge(P)) return 'the table edge';
     for (const o of others) {
       const C = corners(o);
       if (o.side !== u.side) {
-        if (polyDist(P, C) <= 0.01) return o.short || o.name;
-      } else if ((final || engF.has(o.id)) && polyOverlap(P, C)) return o.short || o.name;
+        if (polyDist(P, C) <= 0.01) {
+          blkPoly = C;
+          return o.short || o.name;
+        }
+      } else if ((final || engF.has(o.id)) && polyOverlap(P, C)) {
+        blkPoly = C;
+        return o.short || o.name;
+      }
     }
     const tb = terrBlockPoly(u, P);
     return tb;
@@ -468,10 +476,14 @@ function planCharge(u0, t, cd) {
   cands.sort(
     (a, b) => b.sc.pairs - a.sc.pairs || b.sc.len - a.sc.len || a.s - b.s || Math.abs(a.th) - Math.abs(b.th)
   );
+  let failAt = null; /* where the last legality check failed: { phase, f } */
   const sweep = (fn, n, final) => {
     for (let k = 0; k <= n; k++) {
       const r = block(fn(k / n), final && k === n);
-      if (r) return r;
+      if (r) {
+        failAt = { f: Math.max(0, (k - 1) / n), fHit: k / n };
+        return r;
+      }
     }
     return null;
   };
@@ -480,7 +492,10 @@ function planCharge(u0, t, cd) {
       k => PU(c.th ? wheelPose(start, u, c.dir, Math.abs(c.th) * k) : start),
       Math.max(1, Math.ceil(Math.abs(c.th) / 2))
     );
-    if (r) return (window.__chgDbg ? 'W:' : '') + r;
+    if (r) {
+      failAt.phase = 'wheel';
+      return (window.__chgDbg ? 'W:' : '') + r;
+    }
     if (
       sweep(
         k => PU(c.th ? wheelPose(start, u, c.dir, Math.abs(c.th) * k) : start),
@@ -496,21 +511,35 @@ function planCharge(u0, t, cd) {
         k => PU(Object.assign({}, c.P1, { x: c.P1.x + f[0] * c.s * k, y: c.P1.y + f[1] * c.s * k })),
         Math.max(1, Math.ceil(c.s / 0.25))
       );
-      if (r) return (window.__chgDbg ? 'M:' : '') + r;
+      if (r) {
+        failAt.phase = 'move';
+        return (window.__chgDbg ? 'M:' : '') + r;
+      }
     }
     for (let k = 0; k <= Math.max(1, Math.ceil(Math.abs(c.dl) / 2)); k++) {
-      const P = PU(rotAbout(c.P2, c.pv, (c.dl * k) / Math.max(1, Math.ceil(Math.abs(c.dl) / 2))));
-      if (k && polyOverlap(P, T)) return 'the target';
+      const nd = Math.max(1, Math.ceil(Math.abs(c.dl) / 2));
+      const P = PU(rotAbout(c.P2, c.pv, (c.dl * k) / nd));
+      if (k && polyOverlap(P, T)) {
+        blkPoly = T;
+        failAt = { phase: 'door', f: (k - 1) / nd, fHit: k / nd };
+        return 'the target';
+      }
       const b = block(P, false);
-      if (b) return (window.__chgDbg ? 'D:' : '') + b;
+      if (b) {
+        failAt = { phase: 'door', f: Math.max(0, (k - 1) / nd), fHit: k / nd };
+        return (window.__chgDbg ? 'D:' : '') + b;
+      }
     }
-    return block(PU(c.P3), true);
+    const fb = block(PU(c.P3), true);
+    if (fb) failAt = { phase: 'final', f: 1, fHit: 1 };
+    return fb;
   };
   if (window.__chgDbg)
     window.__chgDbg.push({
       n: cands.length,
       top: cands.slice(0, 400).map(c => [c.th, c.sc.pairs, +c.s.toFixed(2), legal(c)])
     });
+  let fail = null; /* the best Charge Move tried, and where it was blocked */
   {
     let first = null;
     const alts = [],
@@ -524,6 +553,21 @@ function planCharge(u0, t, cd) {
       const r = legal(c);
       if (r) {
         if (!first) why.push(r);
+        if (!first && !fail && failAt)
+          fail = Object.assign({}, failAt, {
+            by: r.replace(/^[A-Z]:/, ''),
+            blk: blkPoly,
+            start,
+            th: c.th,
+            dir: c.dir,
+            P1: c.P1,
+            P2: c.P2,
+            P3: c.P3,
+            s: c.s,
+            pv: c.pv,
+            dl: c.dl,
+            face: c.face
+          });
         continue;
       }
       seen.add(key);
@@ -620,12 +664,151 @@ function planCharge(u0, t, cd) {
   return {
     ok: false,
     start,
+    fail,
     why: w.length
       ? [...new Set(w)].slice(0, 2).join(' and ')
       : cands.length
         ? ''
         : 'no straight Charge Move reaches the ' + faces.join(' or ') + ' within ' + cd + '″'
   };
+}
+/* ===== Preview of a Charge that cannot be made: a see-through regiment follows the best Charge Move the planner tried
+   (wheel, straight move, close the door) and stops where it is blocked; the blocking contact is marked in red. ===== */
+function chargePathPose(fl, u, e) {
+  /* pose along the attempted path; e runs 0..1 over wheel, move and door, ending at the failure point */
+  const segs = [];
+  const upto = { wheel: 0, move: 1, door: 2, final: 3 }[fl.phase];
+  if (fl.th) segs.push(k => wheelPose(fl.start, u, fl.dir, Math.abs(fl.th) * k));
+  segs.push(k => {
+    const a = (fl.P1.facing * Math.PI) / 180;
+    return Object.assign({}, fl.P1, {
+      x: fl.P1.x + Math.sin(a) * fl.s * k,
+      y: fl.P1.y + Math.cos(a) * fl.s * k
+    });
+  });
+  if (fl.dl) segs.push(k => Object.assign(rotAbout(fl.P2, fl.pv, fl.dl * k)));
+  /* how much of each segment is played */
+  const plays = [];
+  if (fl.th) plays.push(upto === 0 ? fl.f : 1);
+  if (upto >= 1) plays.push(upto === 1 ? fl.f : 1);
+  if (fl.dl && upto >= 2) plays.push(upto === 2 ? fl.f : 1);
+  const n = plays.length,
+    i = Math.min(n - 1, Math.floor(e * n)),
+    k = e >= 1 ? 1 : e * n - i;
+  return segs[i](plays[i] * k);
+}
+let chgFailAnim = 0;
+async function previewChargeFail() {
+  const c = act && act.cur,
+    ill = c && c.illegal,
+    fl = ill && ill.fail;
+  const ug = $('units');
+  if (!fl || !ug) return;
+  const u0 = Object.assign({}, base(act.id), act.pose),
+    myRun = ++chgFailAnim;
+  let g = $('cfail');
+  if (!g) g = el('g', { id: 'cfail', 'pointer-events': 'none' }, ug.parentNode);
+  else g.parentNode.appendChild(g);
+  const draw = (pose, done) => {
+    g.innerHTML = '';
+    const gu = Object.assign({}, u0, pose),
+      col = done ? '#E57373' : '#FFE58A';
+    el(
+      'line',
+      {
+        x1: px(fl.start.x),
+        y1: py(fl.start.y),
+        x2: px(pose.x),
+        y2: py(pose.y),
+        stroke: col,
+        'stroke-width': 1.6,
+        'stroke-dasharray': '4 3'
+      },
+      g
+    );
+    standsOf(gu).forEach(s2 =>
+      el(
+        'polygon',
+        {
+          points: s2.poly.map(q => px(q[0]) + ',' + py(q[1])).join(' '),
+          fill: COL[u0.side] ? COL[u0.side].fill : '#888',
+          'fill-opacity': 0.35,
+          stroke: col,
+          'stroke-width': 1.4,
+          'stroke-dasharray': '3 2'
+        },
+        g
+      )
+    );
+    if (!done) return;
+    /* the point of failure: where the next step would touch or overlap what blocks it */
+    const hitPose = chargePathPose(Object.assign({}, fl, { f: fl.fHit }), u0, 1),
+      HP = corners(Object.assign({}, u0, hitPose));
+    let pt = [hitPose.x, hitPose.y];
+    if (fl.blk) {
+      const cp = closestPts(HP, fl.blk);
+      if (cp) pt = [(cp[1][0] + cp[2][0]) / 2, (cp[1][1] + cp[2][1]) / 2];
+      el(
+        'polygon',
+        {
+          points: fl.blk.map(q => px(q[0]) + ',' + py(q[1])).join(' '),
+          fill: 'none',
+          stroke: '#E57373',
+          'stroke-width': 2.4
+        },
+        g
+      );
+    }
+    el('circle', { cx: px(pt[0]), cy: py(pt[1]), r: 9, fill: 'none', stroke: '#E57373', 'stroke-width': 2.5 }, g);
+    el('circle', { cx: px(pt[0]), cy: py(pt[1]), r: 3, fill: '#E57373' }, g);
+    const t = el(
+      'text',
+      {
+        x: px(pt[0]),
+        y: py(pt[1]) - 14,
+        'text-anchor': 'middle',
+        fill: '#E57373',
+        'font-size': 12,
+        'font-weight': 700,
+        'font-family': 'Alegreya Sans, sans-serif',
+        stroke: '#1C2421',
+        'stroke-width': 3,
+        'paint-order': 'stroke'
+      },
+      g
+    );
+    t.textContent = chargeFailText(fl);
+  };
+  const ms = RM ? 0 : 1600,
+    t0 = performance.now();
+  await new Promise(res => {
+    const step = now => {
+      if (myRun !== chgFailAnim) return res();
+      const k = ms ? Math.min(1, (now - t0) / ms) : 1;
+      draw(chargePathPose(fl, u0, ease(k)), k >= 1);
+      if (k < 1) requestAnimationFrame(step);
+      else res();
+    };
+    requestAnimationFrame(step);
+  });
+  setTimeout(() => {
+    if (myRun === chgFailAnim && g.parentNode) g.innerHTML = '';
+  }, 6000);
+}
+function chargeFailText(fl) {
+  const what = fl.by || 'something';
+  return fl.phase === 'wheel'
+    ? 'Blocked while wheeling: ' + what
+    : fl.phase === 'move'
+      ? (/table edge/.test(what) ? 'Runs off ' : 'Blocked: would touch ') + what
+      : fl.phase === 'door'
+        ? 'Cannot close the door: ' + what
+        : 'Cannot end here: ' + what;
+}
+function clearChargeFail() {
+  chgFailAnim++;
+  const g = $('cfail');
+  if (g) g.innerHTML = '';
 }
 /* play the Charge Move: wheel, straight move, close the door */
 async function chargeGo() {
@@ -766,6 +949,7 @@ function rollPicker(label, cb) {
   return w;
 }
 function cancelAction() {
+  clearChargeFail();
   if (!act.cur) return;
   if (act.cur.type === 'withdraw') {
     toast('The Withdraw test has been rolled. March away, or press "Withdraw fails".');

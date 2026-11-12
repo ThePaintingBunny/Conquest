@@ -683,6 +683,42 @@ function drawChargeNeeds(u, g) {
       gu.insertBefore(ti, gu.firstChild);
     });
 }
+/* the furthest this regiment can charge against this target (some rules add to the Charge Roll against particular targets) */
+function chargeMaxVs(u, t) {
+  const c = act && act.cur,
+    prev = c ? c.target : null;
+  if (c) c.target = t.id;
+  try {
+    return chargeMax(u);
+  } finally {
+    if (c) c.target = prev;
+  }
+}
+/* Is a Charge against t legal at all, and how long is the shortest legal Charge Move?
+   Uses the Charge Move planner from where the regiment stands: { ok, why, req } with req in inches. */
+function chargeCheck(u, t, dist, max) {
+  const s = (act && act.cur && act.cur.start) || u,
+    U = Object.assign({}, u, { x: s.x, y: s.y, facing: s.facing != null ? s.facing : u.facing || 0 });
+  const plan = cd => {
+    try {
+      return planCharge(U, t, cd);
+    } catch (e) {
+      console.error(e);
+      return { ok: false, why: '' };
+    }
+  };
+  const best = plan(max);
+  if (!best.ok) return { ok: false, why: best.why || '', fail: best.fail };
+  if (chargeFixed(u) != null || plan(dist).ok) return { ok: true, req: dist };
+  let lo = dist,
+    hi = max;
+  while (hi - lo > 0.05) {
+    const mid = (lo + hi) / 2;
+    if (plan(mid).ok) hi = mid;
+    else lo = mid;
+  }
+  return { ok: true, req: Math.ceil(hi * 20) / 20 };
+}
 function setChargeTarget(t) {
   const u = byId(act.id);
   if (fx(t).some(x => /^Prowling/.test(x)) && polyDist(corners(u), corners(t)) >= 8) {
@@ -701,17 +737,34 @@ function setChargeTarget(t) {
     toast((t.short || t.name) + ' is not in this regiment’s front arc.');
     return;
   }
-  if (dist > chargeMax(u) + (armyHas(u.side, /Prophecy Unfulfilled/) && engaged(t).length ? 2 : 0) + 1e-6) {
+  const pu = armyHas(u.side, /Prophecy Unfulfilled/) && engaged(t).length > 0;
+  const max = chargeMaxVs(u, t) + (pu ? 2 : 0);
+  if (dist > max + 1e-6) {
     toast(
-      `Out of reach: ${t.short || t.name} is ${dist.toFixed(1)}″ away and the furthest this regiment can charge is ${chargeMax(u)}″.`
+      `Out of reach: ${t.short || t.name} is ${dist.toFixed(1)}″ away and the furthest this regiment can charge is ${max}″.`
     );
     return;
   }
+  /* legality before the roll: is there any legal Charge Move into the target with the best possible roll? */
+  const chk = chargeCheck(u, t, dist, max);
+  if (!chk.ok) {
+    act.cur.illegal = { target: t.id, name: t.short || t.name, why: chk.why, fail: chk.fail || null };
+    render();
+    toast(
+      `No legal Charge against ${t.short || t.name}` +
+        (chk.why ? `: the Charge Move is blocked by ${chk.why}` : '') +
+        '. Even the best Charge Roll could not reach it, so no roll is made. Choose another target or another action.'
+    );
+    return;
+  }
+  act.cur.illegal = null;
+  clearChargeFail();
   Object.assign(act.cur, {
     stage: 'roll',
     target: t.id,
-    dist,
-    pu: armyHas(u.side, /Prophecy Unfulfilled/) && engaged(t).length > 0
+    straight: dist,
+    dist: Math.max(dist, chk.req),
+    pu
   });
   const lo = tLos(u, t, false);
   toast(
