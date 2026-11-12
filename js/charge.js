@@ -100,9 +100,15 @@ function failCharge() {
     f = [Math.sin(a), Math.cos(a)];
   let k = c.roll || 0,
     p = { x: c.start.x + f[0] * k, y: c.start.y + f[1] * k };
+  /* a failed Charge halts 1″ away from any enemy regiment and any Garrison terrain */
   const near = pp => {
     const A = corners(Object.assign({}, u, pp));
-    return all().some(o => o.onTable && o.side !== u.side && polyDist(A, corners(o)) < 1);
+    return (
+      all().some(o => o.onTable && o.side !== u.side && polyDist(A, corners(o)) < 1) ||
+      terrainOf().some(
+        t => tHas(t, 'Garrison') && polyHitsEllipse(A, { x: t.x, y: t.y, rx: t.rx + 1, ry: t.ry + 1 }, 1)
+      )
+    );
   };
   while (k > 0 && near(p)) {
     k = Math.max(0, +(k - 0.1).toFixed(2));
@@ -292,23 +298,44 @@ function rayHit(A, B, d) {
   for (const q of B) for (const [a, b] of E(A)) t = Math.min(t, raySeg(q, nd, a, b));
   return t;
 }
-function terrBlockPoly(u, P) {
+/* Does a regiment outline P overlap a terrain ellipse? Tests points along every edge (and the centre) against the ellipse,
+   and points around the ellipse against the outline, so small pieces inside a regiment are caught too.
+   ys scales the ellipse's height (Impassable rocks are drawn a little flatter than their box). */
+function polyHitsEllipse(P, t, ys) {
+  const ry = t.ry * (ys || 1),
+    inE = q => ((q[0] - t.x) / t.rx) ** 2 + ((q[1] - t.y) / ry) ** 2 <= 1;
+  for (let i = 0; i < P.length; i++) {
+    const a = P[i],
+      b = P[(i + 1) % P.length];
+    for (let k = 0; k < 8; k++)
+      if (inE([a[0] + ((b[0] - a[0]) * k) / 8, a[1] + ((b[1] - a[1]) * k) / 8])) return true;
+  }
+  if (inE([P.reduce((s, p) => s + p[0], 0) / P.length, P.reduce((s, p) => s + p[1], 0) / P.length]))
+    return true;
+  const cross = (o, p, q) => (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0]);
+  const inP = q => {
+    let sg = 0;
+    for (let i = 0; i < P.length; i++) {
+      const c = cross(P[i], P[(i + 1) % P.length], q);
+      if (!sg) sg = Math.sign(c);
+      else if (Math.sign(c) !== sg && c !== 0) return false;
+    }
+    return true;
+  };
+  for (let k = 0; k < 32; k++) {
+    const a = (k / 32) * Math.PI * 2;
+    if (inP([t.x + Math.cos(a) * t.rx, t.y + Math.sin(a) * ry])) return true;
+  }
+  return false;
+}
+/* Terrain a Charge Move may not cross or touch: Impassable (except for Fly while moving; Fly may not end on it)
+   and Garrison terrain (other than an occupied building being charged). final: the end position of the Charge. */
+function terrBlockPoly(u, P, final, skip) {
   if (u.garrison) return null;
-  const pts = P.concat(
-    P.map((p, i) => {
-      const q = P[(i + 1) % P.length];
-      return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-    }),
-    [[P.reduce((a, p) => a + p[0], 0) / P.length, P.reduce((a, p) => a + p[1], 0) / P.length]]
-  );
+  const fly = rh(RU(u), 'Fly');
   for (const t of terrainOf()) {
-    if (
-      tHas(t, 'Impassable') &&
-      !rh(RU(u), 'Fly') &&
-      pts.some(q => ((q[0] - t.x) / t.rx) ** 2 + ((q[1] - t.y) / (t.ry * 0.85)) ** 2 <= 1)
-    )
-      return tInfo(t).name;
-    if (tHas(t, 'Garrison') && pts.some(q => inT(t, q))) return tInfo(t).name;
+    if (tHas(t, 'Impassable') && (!fly || final) && polyHitsEllipse(P, t, 0.85)) return tInfo(t).name;
+    if (tHas(t, 'Garrison') && tId(t) !== skip && polyHitsEllipse(P, t, 1)) return tInfo(t).name;
   }
   return null;
 }
@@ -504,7 +531,7 @@ function planCharge(u0, t, cd) {
         return o.short || o.name;
       }
     }
-    const tb = terrBlockPoly(u, P);
+    const tb = terrBlockPoly(u, P, final, t.garrison);
     return tb;
   };
   const PU = p => corners(Object.assign({}, u, p));
