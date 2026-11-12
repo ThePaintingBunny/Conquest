@@ -765,7 +765,7 @@ body.mm-ov .mm-in{max-width:900px;margin:0 auto}
   <div class="last" id="last">No moves yet.</div>
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-12 08:38 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-12 08:42 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
 <script>
@@ -4966,6 +4966,8 @@ function calcAttack(type,Xid,Yid){const X=base(Xid),Y=base(Yid);cb={type,att:Xid
   const mi=moraleInfo(Y,X);if(w&&!mi.auto){rollMor(Y);mw=cb.extra||0;}cb=null;return {w,mw,hits,att};}
 function calcApply(Yid,tot){const Y=base(Yid);if(!Y||Y.destroyed||!tot)return;const old={units:state.units,round:state.round};const AL=allocate(Y,tot);
   const st={round:state.round,units:state.units.map(x=>x.id===Yid?Object.assign({},x,{wounds:AL.w,auxWounds:AL.aw},AL.dead?{onTable:false,destroyed:true,status:'Destroyed'}:{}):x)};breakCheck(old,st);state.units=st.units;}
+/* core rules: a successful Charge makes the charger Inspired until the end of its activation (not for its Impacts) */
+function calcInsp(id,on){state.units=state.units.map(u=>u.id!==id?u:Object.assign({},u,{effects:on?(u.effects||[]).concat((u.effects||[]).includes('Inspired (charged)')?[]:['Inspired (charged)']):(u.effects||[]).filter(e=>e!=='Inspired (charged)')}));}
 function calcStats(arr){const n=arr.length||1,m=arr.reduce((a,b)=>a+b,0)/n;return {avg:m,min:Math.min(...arr),max:Math.max(...arr)};}
 /* one exchange, many times: hits, wounds after saves, extra wounds from failed Morale */
 function calcExchange(type,attK,N){const X0=calcBuild(attK,attK==='A'?'cs':'nord'),Y0=calcBuild(attK==='A'?'B':'A',attK==='A'?'nord':'cs');if(!X0||!Y0)return null;
@@ -4974,6 +4976,7 @@ function calcExchange(type,attK,N){const X0=calcBuild(attK,attK==='A'?'cs':'nord
   calcPlace(X0,Y0,calc.charge===attK?calc.arc:'front',type==='volley'?(+calc.range||12):null);if(type==='volley'){Y0.facing=180;}
   return calcSandbox([X0,Y0],()=>{calcSup();calcStrat();const W=[],M=[],T=[],H=[],K=[];let att=0;const st=Y0.stats||{},Wst=+st.W||1;
     if(type==='volley'){const vs=(volleyStands(base(X0.id),base(Y0.id))||[]);if(!vs.some(v=>v.inRange))return {none:'Out of range at '+calc.range+'″'};}
+    if(type==='clash'&&calc.charge===attK)calcInsp(X0.id,true);
     if(type==='impact'){const G=buildGroups('impact',base(X0.id),base(Y0.id));if(!(Array.isArray(G)?G:Object.values(G)).some(g=>g.n>0))return {none:'No Impact attacks'};}
     for(let i=0;i<N;i++){const r=calcAttack(type,X0.id,Y0.id);att=r.att;H.push(r.hits);W.push(r.w);M.push(r.mw);T.push(r.w+r.mw);K.push(Math.floor(r.w/Wst+r.mw/Wst));}
     const tot=calcStats(T),P=T.filter(x=>x>=Wst).length/N;return {att,hits:calcStats(H).avg,w:calcStats(W).avg,mw:calcStats(M).avg,tot:tot.avg,max:tot.max,pStand:P,stands:calcStats(T.map(x=>Math.floor(x/Wst))).avg};});}
@@ -4985,7 +4988,7 @@ function calcFight(N,maxR){const chA=calc.charge!=='B',Xk=chA?'A':'B',Yk=chA?'B'
       for(;r<=maxR&&!end;r++){state.round=r;state.units=state.units.map(u=>u);{const st={round:r,units:state.units};breakCheck({units:state.units,round:r},st);state.units=st.units;}
         const order=r===1||Math.random()<0.5?[[X0.id,Y0.id],[Y0.id,X0.id]]:[[Y0.id,X0.id],[X0.id,Y0.id]];
         if(r===1&&calc.charge!=='none'){const t=calcAttack('impact',X0.id,Y0.id);calcApply(Y0.id,t.w+t.mw);}
-        for(const [a,d] of order){const A=base(a),D=base(d);if(!A||A.destroyed||!D||D.destroyed)break;const t=calcAttack('clash',a,d);calcApply(d,t.w+t.mw);}
+        for(const [a,d] of order){const A=base(a),D=base(d);if(!A||A.destroyed||!D||D.destroyed)break;const ch=r===1&&calc.charge!=='none'&&a===X0.id;if(ch)calcInsp(a,true);const t=calcAttack('clash',a,d);if(ch)calcInsp(a,false);calcApply(d,t.w+t.mw);}
         const xd=base(X0.id).destroyed,yd=base(Y0.id).destroyed;if(xd||yd)end=xd&&yd?'draw':xd?Yk:Xk;}
       const frac=u=>{const b=base(u.id);return b.destroyed?0:live(b)/Math.max(1,live(u));};
       if(end==='draw'||!end)res.draw++;else res[end]++;res.rounds+=Math.min(r-1,maxR);res['left'+Xk]+=frac(X0);res['left'+Yk]+=frac(Y0);}});
@@ -5027,12 +5030,12 @@ function calcPage(inner,head){head('Combat calculator','Two regiments, the game�
     const t=bEl('table',{className:'cc-tbl'});const hr=bEl('tr');['Attack','Attacks','Hits','Wounds','+ Morale','Total','Max seen','Kills a stand','Total per 100 pts'].forEach(h=>hr.append(bEl('th',{textContent:h})));t.append(hr);
     const line=(lab,r)=>{const tr=bEl('tr');tr.append(bEl('td',{textContent:lab}));const pts=PT[lab[0]]||0;if(!r){tr.append(bEl('td',{colSpan:8,textContent:'–'}));}else if(r.none){tr.append(bEl('td',{colSpan:8,textContent:r.none}));}
       else[r.att,r.hits.toFixed(1),r.w.toFixed(2),r.mw.toFixed(2),r.tot.toFixed(2),r.max,Math.round(r.pStand*100)+'%',pts?(r.tot/pts*100).toFixed(2):'–'].forEach(v=>tr.append(bEl('td',{textContent:String(v)})));t.append(tr);};
-    if(R.impA)line('A Impacts into B',R.impA);line('A Clashes B'+(calc.charge==='A'&&calc.arc!=='front'?' ('+calc.arc+')':''),R.clashA);line('A Volleys B ('+calc.range+'″)',R.volA);if(R.impB)line('B Impacts into A',R.impB);line('B Clashes A'+(calc.charge==='B'&&calc.arc!=='front'?' ('+calc.arc+')':''),R.clashB);line('B Volleys A ('+calc.range+'″)',R.volB);box.append(t);inner.append(box);}
+    if(R.impA)line('A Impacts into B',R.impA);line('A Clashes B'+(calc.charge==='A'?' after charging'+(calc.arc!=='front'?' ('+calc.arc+')':'')+' · Inspired':''),R.clashA);line('A Volleys B ('+calc.range+'″)',R.volA);if(R.impB)line('B Impacts into A',R.impB);line('B Clashes A'+(calc.charge==='B'?' after charging'+(calc.arc!=='front'?' ('+calc.arc+')':'')+' · Inspired':''),R.clashB);line('B Volleys A ('+calc.range+'″)',R.volB);box.append(t);inner.append(box);}
   if(R.fight){const F=R.fight,box=bEl('div',{className:'cc-box'});box.append(bEl('h3',{textContent:'Combat potential · who wins the fight'}));
     const pa=F.A/F.n*100,pb=F.B/F.n*100,pd=F.draw/F.n*100;const bar=bEl('div',{className:'cc-bar'});[['a',pa,'A '],['d',pd,''],['b',pb,'B ']].forEach(([c,v,l])=>{if(v<=0)return;const sp=bEl('span',{className:c,textContent:v>=8?l+Math.round(v)+'%':''});sp.style.width=v+'%';bar.append(sp);});box.append(bar);
     {const pA=(qaPts(calc.A)||{}).total||0,pB=(qaPts(calc.B)||{}).total||0;if(pA&&pB)box.append(ptext(`Cost: A ${pA} pts against B ${pB} pts`+(pA!==pB?` (${pA>pB?'A':'B'} costs ${Math.abs(pA-pB)} pts more, ${Math.round(Math.abs(pA-pB)/Math.min(pA,pB)*100)}% more)`:' (the same)')+'.'));}
     box.append(ptext(`Out of ${F.n} fights of up to ${F.maxR} rounds (${calc.charge==='none'?'already engaged':(calc.charge==='A'?'A':'B')+' charges'}, contact on the ${calc.arc}): Regiment A wins ${Math.round(pa)}%, Regiment B wins ${Math.round(pb)}%, and ${Math.round(pd)}% are still fighting after ${F.maxR} rounds. A fight lasts ${F.rounds.toFixed(1)} rounds on average; A keeps ${Math.round(F.leftA*100)}% of its stands and B ${Math.round(F.leftB*100)}%.`));
-    box.append(ptext('Winning means the other regiment is destroyed or Shattered. Each round both regiments Clash once (the order after the first round is random), with stands lost, Morale, Broken and Shattered applied. Movement, other regiments, spells and choices during the game are not included.','hint'));inner.append(box);}}
+    box.append(ptext('Winning means the other regiment is destroyed or Shattered. The charger is Inspired for its first Clash (a successful Charge, core rules; not for Impacts). Each round both regiments Clash once (the order after the first round is random), with stands lost, Morale, Broken and Shattered applied. Movement, other regiments, spells and choices during the game are not included.','hint'));inner.append(box);}}
 function mmGo(p){mmPage=p;render();try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){}}
 async function mmStart(kind){mmOverlay=false;
   if(kind==='test'){mmPage=null;await tfEnter();return;}
