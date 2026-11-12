@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="css/menu.css">
 <div class="wrap">
   <div class="top">
-    <div><h1>Vale of Banners</h1><div class="phase" id="phase">Waiting for the game state…</div><div class="fr-strip" id="fr-strip" hidden></div></div>
+    <div class="top-title"><h1>Vale of Banners</h1><div class="phase" id="phase">Waiting for the game state…</div><div class="fr-strip" id="fr-strip" hidden></div></div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" id="mm-open" title="Menu">☰ Menu</button><button type="button" class="btn ghost" id="en-open" aria-expanded="false">Encyclopedia</button><button type="button" class="btn ghost" id="set-open" aria-haspopup="dialog" title="Settings">⚙ Settings</button><span class="pres" id="pres" hidden></span></div>
   </div>
   <section class="mm" id="mm" hidden aria-label="Menu"></section>
@@ -18,7 +18,7 @@
   <section class="report" id="ai-report" hidden aria-live="polite"><div class="cb-head"><h2 id="air-title">Turn report</h2><button type="button" class="btn ghost" id="air-close">Close</button></div><div id="air-body"></div></section>
   <div class="main">
     <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false" title="Ruler (R): Measure between two points, or tap two regiments for the closest distance." aria-keyshortcuts="R">📏 Ruler</button><div class="last" id="last" title="Click to show the whole message">No moves yet.</div><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div><div class="od-trk" id="od-trk" hidden aria-label="Old Dominion Power tokens"></div></div><div class="mapbox"><p class="toast" id="toast" role="status" aria-live="polite"></p><button type="button" class="leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel">Legend</button><div class="leg-panel" id="leg-panel" hidden></div>
-    <svg id="board" viewBox="150 0 544 400" role="img" aria-labelledby="mt"><title id="mt">Battlefield with terrain, objectives and regiments</title>
+    <svg id="board" viewBox="160 30 524 352" role="img" aria-labelledby="mt"><title id="mt">Battlefield with terrain, objectives and regiments</title>
       <style>.grass{fill:#86A85E}.patch{fill:#739650}.tuft{stroke:#5F8443}
       @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .grass{fill:#4C6A36}:root:not([data-theme="light"]) .patch{fill:#425E2F}:root:not([data-theme="light"]) .tuft{stroke:#37502A}}
       :root[data-theme="dark"] .grass{fill:#4C6A36}:root[data-theme="dark"] .patch{fill:#425E2F}:root[data-theme="dark"] .tuft{stroke:#37502A}</style>

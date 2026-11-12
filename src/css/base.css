@@ -2739,3 +2739,36 @@ textarea {
 .tb-more-body > div {
   flex-basis: 100%;
 }
+
+/* the board's drawing area hugs the table; labels near the edge may spill into the frame */
+#board {
+  overflow: visible;
+}
+@media (min-width: 901px) {
+  body {
+    padding-block: 10px 30px;
+  }
+  .wrap {
+    gap: 10px;
+  }
+}
+
+/* wide screens: title, phase and faction strip on one line */
+@media (min-width: 1100px) {
+  .top {
+    align-items: center;
+  }
+  .top-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+  }
+  .top-title h1,
+  [data-ui='steel'] .top-title h1 {
+    font-size: 22px;
+  }
+  .top-title .fr-strip {
+    margin: 0;
+  }
+}
