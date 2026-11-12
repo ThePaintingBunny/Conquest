@@ -1090,9 +1090,7 @@ function srStartAction(type) {
       moving: false,
       reshape: false
     };
-    const eng = engaged(u);
-    if (eng.length === 1) openCombat({ type: 'clash', att: act.id, tgt: eng[0].id, inAct: true });
-    else openCombat({ type: 'clash', att: act.id, tgt: null, choices: eng.map(e => e.id), inAct: true });
+    clashOpen(u, true);
     render();
     return true;
   }
@@ -1164,8 +1162,7 @@ function clashAfterNode(o) {
     return;
   }
   toast('Catabolic Node resolved. Now the Clash.');
-  if (eng.length === 1) openCombat({ type: 'clash', att: A.id, tgt: eng[0].id, inAct: true });
-  else openCombat({ type: 'clash', att: A.id, tgt: null, choices: eng.map(e => e.id), inAct: true });
+  clashOpen(A, true);
   render();
 }
 /* "When this Regiment is destroyed ... you may choose for this Catabolic Node to Detonate": the regiment is gone, so the

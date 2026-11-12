@@ -88,6 +88,7 @@ function standsOf(u) {
       hd = G.sd / 2;
     out.push({
       rank: rr,
+      pos: L.pos,
       cmd,
       mod,
       tok: L.tok,
@@ -488,7 +489,11 @@ function buildGroups(type, A, T) {
     }
     groups[key].n += n;
   };
+  /* a Clash split between several enemies: this pool only uses the stands assigned to this target */
+  const only =
+    type === 'clash' && cb && cb.att === A.id && cb.tgt === T.id && Array.isArray(cb.split) ? cb.split : null;
   st.forEach(s => {
+    if (only && !only.includes(standKey(s))) return;
     const p = prof(A, s.kind, s.mod),
       nm = s.mod || (s.kind === 'reg' ? A.short || A.name : p.name),
       K = s.kind + (s.mod ? ':' + s.mod : '');
@@ -653,6 +658,7 @@ function moraleInfo(T, A) {
 }
 function openCombat(o) {
   if (o && o.type === 'clashAfterNode') return clashAfterNode(o);
+  if (o && Array.isArray(o.split) && splitStale(o)) return;
   setTimeout(() => {
     const c = $('combat');
     if (c && !c.hidden)
@@ -1133,7 +1139,14 @@ function renderCombat0() {
     (cb.selfTitle || LBL[cb.type]) +
     ': ' +
     (A.short || A.name) +
-    (T ? ' against ' + (T.short || T.name) : '');
+    (T ? ' against ' + (T.short || T.name) : '') +
+    (cb.pool && cb.pool[1] > 1 ? ' (pool ' + cb.pool[0] + ' of ' + cb.pool[1] + ')' : '');
+  if (!T && cb.split === 'plan') {
+    $('cb-title').textContent =
+      'Clash: ' + (A.short || A.name) + ' against ' + cb.engIds.length + ' enemy regiments';
+    renderSplit(body, A);
+    return;
+  }
   if (!T) {
     body.appendChild(
       ptext(

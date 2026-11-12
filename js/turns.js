@@ -338,6 +338,22 @@ async function exClash(st) {
     if (!A || A.destroyed || !engaged(A).length) return 'detonated its Catabolic Node; no Clash followed';
   }
   startAction('clash');
+  if (cb && cb.split === 'plan') {
+    /* several enemies engaged: Claude assigns its stands, then resolves each pool in turn */
+    const A0 = byId(act.id);
+    cb.assign = splitDefault(A0, cb.engIds.map(byId), true);
+    const n = new Set(Object.values(cb.assign)).size;
+    splitGo();
+    logAI('clashes with ' + n + ' enemy regiments, each pool on its own');
+    for (let g = 0; g < 80 && (cb || cbQueue.length); g++) {
+      if (!cb) {
+        await sleep(200);
+        continue;
+      }
+      await autoResolve();
+    }
+    return '';
+  }
   if (cb && !cb.tgt) {
     const ch = cb.choices || [];
     const id = ch.includes(String(st.target)) ? String(st.target) : ch[0];
@@ -433,6 +449,11 @@ async function exWithdraw() {
 async function autoResolve() {
   let guard = 0;
   while (cb && guard++ < 60) {
+    if (cb.split === 'plan') {
+      cb.assign = splitDefault(byId(cb.att), cb.engIds.map(byId), true);
+      splitGo();
+      continue;
+    }
     if (!cb.tgt) {
       const id = (cb.choices || [])[0];
       if (!id) {

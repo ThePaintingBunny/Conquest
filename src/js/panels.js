@@ -1277,9 +1277,7 @@ function renderCard() {
       n.onclick = () => {
         c.stage = null;
         act.nodeAsked = true;
-        const eng = engaged(u);
-        if (eng.length === 1) openCombat({ type: 'clash', att: act.id, tgt: eng[0].id, inAct: true });
-        else openCombat({ type: 'clash', att: act.id, tgt: null, choices: eng.map(e => e.id), inAct: true });
+        clashOpen(u, true);
         render();
       };
       row.append(y, n);
@@ -1671,6 +1669,13 @@ function render() {
   if (act && act.cur && act.cur.type === 'charge' && act.cur.stage === 'target') {
     try {
       drawChargeNeeds(byId(act.id), ug);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  if (cb && cb.split === 'plan') {
+    try {
+      drawSplit(el('g', { id: 'splitg', 'pointer-events': 'none' }, ug));
     } catch (e) {
       console.error(e);
     }

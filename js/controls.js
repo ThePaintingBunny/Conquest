@@ -467,9 +467,7 @@ function startAction(type) {
       toast('Catabolic Node: detonate it before the Clash?');
       return;
     }
-    const eng = engaged(u);
-    if (eng.length === 1) openCombat({ type: 'clash', att: act.id, tgt: eng[0].id, inAct: true });
-    else openCombat({ type: 'clash', att: act.id, tgt: null, choices: eng.map(e => e.id), inAct: true });
+    clashOpen(u, true);
     render();
     return;
   }
