@@ -8,26 +8,22 @@ function terrGap(P, t, ys) {
   }
   return 9;
 }
-/* A March or Reform may not end within 1″ of an enemy regiment, Garrison terrain or Impassable terrain
-   (unless it started closer; then it may not get closer). Fly ignores Impassable terrain. */
+/* Core rules 2026: a March may not end within 1″ of an enemy regiment or Garrison terrain; a Reform may not bring
+   stands within 1″ of an enemy regiment (unless it started closer; then it may not get closer). */
 function near1(c, pose) {
   const u = Object.assign({}, base(act.id), pose || act.pose),
     uc = corners(u),
     st = corners(Object.assign({}, base(act.id), c.start));
-  const tr = u.garrison
-    ? null
-    : terrainOf().find(t => {
-        const imp = tHas(t, 'Impassable');
-        if (!imp && !tHas(t, 'Garrison')) return false;
-        if (imp && rh(RU(u), 'Fly')) return false;
-        const ys = imp ? 0.85 : 1,
-          g = terrGap(uc, t, ys);
-        return g < 1 - 1e-3 && g < terrGap(st, t, ys) - 1e-3;
-      });
-  if (tr) {
-    const ys = tHas(tr, 'Impassable') ? 0.85 : 1;
-    return { short: tInfo(tr).name, name: tInfo(tr).name, terr: true, dist: terrGap(uc, tr, ys) };
-  }
+  const marchy = ['march', 'dtmarch', 'fadv'].includes(c.type) || c.withdraw;
+  const tr =
+    u.garrison || !marchy
+      ? null
+      : terrainOf().find(t => {
+          if (!tHas(t, 'Garrison')) return false;
+          const g = terrGap(uc, t, 1);
+          return g < 1 - 1e-3 && g < terrGap(st, t, 1) - 1e-3;
+        });
+  if (tr) return { short: tInfo(tr).name, name: tInfo(tr).name, terr: true, dist: terrGap(uc, tr, 1) };
   return (
     all().find(
       e =>
@@ -63,7 +59,7 @@ function finishAction() {
           e.terr
             ? 'A regiment may not March or Reform to within 1″ of ' +
                 e.name +
-                ' (Garrison and Impassable terrain need 1″ of space; it is ' +
+                ' (a March must end at least 1″ from Garrison terrain; it is ' +
                 e.dist.toFixed(1) +
                 '″ away). Move it back, or Cancel.'
             : 'A regiment may not March or Reform to within 1″ of an enemy regiment (' +

@@ -323,6 +323,8 @@ function fx(u) {
   }
   return e;
 }
+/* free actions that count as the action they copy, for the no-repeat rule */
+const FREE_OF = { xvolley: 'volley' };
 function availableActions(u) {
   const out = [];
   if (!act || act.id !== u.id) return out;
@@ -346,8 +348,11 @@ function availableActions(u) {
     if (act.cur) return 'Finish the current action first';
     if (cap) return 'No actions left';
     if (firstMust && t !== 'march') return 'An arriving regiment must March first';
-    if (last && last.type === t && !repeatOk(t)) return 'Already used this activation';
-    if (used.some(a => a.type === t) && !repeatOk(t)) return 'Already used this activation';
+    /* no repeats except March and Reform; a free version of an action counts too (core rules 2026) */
+    const same = a => a.type === t || (FREE_OF[a.type] === t && a.free !== false);
+    /* Spellcasting keeps its own count (Mahotsu and the like may cast twice, never the same spell twice) */
+    if (t !== 'cast' && !repeatOk(t) && act.actions.some(same)) return 'Already used this activation';
+    if (t === 'cast' && used.some(a => a.type === 'cast')) return 'Already used this activation';
     return '';
   };
   if (u.garrison) {
