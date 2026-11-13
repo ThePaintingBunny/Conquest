@@ -1651,6 +1651,9 @@ function render() {
   }
   try {
     drawSpellZone(el('g', { id: 'spellg', 'pointer-events': 'none' }, rg));
+    const lg = el('g', { id: 'liveg', 'pointer-events': 'none' }, rg);
+    drawRemoteOverlay(lg);
+    drawActiveRing(lg);
   } catch (e) {
     console.error(e);
   }

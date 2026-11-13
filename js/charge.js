@@ -1029,45 +1029,59 @@ function drawChargeGhost(g) {
       );
   }
 }
-async function animateCharge(pl) {
-  const u = byId(act.id);
-  Object.assign(act.pose, { x: pl.start.x, y: pl.start.y, facing: pl.start.facing });
+/* Play a Charge Move: wheel, straight move, then close the door (or the target pivots).
+   setPose / setTgt receive the poses, so the same animation runs for the charging player (act) and, online, for the
+   opponent (who replays the plan it receives). */
+async function playChargePath(pl, u, tid, setPose, setTgt) {
+  setPose({ x: pl.start.x, y: pl.start.y, facing: pl.start.facing });
   if (pl.th)
     await animFrames(Math.round(250 + (350 * Math.abs(pl.th)) / 90), e => {
       const p = wheelPose(pl.start, u, pl.dir, Math.abs(pl.th) * e);
-      Object.assign(act.pose, { x: p.x, y: p.y, facing: p.facing });
+      setPose({ x: p.x, y: p.y, facing: p.facing });
     });
   {
     const a = (pl.P1.facing * Math.PI) / 180,
       f = [Math.sin(a), Math.cos(a)];
     await animFrames(Math.round(Math.min(1400, 250 + 110 * pl.s)), e => {
-      Object.assign(act.pose, {
-        x: pl.P1.x + f[0] * pl.s * e,
-        y: pl.P1.y + f[1] * pl.s * e,
-        facing: pl.P1.facing
-      });
+      setPose({ x: pl.P1.x + f[0] * pl.s * e, y: pl.P1.y + f[1] * pl.s * e, facing: pl.P1.facing });
     });
   }
   if (pl.tgtPose) {
-    const tid = act.cur && act.cur.target,
-      t = base(tid),
+    const t = base(tid),
       t0 = t ? { x: t.x, y: t.y, facing: t.facing || 0 } : null;
     if (t0) {
       const d = angDiff(pl.tgtPose.facing, t0.facing);
       await animFrames(Math.round(250 + (350 * Math.abs(d)) / 90), e => {
         const p = rotAbout(t0, pl.pv, d * e);
-        act.tgtPose = { id: tid, pose: { x: p.x, y: p.y, facing: p.facing } };
+        setTgt(tid, { x: p.x, y: p.y, facing: p.facing });
       });
-      act.tgtPose = { id: tid, pose: pl.tgtPose };
+      setTgt(tid, pl.tgtPose);
     }
   } else if (pl.dl) {
     const P2 = pl.P2;
     await animFrames(Math.round(250 + (350 * Math.abs(pl.dl)) / 90), e => {
       const p = rotAbout(P2, pl.pv, pl.dl * e);
-      Object.assign(act.pose, { x: p.x, y: p.y, facing: p.facing });
+      setPose({ x: p.x, y: p.y, facing: p.facing });
     });
   }
-  Object.assign(act.pose, { x: pl.P3.x, y: pl.P3.y, facing: pl.P3.facing });
+  setPose({ x: pl.P3.x, y: pl.P3.y, facing: pl.P3.facing });
+}
+async function animateCharge(pl) {
+  const u = byId(act.id),
+    tid = act.cur && act.cur.target;
+  /* only what the animation needs (the plan also refers to its alternatives, which refer back to it) */
+  const lite = {};
+  ['start', 'th', 'dir', 'P1', 's', 'tgtPose', 'pv', 'dl', 'P2', 'P3'].forEach(k => {
+    if (pl[k] !== undefined) lite[k] = pl[k];
+  });
+  pushAnim('charge', { id: act.id, tid, pl: lite });
+  await playChargePath(
+    pl,
+    u,
+    tid,
+    p => Object.assign(act.pose, p),
+    (id, pose) => (act.tgtPose = { id, pose })
+  );
 }
 
 function rollPicker(label, cb) {

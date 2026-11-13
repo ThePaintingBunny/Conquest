@@ -309,16 +309,14 @@ function layout(u) {
     for (let k = 0; k < n; k++) if (seq[k] == null) seq[k] = rest.shift();
     seq = seq.filter(Boolean);
   }
-  return seq
-    .slice(0, n)
-    .map((t, k) => ({
-      pos: k,
-      tok: t,
-      kind: t === 'a' ? 'aux' : t === 'c' ? 'char' : 'reg',
-      cmd: t === 'r0',
-      ri: t[0] === 'r' ? +t.slice(1) : null,
-      mod: u.mods && t[0] === 'r' ? u.mods[+t.slice(1)] : null
-    }));
+  return seq.slice(0, n).map((t, k) => ({
+    pos: k,
+    tok: t,
+    kind: t === 'a' ? 'aux' : t === 'c' ? 'char' : 'reg',
+    cmd: t === 'r0',
+    ri: t[0] === 'r' ? +t.slice(1) : null,
+    mod: u.mods && t[0] === 'r' ? u.mods[+t.slice(1)] : null
+  }));
 }
 const MODSTYLE = {
   'Oni Ayakashi': ['ON', '#C8553D'],
@@ -402,6 +400,7 @@ function view(u) {
   if (act && act.id === u.id) return Object.assign({}, u, act.pose);
   if (act && act.tgtPose && act.tgtPose.id === u.id) return Object.assign({}, u, act.tgtPose.pose);
   if (ract && ract.id === u.id && ract.pose) return Object.assign({}, u, ract.pose);
+  if (rTgt && rTgt.id === u.id) return Object.assign({}, u, rTgt.pose);
   return u;
 }
 function all() {

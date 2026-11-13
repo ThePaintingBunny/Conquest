@@ -68,6 +68,18 @@
       },
       () => {}
     );
+    db.doc('game/anim').onSnapshot(
+      sn => {
+        if (sn.exists && state && PVP()) onAnim(sn.data());
+      },
+      () => {}
+    );
+    db.doc('game/ping').onSnapshot(
+      sn => {
+        if (sn.exists && state && PVP()) onPing(sn.data());
+      },
+      () => {}
+    );
   } catch (e) {}
   try {
     db.doc('game/lobby').onSnapshot(

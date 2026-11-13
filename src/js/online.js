@@ -86,8 +86,13 @@ function myTurnPvp() {
 /* live view of the opponent's activation */
 function pushLive() {
   if (!PVP() || !db || !seatSide()) return;
-  const mine = act && base(act.id) && base(act.id).side === HU;
-  const v = mine ? JSON.stringify({ id: act.id, pose: act.pose }) : 'null';
+  const mine = act && base(act.id) && base(act.id).side === HU,
+    chMine = !act && charAct && base(charAct.id) && base(charAct.id).side === HU;
+  const v = mine
+    ? JSON.stringify({ id: act.id, pose: act.pose, ov: liveOverlay() })
+    : chMine
+      ? JSON.stringify({ id: charAct.id, char: true, ov: liveOverlay() })
+      : 'null';
   if (v === lastLive) return;
   lastLive = v;
   clearTimeout(liveT);

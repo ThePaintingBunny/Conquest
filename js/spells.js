@@ -183,8 +183,8 @@ function grownPoly(P, R) {
   });
   return hull(pts);
 }
-function drawSpellZone(g) {
-  const v = spellViewLive();
+function drawSpellZone(g, given) {
+  const v = given || spellViewLive();
   if (!v || !g) return;
   const u = byId(v.uid),
     sp = v.sp;
