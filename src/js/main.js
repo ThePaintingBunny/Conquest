@@ -74,6 +74,12 @@
       },
       () => {}
     );
+    db.doc('game/arcs').onSnapshot(
+      sn => {
+        if (sn.exists && state && PVP()) onArcs(sn.data());
+      },
+      () => {}
+    );
     db.doc('game/ping').onSnapshot(
       sn => {
         if (sn.exists && state && PVP()) onPing(sn.data());

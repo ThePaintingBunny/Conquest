@@ -1650,6 +1650,7 @@ function render() {
     );
   }
   try {
+    drawArcsLayer(el('g', { id: 'arcg', 'pointer-events': 'none' }, rg));
     drawSpellZone(el('g', { id: 'spellg', 'pointer-events': 'none' }, rg));
     const lg = el('g', { id: 'liveg', 'pointer-events': 'none' }, rg);
     drawRemoteOverlay(lg);
