@@ -342,6 +342,15 @@ async function recordDuel() {
       return ` Overkill: ${foe.short || foe.name} tests Morale ${n}× on ${R} (${rolls.join(', ')}): ${fails} wound${fails === 1 ? '' : 's'}.`;
     };
     var overTxt = over(A, T, wt) + over(T, A, wa);
+    /* Superiority (Dweghom Mastery): slaying an enemy character in a Duel gives its regiment -1 Resolve this round */
+    {
+      const supr = (who, foe, n, D) => {
+        if (!n || D.wounds + n < D.W || !upgOf(who, /: Superiority$/)) return '';
+        set(foe.id, x => (x.destroyed ? x : grantU(x, 'Superiority (−1 Resolve)', [], { R: -1 })));
+        return ` Superiority: ${foe.short || foe.name} has −1 Resolve until the end of the round.`;
+      };
+      overTxt += supr(A, T, wt, DT) + supr(T, A, wa, DA);
+    }
     const deadA = wa && DA.wounds + wa >= DA.W,
       deadT = wt && DT.wounds + wt >= DT.W;
     text =

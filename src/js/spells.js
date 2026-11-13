@@ -148,7 +148,9 @@ function magicLevel(u, asChar) {
   const k = casterKey(u, asChar);
   if (k && CASTERS[k].lvl === '2xstands') return Math.min(12, 2 * live(u));
   const R = asChar ? chRulesX(u) : RU(u);
-  return rx(R || [], 'Priest') || rx(R || [], 'Wizard') || 0;
+  const L = rx(R || [], 'Priest') || rx(R || [], 'Wizard') || 0;
+  /* Thaumaturge (Dweghom Mastery): Wizard (+1) per enemy regiment destroyed by its spells, at most +2 */
+  return L && asChar ? L + Math.min(2, +u.thaum || 0) : L;
 }
 function regCaster(u) {
   const k = casterKey(u, false);
@@ -511,9 +513,53 @@ function spellHitRes(T, hits, ap, noMorale) {
 /* apply a successful spell */
 async function resolveSpell(cid, sp, tid, succ, asChar) {
   lastSpellSucc = succ;
+  const t00 = base(tid),
+    alive0 = !!(t00 && !t00.destroyed);
   const r = await resolveSpell0(cid, sp, tid, succ, asChar);
   try {
+    const c0 = base(cid),
+      t1 = base(tid);
+    if (
+      asChar &&
+      c0 &&
+      alive0 &&
+      t1 &&
+      t1.destroyed &&
+      t1.side !== c0.side &&
+      !isMarker(t1) &&
+      upgOf(c0, /Thaumaturge/) &&
+      (+c0.thaum || 0) < 2
+    ) {
+      await putState({
+        units: state.units.map(x =>
+          x.id === c0.id ? Object.assign({}, x, { thaum: (+x.thaum || 0) + 1 }) : x
+        )
+      });
+      toast('Thaumaturge: the ' + c0.charName + ' gains Wizard (+1) for the rest of the battle.');
+    }
+  } catch (e) {}
+  try {
     await skSpellMarker(cid, sp, asChar);
+  } catch (e) {}
+  /* Tempered Creed (Dweghom): a [Tempered] character that casts a spell of an Elemental School adds an Elemental Power
+     marker (at most 10 in the pool) */
+  try {
+    const c0 = base(cid),
+      nm = (sp && sp.name) || sp;
+    if (
+      asChar &&
+      c0 &&
+      frFac(c0) === 'Dweghom' &&
+      /Tempered/.test(dwCreed(c0.side)) &&
+      frRoles(c0, true).includes('Tempered') &&
+      Object.values(DW_SCHOOLS).some(L => L.includes(nm))
+    ) {
+      const ep = +frG(c0.side, 'dw').ep || 0;
+      if (ep < 10) {
+        await putState({ fr: frPatch(c0.side, 'dw', { ep: ep + 1 }) });
+        toast('Tempered Creed: +1 Elemental Power (' + (ep + 1) + ').');
+      }
+    }
   } catch (e) {}
   /* Elemental Feedback (Sorcerer Kings Mastery): the first successful spell of its activation heals its regiment 2
      wounds per 2 successes */

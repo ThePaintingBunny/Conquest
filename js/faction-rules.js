@@ -865,6 +865,8 @@ function frFx(u) {
     if (e) out.push('On ' + tInfo(e).name.toLowerCase() + ' (Size ' + uSize(u) + ')');
   }
   if (f === 'Old Dominion' && animate(u) && odTierU(u, 'dark') >= 3) out.push('Inspired (Dark Power III)');
+  if (f === 'Dweghom' && firstInFray(u) && rx((u.rules || []).concat(itemRegRules(u)), 'Terrifying') < 2)
+    out.push('Terrifying (+1) (First in the Fray)');
   /* Glacial Presence (Weaver Courts Gift): enemies engaged with its Court of Winter regiment gain Decay when they
      Activate (Decay takes its wounds at the end of their activation) */
   if (
@@ -1469,8 +1471,23 @@ function frOptions0(u) {
     const g = frG(u.side, 'dw'),
       ep = +g.ep || 0,
       F = FORGED[frBase(u)];
-    if (F && !act.frForged)
-      F.forEach(([t, cost, rules, stats, note, heal]) =>
+    const F2 =
+      F && frBase(u) === 'Hellbringer Drake' && upgOf(u, /Hellbringer Sorcerer/)
+        ? F.concat([
+            [
+              'Barrage +4 (twice; Armor Piercing stays at most 2)',
+              3,
+              ['Barrage (+4)', 'Armor Piercing (+1)']
+            ],
+            [
+              'Barrage +6 (three times; Armor Piercing stays at most 2)',
+              5,
+              ['Barrage (+6)', 'Armor Piercing (+1)']
+            ]
+          ])
+        : F;
+    if (F2 && !act.frForged)
+      F2.forEach(([t, cost, rules, stats, note, heal]) =>
         add(
           'Forged by the Elements (' + cost + '): ' + t,
           async () => {
@@ -1491,6 +1508,31 @@ function frOptions0(u) {
             });
           },
           ep < cost ? 'Needs ' + cost + ' Elemental Power' : ''
+        )
+      );
+    /* Runeforged Plate (Relic): Draw Event, spend 1 or 2 Elemental Power for +2 or +4 Attacks on the character */
+    if (u.charName && upgOf(u, /Runeforged Plate/) && fresh && !act.rfPlate)
+      [1, 2].forEach(n =>
+        add(
+          'Runeforged Plate (' +
+            n +
+            ' Elemental Power): the ' +
+            u.charName +
+            ' +' +
+            2 * n +
+            ' Attacks this round',
+          async () => {
+            act.rfPlate = true;
+            await putState({
+              fr: frPatch(u.side, 'dw', { ep: ep - n }),
+              units: state.units.map(x =>
+                x.id === u.id ? grantU(x, 'Runeforged Plate (+' + 2 * n + ' Attacks)', []) : x
+              ),
+              lastTitle: N(u.side) + ' · Runeforged Plate',
+              lastText: 'The ' + u.charName + ' gains +' + 2 * n + ' Attacks until the end of the round.'
+            });
+          },
+          ep < n ? 'Needs ' + n + ' Elemental Power' : ''
         )
       );
     if (!hasGrant(u, 'Awakened'))
@@ -2259,7 +2301,7 @@ function frBlock(side, f, mine) {
           ? 'Ardent: regiments are Awakened after a successful Charge (applied); all regiments have Pathfinders. '
           : '') +
           (/Tempered/.test(cr)
-            ? 'Tempered: casting an Elemental spell adds a marker; casters may spend 2 per +1 Wizard. '
+            ? 'Tempered: casting an Elemental spell adds a marker (applied automatically); casters may spend 2 per +1 Wizard (adjust the pool yourself). '
             : '') +
           (cr === 'Clan'
             ? 'Clan: Awakened Clan regiments gain Oblivious and Iron Discipline (applied). '

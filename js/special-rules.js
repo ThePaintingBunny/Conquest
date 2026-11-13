@@ -208,6 +208,27 @@ function srMarchMod(u) {
   }
   return m;
 }
+/* Relentless March (Dweghom Mastery): friendly Infantry get +1 March on their second March of an activation */
+function relentlessMarch(u) {
+  return (
+    /Infantry/.test(u.cls || '') &&
+    all().some(x => x.side === u.side && !x.destroyed && x.charName && upgOf(x, /Relentless March/))
+  );
+}
+/* First in the Fray (Dweghom Mastery, Ardent): the foremost friendly regiment, if Infantry, has Terrifying (+1), to at
+   most Terrifying (2). Foremost: the regiment whose rearmost corner is furthest towards the enemy edge. */
+function firstInFray(u) {
+  if (!u || !u.onTable || u.destroyed || !/Infantry/.test(u.cls || '')) return false;
+  if (!all().some(x => x.side === u.side && !x.destroyed && x.charName && upgOf(x, /First in the Fray/)))
+    return false;
+  const rear = x => {
+    const ys = corners(x).map(p => p[1]);
+    return x.side === 'nord' ? Math.min(...ys) : -Math.max(...ys);
+  };
+  const L = all().filter(x => x.side === u.side && x.onTable && !x.destroyed && x.type !== 'marker');
+  const best = L.reduce((m, x) => (!m || rear(x) > rear(m) ? x : m), null);
+  return !!best && best.id === u.id;
+}
 function srFirstMarch(u) {
   let b = 0;
   if (act && act.id === u.id) {

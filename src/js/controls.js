@@ -559,7 +559,8 @@ function startAction(type) {
       (act.frFu && !act.actions.some(a => a.type === 'march') ? 2 : 0) +
       (!act.actions.some(a => a.type === 'march') ? srFirstMarch(u) : 0) +
       (firstMarch ? vgOf(u) : 0) +
-      (secondMarch && u.bearer ? (hasRule(u, /^Forced March/) ? 2 : 1) : 0);
+      (secondMarch && u.bearer ? (hasRule(u, /^Forced March/) ? 2 : 1) : 0) +
+      (secondMarch && relentlessMarch(u) ? 1 : 0);
   if (type === 'charge' && (u.effects || []).includes('Broken')) {
     toast('A Broken regiment cannot Charge. Rally it first.');
     return;
