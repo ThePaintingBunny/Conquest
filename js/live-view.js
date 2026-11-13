@@ -63,8 +63,7 @@ function drawActiveRing(g) {
     rings.push({ u: byId(ract.id), side: byId(ract.id).side, char: !!ract.char });
   rings.forEach(({ u, side, char }) => {
     const cs = char && standsOf(u).find(s => s.kind === 'char'),
-      P = cs ? cs.poly : corners(u),
-      col = (COL[side] && COL[side].stroke) || '#E8C65A';
+      P = cs ? cs.poly : corners(u);
     el(
       'polygon',
       {
@@ -78,26 +77,6 @@ function drawActiveRing(g) {
       },
       g
     );
-    const top = Math.min(...P.map(q => py(q[1])));
-    const t = el(
-      'text',
-      {
-        x: px(u.x),
-        y: top - 18,
-        'text-anchor': 'middle',
-        fill: '#FFE07A',
-        'font-size': 11,
-        'font-weight': 700,
-        stroke: '#1C2421',
-        'stroke-width': 3,
-        'paint-order': 'stroke',
-        class: 'act-ring-label'
-      },
-      g
-    );
-    t.textContent =
-      (side === HU ? 'Activating' : (PN(side) || N(side)) + ' activating') + (char ? ' (character)' : '');
-    void col;
   });
 }
 

@@ -47,9 +47,88 @@ function tHas(t, k) {
 function tId(t) {
   return String(t.seed || t.x + '_' + t.y);
 }
+/* ===== Terrain outlines. Every piece has one irregular outline, generated from its seed in table inches. It is what is
+   drawn on the table and what every rule uses (entering, crossing, the 1″ rule, Line of Sight, garrisons). ===== */
+const terrPolyCache = new Map();
+function terrPoly(t) {
+  const key = [t.type, t.x, t.y, t.rx, t.ry, t.seed || 0].join('|');
+  let P = terrPolyCache.get(key);
+  if (P) return P;
+  /* a small seeded generator, independent of the drawing's random numbers */
+  let h = 2166136261;
+  for (const ch of key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  const rnd = () => {
+    h = (h + 0x6d2b79f5) | 0;
+    let q = Math.imul(h ^ (h >>> 15), 1 | h);
+    q = (q + Math.imul(q ^ (q >>> 7), 61 | q)) ^ q;
+    return ((q ^ (q >>> 14)) >>> 0) / 4294967296;
+  };
+  /* a wavy outline: the ellipse's radius varies smoothly with the angle (between about 80% and 118%) */
+  const waves = [2, 3, 4, 5].map((k, i) => ({
+      k,
+      ph: rnd() * Math.PI * 2,
+      amp: [0.09, 0.06, 0.04, 0.025][i] * (0.6 + rnd() * 0.8)
+    })),
+    N = 40;
+  P = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2;
+    let f = 1;
+    waves.forEach(w => (f += w.amp * Math.sin(w.k * a + w.ph)));
+    f = Math.max(0.8, Math.min(1.18, f));
+    P.push([t.x + Math.cos(a) * t.rx * f, t.y + Math.sin(a) * t.ry * f]);
+  }
+  terrPolyCache.set(key, P);
+  return P;
+}
+/* the largest distance from a piece's centre to its outline */
+function terrR(t) {
+  return Math.max(...terrPoly(t).map(p => Math.hypot(p[0] - t.x, p[1] - t.y)));
+}
+/* point inside any simple polygon (ray casting) */
+function ptInPolyG(p, P) {
+  let c = false;
+  for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+    const a = P[i],
+      b = P[j];
+    if (a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1] + 1e-12) + a[0])
+      c = !c;
+  }
+  return c;
+}
+function segsCross(a, b, c, d) {
+  const cr = (o, p, q) => (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0]);
+  const d1 = cr(c, d, a),
+    d2 = cr(c, d, b),
+    d3 = cr(a, b, c),
+    d4 = cr(a, b, d);
+  return d1 * d2 < 0 && d3 * d4 < 0;
+}
+/* does the segment a-b touch the polygon P (cross an edge or lie inside it)? */
+function segHitsPolyG(a, b, P) {
+  if (ptInPolyG(a, P) || ptInPolyG(b, P)) return true;
+  for (let i = 0; i < P.length; i++) if (segsCross(a, b, P[i], P[(i + 1) % P.length])) return true;
+  return false;
+}
+/* the gap between a regiment outline A and a terrain piece (0 when touching or overlapping) */
+function terrDist(A, t) {
+  const T = terrPoly(t);
+  if (A.some(p => ptInPolyG(p, T)) || T.some(p => ptInPolyG(p, A))) return 0;
+  for (let i = 0; i < A.length; i++)
+    for (let j = 0; j < T.length; j++)
+      if (segsCross(A[i], A[(i + 1) % A.length], T[j], T[(j + 1) % T.length])) return 0;
+  let m = 1e9;
+  A.forEach(p => T.forEach((q, j) => (m = Math.min(m, segDist(p, q, T[(j + 1) % T.length])))));
+  T.forEach(q => A.forEach((p, i) => (m = Math.min(m, segDist(q, p, A[(i + 1) % A.length])))));
+  return m;
+}
 function inT(t, p, pad) {
-  pad = pad || 0;
-  return ((p[0] - t.x) / (t.rx + pad)) ** 2 + ((p[1] - t.y) / (t.ry + pad)) ** 2 <= 1;
+  const P = terrPoly(t);
+  if (ptInPolyG(p, P)) return true;
+  if (!pad) return false;
+  let m = 1e9;
+  P.forEach((q, j) => (m = Math.min(m, segDist(p, q, P[(j + 1) % P.length]))));
+  return m <= pad;
 }
 function tBlocks(t, occ) {
   return tHas(t, 'Impassable') || (tHas(t, 'Garrison') && !occ);
@@ -99,11 +178,7 @@ function tIgnore(u, k) {
   return false;
 }
 function segHits(t, a, b) {
-  for (let k = 0; k <= 12; k++) {
-    const f = k / 12;
-    if (inT(t, [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f])) return true;
-  }
-  return false;
+  return segHitsPolyG(a, b, terrPoly(t));
 }
 /* which stands crossed which terrain during a move */
 function tCrossed(u, from, to) {
@@ -199,15 +274,7 @@ function tGarrisonNear(u) {
     const I = tInfo(t);
     if (live(u) > I.cap) return false;
     if (all().some(o => o.garrison === tId(t) && !o.destroyed)) return false;
-    let dmin = 1e9;
-    for (let k = 0; k < 32; k++) {
-      const a = (k / 32) * Math.PI * 2,
-        q = [t.x + Math.cos(a) * t.rx, t.y + Math.sin(a) * t.ry];
-      C.forEach(c => {
-        dmin = Math.min(dmin, Math.hypot(c[0] - q[0], c[1] - q[1]));
-      });
-    }
-    return dmin <= (u.m || 0) + 1;
+    return terrDist(C, t) <= (u.m || 0) + 1;
   });
 }
 function tGarrisonOf(u) {
@@ -478,16 +545,16 @@ function drawTerrain() {
       ry = t.ry * S,
       cid = 'tclip' + i,
       blocks = I.kw.includes('Impassable') || I.kw.includes('Garrison');
-    el('ellipse', { cx, cy, rx, ry }, el('clipPath', { id: cid }, g));
-    el('ellipse', { cx, cy, rx, ry, fill: TBASE[t.type] || '#5E6B45', 'fill-opacity': 0.55 }, g);
-    (TDRAW[t.type] || forest)(cx, cy, rx, ry, el('g', { 'clip-path': 'url(#' + cid + ')' }, g));
+    const outline = terrPoly(t)
+      .map(q => px(q[0]).toFixed(1) + ',' + py(q[1]).toFixed(1))
+      .join(' ');
+    el('polygon', { points: outline }, el('clipPath', { id: cid }, g));
+    el('polygon', { points: outline, fill: TBASE[t.type] || '#5E6B45', 'fill-opacity': 0.55 }, g);
+    (TDRAW[t.type] || forest)(cx, cy, rx * 1.12, ry * 1.12, el('g', { 'clip-path': 'url(#' + cid + ')' }, g));
     el(
-      'ellipse',
+      'polygon',
       {
-        cx,
-        cy,
-        rx,
-        ry,
+        points: outline,
         fill: 'none',
         stroke: blocks ? '#2B2620' : '#F3E6C4',
         'stroke-opacity': blocks ? 0.85 : 0.7,
@@ -498,12 +565,15 @@ function drawTerrain() {
     );
     if (terrSel === i)
       el(
-        'ellipse',
+        'polygon',
         {
-          cx: px(t.x),
-          cy: py(t.y),
-          rx: t.rx * S + 4,
-          ry: t.ry * S + 4,
+          points: terrPoly(t)
+            .map(q => {
+              const d = Math.hypot(q[0] - t.x, q[1] - t.y) || 1,
+                k = (d + 0.15) / d;
+              return px(t.x + (q[0] - t.x) * k) + ',' + py(t.y + (q[1] - t.y) * k);
+            })
+            .join(' '),
           fill: 'none',
           stroke: '#E8C65A',
           'stroke-width': 2,

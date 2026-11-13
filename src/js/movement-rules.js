@@ -2,11 +2,8 @@
 /* March restriction (core rules): a regiment may not March to within 1″ of an enemy regiment; only a Charge brings it into contact */
 const MOVE1 = ['march', 'reform', 'fluid', 'hammer', 'dtmarch', 'fadv'];
 /* how close a regiment outline comes to a terrain piece (0 = touching or overlapping; up to 1″ is checked) */
-function terrGap(P, t, ys) {
-  for (let g = 0; g <= 1.0001; g += 0.05) {
-    if (polyHitsEllipse(P, { x: t.x, y: t.y, rx: t.rx + g, ry: t.ry * (ys || 1) + g }, 1)) return g;
-  }
-  return 9;
+function terrGap(P, t) {
+  return Math.min(9, terrDist(P, t));
 }
 /* Core rules 2026: a March may not end within 1″ of an enemy regiment or Garrison terrain; a Reform may not bring
    stands within 1″ of an enemy regiment (unless it started closer; then it may not get closer). */
@@ -226,7 +223,7 @@ function finishAction() {
       const G = geom(u),
         a = ((u.facing || 0) * Math.PI) / 180,
         f = [Math.sin(a), Math.cos(a)],
-        R = Math.max(t.rx, t.ry) + 1 + G.d / 2;
+        R = terrR(t) + 1 + G.d / 2;
       act.leaveT = tId(t);
       Object.assign(act.pose, { x: +(t.x + f[0] * R).toFixed(2), y: +(t.y + f[1] * R).toFixed(2) });
       entry.to = { x: act.pose.x, y: act.pose.y, facing: u.facing || 0, files: G.files };

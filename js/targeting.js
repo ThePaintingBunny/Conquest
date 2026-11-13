@@ -12,16 +12,11 @@ function poseOk(u, p, opt) {
     if (d <= 0.02) return false;
     if (o.side !== u.side && o.type !== 'marker' && d < 1 - 1e-6 && !opt.ignoreEnemy) return false;
   }
-  const pts = A.concat([[v.x, v.y]]);
+  /* terrain: the regiment's whole outline against each piece's outline */
   if (!u.garrison)
     for (const t of terrainOf()) {
-      if (
-        tHas(t, 'Impassable') &&
-        !rh(u.rules || [], 'Fly') &&
-        pts.some(q => ((q[0] - t.x) / t.rx) ** 2 + ((q[1] - t.y) / t.ry) ** 2 <= 1)
-      )
-        return false;
-      if (tHas(t, 'Garrison') && pts.some(q => inT(t, q, 1))) return false;
+      if (tHas(t, 'Impassable') && !rh(u.rules || [], 'Fly') && terrDist(A, t) === 0) return false;
+      if (tHas(t, 'Garrison') && terrDist(A, t) < 1) return false;
     }
   return true;
 }

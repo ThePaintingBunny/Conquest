@@ -105,9 +105,7 @@ function failCharge() {
     const A = corners(Object.assign({}, u, pp));
     return (
       all().some(o => o.onTable && o.side !== u.side && polyDist(A, corners(o)) < 1) ||
-      terrainOf().some(
-        t => tHas(t, 'Garrison') && polyHitsEllipse(A, { x: t.x, y: t.y, rx: t.rx + 1, ry: t.ry + 1 }, 1)
-      )
+      terrainOf().some(t => tHas(t, 'Garrison') && terrDist(A, t) < 1)
     );
   };
   while (k > 0 && near(p)) {
@@ -298,35 +296,9 @@ function rayHit(A, B, d) {
   for (const q of B) for (const [a, b] of E(A)) t = Math.min(t, raySeg(q, nd, a, b));
   return t;
 }
-/* Does a regiment outline P overlap a terrain ellipse? Tests points along every edge (and the centre) against the ellipse,
-   and points around the ellipse against the outline, so small pieces inside a regiment are caught too.
-   The ellipse is the terrain's drawn outline. */
-function polyHitsEllipse(P, t, ys) {
-  const ry = t.ry * (ys || 1),
-    inE = q => ((q[0] - t.x) / t.rx) ** 2 + ((q[1] - t.y) / ry) ** 2 <= 1;
-  for (let i = 0; i < P.length; i++) {
-    const a = P[i],
-      b = P[(i + 1) % P.length];
-    for (let k = 0; k < 8; k++)
-      if (inE([a[0] + ((b[0] - a[0]) * k) / 8, a[1] + ((b[1] - a[1]) * k) / 8])) return true;
-  }
-  if (inE([P.reduce((s, p) => s + p[0], 0) / P.length, P.reduce((s, p) => s + p[1], 0) / P.length]))
-    return true;
-  const cross = (o, p, q) => (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0]);
-  const inP = q => {
-    let sg = 0;
-    for (let i = 0; i < P.length; i++) {
-      const c = cross(P[i], P[(i + 1) % P.length], q);
-      if (!sg) sg = Math.sign(c);
-      else if (Math.sign(c) !== sg && c !== 0) return false;
-    }
-    return true;
-  };
-  for (let k = 0; k < 32; k++) {
-    const a = (k / 32) * Math.PI * 2;
-    if (inP([t.x + Math.cos(a) * t.rx, t.y + Math.sin(a) * ry])) return true;
-  }
-  return false;
+/* Does a regiment outline P touch or overlap a terrain piece (its drawn outline)? (name kept from the ellipse days) */
+function polyHitsEllipse(P, t) {
+  return terrDist(P, t) === 0;
 }
 /* Terrain a Charge Move may not cross or touch: Impassable (except for Fly while moving; Fly may not end on it)
    and Garrison terrain (other than an occupied building being charged). final: the end position of the Charge. */

@@ -132,9 +132,7 @@ function dRules(u) {
   if (
     rh(u.rules, 'Earthen Aegis') &&
     u.onTable &&
-    terrainOf().some(
-      t => tHas(t, 'Earth') && polyDist(corners(u), [[t.x, t.y]]) <= 3 + Math.max(t.rx || 0, t.ry || 0)
-    )
+    terrainOf().some(t => tHas(t, 'Earth') && terrDist(corners(u), t) <= 3)
   )
     add('Regeneration (+4)', 'Ignores Dangerous terrain', 'Ignores Perilous terrain');
   if (rh(u.rules, 'Water Elemental') && srFriends(u).some(f => rh(f.rules, 'Dread Tide') && srNear(f, u, 8)))
