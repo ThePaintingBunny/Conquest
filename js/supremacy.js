@@ -9,6 +9,16 @@ function supRoles(u) {
       if (!r.includes(x)) r.push(x);
     });
   } catch (e) {}
+  /* Professional Troops: Feudal regiments in its holder's warband are Veteran; Feudal units gain the Dynastic Ally's role */
+  if (frFac(u) === 'Hundred Kingdoms' && r.includes('Feudal')) {
+    const PT = supAll(u.side).find(S => S.k === 'Professional Troops');
+    if (PT) {
+      if (!u.charName && PT.wl && srSameWb(PT.wl, u) && !r.includes('Veteran')) r.push('Veteran');
+      const al = supAllyU(u.side),
+        ar = al && frRoles(al, true).find(x => /^(Imperial|Feudal|Theist|The Orders)$/.test(x));
+      if (ar && !r.includes(ar)) r.push(ar);
+    }
+  }
   if (frFac(u) === 'Old Dominion') {
     const wl = supWl(u.side);
     if (/Hierodeacon/.test((wl && wl.charName) || '') && /Cultists|Hashashin/.test(frBase(u)))
@@ -44,8 +54,18 @@ function supKey(u) {
   if (names.length > 1 && byC && names.includes(byC)) return byC;
   return names[0] || byC || '';
 }
-function supOf(side) {
-  const wl = supWl(side);
+/* Hundred Kingdoms Dynastic Ally: a second character with its own Supremacy Ability (and the rules that refer to the
+   Warlord's warband), used as if it were the Warlord. It does not count as the Warlord for anything else. Only one
+   Activated Supremacy Ability may be used per Supremacy Phase. Its activation is kept under the key "<side>@ally". */
+function supAllyU(side) {
+  return (state.units || []).find(u => u.side === side && u.dynAlly && u.type !== 'marker') || null;
+}
+function supAll(side) {
+  return [supOf(side), supOf(side, 'ally')].filter(Boolean);
+}
+function supOf(side, who) {
+  const ally = who === 'ally',
+    wl = ally ? supAllyU(side) : supWl(side);
   if (!wl) return null;
   const k = supKey(wl);
   if (!k) return null;
@@ -55,18 +75,22 @@ function supOf(side) {
     a: '',
     unknown: true
   };
-  const g = (state.sup || {})[side] || {},
+  const key = ally ? side + '@ally' : side,
+    okey = ally ? side : side + '@ally',
+    g = (state.sup || {})[key] || {},
     R = state.round || 1,
-    on = !!wl.onTable && !wl.destroyed,
+    on = !!wl.onTable && !wl.destroyed && !(ally && wl.charSlain),
     used = +g.n || 0;
   const active = g.round === R,
-    max = d.uses || 1;
+    max = d.uses || 1,
+    otherActive = ((state.sup || {})[okey] || {}).round === R;
   let why = '';
   if (!d.a && !d.unknown) why = 'No Activated part';
-  else if (!on) why = 'The Warlord must be on the table';
+  else if (!on) why = ally ? 'The Dynastic Ally must be on the table' : 'The Warlord must be on the table';
   else if (active) why = 'Already active this round';
+  else if (otherActive) why = 'Only one Activated Supremacy Ability per Supremacy Phase';
   else if (!d.every && used >= max) why = max > 1 ? 'Used twice already' : 'Already used this battle';
-  return { wl, k, d, on, used, active, why, can: !why, g, choice: g.choice };
+  return { wl, k, d, on, used, active, why, can: !why, g, choice: g.choice, ally, key };
 }
 function supApply(units, side, S, choice) {
   const g = S.d.g;
@@ -80,14 +104,14 @@ function supApply(units, side, S, choice) {
     return y;
   });
 }
-async function supActivate(side, choice) {
-  const S = supOf(side);
+async function supActivate(side, choice, who) {
+  const S = supOf(side, who);
   if (!S || !S.can) {
     toast(S ? S.why : 'No Supremacy Ability');
     return false;
   }
   const sup = Object.assign({}, state.sup || {});
-  sup[side] = Object.assign({}, S.g, {
+  sup[S.key] = Object.assign({}, S.g, {
     n: (S.used || 0) + 1,
     round: state.round || 1,
     choice: choice || '',
@@ -108,7 +132,7 @@ async function supActivate(side, choice) {
     sup,
     units,
     lastTitle: WHO(side) + ' · Supremacy',
-    lastText: `${S.wl.charName || 'The Warlord'} activates ${S.k}${choice ? ' (' + choice + ')' : ''}: ${S.d.a}`
+    lastText: `${S.wl.charName || 'The Warlord'}${S.ally ? ' (Dynastic Ally)' : ''} activates ${S.k}${choice ? ' (' + choice + ')' : ''}: ${S.d.a}`
   });
   return true;
 }
@@ -219,12 +243,13 @@ async function wlDeclare(id) {
 }
 function supNeeded() {
   return ['cs', 'nord'].some(s => {
-    const S = supOf(s);
-    return wlMissing(s) || (S && (S.can || supNeedPrey(s) || supChoiceNeeded(s)));
+    const S = supOf(s),
+      SA = supOf(s, 'ally');
+    return wlMissing(s) || (SA && SA.can) || (S && (S.can || supNeedPrey(s) || supChoiceNeeded(s)));
   });
 }
-function supAiWant(side) {
-  const S = supOf(side);
+function supAiWant(side, who) {
+  const S = supOf(side, who);
   if (!S || !S.can || S.d.unknown) return false;
   if (S.d.every) return true;
   const R = state.round || 1;
@@ -276,11 +301,17 @@ async function supNext() {
     render();
     return;
   }
-  if (!S || !S.can) {
+  const SA = supOf(who, 'ally');
+  if ((!S || !S.can) && !(SA && SA.can)) {
     await putState({ supDone: Object.assign({}, done, { [who]: 'skip' }) });
     return supNext();
   }
   if (!PVP() && who === AI) {
+    if ((!S || !S.can) && SA && SA.can) {
+      if (supAiWant(AI, 'ally')) await supActivate(AI, '', 'ally');
+      await putState({ supDone: Object.assign({}, state.supDone || {}, { [AI]: 'done' }) });
+      return supNext();
+    }
     let ch = '';
     if (S.d.cho) {
       const used = S.g.chosen || [];
@@ -293,9 +324,9 @@ async function supNext() {
   }
   render();
 }
-async function supDecide(side, yes, choice) {
+async function supDecide(side, yes, choice, who) {
   if (yes) {
-    const ok = await supActivate(side, choice);
+    const ok = await supActivate(side, choice, who);
     if (!ok) return;
   }
   await putState({ supDone: Object.assign({}, state.supDone || {}, { [side]: yes ? 'done' : 'pass' }) });
@@ -363,34 +394,56 @@ function supBar(add, info, mk, me) {
     add(mk('Play without a Warlord', () => supDecide(me, false), true));
     return;
   }
-  if (!S) {
-    info.textContent = 'Supremacy Abilities: your Warlord has none to declare.';
+  if (!S || (!S.can && !(supOf(me, 'ally') || {}).can)) {
+    info.textContent = 'Supremacy Abilities: none to activate this round.';
     add(mk('Continue', () => supDecide(me, false)));
     return;
   }
+  const SA0 = supOf(me, 'ally'),
+    both = S.can && SA0 && SA0.can;
   info.textContent =
-    `Supremacy Abilities (${who === first ? 'First Player declares first' : 'the First Player has declared'}). Activate ${S.k}?` +
+    `Supremacy Abilities (${who === first ? 'First Player declares first' : 'the First Player has declared'}). ` +
+    (both
+      ? `Activate ${S.k} or the Dynastic Ally’s ${SA0.k} (only one per Supremacy Phase)?`
+      : `Activate ${S.can ? S.k : SA0.k}?`) +
     (theirs ? ' ' + theirs + '.' : '');
-  add(
-    ptext(
-      S.d.a +
-        (S.d.every ? ' (every round)' : S.d.uses ? ` (${S.d.uses - S.used} left)` : ' (once per battle)') +
-        ' The map applies it.'
-    )
-  );
-  if (S.d.cho)
-    S.d.cho
-      .filter(c => !(S.g.chosen || []).includes(c))
-      .forEach(c => add(mk('Activate: ' + c, () => supDecide(me, true, c))));
-  else add(mk('Activate ' + S.k, () => supDecide(me, true)));
+  if (S.can)
+    add(
+      ptext(
+        S.d.a +
+          (S.d.every ? ' (every round)' : S.d.uses ? ` (${S.d.uses - S.used} left)` : ' (once per battle)') +
+          ' The map applies it.'
+      )
+    );
+  if (S.can) {
+    if (S.d.cho)
+      S.d.cho
+        .filter(c => !(S.g.chosen || []).includes(c))
+        .forEach(c => add(mk('Activate: ' + c, () => supDecide(me, true, c))));
+    else add(mk('Activate ' + S.k, () => supDecide(me, true)));
+  }
+  /* the Dynastic Ally's ability: one Activated Supremacy Ability per phase, so it is either this or the Warlord's */
+  const SA = supOf(me, 'ally');
+  if (SA && SA.can) {
+    add(
+      ptext(
+        'Dynastic Ally (' +
+          SA.wl.charName +
+          '): ' +
+          SA.d.a +
+          (SA.d.every ? ' (every round)' : ' (once per battle)')
+      )
+    );
+    add(mk('Activate ' + SA.k + ' (Dynastic Ally)', () => supDecide(me, true, '', 'ally')));
+  }
   add(mk('Not this round', () => supDecide(me, false), true));
 }
 /* full text in the Faction rules panel and the character's card */
-function supBlock(side, mine) {
-  const S = supOf(side);
+function supBlock(side, mine, who) {
+  const S = supOf(side, who);
   if (!S) return null;
   const box = bEl('div', { className: 'fr-blk' });
-  box.append(ptext((S.wl.charName || 'Warlord') + ' · ' + S.k));
+  box.append(ptext((S.wl.charName || 'Warlord') + (S.ally ? ' (Dynastic Ally)' : '') + ' · ' + S.k));
   if (S.d.p) box.append(ptext((S.d.t ? S.d.t + ': ' : '') + S.d.p));
   if (S.d.a)
     box.append(
@@ -417,7 +470,7 @@ function supBlock(side, mine) {
     const r = bEl('div', { className: 'fr-opts' });
     if (S.can) {
       (S.d.cho ? S.d.cho.filter(c => !(S.g.chosen || []).includes(c)) : ['']).forEach(c =>
-        r.append(abBtn('Activate' + (c ? ': ' + c : ''), () => supActivate(side, c), 'ab-tog'))
+        r.append(abBtn('Activate' + (c ? ': ' + c : ''), () => supActivate(side, c, who), 'ab-tog'))
       );
     } else r.append(bEl('span', { className: 'hint', textContent: S.why }));
     if (S.used)
@@ -426,7 +479,7 @@ function supBlock(side, mine) {
           'Reset',
           () => {
             const sup = Object.assign({}, state.sup || {});
-            delete sup[side];
+            delete sup[S.key];
             return putState({ sup });
           },
           'ab-tog'

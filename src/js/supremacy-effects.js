@@ -4,13 +4,15 @@ function supK(side) {
   const S = supOf(side);
   return S ? S.k : '';
 }
+/* does the side hold this Supremacy Ability (the Warlord's, or the Dynastic Ally's) */
+function supHasK(side, k) {
+  return supAll(side).some(S => S.k === k);
+}
 function supOn(side, k) {
-  const S = supOf(side);
-  return !!S && S.k === k && (S.d.t !== 'Battlefield' || S.on);
+  return supAll(side).some(S => S.k === k && (S.d.t !== 'Battlefield' || S.on));
 }
 function supAct(side, k) {
-  const S = supOf(side);
-  return !!S && S.k === k && S.active;
+  return supAll(side).some(S => S.k === k && S.active);
 }
 function srIsWl(u) {
   const w = supWl(u.side);
@@ -31,8 +33,17 @@ function supMem(side) {
 function supDR(u) {
   const o = [];
   if (!u || u.type === 'marker') return o;
-  const side = u.side,
-    k = supK(side);
+  supAll(u.side).forEach(S =>
+    supDR1(u, S.k, S.wl).forEach(x => {
+      if (!o.includes(x)) o.push(x);
+    })
+  );
+  return o;
+}
+/* the passive rules of one ability; "the Warlord" means the character holding it (Warlord or Dynastic Ally) */
+function supDR1(u, k, holder) {
+  const o = [];
+  const side = u.side;
   if (!k) return o;
   let roles = [];
   try {
@@ -42,7 +53,7 @@ function supDR(u) {
     r.forEach(x => {
       if (!o.includes(x)) o.push(x);
     });
-  const wl = srIsWl(u),
+  const wl = !!holder && holder.id === u.id && !holder.destroyed && !!holder.charName,
     cls = u.cls || '';
   if (k === 'Skývald' && wl)
     add(
@@ -234,7 +245,9 @@ function supReinfNeed(u, need) {
     : need;
 }
 function supAfterReinf(side, units, res) {
-  const S = supOf(side);
+  supAll(side).forEach(S => supAfterReinf1(side, units, res, S));
+}
+function supAfterReinf1(side, units, res, S) {
   if (!S) return;
   const arr = units.filter(u => u.side === side && u.arriving && !u.onTable);
   const give = (u, src, r) => {
@@ -258,7 +271,7 @@ function supAfterReinf(side, units, res) {
   }
 }
 function supTactical(side, pool, autoId) {
-  if (supK(side) !== 'Tactical Superiority' || !autoId) return null;
+  if (!supHasK(side, 'Tactical Superiority') || !autoId) return null;
   return pool.find(
     u =>
       u.id !== autoId &&
@@ -272,7 +285,7 @@ function supLeadByExample(units, a) {
   const u = units.find(x => x.id === a.id);
   if (
     !u ||
-    supK(u.side) !== 'Lead by Example' ||
+    !supHasK(u.side, 'Lead by Example') ||
     supMem(u.side).lbR === srRnd() ||
     !supRoles(u).includes('The Orders')
   )
@@ -334,8 +347,7 @@ function srExtraCast(u, res) {
   if (S.k === 'Omnipotence' && res && res.success && lastSpellSucc >= 4 && !charAct.omni)
     return 'Omnipotence';
   if (
-    S.k === 'The Spirit Shines' &&
-    S.active &&
+    supAct(u.side, 'The Spirit Shines') &&
     (frRoles(u, true).includes('Theist') || /Theist|Priest/.test(u.charName || '')) &&
     supMem(u.side).ssR !== R &&
     n === 1
@@ -1091,7 +1103,7 @@ async function supAfterCombat(S, before) {
         kA === 'Driven by Carnage' &&
         (srIsWl(A) || (supAct(A.side, kA) && supRoles(A).includes('Half-Bloods'))) &&
         (S.type === 'clash' || S.type === 'impact'),
-      rp = kA === 'Relentless Protectors' && /Cavalry/.test(A.cls || '') && S.type === 'impact';
+      rp = supHasK(A.side, 'Relentless Protectors') && /Cavalry/.test(A.cls || '') && S.type === 'impact';
     if (dc || rp) {
       act.freeReform = dc ? 'Driven by Carnage' : 'Relentless Protectors';
       toast(act.freeReform + ': it may make a free out-of-sequence Reform.');

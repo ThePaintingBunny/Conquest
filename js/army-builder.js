@@ -228,11 +228,15 @@ function rowPts(r) {
 }
 function wbPts(w) {
   const c = bldUnit(w.char);
+  /* Holy Crusade: one 3-stand Crusaders regiment is free (extra stands still cost) */
+  const cru = holyCrusadeWb(w) && w.regs.find(r => r.unit === 'Crusaders'),
+    free = cru ? (bldUnit('Crusaders') || {}).pts || 0 : 0;
   return (
     (c ? c.pts || 0 : 0) +
     upgPts(w) +
     (w.custom || []).reduce((a, x) => a + (+x.pts || 0), 0) +
-    w.regs.reduce((a, r) => a + rowPts(r), 0)
+    w.regs.reduce((a, r) => a + rowPts(r), 0) -
+    free
   );
 }
 function bldTotal() {
@@ -373,18 +377,41 @@ function hkAllOrders() {
   const R = hkRoles();
   return R.length > 0 && R.every(r => r === 'The Orders');
 }
+/* Hundred Kingdoms Dynastic Ally: why this warband's character cannot be the ally ('' if it can) */
+function allyWhy(wi) {
+  const w = bld.wbs[wi],
+    wl = bld.wbs[bld.warlord];
+  if (!w) return 'No warband';
+  if (bld.warlord === wi) return 'It is the Warlord';
+  if (/Chapter Mage/.test(w.char)) return 'A Chapter Mage cannot be a Dynastic Ally';
+  const c = bldUnit(w.char);
+  if (!c || c.kind !== 'char' || !/Supremacy/.test(c.options || '')) return 'It has no Supremacy Ability';
+  if (wl && wl.char === w.char) return 'It must be a different character entry from the Warlord';
+  if (wl && hkRole(wl.char) && hkRole(wl.char) === hkRole(w.char))
+    return 'It cannot share the Warlord’s Sub-Faction (' + hkRole(w.char) + ')';
+  return '';
+}
+function allyIdx() {
+  return bld.fac === 'Hundred Kingdoms' && bld.ally != null && bld.wbs[bld.ally] ? bld.ally : -1;
+}
+/* Holy Crusade (Crusading Noble Lord as Warlord or Dynastic Ally): every Crusading Bull, and a free Crusaders regiment */
+function holyCrusadeWb(w) {
+  if (bld.fac !== 'Hundred Kingdoms' || !/Crusading Noble Lord/.test(w.char || '')) return false;
+  const i = bld.wbs.indexOf(w);
+  return i === bld.warlord || i === allyIdx();
+}
 function bldProblems() {
   const out = [];
   if (!bld.wbs.length) out.push('Add at least one warband.');
   if (bld.fac === 'Hundred Kingdoms') {
     const R = hkRoles(),
       wl = bld.wbs[bld.warlord];
-    /* Memories of the Red Years: no Theist and Orders characters together (For All Mankind ignores it) */
-    if (
-      R.includes('Theist') &&
-      R.includes('The Orders') &&
-      !(wl && /Errant of the Order of the Shield/.test(wl.char))
-    )
+    /* Memories of the Red Years: no Theist and Orders characters together (For All Mankind ignores it, from the
+       Warlord or the Dynastic Ally) */
+    const al = bld.wbs[allyIdx()],
+      fam = [wl, al].some(x => x && /Errant of the Order of the Shield/.test(x.char));
+    if (allyIdx() >= 0 && allyWhy(allyIdx())) out.push('Dynastic Ally: ' + allyWhy(allyIdx()) + '.');
+    if (R.includes('Theist') && R.includes('The Orders') && !fam)
       out.push('Memories of the Red Years: an army cannot include both a Theist and an Orders character.');
     /* Servite needs at least one Orders character */
     if (!R.includes('The Orders') && bld.wbs.some(w => w.regs.some(r => (r.opts || []).includes('Servite'))))
@@ -479,6 +506,7 @@ function charJson(c, warlord, custom, w) {
   return {
     name: c.name,
     warlord,
+    ally: !warlord && allyIdx() >= 0 && bld.wbs[allyIdx()] === w,
     rider: !!rideOf(w),
     stats: {
       C: n(S.C) || 1,
@@ -727,7 +755,7 @@ function upgProblems(w, wi) {
     if (!e) return;
     const why = upgWhy(e, c, wi);
     if (why && !/^Taken/.test(why)) out.push(n + ': ' + why + '.');
-    if (!UPG_MULTI.test(e[0])) {
+    if (!UPG_MULTI.test(e[0]) && !(e[0] === 'Crusading Bull' && holyCrusadeWb(w))) {
       const k = e[0].replace(/^Discipline.*/, 'Discipline');
       cats[k] = (cats[k] || 0) + 1;
     }
@@ -1587,6 +1615,7 @@ function armyBuilder(add, mk, onUse, useLabel) {
       () => {
         if (WR.no || mustOther) return;
         bld.warlord = wi;
+        if (bld.ally === wi) bld.ally = null;
         abRe();
       },
       'ab-tog' + (isWL ? ' on' : '') + (WR.no ? ' ab-off' : '')
@@ -1601,6 +1630,26 @@ function armyBuilder(add, mk, onUse, useLabel) {
           : 'Your ' + bldUnit(bld.wbs[bld.warlord].char).name + ' must be the Warlord.';
     }
     hl.append(wlb);
+    /* Hundred Kingdoms: Dynastic Ally */
+    if (bld.fac === 'Hundred Kingdoms' && !isWL) {
+      const why = allyWhy(wi),
+        isAl = allyIdx() === wi;
+      const ab = abBtn(
+        isAl ? '♛ Dynastic Ally' : '♔ Make Dynastic Ally',
+        () => {
+          if (why && !isAl) return;
+          bld.ally = isAl ? null : wi;
+          abRe();
+        },
+        'ab-tog' + (isAl ? ' on' : '') + (why && !isAl ? ' ab-off' : '')
+      );
+      ab.setAttribute('aria-pressed', String(isAl));
+      ab.title = isAl
+        ? 'Uses its Supremacy Ability as if it were the Warlord (one Activated Supremacy per phase). Click to remove.'
+        : why || 'A second character that uses its own Supremacy Ability as if it were the Warlord';
+      if (why && !isAl) ab.disabled = true;
+      hl.append(ab);
+    }
     {
       const PB = (c.rules || []).some(r => /^Personal Bodyguard/.test(r))
         ? 'Personal Bodyguard'
@@ -1666,6 +1715,7 @@ function armyBuilder(add, mk, onUse, useLabel) {
             bld.wbs.splice(wi, 1);
             if (bld.warlord > wi) bld.warlord--;
             else if (bld.warlord === wi) bld.warlord = -1;
+            if (bld.ally != null) bld.ally = bld.ally > wi ? bld.ally - 1 : bld.ally === wi ? null : bld.ally;
             abRe();
           }),
         'ab-ghost ab-small ab-danger',

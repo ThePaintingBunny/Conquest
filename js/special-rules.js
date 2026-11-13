@@ -868,7 +868,11 @@ function shatterImmune(y) {
       fx(y)
     )
     .join(' | ');
-  return frFac(y) === 'Dweghom' || /cannot be Shattered|Written in Bones/i.test(t);
+  return (
+    frFac(y) === 'Dweghom' ||
+    /cannot be Shattered|Written in Bones/i.test(t) ||
+    supHasK(y.side, 'For All Mankind')
+  );
 }
 function breakCheck(old, st) {
   const O = new Map(((old && old.units) || []).map(u => [u.id, u])),

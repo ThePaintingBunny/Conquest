@@ -303,6 +303,14 @@ function frRoles(u, char) {
   if (!char && u.mods && u.mods.length && MODULAR[u.mods[0]]) return [MODULAR[u.mods[0]].role];
   let r = (m[frN(char ? u.charName : frBase(u))] || []).slice();
   const e = frEncy(u, char ? u.charName : null);
+  /* Hundred Kingdoms: the Battlefield Roles are in the army list entry (a regiment's "Feudal, Theist"; a character's
+     warband line "Theist. Mainstay: …") */
+  if (f === 'Hundred Kingdoms' && e) {
+    const head = String(e.warband || '').split(/\.\s|Mainstay|No warband/)[0];
+    (head.match(/Imperial|Feudal|Theist|The Orders|Veteran/g) || []).forEach(x => {
+      if (!r.includes(x)) r.push(x);
+    });
+  }
   const cm = e && String(e.warband || '').match(/Court of (Fire|Air|Earth|Water)/);
   if (cm) r.push('Court of ' + cm[1]);
   if (f === 'Weaver Courts' && !char && !r.some(x => /^Court of/.test(x)))
@@ -1414,7 +1422,7 @@ function renderFacBox() {
   if (f === 'Spires' && STRAIN[frBase(u)]) info.push(['Strain', STRAIN[frBase(u)][0]]);
   const R = frRoles(u);
   if (R.length) info.push(['Battlefield Role', R.filter(r => r !== 'Character').join(', ')]);
-  const SB = u.warlord ? supBlock(u.side, true) : null;
+  const SB = u.warlord ? supBlock(u.side, true) : u.dynAlly ? supBlock(u.side, true, 'ally') : null;
   if (!items.length && !info.length && !SB) {
     box.hidden = true;
     return;
@@ -1587,20 +1595,22 @@ function frPanel() {
       d.append(h, blk);
     });
   });
-  ['cs', 'nord'].forEach(side => {
-    const blk = supBlock(side, side === ME || SBX());
-    if (!blk) return;
-    any = true;
-    const h = bEl('div', {
-      className: 'en-tag',
-      textContent:
-        (SBX() ? (side === 'cs' ? 'South' : 'North') : N(side)) +
-        ' · Supremacy Ability' +
-        (side === ME ? ' (you)' : '')
-    });
-    h.style.marginTop = '8px';
-    d.append(h, blk);
-  });
+  ['cs', 'nord'].forEach(side =>
+    ['', 'ally'].forEach(who => {
+      const blk = supBlock(side, side === ME || SBX(), who || undefined);
+      if (!blk) return;
+      any = true;
+      const h = bEl('div', {
+        className: 'en-tag',
+        textContent:
+          (SBX() ? (side === 'cs' ? 'South' : 'North') : N(side)) +
+          (who ? ' · Dynastic Ally’s Supremacy Ability' : ' · Supremacy Ability') +
+          (side === ME ? ' (you)' : '')
+      });
+      h.style.marginTop = '8px';
+      d.append(h, blk);
+    })
+  );
   if (!any) d.append(ptext('No faction trackers are needed for the armies on the table.'));
   return d;
 }
