@@ -1649,6 +1649,11 @@ function render() {
       rg
     );
   }
+  try {
+    drawSpellZone(el('g', { id: 'spellg', 'pointer-events': 'none' }, rg));
+  } catch (e) {
+    console.error(e);
+  }
   if (act && act.cur && act.cur.type === 'volley' && act.cur.stage === 'target') {
     try {
       drawVolleyZones(byId(act.id), rg);
