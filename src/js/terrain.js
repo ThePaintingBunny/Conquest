@@ -63,6 +63,22 @@ function terrPoly(t) {
     q = (q + Math.imul(q ^ (q >>> 7), 61 | q)) ^ q;
     return ((q ^ (q >>> 14)) >>> 0) / 4294967296;
   };
+  /* buildings: a rectangle, turned a little (up to 12°), that stays inside the piece's size */
+  if (t.type === 'building') {
+    const th = ((rnd() - 0.5) * 2 * (12 * Math.PI)) / 180,
+      c = Math.cos(th),
+      sn = Math.sin(th),
+      a = t.rx * 0.82,
+      b = t.ry * 0.82;
+    P = [
+      [-a, -b],
+      [a, -b],
+      [a, b],
+      [-a, b]
+    ].map(([x, y]) => [t.x + x * c - y * sn, t.y + x * sn + y * c]);
+    terrPolyCache.set(key, P);
+    return P;
+  }
   /* a wavy outline: the ellipse's radius varies smoothly with the angle (between about 80% and 118%) */
   const waves = [2, 3, 4, 5].map((k, i) => ({
       k,
@@ -483,6 +499,44 @@ function building(cx, cy, rx, ry, g) {
   );
   el('rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, fill: '#9C5A3A', opacity: 0.35 }, g);
 }
+/* a hipped roof on a building's rectangle (screen corners in order): two long roof planes, two end triangles, a ridge */
+function buildingRoof(C, g) {
+  const d = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+  let [c0, c1, c2, c3] = C;
+  if (d(c0, c1) < d(c1, c2)) [c0, c1, c2, c3] = [c1, c2, c3, c0];
+  const L = d(c0, c1),
+    H = d(c1, c2),
+    u = [(c1[0] - c0[0]) / L, (c1[1] - c0[1]) / L],
+    m0 = [(c0[0] + c3[0]) / 2, (c0[1] + c3[1]) / 2],
+    m1 = [(c1[0] + c2[0]) / 2, (c1[1] + c2[1]) / 2],
+    R1 = [m0[0] + (u[0] * H) / 2, m0[1] + (u[1] * H) / 2],
+    R2 = [m1[0] - (u[0] * H) / 2, m1[1] - (u[1] * H) / 2],
+    pts = a => a.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '),
+    face = (a, f) => el('polygon', { points: pts(a), fill: f, stroke: '#5E3A24', 'stroke-width': 0.9 }, g);
+  face([c0, c1, R2, R1], '#A65E3C');
+  face([c3, c2, R2, R1], '#8A4A2E');
+  face([c0, R1, c3], '#975433');
+  face([c1, R2, c2], '#975433');
+  el('line', { x1: R1[0], y1: R1[1], x2: R2[0], y2: R2[1], stroke: '#4A2C1A', 'stroke-width': 1.6 }, g);
+  /* roof tiles: thin lines along the long planes */
+  for (let k = 1; k < 6; k++) {
+    const f = k / 6;
+    const a = [c0[0] + (R1[0] - c0[0]) * f, c0[1] + (R1[1] - c0[1]) * f],
+      b = [c1[0] + (R2[0] - c1[0]) * f, c1[1] + (R2[1] - c1[1]) * f],
+      a2 = [c3[0] + (R1[0] - c3[0]) * f, c3[1] + (R1[1] - c3[1]) * f],
+      b2 = [c2[0] + (R2[0] - c2[0]) * f, c2[1] + (R2[1] - c2[1]) * f];
+    el(
+      'line',
+      { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#7A4028', 'stroke-width': 0.6, opacity: 0.6 },
+      g
+    );
+    el(
+      'line',
+      { x1: a2[0], y1: a2[1], x2: b2[0], y2: b2[1], stroke: '#6A3620', 'stroke-width': 0.6, opacity: 0.6 },
+      g
+    );
+  }
+}
 const TDRAW = { forest, hill, rocks, swamp, water, ruins, field, rubble, thorns, building };
 /* base colour under each terrain piece (the footprint the rules use) */
 const TBASE = {
@@ -550,7 +604,19 @@ function drawTerrain() {
       .join(' ');
     el('polygon', { points: outline }, el('clipPath', { id: cid }, g));
     el('polygon', { points: outline, fill: TBASE[t.type] || '#5E6B45', 'fill-opacity': 0.55 }, g);
-    (TDRAW[t.type] || forest)(cx, cy, rx * 1.12, ry * 1.12, el('g', { 'clip-path': 'url(#' + cid + ')' }, g));
+    if (t.type === 'building')
+      buildingRoof(
+        terrPoly(t).map(q => [px(q[0]), py(q[1])]),
+        g
+      );
+    else
+      (TDRAW[t.type] || forest)(
+        cx,
+        cy,
+        rx * 1.12,
+        ry * 1.12,
+        el('g', { 'clip-path': 'url(#' + cid + ')' }, g)
+      );
     el(
       'polygon',
       {

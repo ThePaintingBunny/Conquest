@@ -366,9 +366,6 @@ function rosterTable(units, onBanner) {
   });
   return t;
 }
-function terrR(t) {
-  return Math.max(t.rx, t.ry);
-}
 function terrWhy(p, list) {
   const R = terrR(p);
   if (p.x - p.rx < 0 || p.x + p.rx > 72 || p.y - p.ry < 0 || p.y + p.ry > 48)
