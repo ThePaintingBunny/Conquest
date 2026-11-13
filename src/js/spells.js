@@ -389,6 +389,18 @@ function spellTargets(u, sp) {
 }
 /* counts as 3 stands larger against enemy spells (Scaling): Inscription of Balance on its own regiment;
    Heralds of the Storm and Fudoshin for friends within 10″ */
+/* Primodynamic Globe (City States banner): friendly regiments within 8″ of the character stand count as having
+   Wizard (1) for Enemy Interference */
+function globeWizard(t) {
+  return all().some(
+    x =>
+      x.side === t.side &&
+      x.onTable &&
+      !x.destroyed &&
+      upgOf(x, /Primodynamic Globe/) &&
+      (x.id === t.id || polyDist(casterPoly(x), corners(t)) <= 8)
+  );
+}
 function spellSizeBonus(T, sp) {
   if (!T || !sp || sp.targets !== 'enemy') return 0;
   if (upgOf(T, /Inscription of Balance/)) return 3;
@@ -815,7 +827,8 @@ function spellBox(box, u, asChar, ctx, onDone) {
     rx(t.rules, 'Priest') ||
     rx(t.rules, 'Wizard') ||
     (t.charName && (rx(t.charRules, 'Priest') || rx(t.charRules, 'Wizard'))) ||
-    (CASTERS[frBase(t)] && CASTERS[frBase(t)].reg);
+    (CASTERS[frBase(t)] && CASTERS[frBase(t)].reg) ||
+    globeWizard(t);
   const cp = casterPoly(u),
     interf = all().some(
       t =>
@@ -936,7 +949,8 @@ async function aiCastSpell(u, asChar, spellName, targetId) {
     rx(t.rules, 'Priest') ||
     rx(t.rules, 'Wizard') ||
     (t.charName && (rx(t.charRules, 'Priest') || rx(t.charRules, 'Wizard'))) ||
-    (CASTERS[frBase(t)] && CASTERS[frBase(t)].reg);
+    (CASTERS[frBase(t)] && CASTERS[frBase(t)].reg) ||
+    globeWizard(t);
   const cp = casterPoly(u),
     interf = all().some(
       t =>
