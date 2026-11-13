@@ -173,22 +173,26 @@ function fanPoly(u, R, spanDeg, fromBack) {
 }
 
 /* ---------- the layers ---------- */
+/* Four layers at most, from the front edge:
+   - guaranteed: the distance with no roll, as the regiment stands now (permanent bonuses and effects in force);
+   - roll: the most a Charge Roll of 6 adds (Charges that roll only);
+   - guaranteed / roll with every boost: the same, adding everything the army could still use on it this round
+     (spells, unused Supremacy, Strain, Biomancy, chants, target conditions). The outer line is the worst case. */
 const THR_STYLE = {
-  sure: { fill: '#FFF6D8', fo: 0.36, stroke: '#FFF6D8', w: 2 },
+  sure: { fill: '#FFF6D8', fo: 0.38, stroke: '#FFF6D8', w: 2 },
   roll: { fill: '#F29A3A', fo: 0.3, stroke: '#FFB45C', w: 2, dash: '6 4' },
-  eff: { fill: '#FFD66B', fo: 0.32, stroke: '#FFE39A', w: 2 },
-  full: { fill: '#6FA8FF', fo: 0.2, stroke: '#9CC4FF', w: 2, dash: '6 4' },
-  cp: { fill: '#7EE0C8', fo: 0.18, stroke: '#7EE0C8', w: 2, dash: '10 3' },
-  boost: { fill: '#B37BFF', fo: 0.14, stroke: '#C9A2FF', w: 2, dash: '3 3' },
-  march: { fill: 'none', fo: 0, stroke: '#FF6B5C', w: 2, dash: '8 5' },
-  all: { fill: 'none', fo: 0, stroke: '#C9A2FF', w: 1.6, dash: '2 4' }
+  sureB: { fill: '#B37BFF', fo: 0.22, stroke: '#D2B2FF', w: 2 },
+  rollB: { fill: '#B37BFF', fo: 0.1, stroke: '#C9A2FF', w: 2, dash: '3 3' }
 };
 function threatLayers(u, mode) {
   const B = threatBoosts(u),
     NB = threatNormal(u),
     M = (+u.m || 0) + srMarchMod(u),
     Ls = [];
-  const dpX = B.march.find(b => /Divine Purpose/.test(b.src));
+  const dpX = B.march.find(b => /Divine Purpose/.test(b.src)),
+    free = B.march.filter(b => /free/.test(b.src)) /* free Marches before acting */,
+    mb = sumB(B.march.filter(b => b !== dpX && !free.includes(b))),
+    fb = free.length ? Math.max(...free.map(b => b.n)) : 0; /* only one free March applies */
   if (mode === 'charge') {
     if (u.garrison)
       return {
@@ -198,47 +202,41 @@ function threatLayers(u, mode) {
         note: 'A garrisoned regiment Charges out of its building; its threat is measured from the building.'
       };
     const fix = chargeFixed(u),
-      dp = fix != null ? 0 : NB.dp || 0 /* Divine Purpose, on the March or on the Charge */,
-      /* chargeMax adds Divine Purpose itself during the regiment's own activation: take it out, then add it once */
+      dp = NB.dp || 0,
       selfDp = fix == null && act && act.id === u.id && srHas(u, /^Divine Purpose/) && !act.dpUsed ? 2 : 0,
-      base = chargeMax(u) - selfDp,
-      max = base + dp,
-      sure = fix != null ? max : base - 6 + dp,
-      cb = sumB(B.charge),
-      mb = sumB(B.march.filter(b => b !== dpX)),
-      dpExtra = dpX && fix == null ? 2 : 0,
-      before = M + NB.march + (NB.dp || 0) * (fix != null ? 1 : 0);
+      base = chargeMax(u) - selfDp + (fix != null ? 0 : dp),
+      sure = fix != null ? base : base - 6,
+      /* every boost: Charge bonuses, March bonuses (Charge = March + roll), the best free March, Divine Purpose */
+      plus = sumB(B.charge) + mb + fb + (dpX && fix == null ? 2 : 0);
+    let sureB = sure + plus;
+    /* Clockwork Parade: Charge distance = March +5″, no roll */
+    if (B.cp) sureB = Math.max(sureB, M + 5 + mb + fb);
     Ls.push({
       k: 'sure',
       R: sure,
-      t: fix != null ? 'Charge (fixed distance)' : 'Charge without a roll (March)'
+      t: fix != null ? 'Guaranteed (fixed Charge distance)' : 'Guaranteed (no roll)'
     });
-    if (max > sure + 1e-6) Ls.push({ k: 'roll', R: max, t: 'Charge on a roll of 6' });
-    if (B.cp && M + 5 + dp > sure + 1e-6)
-      Ls.push({ k: 'cp', R: M + 5 + dp, t: 'Charge with Clockwork Parade (no roll)' });
-    if (cb + dpExtra) Ls.push({ k: 'boost', R: max + cb + dpExtra, t: 'Charge on a 6 with extra boosts' });
-    Ls.push({ k: 'march', R: before + max, t: 'March, then Charge on a 6' });
-    if (cb + mb + dpExtra)
-      Ls.push({ k: 'all', R: before + max + mb + cb + dpExtra, t: 'March, then Charge, every extra boost' });
-    return { L: Ls, B, NB, span: 45, back: false };
+    if (fix == null) Ls.push({ k: 'roll', R: base, t: 'With a Charge Roll of 6' });
+    if (sureB > sure + 1e-6) Ls.push({ k: 'sureB', R: sureB, t: 'Guaranteed, every boost' });
+    if (fix == null && plus) Ls.push({ k: 'rollB', R: base + plus, t: 'Roll of 6, every boost' });
+    return { L: Ls, B, NB, span: 45, back: false, plusN: plus };
   }
   const vr = volleyRange(u);
   if (!vr) return { L: [], B, NB, note: 'This regiment has no Barrage, so it cannot Volley.' };
   const R = vr.range,
     long = rh(RU(u).concat(fx(u)), 'Longshot'),
-    rb = sumB(B.range),
-    mb = sumB(B.march),
-    Mfirst = M + NB.march + (NB.dp || 0);
-  Ls.push({
-    k: 'eff',
-    R: long ? R : R / 2,
-    t: long ? 'Volley, full range (Longshot: no long-range penalty)' : 'Volley, effective range (half)'
-  });
-  if (!long) Ls.push({ k: 'full', R, t: 'Volley, full Barrage range' });
-  if (rb) Ls.push({ k: 'boost', R: R + rb, t: 'Volley with extra boosts' });
-  Ls.push({ k: 'march', R: Mfirst + R, t: 'March, then Volley' });
-  if (rb + mb) Ls.push({ k: 'all', R: Mfirst + mb + R + rb, t: 'March, then Volley, every extra boost' });
-  return { L: Ls, B, NB, span: volleyArcSpan(u), back: rh(RU(u), 'Fluid Formation') || !!u.garrison };
+    plus = sumB(B.range) + fb;
+  Ls.push({ k: 'sure', R, t: 'Barrage range' + (long ? ' (Longshot)' : '') });
+  if (!long) Ls.push({ k: 'roll', R: R / 2, t: 'Effective range (half: no long-range penalty)' });
+  if (plus) Ls.push({ k: 'rollB', R: R + plus, t: 'Barrage range, every boost' });
+  return {
+    L: Ls,
+    B,
+    NB,
+    span: volleyArcSpan(u),
+    back: rh(RU(u), 'Fluid Formation') || !!u.garrison,
+    plusN: plus
+  };
 }
 function drawThreat(u, mode, g, remote) {
   if (!u || !u.onTable || u.destroyed || !mode) return null;
@@ -347,20 +345,20 @@ function threatKey(s) {
   });
   h += '</ul>';
   const B = s.T.B,
-    list = (s.mode === 'charge' ? B.charge.concat(B.march) : B.range.concat(B.march)).map(
-      b => '+' + b.n + '″ ' + esc(b.src)
-    );
+    list = (
+      s.mode === 'charge' ? B.charge.concat(B.march) : B.range.concat(B.march.filter(b => /free/.test(b.src)))
+    ).map(b => '+' + b.n + '″ ' + esc(b.src));
   const nb = (s.T.NB && s.T.NB.src) || [];
   if (nb.length) h += '<div class="tk-b">In the normal distances: ' + nb.map(esc).join('; ') + '.</div>';
-  if (B.cp && s.mode === 'charge') list.unshift('Clockwork Parade (spell): Charge = March +5″, no roll');
-  if (list.length) h += '<div class="tk-b">Extra, not guaranteed: ' + list.join('; ') + '.</div>';
+  if (B.cp && s.mode === 'charge') list.unshift('Clockwork Parade (spell): Charge = March +5″ with no roll');
+  if (list.length) h += '<div class="tk-b">Every boost counts: ' + list.join('; ') + '.</div>';
   else h += '<div class="tk-n">No extra boosts this regiment could still get.</div>';
   h +=
     '<div class="tk-n">Permanent bonuses (items, officers, characters, rules) are already in its March.</div>';
   h +=
     '<div class="tk-n">From the front edge, over the ' +
     (s.mode === 'charge' ? 'front arc' : 'firing arc') +
-    '; the March is taken straight ahead.</div>';
+    '.</div>';
   k.hidden = false;
   k.innerHTML = h;
 }
