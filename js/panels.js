@@ -787,6 +787,7 @@ function renderCard() {
     inspire: '★',
     btl: '⛨',
     pres: '✚',
+    seed: '❀',
     memory: '☠︎',
     withdraw: '↩'
   };

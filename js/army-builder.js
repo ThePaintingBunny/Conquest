@@ -61,10 +61,30 @@ function wadWbCult(w) {
   if (!c || bld.fac !== "W'adrhŭn") return '';
   return wadFixedCult(c) || w.cult || '';
 }
+/* Hundred Kingdoms: the Priory Commander belongs to the Order of the Crimson Tower or of the Sealed Temple. The Order
+   sets its warband, its profile (Crimson Tower: Brutal Impact (2), Terrifying (1); Sealed Temple: +1 Attacks, Impact +1)
+   and its Supremacy Ability (Tactical Superiority or Relentless Protectors). */
+const PRIORY = ['Crimson Tower', 'Sealed Temple'];
+function prioryOf(c) {
+  return c && c.name === 'Priory Commander';
+}
+/* Weaver Courts: the Taosidhe picks any Seasonal Court, the Seanchas Sidhe Summer or Winter (it knows that Court's
+   spells). Other characters' Courts are fixed. */
+function wcCourtChoices(c) {
+  if (!c || bld.fac !== 'Weaver Courts') return null;
+  if (c.name === 'Taosidhe') return ['Spring', 'Summer', 'Autumn', 'Winter'];
+  if (c.name === 'Seanchas Sidhe') return ['Summer', 'Winter'];
+  return null;
+}
 /* warband rules for a character */
 function wbRules(c, w) {
   const f = bldFac();
   let txt = c.warband || '';
+  if (prioryOf(c) && w && w.order) {
+    const head = txt.split(/\.\s*(?=Crimson Tower:|Sealed Temple:)/)[0],
+      seg = (txt.match(new RegExp(w.order + ':\\s*([^.]*)')) || [])[1];
+    if (seg) txt = head + '. ' + seg;
+  }
   const same = txt.match(/^Same warband as the (.+)$/i);
   if (same) {
     const o = f.units.find(x => x.name.toLowerCase() === same[1].toLowerCase());
@@ -342,6 +362,10 @@ function wbProblems(w) {
     p.push('Must include at least one regiment.');
   if (c.type !== 'Monster' && w.joins != null && !(w.regs[w.joins] && joinable(w, w.regs[w.joins])))
     p.push('Choose which regiment the character joins.');
+  if (wcCourtChoices(c) && !w.court)
+    p.push(`Choose the ${c.name}’s Seasonal Court (${wcCourtChoices(c).join(', ')}).`);
+  if (prioryOf(c) && !w.order)
+    p.push('Choose the Priory Commander’s Order (Crimson Tower or Sealed Temple).');
   if (bld.fac === "W'adrhŭn" && !wadFixedCult(c)) {
     if (!w.cult)
       p.push(`Choose the ${c.name}’s Cult (Famine, Death or War; the Warlord may follow Conquest).`);
@@ -454,6 +478,14 @@ function bldProblems() {
     )
       out.push('Order Regiment Upgrades are only for armies whose characters are all Orders characters.');
   }
+  /* Dweghom: one Mnemancer's Apprentice per army */
+  if (bld.fac === 'Dweghom') {
+    const n = bld.wbs.reduce(
+      (a, w) => a + (w.regs || []).filter(r => (r.opts || []).includes("Mnemancer's Apprentice")).length,
+      0
+    );
+    if (n > 1) out.push(`Only one Mnemancer’s Apprentice per army (you have ${n}).`);
+  }
   if (bld.fac === 'Spires' && !bld.sect)
     out.push(
       'Choose the army’s Sect (Underspire, Directorate or Sovereign Lineage): every Spires army must follow one.'
@@ -528,8 +560,20 @@ function upgAbilities(w) {
 }
 function charJson(c, warlord, custom, w) {
   const n = v => (v === '-' ? null : v),
-    S = c.stats;
+    S = Object.assign({}, c.stats);
+  let rules = c.rules.concat((c.draw || []).filter(d => !c.rules.includes(d)));
+  const order = prioryOf(c) && w && w.order;
+  if (prioryOf(c)) {
+    rules = rules.filter(r => !/^(Crimson Tower|Sealed Temple):/.test(r));
+    if (order === 'Crimson Tower') rules.push('Brutal Impact (2)', 'Terrifying (1)');
+    if (order === 'Sealed Temple') {
+      S.A = (+S.A || 0) + 1;
+      rules = rules.map(r => r.replace(/^Impact \((\d+)\)$/, (m, k) => 'Impact (' + (+k + 1) + ')'));
+    }
+  }
   return {
+    order: order || undefined,
+    court: (wcCourtChoices(c) && w && w.court) || undefined,
     name: c.name,
     warlord,
     ally: !warlord && allyIdx() >= 0 && bld.wbs[allyIdx()] === w,
@@ -543,7 +587,7 @@ function charJson(c, warlord, custom, w) {
       E: n(S.E) || 0,
       V: n(S.V) || 0
     },
-    rules: c.rules.concat((c.draw || []).filter(d => !c.rules.includes(d))),
+    rules,
     spells: [],
     upgrades: (w ? upgAbilities(w) : (custom || []).map(x => [x.name, x.pts + ' pts'])).map(a => a[0])
   };
@@ -1728,6 +1772,44 @@ function armyBuilder(add, mk, onUse, useLabel) {
         : why || 'A second character that uses its own Supremacy Ability as if it were the Warlord';
       if (why && !isAl) ab.disabled = true;
       hl.append(ab);
+    }
+    /* Hundred Kingdoms: the Priory Commander's Order */
+    if (prioryOf(c)) {
+      const sel = bEl('select', { className: 'tf-in' });
+      sel.setAttribute('aria-label', 'Order');
+      sel.append(bEl('option', { value: '', textContent: 'choose…' }));
+      PRIORY.forEach(k =>
+        sel.append(bEl('option', { value: k, textContent: 'Order of the ' + k, selected: w.order === k }))
+      );
+      sel.onchange = () => {
+        w.order = sel.value || null;
+        abRe();
+      };
+      const lab = bEl('label', { className: 'ab-wlnote', textContent: 'Order: ' });
+      lab.title =
+        'Crimson Tower: Brutal Impact (2) and Terrifying (1), Order of the Crimson Tower as Mainstay, Supremacy Tactical Superiority. Sealed Temple: +1 Attacks and Impact +1, Order of the Sealed Temple, Martyrs and Penitents of St Lazarus as Mainstay, Supremacy Relentless Protectors.';
+      lab.append(sel);
+      hl.append(lab);
+    }
+    /* Weaver Courts: the Taosidhe's or Seanchas Sidhe's Court */
+    if (wcCourtChoices(c)) {
+      const sel = bEl('select', { className: 'tf-in' });
+      sel.setAttribute('aria-label', 'Seasonal Court');
+      sel.append(bEl('option', { value: '', textContent: 'choose…' }));
+      wcCourtChoices(c).forEach(k =>
+        sel.append(bEl('option', { value: k, textContent: 'Court of ' + k, selected: w.court === k }))
+      );
+      sel.onchange = () => {
+        w.court = sel.value || null;
+        abRe();
+      };
+      const lab = bEl('label', { className: 'ab-wlnote', textContent: 'Court: ' });
+      lab.title =
+        c.name === 'Seanchas Sidhe'
+          ? 'The Seanchas Sidhe belongs to the Court of Summer or of Winter and knows all of that Court’s spells. As Warlord, the army’s regiments follow its Court.'
+          : 'The Taosidhe belongs to one Seasonal Court. As Warlord, the army’s regiments follow its Court.';
+      lab.append(sel);
+      hl.append(lab);
     }
     /* W'adrhŭn: the character's Cult */
     if (bld.fac === "W'adrhŭn") {

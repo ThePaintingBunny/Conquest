@@ -1822,6 +1822,26 @@ async function recordCombat0() {
             : {}
         )
   );
+  /* Abundant Harvest (Weaver Courts Gift): its Court of Autumn regiment destroys an enemy regiment, and every friendly
+     regiment within 12″ gains a Seed Marker */
+  let harvest = 0;
+  if (
+    dead &&
+    !isMarker(T) &&
+    A.charName &&
+    upgOf(A, /Abundant Harvest/) &&
+    frFac(A) === 'Weaver Courts' &&
+    frRoles(A).includes('Court of Autumn')
+  ) {
+    const Ac = corners(A);
+    units = units.map(x => {
+      if (x.side !== A.side || !x.onTable || x.destroyed || x.type === 'marker') return x;
+      if (x.id !== A.id && polyDist(Ac, corners(x)) > 12) return x;
+      if ((+x.seeds || 0) >= 3) return x;
+      harvest++;
+      return Object.assign({}, x, { seeds: (+x.seeds || 0) + 1 });
+    });
+  }
   /* Blood (W'adrhŭn, Teaching of Death): the regiment heals 1 wound per enemy stand it destroys in a Clash, at most 5,
      once Morale Tests are done */
   let bloodN = 0;
@@ -1846,7 +1866,10 @@ async function recordCombat0() {
       ? ` Counter-Attack: ${caHits} attack roll${caHits > 1 ? 's' : ''} of 6 cause ${caHits} Hits on ${A.short || A.name}.`
       : '') +
     (cb.dieFight && A.dyingFight ? ` ${A.short || A.name} fought to the last and is removed.` : '') +
-    (bloodN ? ` Blood: ${A.short || A.name} heals ${bloodN} wound${bloodN > 1 ? 's' : ''}.` : '');
+    (bloodN ? ` Blood: ${A.short || A.name} heals ${bloodN} wound${bloodN > 1 ? 's' : ''}.` : '') +
+    (harvest
+      ? ` Abundant Harvest: ${harvest} friendly regiment${harvest > 1 ? 's gain' : ' gains'} a Seed Marker.`
+      : '');
   try {
     const nextS = Object.assign({}, state, {
       units,

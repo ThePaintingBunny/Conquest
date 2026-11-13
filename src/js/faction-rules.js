@@ -313,8 +313,10 @@ function frRoles(u, char) {
   }
   const cm = e && String(e.warband || '').match(/Court of (Fire|Air|Earth|Water)/);
   if (cm) r.push('Court of ' + cm[1]);
+  if (f === 'Weaver Courts' && char && u.charCourt && !r.some(x => /^Court of/.test(x)))
+    r.push('Court of ' + u.charCourt);
   if (f === 'Weaver Courts' && !char && !r.some(x => /^Court of/.test(x)))
-    r.push('Court of ' + (frG(u.side, 'wc').court || 'Spring'));
+    r.push('Court of ' + wcCourt(u.side));
   if (u.vetRole && !char && !r.includes('Veteran')) r.push('Veteran');
   /* Lineage Commander: the Bound Clones it leads gain the Husk role */
   if (!char && f === 'Spires' && u.charName && !r.includes('Husk') && upgOf(u, /Lineage Commander/))
@@ -408,6 +410,17 @@ async function wadOnChant(id, c, seq) {
     await putState({ units, lastText: (state.lastText || '') + ' ' + notes.join('; ') + '.' });
   }
   return next;
+}
+/* Weaver Courts: regiments without a fixed Court belong to the Warlord's Seasonal Court (Mhor Sidhe: Autumn, Rhun Sidhe:
+   Spring, Taosidhe and Seanchas Sidhe: the Court chosen in the list). An older list falls back to the panel's choice. */
+function wcCourtOf(wl) {
+  return wl && wl.charName
+    ? (frRoles(wl, true).find(x => /^Court of/.test(x)) || '').replace('Court of ', '')
+    : '';
+}
+function wcCourt(side) {
+  const wl = supWl(side);
+  return (wl && frFac(wl) === 'Weaver Courts' && wcCourtOf(wl)) || frG(side, 'wc').court || 'Spring';
 }
 function frFacs(side) {
   return [
@@ -774,6 +787,19 @@ function frFx(u) {
     if (e) out.push('On ' + tInfo(e).name.toLowerCase() + ' (Size ' + uSize(u) + ')');
   }
   if (f === 'Old Dominion' && animate(u) && odTierU(u, 'dark') >= 3) out.push('Inspired (Dark Power III)');
+  /* Glacial Presence (Weaver Courts Gift): enemies engaged with its Court of Winter regiment gain Decay when they
+     Activate (Decay takes its wounds at the end of their activation) */
+  if (
+    u.onTable &&
+    engaged(u).some(
+      e =>
+        e.charName &&
+        upgOf(e, /Glacial Presence/) &&
+        frFac(e) === 'Weaver Courts' &&
+        frRoles(e).includes('Court of Winter')
+    )
+  )
+    out.push('Decay (Glacial Presence)');
   if (
     f === 'Hundred Kingdoms' &&
     /Infantry/.test(u.cls || '') &&
@@ -1259,8 +1285,35 @@ function frOptions0(u) {
     });
   }
   if (f === 'Weaver Courts' && fresh && !act.entering && !act.frBloom) {
-    const s = +u.seeds || 0,
+    /* Wild Spirit (Gift): the Bloom may also spend Seed Markers of friendly regiments within 12″ */
+    const donors =
+      u.charName && upgOf(u, /Wild Spirit/)
+        ? all()
+            .filter(
+              x =>
+                x.side === u.side &&
+                x.id !== u.id &&
+                x.onTable &&
+                !x.destroyed &&
+                (+x.seeds || 0) > 0 &&
+                polyDist(corners(u), corners(x)) <= 12
+            )
+            .sort((a, b) => (+b.seeds || 0) - (+a.seeds || 0))
+        : [];
+    const own = +u.seeds || 0,
+      s = own + donors.reduce((a, x) => a + (+x.seeds || 0), 0),
       g = frG(u.side, 'wc');
+    const spend = n => {
+      const take = {};
+      let left = n - Math.min(n, own);
+      take[u.id] = Math.min(n, own);
+      donors.forEach(x => {
+        const k = Math.min(left, +x.seeds || 0);
+        if (k) take[x.id] = k;
+        left -= k;
+      });
+      return take;
+    };
     [
       [1, 'Command Stand +2 Attacks (and Barrage +2)'],
       [2, "the Warlord's Bloom effect"],
@@ -1271,10 +1324,12 @@ function frOptions0(u) {
         async () => {
           act.frBloom = true;
           const br = n === 1 && hasRule(u, /^Barrage/) ? ['Barrage (+2)'] : [];
+          const take = spend(n);
           await putState({
-            units: state.units.map(x =>
-              x.id === u.id ? grantU(Object.assign({}, x, { seeds: s - n }), 'Bloom: ' + t, br, null) : x
-            ),
+            units: state.units.map(x => {
+              const y = take[x.id] ? Object.assign({}, x, { seeds: (+x.seeds || 0) - take[x.id] }) : x;
+              return x.id === u.id ? grantU(y, 'Bloom: ' + t, br, null) : y;
+            }),
             lastTitle: N(u.side) + ' · Bloom',
             lastText:
               'Bloom, spending ' +
@@ -1289,7 +1344,13 @@ function frOptions0(u) {
           await srAfterBloom(u, n);
           if (n === 2) await supApplyBloom(u);
         },
-        s < n ? 'Needs ' + n + ' Seed Marker' + (n > 1 ? 's' : '') : ''
+        s < n
+          ? 'Needs ' +
+              n +
+              ' Seed Marker' +
+              (n > 1 ? 's' : '') +
+              (donors.length ? ' (Wild Spirit: ' + s + ' in reach)' : '')
+          : ''
       )
     );
   }
@@ -2010,14 +2071,19 @@ function frBlock(side, f, mine) {
         )
       );
     box.append(r);
-    const cs = bEl('select', { className: 'tf-in' });
-    cs.setAttribute('aria-label', "Warlord's Seasonal Court");
-    SEASONS.forEach(s =>
-      cs.append(
-        bEl('option', { value: s, textContent: 'Court of ' + s, selected: (g.court || 'Spring') === s })
-      )
-    );
-    cs.onchange = () => frSet(side, 'wc', { court: cs.value });
+    const wlC = wcCourtOf(supWl(side));
+    let cs;
+    if (wlC) cs = bEl('span', { textContent: 'Court of ' + wlC + ' (from the Warlord)' });
+    else {
+      cs = bEl('select', { className: 'tf-in' });
+      cs.setAttribute('aria-label', "Warlord's Seasonal Court");
+      SEASONS.forEach(s =>
+        cs.append(
+          bEl('option', { value: s, textContent: 'Court of ' + s, selected: (g.court || 'Spring') === s })
+        )
+      );
+      cs.onchange = () => frSet(side, 'wc', { court: cs.value });
+    }
     box.append(
       frRow("Warlord's Seasonal Court:", cs),
       ptext(

@@ -36,7 +36,7 @@ function supWl(side) {
 }
 function supKey(u) {
   if (!u) return '';
-  const cn = u.charName || frBase(u) || '';
+  const cn = (u.charName || frBase(u) || '') + (u.charOrder ? ' (' + u.charOrder + ')' : '');
   const byC = Object.keys(SUP).find(
     k =>
       SUP[k].c &&

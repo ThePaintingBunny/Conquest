@@ -54,6 +54,10 @@ const OFF = {
   'Herald of Magma': { r: ['Linebreaker'], t: 'Linebreaker.' },
   'Herald of Stone': { r: ['Untouchable'], t: 'Untouchable.' },
   "Mnemancer's Apprentice": { r: ['Unyielding'], t: 'Unyielding.' },
+  'Kiannun Stalker': {
+    stalker: true,
+    t: 'Each time the regiment activates, one enemy regiment within 12″ suffers 1 wound (no Morale Test). Choose it in the activation panel.'
+  },
   Flamecaster: {
     flame: true,
     t: 'Flamethrower: a Volley at a regiment touching its front; not in the same activation as a Clash.'

@@ -280,6 +280,8 @@ function buildUnits(side, list) {
       u.charRules = (ch.rules || []).map(String);
       u.warlord = !!ch.warlord;
       if (ch.ally) u.dynAlly = true;
+      if (ch.order) u.charOrder = String(ch.order);
+      if (ch.court) u.charCourt = String(ch.court);
       u.spells = (ch.spells || [])
         .filter(s => s && s.name)
         .map(s => ({

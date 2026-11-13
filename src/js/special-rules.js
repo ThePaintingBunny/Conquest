@@ -166,7 +166,12 @@ function srHas(u, re) {
   return fx(u).some(x => re.test(x));
 }
 function canHeal(u) {
-  return !srHas(u, /^Primal Cacophony/);
+  if (srHas(u, /^Primal Cacophony/)) return false;
+  /* core rules: a Broken regiment cannot be Healed. Rapid Blossoming (Weaver Courts Gift): its Court of Spring
+     regiment can. */
+  if ((u.effects || []).includes('Broken'))
+    return !!(u.charName && upgOf(u, /Rapid Blossoming/) && frRoles(u).includes('Court of Spring'));
+  return true;
 }
 function noBreak(u) {
   return srHas(u, /^Cannot be Broken/) || hasGrant(u, 'Awakened');
@@ -1488,6 +1493,96 @@ function srOptions(u) {
   if (!u || !act || act.id !== u.id) return out;
   const fresh = !act.actions.length && !act.cur,
     add = (label, fn, why, cls) => out.push({ label, fn, why, cls });
+  /* ---- Kiannun Stalker (Weaver Courts Officer): each activation, 1 wound on an enemy within 12″ ---- */
+  if (offOn(u, 'stalker') && !act.stalkUsed && !act.entering && u.onTable) {
+    const T = all()
+      .filter(e => e.side !== u.side && e.onTable && !e.destroyed && !isMarker(e))
+      .map(e => [e, polyDist(corners(u), corners(e))])
+      .filter(([, d]) => d <= 12)
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 5);
+    if (T.length) {
+      out.push({ head: 'Kiannun Stalker: 1 wound on an enemy within 12″ (no Morale)' });
+      T.forEach(([e, d]) =>
+        add(e.short || e.name + ' (' + d.toFixed(1) + '″)', async () => {
+          act.stalkUsed = true;
+          const x0 = base(e.id),
+            AL = allocate(x0, 1);
+          await putState({
+            units: state.units.map(x =>
+              x.id === e.id
+                ? Object.assign(
+                    {},
+                    x,
+                    { wounds: AL.w, auxWounds: AL.aw },
+                    AL.dead
+                      ? { onTable: false, destroyed: true, status: 'Destroyed', destroyedRound: state.round }
+                      : {}
+                  )
+                : x
+            ),
+            lastTitle: N(u.side) + ' · Kiannun Stalker',
+            lastText: (e.short || e.name) + ' suffers 1 wound' + (AL.dead ? ' and is destroyed' : '') + '.'
+          });
+          toast('Kiannun Stalker: ' + (e.short || e.name) + ' suffers 1 wound.');
+        })
+      );
+    }
+  }
+  /* ---- Seedbearer (Mhor, Rhun, Taosidhe and Seanchas Sidhe): a Combat or Out-of-Combat Action giving a friendly
+     regiment within 12″ a Seed Marker ---- */
+  if (
+    u.charName &&
+    /^(Mhor Sidhe|Rhun Sidhe|Taosidhe|Seanchas Sidhe)$/.test(u.charName) &&
+    !act.entering &&
+    !act.cur &&
+    u.onTable &&
+    act.actions.filter(a => !a.free).length < 2 &&
+    !act.actions.some(a => a.type === 'seed')
+  ) {
+    const F = all()
+      .filter(
+        x =>
+          x.side === u.side &&
+          x.onTable &&
+          !x.destroyed &&
+          x.type !== 'marker' &&
+          frFac(x) === 'Weaver Courts' &&
+          (+x.seeds || 0) < 3 &&
+          (x.id === u.id || polyDist(corners(u), corners(x)) <= 12)
+      )
+      .slice(0, 6);
+    if (F.length) {
+      out.push({ head: 'Seedbearer (an action): a Seed Marker to a friendly regiment within 12″' });
+      F.forEach(x =>
+        add(
+          (x.id === u.id ? 'Itself' : x.short || x.name) +
+            ' (' +
+            (+x.seeds || 0) +
+            ' → ' +
+            ((+x.seeds || 0) + 1) +
+            ')',
+          async () => {
+            const G = geom(u);
+            act.actions.push({
+              type: 'seed',
+              from: { x: u.x, y: u.y, facing: u.facing || 0, files: G.files },
+              to: { x: u.x, y: u.y, facing: u.facing || 0, files: G.files },
+              target: x.id
+            });
+            await putState({
+              units: state.units.map(y =>
+                y.id === x.id ? Object.assign({}, y, { seeds: Math.min(3, (+y.seeds || 0) + 1) }) : y
+              ),
+              lastTitle: N(u.side) + ' · Seedbearer',
+              lastText: (x.short || x.name) + ' gains a Seed Marker.'
+            });
+            render();
+          }
+        )
+      );
+    }
+  }
   /* ---- Initiative (City States Mastery): from the Strategic Stack, a free Charge before Draw Events ---- */
   if (
     fresh &&

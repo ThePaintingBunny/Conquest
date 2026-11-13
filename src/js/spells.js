@@ -105,6 +105,8 @@ function spellSchool(u, asChar) {
     C = CASTERS[k];
   if (!C || !C.sch) return null;
   const key = asChar ? 'cschool' : 'school';
+  /* the Seanchas Sidhe knows the spells of the Court picked in the list */
+  if (asChar && u.charCourt && C.sch[u.charCourt]) return u.charCourt;
   const v = u[key];
   if (v && C.sch[v]) return v;
   if (asChar && k && SK_COURTS === C.sch) {

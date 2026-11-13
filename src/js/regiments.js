@@ -95,6 +95,7 @@ const ACT = {
   inspire: { n: 'Inspire', d: '+1 Clash this activation' },
   btl: { n: 'Break Their Lines', d: 'Implacable: every stand gains Linebreaker' },
   pres: { n: 'Preservation Protocols', d: 'Remove all wounds from the character and its Husk regiment' },
+  seed: { n: 'Seedbearer', d: 'A friendly regiment within 12″ gains a Seed Marker' },
   cast: { n: 'Spellcasting', d: 'Cast one of its spells' },
   occupy: { n: 'Occupy building', d: 'Move into it; ends the activation' },
   leave: { n: 'Leave building', d: 'Takes both actions; ends the activation' },

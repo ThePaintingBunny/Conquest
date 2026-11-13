@@ -53,10 +53,28 @@ function drawEvents(u) {
     notes.push('Ferro-Ossified Carapace: Hardened (1) until the end of the round');
   }
   if (heal && !canHeal(u)) {
-    notes.push('Primal Cacophony: it cannot Heal');
+    notes.push(srHas(u, /^Primal Cacophony/) ? 'Primal Cacophony: it cannot Heal' : 'Broken: it cannot Heal');
     heal = 0;
   }
   if (cheal && !canHeal(u)) cheal = 0;
+  /* Seed of Spring/Summer/Autumn/Winter (Weaver Courts Gifts): in that Season its regiment of that Court gains a Seed
+     Marker at the start of its Draw Event step */
+  let seedUp = 0;
+  {
+    const m =
+      u.charName && (u.abilities || []).map(a => String(a[0]).match(/: Seed of (\w+)$/)).find(Boolean);
+    if (
+      m &&
+      seasonNow(u.side) === m[1] &&
+      frRoles(u).includes('Court of ' + m[1]) &&
+      (+u.seeds || 0) < 3 &&
+      !(act && act.seedOf)
+    ) {
+      seedUp = 1;
+      if (act) act.seedOf = true;
+      notes.push('Seed of ' + m[1] + ': gains a Seed Marker (' + ((+u.seeds || 0) + 1) + ')');
+    }
+  }
   if ((heal && (u.wounds || 0) > 0) || (cheal && (+u.charWounds || 0) > 0)) {
     const h = Math.min(heal, u.wounds || 0),
       hc = Math.min(cheal, +u.charWounds || 0);
@@ -65,7 +83,8 @@ function drawEvents(u) {
         ? x
         : Object.assign({}, x, {
             wounds: (x.wounds || 0) - h,
-            charWounds: Math.max(0, (+x.charWounds || 0) - hc)
+            charWounds: Math.max(0, (+x.charWounds || 0) - hc),
+            seeds: Math.min(3, (+x.seeds || 0) + seedUp)
           })
     );
     putState({
@@ -80,7 +99,12 @@ function drawEvents(u) {
         (h + hc > 1 ? 's' : '') +
         (hc ? ' (' + hc + ' on the ' + u.charName + ')' : '')
     );
-  }
+  } else if (seedUp)
+    putState({
+      units: state.units.map(x =>
+        x.id === u.id ? Object.assign({}, x, { seeds: Math.min(3, (+x.seeds || 0) + 1) }) : x
+      )
+    }).catch(() => {});
   if (hasDraw(u, /^Double Time/)) notes.push('Double Time: after two Marches, take a free third March');
   if (act && act.id === u.id) act.drawNotes = notes.slice();
   if (notes.length) toast('Draw Events: ' + notes.join(' · ') + '.');
