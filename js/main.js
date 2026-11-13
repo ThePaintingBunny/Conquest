@@ -80,6 +80,12 @@
       },
       () => {}
     );
+    db.doc('game/threat').onSnapshot(
+      sn => {
+        if (sn.exists && state && PVP()) onThreat(sn.data());
+      },
+      () => {}
+    );
     db.doc('game/ping').onSnapshot(
       sn => {
         if (sn.exists && state && PVP()) onPing(sn.data());

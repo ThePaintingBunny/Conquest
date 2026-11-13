@@ -2810,3 +2810,50 @@ textarea {
     opacity: 1;
   }
 }
+
+/* threat ranges key, bottom-right of the board */
+.threat-key {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 3;
+  max-width: 280px;
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+.threat-key ul {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+}
+.threat-key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0;
+}
+.threat-key .tk-sw {
+  flex: none;
+  width: 14px;
+  height: 10px;
+  border: 2px solid;
+  border-radius: 3px;
+}
+.threat-key .tk-d {
+  margin-left: auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.threat-key .tk-n,
+.threat-key .tk-b {
+  color: var(--muted, inherit);
+  opacity: 0.85;
+  margin-top: 3px;
+}

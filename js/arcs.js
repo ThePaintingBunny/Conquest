@@ -158,7 +158,7 @@ function toggleArcs(on) {
   arcsOn = on == null ? !arcsOn : !!on;
   const b = $('arcs-btn');
   if (b) b.setAttribute('aria-pressed', arcsOn);
-  if (!arcsOn) arcHover = null;
+  if (!arcsOn && !threatMode) arcHover = null;
   redrawArcs();
 }
 $('arcs-btn').onclick = () => {
@@ -197,11 +197,13 @@ $('board').addEventListener('pointermove', ev => {
   if (id !== arcHover) {
     arcHover = id;
     redrawArcs();
+    if (threatMode) redrawThreat();
   }
 });
 $('board').addEventListener('pointerleave', () => {
   if (arcsOn && arcHover) {
     arcHover = null;
     redrawArcs();
+    if (threatMode) redrawThreat();
   }
 });
