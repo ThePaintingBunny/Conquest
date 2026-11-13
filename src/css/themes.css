@@ -1093,3 +1093,62 @@
 }
 
 /* regiment tab layout */
+
+/* Settings: tabs and the hotkey list */
+.set-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.set-tab {
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.set-tab[aria-selected='true'] {
+  opacity: 1;
+  border-bottom-color: var(--gold, currentColor);
+}
+.set-keys section + section {
+  margin-top: 16px;
+}
+.set-keys h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.set-keys .hint {
+  margin: 2px 0 8px;
+}
+.set-keys dl {
+  display: grid;
+  grid-template-columns: 8.5em 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  align-items: baseline;
+}
+.set-keys dt {
+  white-space: nowrap;
+}
+.set-keys dd {
+  margin: 0;
+}
+.set-keys kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  margin-right: 2px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font: 600 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: center;
+  background: var(--panel, transparent);
+}

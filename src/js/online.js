@@ -48,7 +48,7 @@ function applySeat() {
           ? 'Shown from your side of the table. '
           : 'You are watching; the view is from the south edge. '
         : 'Shown from your side of the table. ') +
-      'Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform. R toggles the ruler.';
+      'Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform. R ruler, A arcs, T threat ranges, P ping; ? lists every hotkey.';
 }
 function PS() {
   if (!PVP()) return state;

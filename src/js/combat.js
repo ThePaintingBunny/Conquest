@@ -2001,6 +2001,11 @@ document.addEventListener('keydown', ev => {
     toggleRuler();
     toast(ruler ? 'Ruler on (R or Esc to turn off).' : 'Ruler off.');
   } else if (ev.key === 'Escape' && ruler) toggleRuler(false);
+  else if (ev.key === '?') {
+    ev.preventDefault();
+    const dg = $('set-dlg');
+    if (!(dg && dg.open)) openSettings('controls');
+  }
 });
 $('set-open').onclick = () => openSettings();
 $('mm-open').onclick = () => {
