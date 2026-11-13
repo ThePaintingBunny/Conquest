@@ -246,8 +246,9 @@ function threatLayers(u, mode, onKeys) {
     });
     if (roll != null) Ls.push({ k: 'roll', R: roll, t: 'Charge on a roll of 6' });
     if (canMF) {
-      Ls.push({ k: 'msure', R: first + sure, t: 'March, then Charge' + (roll != null ? ' (no roll)' : '') });
+      /* rolling Charges: only the roll of 6 after a March; fixed Charges have no roll, so their one distance */
       if (roll != null) Ls.push({ k: 'mroll', R: first + roll, t: 'March, then Charge on a 6' });
+      else Ls.push({ k: 'msure', R: first + sure, t: 'March, then Charge' });
     } else notes.push(mfWhy);
     return { L: Ls, all: all0, NB, notes, span: 45, back: false, head: roll != null ? roll : sure };
   }
