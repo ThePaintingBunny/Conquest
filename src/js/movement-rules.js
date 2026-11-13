@@ -292,6 +292,7 @@ function finishAction() {
     if (srHas(byId(act.id), /^Divine Purpose/) && !act.dpUsed) act.dpUsed = 'charge';
   }
   if (c.type === 'charge') frOnCharge(act.id);
+  if (c.type === 'charge') cadOnCharge(act.id, c.target);
   if (
     c.type === 'charge' &&
     hasImpact(byId(act.id)) &&

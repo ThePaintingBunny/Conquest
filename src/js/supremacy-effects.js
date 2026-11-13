@@ -798,8 +798,28 @@ async function supFirstBorn(side, ids) {
         .join(' and ') + ' become Awakened.'
   });
 }
+const LASTOR = 'Last Oration (re-roll failed Defense within range of an Objective Zone)';
+function lastorNeeded(side) {
+  return (state.units || []).find(
+    u => u.side === side && srAlive(u) && upgOf(u, /Last Oration/) && u.lastorR !== srRnd()
+  );
+}
+async function lastorSet(id, on) {
+  const R = srRnd();
+  await putState({
+    units: state.units.map(x =>
+      x.id !== id ? x : Object.assign({}, on ? grantU(x, LASTOR, []) : x, { lastorR: R })
+    ),
+    lastTitle: N(base(id).side) + ' · Standard of Last Oration',
+    lastText: on
+      ? (base(id).short || base(id).name) +
+        ' re-rolls failed Defense rolls within range of an Objective Zone this round.'
+      : 'Standard of Last Oration not used this round.'
+  });
+}
 function supChoiceNeeded(side) {
   if (cdirNeeded(side)) return 'cdir';
+  if (lastorNeeded(side)) return 'lastor';
   const S = supOf(side);
   if (!S) return '';
   const R = srRnd();
@@ -829,6 +849,11 @@ function cdirNeeded(side) {
 async function supAiChoice(side) {
   const c = supChoiceNeeded(side),
     R = srRnd();
+  if (c === 'lastor') {
+    let e;
+    while ((e = lastorNeeded(side))) await lastorSet(e.id, true);
+    return supAiChoice(side);
+  }
   if (c === 'cdir') {
     let e;
     while ((e = cdirNeeded(side))) await cdirSet(e.id, 'Precision Armament');
@@ -894,13 +919,23 @@ function supChoiceBar(add, mk, me, info) {
     add(s);
     return s;
   };
+  if (c === 'lastor') {
+    const e = lastorNeeded(me);
+    info.textContent =
+      'Standard of Last Oration with ' +
+      (e.short || e.name) +
+      ' (end of the Supremacy Phase): until the end of the round it re-rolls failed Defense rolls while within range of an Objective Zone.';
+    add(mk('Activate it', () => lastorSet(e.id, true)));
+    add(mk('Not this round', () => lastorSet(e.id, false)));
+    return true;
+  }
   if (c === 'cdir') {
     const e = cdirNeeded(me);
     info.textContent =
       'Combat Directive for the Eidolon with ' +
       (e.short || e.name) +
       ' (end of the Supremacy Phase): choose one until the end of the round.';
-    Object.keys(CDIR).forEach(k => add(mk(k, () => cdirSet(e.id, k))));
+    cdirKeys(e).forEach(k => add(mk(k, () => cdirSet(e.id, k))));
     return true;
   }
   if (c === 'fb') {

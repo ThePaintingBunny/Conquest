@@ -251,11 +251,21 @@ function zoneControl() {
         if (rh(RU(u), 'Unyielding') && !(u.effects || []).includes('Broken'))
           contested[u.side === 'cs' ? 'nord' : 'cs'] = true;
       });
-    const holder =
-      ['cs', 'nord'].find(s => {
-        const o = s === 'cs' ? 'nord' : 'cs';
-        return z.friendly !== s && !contested[s] && tot[s] > tot[o] && sz[s] > sz[o];
-      }) || null;
+    /* Standard of Last Oration: a regiment carrying it destroyed this round within range of the zone */
+    const oration = all().find(
+      u =>
+        u.destroyed &&
+        u.destroyedRound === R &&
+        upgOf(u, /Last Oration/) &&
+        z.friendly !== u.side &&
+        inZone(corners(u), z)
+    );
+    const holder = oration
+      ? oration.side
+      : ['cs', 'nord'].find(s => {
+          const o = s === 'cs' ? 'nord' : 'cs';
+          return z.friendly !== s && !contested[s] && tot[s] > tot[o] && sz[s] > sz[o];
+        }) || null;
     return Object.assign({}, z, { tot, sz, holder, vp: z.size === 9 ? 3 : 2 });
   });
 }

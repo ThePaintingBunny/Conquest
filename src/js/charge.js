@@ -1132,6 +1132,13 @@ function startActivation(id, source, card) {
                 : []
             )
             .concat(
+              /Infantry/.test(u.cls || '') &&
+                !phalanx(u) &&
+                all().some(x => x.side === u.side && !x.destroyed && upgOf(x, /Expert Scouts/))
+                ? ['Vanguard (3) (Expert Scouts)']
+                : []
+            )
+            .concat(
               source === 'strategic' &&
                 supOn(u.side, 'Bringing Back the Children of Fire') &&
                 frRoles(u).includes('Titan')

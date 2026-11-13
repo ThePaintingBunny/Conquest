@@ -684,6 +684,28 @@ function upgProblems(w, wi) {
   Object.entries(cats).forEach(([k, v]) => {
     if (v > 1) out.push(`More than one ${k} upgrade on the ${c.name}.`);
   });
+  /* City States 2026: Bestowed Relics (Banner, Armor, Weapon, Inscription) per character, Modifications, one Mastery.
+     Long Lineage lets the character take one more Character Upgrade. */
+  if (bld.fac === 'City States') {
+    const U = (w.upg || []).map(upgFind).filter(Boolean),
+      extra = U.some(e => e[1] === 'Long Lineage') ? 1 : 0,
+      relics = U.filter(e => /^(Banner|Armor|Weapon|Inscription)$/.test(e[0])).length,
+      mods = U.filter(e => e[0] === 'Modification').length,
+      mast = U.filter(e => /^Mastery/.test(e[0])).length,
+      RL = { Polemarch: 2, Aristarch: 1, Ipparchos: 1, Mechanist: 1, 'Promethean Oracle': 0 }[
+        c.name
+      ];
+    if (RL != null) {
+      const used = c.name === 'Mechanist' ? relics + mods : relics;
+      if (used > RL + extra)
+        out.push(
+          `The ${c.name} may take ${RL + extra} ${c.name === 'Mechanist' ? 'Bestowed Relic or Modification' : 'Bestowed Relic'}${RL + extra === 1 ? '' : 's'}${extra ? ' (with Long Lineage)' : ''}; it has ${used}.`
+        );
+    }
+    if (c.name === 'Eidolon' && mods > 3 + extra)
+      out.push(`The Eidolon may take up to ${3 + extra} Modifications.`);
+    if (mast > 1) out.push(`The ${c.name} may take one Mastery.`);
+  }
   return out;
 }
 function abUpgPicker(f, w, wi) {

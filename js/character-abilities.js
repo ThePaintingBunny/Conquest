@@ -597,7 +597,7 @@ async function applyRoundOption(side, id) {
   {
     const m = String(id).match(/^cdir(.+?):(.+)$/);
     if (m) {
-      if (CDIR[m[2]]) return cdirSet(m[1], m[2]);
+      if (CDIR[m[2]] && cdirKeys(base(m[1])).includes(m[2])) return cdirSet(m[1], m[2]);
       return;
     }
   }

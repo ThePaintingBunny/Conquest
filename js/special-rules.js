@@ -213,6 +213,26 @@ function srFirstMarch(u) {
   }
   return b;
 }
+/* Combined Arms Drills (City States Mastery): an enemy that charges a friendly Infantry regiment is marked; friendly
+   Brutes and Cavalry that then successfully charge it gain Terrifying (+1), to at most Terrifying (2), for that activation */
+function cadArmy(side) {
+  return all().some(x => x.side === side && !x.destroyed && upgOf(x, /Combined Arms Drills/));
+}
+const CAD_MARK = 'Charged Infantry (Combined Arms Drills)';
+function cadOnCharge(cid, tid) {
+  const C = byId(cid),
+    T = byId(tid);
+  if (!C || !T) return;
+  if (/Brute|Cavalry/.test(C.cls || '') && cadArmy(C.side) && hasGrant(base(T.id), CAD_MARK)) {
+    const now = rx(RU(C), 'Terrifying');
+    if (now < 2 && act && act.id === cid) {
+      act.extraFx.push('Terrifying (+1) (Combined Arms Drills)');
+      toast('Combined Arms Drills: ' + (C.short || C.name) + ' gains Terrifying (+1) this activation.');
+    }
+  }
+  if (/Infantry/.test(T.cls || '') && cadArmy(T.side) && !hasGrant(base(C.id), CAD_MARK))
+    putState({ units: state.units.map(x => (x.id === cid ? grantU(x, CAD_MARK, []) : x)) });
+}
 /* the first action of this activation still to come (Bloody Sacrifice: +1 March until the end of the first action) */
 function srFirstAct(u) {
   return !!(act && act.id === u.id && !act.actions.some(a => !a.free));
@@ -258,7 +278,10 @@ function srSeizeStands(u, z, k) {
   )
     s += 3 - v;
   if (v > 0 && u.charName) {
-    const xs = itemSpec(u).reduce((a, [n, S]) => a + (+S.seize || 0), 0);
+    const xs = itemSpec(u).reduce(
+      (a, [n, S]) => a + (typeof S.seize === 'function' ? S.seize(u) : +S.seize || 0),
+      0
+    );
     if (xs && standsOf(u).some(st => st.kind === 'char' && inZone(st.poly, z))) s += xs;
   }
   return s;
@@ -1332,6 +1355,21 @@ function srOptions(u) {
   if (!u || !act || act.id !== u.id) return out;
   const fresh = !act.actions.length && !act.cur,
     add = (label, fn, why, cls) => out.push({ label, fn, why, cls });
+  /* ---- Initiative (City States Mastery): from the Strategic Stack, a free Charge before Draw Events ---- */
+  if (
+    fresh &&
+    !act.entering &&
+    upgOf(u, /Initiative/) &&
+    !act.initUsed &&
+    (act.source === 'strategic' || (act.source === 'entourage' && ordersU(u))) &&
+    !(u.effects || []).includes('Broken') &&
+    !engaged(u).length
+  )
+    add('Initiative: a free Charge now (it does not count towards its actions)', () => {
+      act.initUsed = true;
+      startAction('charge');
+      if (act.cur && act.cur.type === 'charge') act.cur.free = true;
+    });
   /* ---- character upgrades with Draw Events ---- */
   if (fresh && !act.entering && u.charName) {
     /* Inscription of Lighter Alloys (City States): Mobility */
@@ -1481,15 +1519,26 @@ function srOptions(u) {
 const CDIR = {
   'Greetings to a Fellow General': ['Greetings to a Fellow General (+5 Attacks, −1 Evasion)', []],
   'Secure the Breach': ['Secure the Breach (Parry)', ['Parry']],
-  'Precision Armament': ['Precision Armament (character Cleave +3)', []]
+  'Precision Armament': ['Precision Armament (character Cleave +3)', []],
+  /* Alternate Programming (Eidolon Modification) replaces the first two */
+  'Heavy Exoskeleton': ['Heavy Exoskeleton (Brute: Brutal Impact +1)', ['Brutal Impact (+1)'], true],
+  Relentless: ['Relentless (Brute: Oblivious)', ['Oblivious'], true]
 };
+/* the Directives this Eidolon may choose */
+function cdirKeys(u) {
+  return u && upgOf(u, /Alternate Programming/)
+    ? ['Heavy Exoskeleton', 'Relentless', 'Precision Armament']
+    : ['Greetings to a Fellow General', 'Secure the Breach', 'Precision Armament'];
+}
 function cdirOf(u) {
   return Object.keys(CDIR).find(k => hasGrant(u, CDIR[k][0]));
 }
 function cdirSet(id, k) {
   const D = CDIR[k];
+  /* the Brute-only Directives give nothing to a regiment that is not a Brute */
+  const rules = D[2] && !/Brute/.test((base(id) || {}).cls || '') ? [] : D[1];
   return putState({
-    units: state.units.map(x => (x.id === id ? grantU(x, D[0], D[1]) : x)),
+    units: state.units.map(x => (x.id === id ? grantU(x, D[0], rules) : x)),
     lastTitle: N(base(id).side) + ' · Combat Directive',
     lastText: 'The Eidolon chooses ' + k + ' until the end of the round.'
   });

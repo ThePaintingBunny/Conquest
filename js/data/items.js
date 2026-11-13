@@ -23,6 +23,13 @@ const ITEMS = {
   "Ancestors' Blessing": { r: ['Bastion (1)'] },
   'Promise of Flesh': { r: ['Vanguard (3)'], cond: HAS_('Half-Bloods') },
   'Blóðíss, the Blood Thirster': { noRefuse: true },
+  /* City States (2026): Eidolon Modifications */
+  'Alternate Soma': {
+    cs: { A: -2, W: 2, D: 1, E: 1 } /* V1 C3 A2 W8 R4 D4 E3 */,
+    c: ['Hardened (2)'],
+    cLose: [/^Impact \(2\)$/, /^Hardened \(1\)$/],
+    seize: u => (/Light/.test(u.cls || '') ? 0 : 2)
+  },
   'Chrysaor’s Helmet': { c: ['Dread'] },
   "Chrysaor's Helmet": { c: ['Dread'] },
   'Living Breastplate': { duelDefReroll: true },

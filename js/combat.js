@@ -890,6 +890,8 @@ function rollDef(T) {
         ok = x => x !== 6 && ((!flaw && x <= di.D) || x <= di.E);
       const SD = [];
       if (cb.blessT && (cb.type === 'clash' || cb.type === 'impact')) SD.push({ k: 'fail', src: 'Blessed' });
+      if (fxHas(T, /^Last Oration/) && zonesOf().some(z => standsOf(T).some(st => inZone(st.poly, z))))
+        SD.push({ k: 'fail', src: 'Standard of Last Oration' });
       if (
         rh((T.rules || []).concat(fx(T)), 'Untouchable') ||
         (cb.type === 'volley' && rh(RU(T), 'Unstable Alloys'))

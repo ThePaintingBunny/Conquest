@@ -1625,7 +1625,7 @@ function frBlock(side, f, mine) {
       box.append(
         frRow(
           'Combat Directive · ' + (u.short || u.name) + ':',
-          ...Object.keys(CDIR).map(k => {
+          ...cdirKeys(u).map(k => {
             const b = abBtn(k, () => cdirSet(u.id, k), 'ab-tog' + (cur === k ? ' on' : ''));
             b.disabled = !!cur;
             return b;

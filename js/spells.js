@@ -349,6 +349,13 @@ function spellTargets(u, sp) {
       polyDist(cp, corners(t)) <= (sp.range || 12) + srRangeAdd(u) + itemSpellRange(u) + 1e-6
   );
   C = C.concat(srTether(u, sp, C));
+  if (sp.targets !== 'enemy' && /Promethean/.test((u.name || '') + ' ' + (u.charName || '')))
+    all()
+      .filter(
+        t =>
+          t.side === u.side && t.onTable && !t.destroyed && upgOf(t, /Resonance Receptors/) && !C.includes(t)
+      )
+      .forEach(t => C.push(t));
   if (u.warlord && supAct(u.side, 'Divine Protection') && sp.targets !== 'enemy' && sp.range !== 0)
     C = all().filter(t => t.onTable && !t.destroyed && t.type !== 'marker' && t.side === u.side);
   /* hit spells need Line of Sight; an engaged caster may only target the enemy it fights, and counts as seeing it */
@@ -380,10 +387,25 @@ function spellTargets(u, sp) {
   if (sp.req === 'nonmonster') C = C.filter(t => t.type !== 'monster');
   return C;
 }
+/* counts as 3 stands larger against enemy spells (Scaling): Inscription of Balance on its own regiment;
+   Heralds of the Storm and Fudoshin for friends within 10″ */
+function spellSizeBonus(T, sp) {
+  if (!T || !sp || sp.targets !== 'enemy') return 0;
+  if (upgOf(T, /Inscription of Balance/)) return 3;
+  const near = all().some(
+    x =>
+      x.side === T.side &&
+      x.onTable &&
+      !x.destroyed &&
+      (upgOf(x, /Heralds of the Storm/) || upgOf(x, /Fudoshin/)) &&
+      (x.id === T.id || polyDist(corners(x), corners(T)) <= 10)
+  );
+  return near ? 3 : 0;
+}
 function spellNeed(sp, T) {
   const S = sp.db || {};
   if (S.a === null) return 0;
-  const n = live(T);
+  const n = live(T) + spellSizeBonus(T, sp);
   return (
     (S.need || 2) +
     (sp.scaling ? (n >= 10 ? 3 : n >= 7 ? 2 : n >= 4 ? 1 : 0) + (T.type === 'monster' ? 1 : 0) : 0)

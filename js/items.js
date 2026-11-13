@@ -39,7 +39,9 @@ function itemRoles(u) {
 function chRulesX(u) {
   const R = (u.charRules || []).slice();
   itemSpec(u).forEach(([n, S]) => itV(S.c, u).forEach(x => R.push(x)));
-  return R;
+  /* items that replace part of the profile take rules away (Alternate Soma: no Impact (2), Hardened (2) not (1)) */
+  const lose = itemSpec(u).flatMap(([n, S]) => S.cLose || []);
+  return lose.length ? R.filter(x => !lose.some(re => re.test(String(x)))) : R;
 }
 function chStatsX(u) {
   const s = Object.assign({}, u.charStats || {});

@@ -90,7 +90,11 @@ function drawEvents(u) {
     tot = 0;
   if (fxHas(me, /^(Cure|Oathstone)/)) return;
   engaged(me).forEach(e => {
-    const X = rx(RU(e), 'Aura of Death');
+    const heph = engaged(e).some(o => {
+      const x = typeof o === 'string' ? byId(o) : o;
+      return x && x.side !== e.side && upgOf(x, /Hephaestian Alloys/);
+    });
+    const X = Math.max(0, rx(RU(e), 'Aura of Death') - (heph ? 4 : 0));
     if (!X) return;
     const k = standsOf(e).filter(st => polyDist(st.poly, mc) <= 0.35).length;
     const per = e.type === 'monster' ? X : Math.min(4, X);

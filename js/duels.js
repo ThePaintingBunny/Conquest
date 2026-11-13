@@ -307,6 +307,38 @@ async function recordDuel() {
       wt = d.a ? d.a.total : 0;
     set(A.id, x => duelWound(x, DA, wa));
     set(T.id, x => duelWound(x, DT, wt));
+    /* Overkill (City States Mastery) */
+    const over = (who, foe, n) => {
+      if (!n || !upgOf(who, /Overkill/)) return '';
+      const F = units.find(x => x.id === foe.id);
+      if (!F || F.destroyed || !F.onTable) return '';
+      const mi = moraleInfo(F, who),
+        R = mi.R,
+        rolls = [];
+      let fails = 0;
+      if (mi.auto) return '';
+      for (let i = 0; i < n; i++) {
+        const v = d6(),
+          ok = v === 1 || (v <= R && v !== 6);
+        rolls.push(v);
+        if (!ok) fails++;
+      }
+      fails = Math.max(0, fails - rx(RU(F), 'Indomitable'));
+      if (fails)
+        set(foe.id, x => {
+          const AL = allocate(x, fails);
+          return Object.assign(
+            {},
+            x,
+            { wounds: AL.w, auxWounds: AL.aw },
+            AL.dead
+              ? { onTable: false, destroyed: true, status: 'Destroyed', destroyedRound: state.round }
+              : {}
+          );
+        });
+      return ` Overkill: ${foe.short || foe.name} tests Morale ${n}× on ${R} (${rolls.join(', ')}): ${fails} wound${fails === 1 ? '' : 's'}.`;
+    };
+    var overTxt = over(A, T, wt) + over(T, A, wa);
     const deadA = wa && DA.wounds + wa >= DA.W,
       deadT = wt && DT.wounds + wt >= DT.W;
     text =
@@ -318,7 +350,8 @@ async function recordDuel() {
       (deadA
         ? ` ${DA.name} is slain` +
           (DA.mono ? '.' : `; ${A.short || A.name} makes a free Clean Combat Reform.`)
-        : '');
+        : '') +
+      overTxt;
   }
   await putState({ units, lastTitle: N(A.side) + ' · Duel', lastText: text });
   lastDuelLine = text;
