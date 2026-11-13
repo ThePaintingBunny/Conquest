@@ -437,6 +437,7 @@ function buildGroups(type, A, T) {
               (upgOf(A, /What we did in Life/) &&
                 (T.effects || []).includes('Broken'))) /* Echo in Eternity */,
           anastegma: p.name === A.charName && upgOf(A, /Anastegma/),
+          vinda: type === 'clash' && p.name === A.charName && upgOf(A, /Vinda, the Dancer/),
           blessable: (type === 'clash' || type === 'impact') && rh(R, 'Blessed'),
           eccentric: p.name === A.charName && upgOf(A, /Eccentric Fighting Style/),
           forceDef:
@@ -902,6 +903,17 @@ function rollHits(g, n, parry) {
   const twos = rolls.filter(r => r.hit && r.v === 2).length;
   g.flawN = ones + (g.blade ? twos : 0);
   g.extra = (g.relentless ? ones + (g.rel2 ? twos : 0) : 0) + (g.torrent ? Math.ceil(hits / 2) : 0);
+  /* Vinda, the Dancer (Nords): one more Attack for every 2 Hits (rounded up); those Hits make no more Attacks */
+  g.vindaN = 0;
+  if (g.vinda && hits) {
+    const k = Math.ceil(hits / 2);
+    for (let i = 0; i < k; i++) {
+      const v = d6();
+      rolls.push({ v, re: false, vinda: true, hit: isHit(v) });
+      if (isHit(v)) g.vindaN++;
+    }
+    g.extra += g.vindaN;
+  }
   g.hits = hits + g.extra;
 }
 function rollDef(T) {
@@ -1360,7 +1372,9 @@ function renderCombat0() {
           ptext(
             g.hits +
               (g.hits === 1 ? ' hit' : ' hits') +
-              (g.extra ? ` (${g.extra} extra from rolls of 1)` : '')
+              (g.extra
+                ? ` (${g.extra} extra${g.vindaN ? ', ' + g.vindaN + ' from Vinda’s extra Attacks' : ' from rolls of 1'})`
+                : '')
           )
         );
       }

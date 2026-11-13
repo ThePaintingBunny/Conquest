@@ -125,6 +125,19 @@ function duelStrike(X, Y) {
     res.rolls.push({ v, hit: h, re, first });
   }
   if (rh(X.rules, 'Relentless Blows')) res.hits += ones;
+  /* Vinda, the Dancer (Nords): one more Attack for every 2 Hits (rounded up) */
+  if (X.up && upgOf(X.up, /Vinda, the Dancer/) && res.hits) {
+    const k = Math.ceil(res.hits / 2);
+    let vh = 0;
+    for (let i = 0; i < k; i++) {
+      const v = d6(),
+        h = isHit(v);
+      res.rolls.push({ v, hit: h, re: false, first: null });
+      if (h) vh++;
+    }
+    res.hits += vh;
+    res.notes.push('Vinda: ' + k + ' extra Attack' + (k > 1 ? 's' : '') + ', ' + vh + ' hit');
+  }
   const red = Math.max(0, rx(X.rules, 'Cleave') - rx(Y.rules, 'Hardened'));
   let D = Math.max(0, Y.D + (rh(Y.rules, 'Shield') && !rh(X.rules, 'Linebreaker') ? 1 : 0) - red);
   if (rh(X.rules, 'Smite')) D = 0;

@@ -865,6 +865,18 @@ function frFx(u) {
     if (e) out.push('On ' + tInfo(e).name.toLowerCase() + ' (Size ' + uSize(u) + ')');
   }
   if (f === 'Old Dominion' && animate(u) && odTierU(u, 'dark') >= 3) out.push('Inspired (Dark Power III)');
+  if (
+    f === 'Nords' &&
+    typeof cb !== 'undefined' &&
+    cb &&
+    cb.type === 'clash' &&
+    cb.att === u.id &&
+    /Cavalry|Brute/.test(u.cls || '') &&
+    (byId(cb.tgt) || {}).type === 'monster' &&
+    supRoles(u).includes('Half-Bloods') &&
+    all().some(x => x.side === u.side && !x.destroyed && x.charName && upgOf(x, /Pack Tactics/))
+  )
+    out.push('Support (' + ((u.stats && +u.stats.A) || 0) + ') (Pack Tactics)');
   if (f === 'Dweghom' && firstInFray(u) && rx((u.rules || []).concat(itemRegRules(u)), 'Terrifying') < 2)
     out.push('Terrifying (+1) (First in the Fray)');
   /* Glacial Presence (Weaver Courts Gift): enemies engaged with its Court of Winter regiment gain Decay when they

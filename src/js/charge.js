@@ -98,8 +98,16 @@ function failCharge() {
     c = act.cur;
   const a = ((u.facing || 0) * Math.PI) / 180,
     f = [Math.sin(a), Math.cos(a)];
-  let k = c.roll || 0,
-    p = { x: c.start.x + f[0] * k, y: c.start.y + f[1] * k };
+  let k = c.roll || 0;
+  /* Cautious Strikes (Nords Mastery, Konungyr or Jarl Warlord): an Exalted regiment may move up to its March instead */
+  {
+    const wl = supWl(u.side);
+    if (wl && upgOf(wl, /Cautious Strikes/) && supRoles(u).includes('Exalted') && (u.m || 0) > k) {
+      k = u.m || 0;
+      toast('Cautious Strikes: it moves up to its March (' + k + '″) instead of the roll.');
+    }
+  }
+  let p = { x: c.start.x + f[0] * k, y: c.start.y + f[1] * k };
   /* a failed Charge halts 1″ away from any enemy regiment and any Garrison terrain */
   const near = pp => {
     const A = corners(Object.assign({}, u, pp));

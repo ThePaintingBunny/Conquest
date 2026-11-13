@@ -276,7 +276,13 @@ function finishAction() {
     }).catch(() => {});
   }
   if (TM && TM.notes.length) toast(TM.notes.join(' · ') + '. No Morale Tests.');
-  if (TM && TM.hindered) {
+  const wildB = (() => {
+    const bu = byId(act.id);
+    return !!bu && supHasK(bu.side, 'Wild Beasts') && supRoles(bu).includes('Half-Bloods');
+  })();
+  if (TM && TM.hindered && wildB)
+    toast('Wild Beasts: the Half-Bloods still make Impact Attacks through ' + TM.hindered + '.');
+  else if (TM && TM.hindered) {
     const bu = byId(act.id),
       ice = frFac(bu) === 'Nords' && armyHas(bu.side, /Ice, Flesh/);
     if (/Medium|Heavy/.test(bu.cls || '') && !ice) {
@@ -304,7 +310,7 @@ function finishAction() {
   if (
     c.type === 'charge' &&
     hasImpact(byId(act.id)) &&
-    !(TM && TM.hindered) &&
+    (!(TM && TM.hindered) || wildB) &&
     !(byId(c.target) || {}).garrison
   )
     openCombat({ type: 'impact', att: act.id, tgt: c.target, inAct: false, fromCharge: true });

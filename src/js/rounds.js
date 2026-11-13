@@ -399,6 +399,21 @@ async function doReinforcements(humanAuto) {
             res.push(t2.name + ' arrives (Tactical Superiority)');
           }
         }
+        /* Call the Hunt (Nords Mastery, Half-Bloods Warlord): one more Half-Bloods regiment arrives automatically
+           (not when the chosen regiment has Flank) */
+        {
+          const wl = supWl(side);
+          if (wl && upgOf(wl, /Call the Hunt/) && !hasRule(u, /^Flank/)) {
+            const h = pool.find(
+              x =>
+                x !== u && !x.arriving && supRoles(x).includes('Half-Bloods') && reinfRule(x.cls, R) !== 'no'
+            );
+            if (h) {
+              h.arriving = true;
+              res.push(h.name + ' arrives (Call the Hunt)');
+            }
+          }
+        }
         if (rh(u.rules, 'Tidal Summons')) {
           const w = pool.find(
             x => x !== u && !x.arriving && rh(x.rules, 'Water Elemental') && reinfRule(x.cls, R) !== 'no'
@@ -420,6 +435,20 @@ async function doReinforcements(humanAuto) {
         continue;
       }
       rollers.push(u);
+    }
+    /* Raven Messengers (Nords Trove-find): if one of your regiments is engaged, one more regiment passes its
+       Reinforcement Roll automatically (the costliest still to roll) */
+    if (
+      rollers.length &&
+      units.some(x => x.side === side && x.charName && !x.destroyed && upgOf(x, /Raven Messengers/)) &&
+      units.some(
+        x => x.side === side && x.onTable && !x.destroyed && x.type !== 'marker' && engaged(x).length
+      )
+    ) {
+      const best = rollers.slice().sort((a, b) => (+b.points || 0) - (+a.points || 0))[0];
+      best.arriving = true;
+      rollers.splice(rollers.indexOf(best), 1);
+      res.push(best.name + ' arrives (Raven Messengers)');
     }
     /* each weight class rolls its dice together; the player then picks which regiments of that class arrive */
     const W = u => (/Light/.test(u.cls || '') ? 'Light' : /Heavy/.test(u.cls || '') ? 'Heavy' : 'Medium');

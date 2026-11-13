@@ -1514,6 +1514,34 @@ function srOptions(u) {
   if (!u || !act || act.id !== u.id) return out;
   const fresh = !act.actions.length && !act.cur,
     add = (label, fn, why, cls) => out.push({ label, fn, why, cls });
+  /* ---- Lessons of the Jotun War (Nords Mastery): once per battle, when its regiment activates, one Tribal Tactic until
+     the end of the round ---- */
+  if (
+    u.charName &&
+    upgOf(u, /Lessons of the Jotun War/) &&
+    !u.lessonsUsed &&
+    !act.entering &&
+    !act.actions.length
+  ) {
+    out.push({
+      head: 'Lessons of the Jotun War (once per battle): a Tribal Tactic for this regiment this round'
+    });
+    Object.keys(TACTICS).forEach(t =>
+      add(t + ' (' + TACTICS[t].join(', ') + ')', () =>
+        putState({
+          units: state.units.map(x =>
+            x.id === u.id
+              ? Object.assign(grantU(x, 'Tribal Tactic: ' + t + ' (Lessons of the Jotun War)', TACTICS[t]), {
+                  lessonsUsed: true
+                })
+              : x
+          ),
+          lastTitle: N(u.side) + ' · Lessons of the Jotun War',
+          lastText: (u.short || u.name) + ' is under ' + t + ' until the end of the round.'
+        })
+      )
+    );
+  }
   /* ---- Dancing Scimitar (Sorcerer Kings): Draw Event, 3 automatic AP (2) Hits on an enemy regiment or Objective
      Marker within 12″, no Morale ---- */
   if (
