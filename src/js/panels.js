@@ -1564,7 +1564,18 @@ function revealIn(el, block) {
     rc.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   } else el.scrollIntoView({ behavior: 'smooth', block: block || 'nearest' });
 }
+/* Keep the board where it is on screen: when a redraw changes what sits above it (the test field's Conditions panel
+   for the selected regiment, a banner, the turn bar), scroll by the same amount so the map does not jump away. */
 function render() {
+  const b = $('board'),
+    r0 = b && b.getBoundingClientRect(),
+    seen = r0 && r0.bottom > 0 && r0.top < innerHeight;
+  render0();
+  if (!seen) return;
+  const d = b.getBoundingClientRect().top - r0.top;
+  if (Math.abs(d) > 1) scrollBy({ top: d, behavior: 'instant' });
+}
+function render0() {
   requestAnimationFrame(fitBoard);
   if (!state) return;
   applyColors();
