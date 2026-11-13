@@ -168,7 +168,7 @@ const OFFICER_LIMIT = { 'City States': 1 };
 function regOptions(u) {
   const t = String(u.options || '');
   const out = [];
-  if (bld.fac === 'Hundred Kingdoms' && /The Orders/.test(u.warband || '') && u.kind === 'reg') {
+  if (bld.fac === 'Hundred Kingdoms' && u.kind === 'reg' && hkAllOrders()) {
     [
       ['Laurel of Triumph', 10, 'once per game re-roll an Attack or Defense roll'],
       ['Banner of Wrath', 5, 'Fury'],
@@ -360,9 +360,47 @@ function wlProblems() {
   if (!W.some(canWarlord)) out.push('No character here can be the Warlord. Add one who can.');
   return out;
 }
+/* a Hundred Kingdoms character's sub-faction role, from its warband line ("Theist.", "The Orders.") */
+function hkRole(name) {
+  const c = bldUnit(name);
+  return c ? ((c.warband || '').match(/^(Imperial|Feudal|Theist|The Orders)\b/) || [])[1] || '' : '';
+}
+function hkRoles() {
+  return bld.fac === 'Hundred Kingdoms' ? bld.wbs.map(w => hkRole(w.char)).filter(Boolean) : [];
+}
+/* Sacred Relics and Order Regiment Upgrades: only when every character is [The Orders] */
+function hkAllOrders() {
+  const R = hkRoles();
+  return R.length > 0 && R.every(r => r === 'The Orders');
+}
 function bldProblems() {
   const out = [];
   if (!bld.wbs.length) out.push('Add at least one warband.');
+  if (bld.fac === 'Hundred Kingdoms') {
+    const R = hkRoles(),
+      wl = bld.wbs[bld.warlord];
+    /* Memories of the Red Years: no Theist and Orders characters together (For All Mankind ignores it) */
+    if (
+      R.includes('Theist') &&
+      R.includes('The Orders') &&
+      !(wl && /Errant of the Order of the Shield/.test(wl.char))
+    )
+      out.push('Memories of the Red Years: an army cannot include both a Theist and an Orders character.');
+    /* Servite needs at least one Orders character */
+    if (!R.includes('The Orders') && bld.wbs.some(w => w.regs.some(r => (r.opts || []).includes('Servite'))))
+      out.push('Servite: the army needs at least one Orders character.');
+    if (
+      !hkAllOrders() &&
+      bld.wbs.some(w =>
+        w.regs.some(r =>
+          (r.opts || []).some(n =>
+            /^(Laurel of Triumph|Banner of Wrath|Disciplined Advance|Oathsworn)$/.test(n)
+          )
+        )
+      )
+    )
+      out.push('Order Regiment Upgrades are only for armies whose characters are all Orders characters.');
+  }
   if (bld.fac === 'Spires' && !bld.sect)
     out.push(
       'Choose the army’s Sect (Underspire, Directorate or Sovereign Lineage): every Spires army must follow one.'

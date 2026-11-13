@@ -223,6 +223,31 @@ function cadOnCharge(cid, tid) {
   const C = byId(cid),
     T = byId(tid);
   if (!C || !T) return;
+  if (upgOf(C, /Like Gods Among Men/) && /Cavalry/.test(C.cls || '')) {
+    const H = all()
+      .filter(
+        x =>
+          x.side === C.side &&
+          x.onTable &&
+          !x.destroyed &&
+          /Infantry/.test(x.cls || '') &&
+          (+x.wounds || 0) > 0 &&
+          canHeal(x) &&
+          polyDist(corners(C), corners(x)) <= 8
+      )
+      .sort((a, b) => (+b.wounds || 0) - (+a.wounds || 0))[0];
+    if (H) {
+      const n = Math.min(4, +H.wounds || 0);
+      putState({
+        units: state.units.map(x =>
+          x.id === H.id ? Object.assign({}, x, { wounds: (+x.wounds || 0) - n }) : x
+        ),
+        lastTitle: N(C.side) + ' · Like Gods Among Men',
+        lastText: (H.short || H.name) + ' heals ' + n + ' wound' + (n === 1 ? '' : 's') + '.'
+      });
+      toast('Like Gods Among Men: ' + (H.short || H.name) + ' heals ' + n + '.');
+    }
+  }
   if (/Brute|Cavalry/.test(C.cls || '') && cadArmy(C.side) && hasGrant(base(T.id), CAD_MARK)) {
     const now = rx(RU(C), 'Terrifying');
     if (now < 2 && act && act.id === cid) {
@@ -1003,7 +1028,7 @@ function srActions(u, out, used, eng, blocked) {
   }
   if (
     eng.length &&
-    (srHas(u, /^Raging Elements/) || offOn(u, 'xclash')) &&
+    (srHas(u, /^Raging Elements/) || offOn(u, 'xclash') || act.lath) &&
     used.some(a => a.type === 'clash') &&
     !act.actions.some(a => a.type === 'xclash')
   )
@@ -1440,6 +1465,45 @@ function srOptions(u) {
           )
         );
     }
+  }
+  /* ---- Hundred Kingdoms character upgrades ---- */
+  if (u.charName) {
+    if (
+      fresh &&
+      !act.entering &&
+      upgOf(u, /Elysian Fragment/) &&
+      !base(u.id).elysianUsed &&
+      frRoles(u).includes('Theist')
+    )
+      add(
+        'Elysian Fragment (once per game): the regiment gains Cleave (3) until the end of the round',
+        async () => {
+          await putState({
+            units: state.units.map(x =>
+              x.id === u.id
+                ? Object.assign(grantU(x, 'Elysian Fragment (Cleave 3)', ['Cleave (3)']), {
+                    elysianUsed: true
+                  })
+                : x
+            ),
+            lastTitle: N(u.side) + ' · Elysian Fragment',
+            lastText: (u.short || u.name) + ' gains Cleave (3) until the end of the round.'
+          });
+        }
+      );
+    if (upgOf(u, /Lathander Sacrifice/) && !base(u.id).lathUsed && !act.lath && engaged(u).length)
+      add(
+        'Lathander Sacrifice (once per game): one extra Clash this activation; the regiment is destroyed when the activation ends',
+        async () => {
+          act.lath = true;
+          await putState({
+            units: state.units.map(x => (x.id === u.id ? Object.assign({}, x, { lathUsed: true }) : x)),
+            lastTitle: N(u.side) + ' · Lathander Sacrifice',
+            lastText:
+              (u.short || u.name) + ' may Clash once more this activation, and is destroyed when it ends.'
+          });
+        }
+      );
   }
   /* ---- character upgrades with Draw Events ---- */
   if (fresh && !act.entering && u.charName) {

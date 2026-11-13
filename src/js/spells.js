@@ -113,13 +113,20 @@ function spellSchool(u, asChar) {
   }
   return Object.keys(C.sch)[0];
 }
+function talentedSchool(u, C, sc) {
+  const ks = Object.keys(C.sch || {}).filter(k => k !== sc);
+  return u.cschool2 && ks.includes(u.cschool2) ? u.cschool2 : ks[0] || null;
+}
 function spellsOf(u, asChar) {
   if (asChar && (u.spells || []).length && !casterKey(u, true)) return u.spells;
   const k = casterKey(u, asChar);
   if (!k) return asChar ? u.spells || [] : [];
   const C = CASTERS[k],
     sc = spellSchool(u, asChar);
-  const names = (C.f || []).concat(sc ? C.sch[sc] : []);
+  let names = (C.f || []).concat(sc ? C.sch[sc] : []);
+  /* Talented (Hundred Kingdoms): a second School */
+  const sc2 = asChar && upgOf(u, /Talented/) ? talentedSchool(u, C, sc) : null;
+  if (sc2) names = names.concat(C.sch[sc2].filter(n => !names.includes(n)));
   return names
     .filter(n => SPELLDB[n])
     .map(n => {
@@ -423,9 +430,21 @@ function spellNeed(sp, T) {
   const S = sp.db || {};
   if (S.a === null) return 0;
   const n = live(T) + spellSizeBonus(T, sp);
+  /* Protective Glyphs (Hundred Kingdoms): enemy spells on a regiment within 10″ of the character need one more success */
+  const glyph =
+    sp.targets === 'enemy' &&
+    all().some(
+      x =>
+        x.side === T.side &&
+        x.onTable &&
+        !x.destroyed &&
+        upgOf(x, /Protective Glyphs/) &&
+        (x.id === T.id || polyDist(casterPoly(x), corners(T)) <= 10)
+    );
   return (
-    (S.need || 2) +
-    (sp.scaling ? (n >= 10 ? 3 : n >= 7 ? 2 : n >= 4 ? 1 : 0) + (T.type === 'monster' ? 1 : 0) : 0)
+    (glyph ? 1 : 0) +
+    ((S.need || 2) +
+      (sp.scaling ? (n >= 10 ? 3 : n >= 7 ? 2 : n >= 4 ? 1 : 0) + (T.type === 'monster' ? 1 : 0) : 0))
   );
 }
 /* Hits from a spell: Defense rolls, then Morale */
@@ -755,6 +774,32 @@ function spellBox(box, u, asChar, ctx, onDone) {
       ctx.rolls = null;
     };
     r.append(lb, s);
+    /* Talented: pick the second School */
+    if (asChar && upgOf(u, /Talented/)) {
+      const s2 = document.createElement('select');
+      s2.setAttribute('aria-label', 'Second School (Talented)');
+      const first = spellSchool(u, asChar);
+      Object.keys(C.sch)
+        .filter(k => k !== first)
+        .forEach(k => {
+          const o = document.createElement('option');
+          o.value = k;
+          o.textContent = k;
+          s2.appendChild(o);
+        });
+      s2.value = talentedSchool(u, C, first);
+      s2.onchange = () => {
+        putState({
+          units: state.units.map(x => (x.id === u.id ? Object.assign({}, x, { cschool2: s2.value }) : x))
+        });
+        ctx.spell = 0;
+        ctx.rolls = null;
+      };
+      const l2 = document.createElement('span');
+      l2.className = 'tf-l';
+      l2.textContent = 'Talented:';
+      r.append(l2, s2);
+    }
     box.appendChild(r);
   }
   if (!sps.length || !lvl) {

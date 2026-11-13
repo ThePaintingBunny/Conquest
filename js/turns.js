@@ -1078,6 +1078,27 @@ function showReport(report) {
   } catch (e) {}
 }
 /* ---------- the human ends a turn ---------- */
+/* Art of War (Hundred Kingdoms, [Battlefield]): once per round, skip drawing a Command Card and pass */
+function artOfWarOk(side) {
+  return (
+    state.mode !== 'test' &&
+    myTurnCards != null &&
+    !myTurnStrat &&
+    humanCardsLeft() > 0 &&
+    humanCardsLeft() >= myTurnCards &&
+    supMem(side).awR !== srRnd() &&
+    all().some(x => x.side === side && x.onTable && !x.destroyed && upgOf(x, /Art of War/))
+  );
+}
+async function artOfWarPass() {
+  await putState({
+    sup: supMemo(HU, { awR: srRnd() }),
+    lastTitle: N(HU) + ' · Art of War',
+    lastText: 'Art of War: passes without drawing a Command Card.'
+  });
+  myTurnStrat = true;
+  await endTurn();
+}
 async function endTurn() {
   if (!db || !state) return;
   if (aiBusy) return;

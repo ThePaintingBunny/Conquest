@@ -1487,7 +1487,7 @@ function renderCombat0() {
         );
         s3.appendChild(dr);
       }
-      if (cb.step === 'mor')
+      if (cb.step === 'mor') {
         s3.appendChild(
           cbtn(
             'Roll Morale (' + sT + ')',
@@ -1499,9 +1499,33 @@ function renderCombat0() {
             'T'
           )
         );
-      else
+        /* Oath Unbroken (Hundred Kingdoms Mastery): once per game, the Resolve test is passed automatically */
+        if (upgOf(T, /Oath Unbroken/) && !base(T.id).oathUsed)
+          s3.appendChild(
+            cbtn(
+              'Oath Unbroken: pass automatically (once per game)',
+              async () => {
+                cb.mrolls = [];
+                cb.extra = 0;
+                cb.mi = moraleInfo(T, byId(cb.att));
+                cb.oath = true;
+                cb.step = 'done';
+                await putState({
+                  units: state.units.map(x => (x.id === T.id ? Object.assign({}, x, { oathUsed: true }) : x))
+                });
+                renderCombat();
+              },
+              'T'
+            )
+          );
+      } else
         s3.appendChild(
-          ptext(cb.extra + (cb.extra === 1 ? ' extra wound' : ' extra wounds') + ' from failed Morale', 'tot')
+          ptext(
+            cb.oath
+              ? 'Oath Unbroken: the Resolve test is passed automatically.'
+              : cb.extra + (cb.extra === 1 ? ' extra wound' : ' extra wounds') + ' from failed Morale',
+            'tot'
+          )
         );
     }
     body.appendChild(s3);
@@ -2099,6 +2123,17 @@ async function saveActivation() {
     if (i >= 0 && !(units[i].effects || []).includes(src))
       units[i] = Object.assign({}, units[i], { effects: (units[i].effects || []).concat([src]) });
   });
+  /* Lathander Sacrifice: the regiment is destroyed when the activation ends */
+  if (act.lath) {
+    const li = units.findIndex(x => x.id === act.id);
+    if (li >= 0)
+      units[li] = Object.assign({}, units[li], {
+        onTable: false,
+        destroyed: true,
+        status: 'Destroyed (Lathander Sacrifice)',
+        destroyedRound: state.round
+      });
+  }
   const FA = frAfterAct(act, units);
   {
     const gi = units.findIndex(x => x.id === act.id);
