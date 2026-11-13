@@ -106,6 +106,29 @@ const FROLES = (() => {
       'Oni Kishin Raiu': 'Ka',
       'Oni Kishin Kiba': 'Ka'
     },
+    'Sorcerer Kings': {
+      'Mahabharati Sardar': 'Mahabharati',
+      'Mahabharati Initiates': 'Mortals,Mahabharati',
+      'Mahabharati Sorcerer Saints': 'Elemental,Mahabharati',
+      'Dhanur Disciples': 'Mortals',
+      Rajakur: 'Mortals',
+      Ghols: 'Elemental',
+      'Efreet Flamecasters': 'Elemental',
+      'Efreet Sword Dancers': 'Elemental',
+      'Rakshasa Bakasura': 'Elemental',
+      'Rakshasa Ravanar': 'Elemental',
+      'Steelheart Djinn': 'Elemental',
+      'Windborne Djinn': 'Elemental',
+      'Trinavarta Sabhagrih': 'Elemental',
+      'Trinavarta Chandavat': 'Elemental',
+      'Eternal Ikons': 'Elemental',
+      'Eternal Destroyers': 'Elemental',
+      Mahut: 'Elemental',
+      'Marid Lancers': 'Elemental',
+      'Marid Sahar': 'Elemental',
+      'Marid Apsara': 'Elemental',
+      'Marid Shaytan': 'Elemental'
+    },
     'Weaver Courts': {
       'Mhor Sidhe': 'Court of Autumn',
       'Rhun Sidhe': 'Court of Spring',
@@ -313,8 +336,24 @@ function frRoles(u, char) {
   }
   const cm = e && String(e.warband || '').match(/Court of (Fire|Air|Earth|Water)/);
   if (cm) r.push('Court of ' + cm[1]);
-  if (f === 'Weaver Courts' && char && u.charCourt && !r.some(x => /^Court of/.test(x)))
+  if (
+    (f === 'Weaver Courts' || f === 'Sorcerer Kings') &&
+    char &&
+    u.charCourt &&
+    !r.some(x => /^Court of/.test(x))
+  )
     r.push('Court of ' + u.charCourt);
+  /* Sorcerous Patronage: [Mortals] regiments take the Court of their warband's character; Ghols (Denizens of the Upper
+     Planes) the Warlord's Court */
+  if (f === 'Sorcerer Kings' && !char && !r.some(x => /^Court of/.test(x))) {
+    const wl = supWl(u.side);
+    const c = r.includes('Mortals')
+      ? u.wbCourt
+      : frBase(u) === 'Ghols' && wl && wl.charCourt
+        ? wl.charCourt
+        : '';
+    if (c) r.push('Court of ' + c);
+  }
   if (f === 'Weaver Courts' && !char && !r.some(x => /^Court of/.test(x)))
     r.push('Court of ' + wcCourt(u.side));
   if (u.vetRole && !char && !r.includes('Veteran')) r.push('Veteran');
@@ -421,6 +460,45 @@ function wcCourtOf(wl) {
 function wcCourt(side) {
   const wl = supWl(side);
   return (wl && frFac(wl) === 'Weaver Courts' && wcCourtOf(wl)) || frG(side, 'wc').court || 'Spring';
+}
+/* Sorcerer Kings: the Court whose Ritual is being prepared, and Elemental Confluence (a friendly Maharajah: Elemental
+   Conduit adds its marker to any Ritual) */
+function skRitualCourt(side) {
+  const n = frG(side, 'sk').ritual;
+  const e = n && Object.entries(RITUALS).find(([, L]) => L.some(x => x[0] === n));
+  return e ? e[0].replace('Court of ', '') : '';
+}
+function skSpellCourt(name) {
+  return Object.keys(SK_COURTS).find(c => SK_COURTS[c].includes(name)) || '';
+}
+function skConfluence(side) {
+  return supAll(side).some(S => S.k === 'Elemental Confluence');
+}
+/* a Ritual Marker for each spell of the prepared Ritual's Court that is cast; Shu'laat adds one more once per
+   activation */
+async function skSpellMarker(cid, sp, asChar) {
+  const u = base(cid);
+  if (!u || frFac(u) !== 'Sorcerer Kings') return;
+  const g = frG(u.side, 'sk'),
+    rc = skRitualCourt(u.side),
+    sc = skSpellCourt(sp && sp.name ? sp.name : sp);
+  if (!g.ritual || !rc || sc !== rc) return;
+  let n = 1;
+  const notes = [sp.name || sp];
+  if (asChar && upgOf(u, /Shu'laat/) && u.shulR !== state.round) {
+    n++;
+    notes.push("Shu'laat +1");
+  }
+  await putState({
+    fr: frPatch(u.side, 'sk', { rm: (+g.rm || 0) + n }),
+    units:
+      n > 1
+        ? state.units.map(x => (x.id === u.id ? Object.assign({}, x, { shulR: state.round }) : x))
+        : state.units
+  });
+  toast(
+    'Ritual: +' + n + ' marker' + (n > 1 ? 's' : '') + ' for ' + g.ritual + ' (' + notes.join(', ') + ').'
+  );
 }
 function frFacs(side) {
   return [
@@ -1245,7 +1323,10 @@ function frOptions0(u) {
     }
   }
   if (f === 'Sorcerer Kings' && hasDraw(u, /^Elemental Conduit/)) {
-    const g = frG(u.side, 'sk');
+    const g = frG(u.side, 'sk'),
+      rc = skRitualCourt(u.side),
+      myC = (frRoles(u).find(x => /^Court of/.test(x)) || '').replace('Court of ', ''),
+      conf = skConfluence(u.side);
     add(
       'Elemental Conduit: +1 Ritual Marker',
       () => {
@@ -1260,7 +1341,13 @@ function frOptions0(u) {
           }
         );
       },
-      !g.ritual ? 'No Ritual is being prepared (see Faction rules)' : act.frConduit ? 'Already used' : ''
+      !g.ritual
+        ? 'No Ritual is being prepared (see Faction rules)'
+        : act.frConduit
+          ? 'Already used'
+          : rc && myC && rc !== myC && !conf
+            ? 'The Ritual is of the Court of ' + rc + ' (only with Elemental Confluence, a Maharajah Warlord)'
+            : ''
     );
   }
   if (f === 'Yoroni' && !act.frIdeal) {
@@ -2030,7 +2117,7 @@ function frBlock(side, f, mine) {
       );
     box.append(
       ptext(
-        'Each spell cast adds 1 marker (press + after a cast). Elemental Conduit adds 1 from the activation panel. The first new Ritual each round starts with markers equal to the round (max 5).'
+        'Each spell of the Ritual’s Court that is cast adds 1 marker (applied automatically; Shu’laat adds one more once per activation). Elemental Conduit adds 1 from the activation panel: only for its own Court’s Ritual, unless a Maharajah Warlord gives Elemental Confluence. The first new Ritual each round starts with markers equal to the round (max 5). With Elemental Confluence, a completed Ritual may be followed at once by one of a different Court.'
       )
     );
     return lock(box);

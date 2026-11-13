@@ -1493,6 +1493,66 @@ function srOptions(u) {
   if (!u || !act || act.id !== u.id) return out;
   const fresh = !act.actions.length && !act.cur,
     add = (label, fn, why, cls) => out.push({ label, fn, why, cls });
+  /* ---- Dancing Scimitar (Sorcerer Kings): Draw Event, 3 automatic AP (2) Hits on an enemy regiment or Objective
+     Marker within 12″, no Morale ---- */
+  if (
+    u.charName &&
+    upgOf(u, /Dancing Scimitar/) &&
+    !act.scimUsed &&
+    !act.entering &&
+    u.onTable &&
+    !act.actions.length &&
+    !act.cur
+  ) {
+    const T = all()
+      .filter(e => e.side !== u.side && e.onTable && !e.destroyed)
+      .map(e => [e, polyDist(corners(u), corners(e))])
+      .filter(([, d]) => d <= 12)
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 5);
+    if (T.length) {
+      out.push({ head: 'Dancing Scimitar (Draw Event): 3 Hits, AP (2), no Morale' });
+      T.forEach(([e, d]) =>
+        add((e.short || e.name) + ' (' + d.toFixed(1) + '″)', async () => {
+          act.scimUsed = true;
+          const x0 = base(e.id),
+            H = spellHitRes(x0, 3, 2, true),
+            AL = allocate(x0, H.w);
+          await putState({
+            units: state.units.map(x =>
+              x.id === e.id
+                ? Object.assign(
+                    {},
+                    x,
+                    { wounds: AL.w, auxWounds: AL.aw },
+                    AL.dead
+                      ? {
+                          onTable: false,
+                          destroyed: true,
+                          status: 'Destroyed',
+                          destroyedRound: state.round,
+                          destroyedBy: isMarker(x) ? u.side : x.destroyedBy
+                        }
+                      : {}
+                  )
+                : x
+            ),
+            lastTitle: N(u.side) + ' · Dancing Scimitar',
+            lastText: (e.short || e.name) + ': ' + H.txt + (AL.dead ? '; destroyed' : '') + '.'
+          });
+          toast(
+            'Dancing Scimitar on ' +
+              (e.short || e.name) +
+              ': ' +
+              H.w +
+              ' wound' +
+              (H.w === 1 ? '' : 's') +
+              '.'
+          );
+        })
+      );
+    }
+  }
   /* ---- Kiannun Stalker (Weaver Courts Officer): each activation, 1 wound on an enemy within 12″ ---- */
   if (offOn(u, 'stalker') && !act.stalkUsed && !act.entering && u.onTable) {
     const T = all()

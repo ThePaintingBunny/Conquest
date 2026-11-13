@@ -449,6 +449,27 @@ function spellNeed(sp, T) {
       (sp.scaling ? (n >= 10 ? 3 : n >= 7 ? 2 : n >= 4 ? 1 : 0) + (T.type === 'monster' ? 1 : 0) : 0))
   );
 }
+/* Jadoo Kavach (Sorcerer Kings): friendly spellcasters within 10″ of the character may re-roll Spellcasting dice of 6,
+   in one Spellcasting action per activation (the first one) */
+function jadooUse(u) {
+  if (!u) return false;
+  const k = all().find(
+    x =>
+      x.side === u.side &&
+      x.onTable &&
+      !x.destroyed &&
+      x.charName &&
+      upgOf(x, /Jadoo Kavach/) &&
+      (x.id === u.id || polyDist(corners(x), corners(u)) <= 10)
+  );
+  if (!k) return false;
+  const tag = (state.round || 1) + ':' + (act ? act.id : charAct ? 'c' + charAct.id : u.id);
+  if (u._jadoo === tag) return false;
+  const b = base(u.id);
+  if (b) b._jadoo = tag;
+  u._jadoo = tag;
+  return true;
+}
 /* Hits from a spell: Defense rolls, then Morale */
 function spellHitRes(T, hits, ap, noMorale) {
   if (rh(RU(T), 'Loose Formation')) hits = Math.ceil(hits / 2);
@@ -491,6 +512,26 @@ function spellHitRes(T, hits, ap, noMorale) {
 async function resolveSpell(cid, sp, tid, succ, asChar) {
   lastSpellSucc = succ;
   const r = await resolveSpell0(cid, sp, tid, succ, asChar);
+  try {
+    await skSpellMarker(cid, sp, asChar);
+  } catch (e) {}
+  /* Elemental Feedback (Sorcerer Kings Mastery): the first successful spell of its activation heals its regiment 2
+     wounds per 2 successes */
+  try {
+    const c0 = base(cid);
+    if (asChar && c0 && upgOf(c0, /Elemental Feedback/) && c0.fbR !== state.round) {
+      const h = Math.min(Math.floor(succ / 2) * 2, +c0.wounds || 0),
+        ok = canHeal(c0);
+      await putState({
+        units: state.units.map(x =>
+          x.id === c0.id
+            ? Object.assign({}, x, { fbR: state.round }, ok && h ? { wounds: (+x.wounds || 0) - h } : {})
+            : x
+        )
+      });
+      if (ok && h) toast('Elemental Feedback: ' + (c0.short || c0.name) + ' heals ' + h + ' wounds.');
+    }
+  } catch (e) {}
   try {
     const c0 = base(cid),
       t0 = base(tid);
@@ -942,8 +983,10 @@ function spellBox(box, u, asChar, ctx, onDone) {
     b.textContent = 'Cast ' + sp.name;
     b.onclick = () => {
       ctx.rolls = Array.from({ length: dice }, d6);
-      /* Devoted to Hazlia: the character re-rolls results of 6 */
-      if (asChar && upgOf(u, /Devoted to Hazlia/)) ctx.rolls = ctx.rolls.map(v => (v === 6 ? d6() : v));
+      /* Devoted to Hazlia: the character re-rolls results of 6; Jadoo Kavach: casters within 10″ of it too, in one
+         spellcasting action per activation */
+      if ((asChar && upgOf(u, /Devoted to Hazlia/)) || jadooUse(u))
+        ctx.rolls = ctx.rolls.map(v => (v === 6 ? d6() : v));
       sacrSpend(u, asChar);
       render();
     };
@@ -1019,8 +1062,9 @@ async function aiCastSpell(u, asChar, spellName, targetId) {
     succ = Math.max(need, 2);
   else {
     const att = (S.a === 'D' ? +T.stats.D || 0 : sp.att) - (interf ? 1 : 0),
+      jk = jadooUse(u),
       rolls = Array.from({ length: lvl + srSpellDice(u, asChar) }, d6).map(v =>
-        v === 6 && asChar && upgOf(u, /Devoted to Hazlia/) ? d6() : v
+        v === 6 && ((asChar && upgOf(u, /Devoted to Hazlia/)) || jk) ? d6() : v
       );
     sacrSpend(u, asChar);
     succ = rolls.filter(v => v === 1 || (v <= att && v !== 6)).length + srBrand(u, sp, T);

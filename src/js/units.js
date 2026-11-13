@@ -260,6 +260,7 @@ function buildUnits(side, list) {
     }
     if (x.vetRole) u.vetRole = true;
     if (x.cult) u.cult = String(x.cult);
+    if (x.wbCourt) u.wbCourt = String(x.wbCourt);
     if (x.warlordMonster) u.warlordMonster = true;
     if (hold)
       u.assassinHold = {

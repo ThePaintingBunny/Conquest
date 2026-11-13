@@ -435,7 +435,34 @@ async function afterSupremacy(first) {
   if (await supStart(first)) return;
   await afterSupremacy0(first);
 }
+/* Vizier of the Morning Star (Sorcerer Kings Warlord Mastery): at the end of the Supremacy Phase, friendly regiments
+   of its Court lose Broken */
+async function skVizier() {
+  let units = state.units,
+    notes = [];
+  ['cs', 'nord'].forEach(side => {
+    const wl = supWl(side);
+    if (!wl || wl.destroyed || !upgOf(wl, /Vizier of the Morning Star/)) return;
+    const c =
+      frRoles(wl, true).find(x => /^Court of/.test(x)) || (wl.cschool ? 'Court of ' + wl.cschool : '');
+    if (!c) return;
+    units = units.map(x => {
+      if (x.side !== side || !(x.effects || []).includes('Broken') || !frRoles(x).includes(c)) return x;
+      notes.push(x.short || x.name);
+      return Object.assign({}, x, { effects: x.effects.filter(e => e !== 'Broken') });
+    });
+  });
+  if (notes.length)
+    await putState({
+      units,
+      lastTitle: 'Vizier of the Morning Star',
+      lastText: notes.join(', ') + (notes.length > 1 ? ' are' : ' is') + ' no longer Broken.'
+    });
+}
 async function afterSupremacy0(first) {
+  try {
+    await skVizier();
+  } catch (e) {}
   const sc = scenOf();
   if (!sc.pick) {
     await startActivations(first);

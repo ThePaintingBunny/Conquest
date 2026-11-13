@@ -613,13 +613,30 @@ function defInfo(T, A, g) {
 }
 function offShareR(T) {
   if (!T || !T.onTable) return 0;
+  /* Niyantran (Sorcerer Kings): friendly regiments within 12″ may use the character's Resolve while its own regiment
+     is not Broken */
+  const niy = Math.max(
+    0,
+    ...(state.units || [])
+      .filter(
+        x =>
+          x.side === T.side &&
+          x.id !== T.id &&
+          x.charName &&
+          srAlive(x) &&
+          upgOf(x, /Niyantran/) &&
+          !(x.effects || []).includes('Broken') &&
+          srNear(x, T, 12)
+      )
+      .map(x => +(x.charStats || {}).R || 0)
+  );
   const d = Math.max(
     offOn(T, 'shareR') && offNames(T).includes('Lochagos') ? 18 : 0,
     offOn(T, 'shareR') && offNames(T).includes('Captain') ? 12 : 0
   );
-  if (!d) return 0;
+  if (!d) return niy;
   return Math.max(
-    0,
+    niy,
     ...(state.units || [])
       .filter(x => x.side === T.side && x.id !== T.id && x.charName && srAlive(x) && srNear(x, T, d))
       .map(x => +(x.charStats || {}).R || 0)

@@ -71,6 +71,8 @@ function prioryOf(c) {
 /* Weaver Courts: the Taosidhe picks any Seasonal Court, the Seanchas Sidhe Summer or Winter (it knows that Court's
    spells). Other characters' Courts are fixed. */
 function wcCourtChoices(c) {
+  /* Sorcerer Kings, Sorcerous Patronage: every character picks a Court (its spells, Rituals and Mainstay Elementals) */
+  if (c && bld.fac === 'Sorcerer Kings' && c.kind === 'char') return ['Fire', 'Air', 'Earth', 'Water'];
   if (!c || bld.fac !== 'Weaver Courts') return null;
   if (c.name === 'Taosidhe') return ['Spring', 'Summer', 'Autumn', 'Winter'];
   if (c.name === 'Seanchas Sidhe') return ['Summer', 'Winter'];
@@ -197,6 +199,12 @@ function wbChoices(c, w) {
       });
     })
   );
+  /* Sorcerous Patronage: non-Monster Elementals of the character's Court are Mainstay */
+  if (bld.fac === 'Sorcerer Kings' && w && w.court)
+    out.forEach(q => {
+      const u = q.unit && bldUnit(q.unit);
+      if (u && u.type !== 'Monster' && u.warband === 'Court of ' + w.court) q.cat = 'main';
+    });
   return out;
 }
 /* regiment options parsed from the encyclopedia text */
@@ -363,7 +371,9 @@ function wbProblems(w) {
   if (c.type !== 'Monster' && w.joins != null && !(w.regs[w.joins] && joinable(w, w.regs[w.joins])))
     p.push('Choose which regiment the character joins.');
   if (wcCourtChoices(c) && !w.court)
-    p.push(`Choose the ${c.name}’s Seasonal Court (${wcCourtChoices(c).join(', ')}).`);
+    p.push(
+      `Choose the ${c.name}’s ${bld.fac === 'Sorcerer Kings' ? 'Court' : 'Seasonal Court'} (${wcCourtChoices(c).join(', ')}).`
+    );
   if (prioryOf(c) && !w.order)
     p.push('Choose the Priory Commander’s Order (Crimson Tower or Sealed Temple).');
   if (bld.fac === "W'adrhŭn" && !wadFixedCult(c)) {
@@ -604,6 +614,7 @@ function bldToList() {
         x.wb = this.wbCur[0];
         x.wbChar = this.wbCur[1];
         if (this.wbCur[2]) x.cult = this.wbCur[2];
+        if (this.wbCur[3]) x.wbCourt = this.wbCur[3];
       }
     });
     return Array.prototype.push.apply(this, a);
@@ -617,7 +628,7 @@ function bldToList() {
     const c = bldUnit(w.char);
     if (!c && !w.bare) return;
     const wl = bld.warlord === wi;
-    units.wbCur = [wi, c ? c.name : null, wadWbCult(w)];
+    units.wbCur = [wi, c ? c.name : null, wadWbCult(w), (wcCourtChoices(c) && w.court) || ''];
     if (c && c.type === 'Monster') {
       units.push(
         unitJson(
@@ -1805,9 +1816,11 @@ function armyBuilder(add, mk, onUse, useLabel) {
       };
       const lab = bEl('label', { className: 'ab-wlnote', textContent: 'Court: ' });
       lab.title =
-        c.name === 'Seanchas Sidhe'
-          ? 'The Seanchas Sidhe belongs to the Court of Summer or of Winter and knows all of that Court’s spells. As Warlord, the army’s regiments follow its Court.'
-          : 'The Taosidhe belongs to one Seasonal Court. As Warlord, the army’s regiments follow its Court.';
+        bld.fac === 'Sorcerer Kings'
+          ? 'Sorcerous Patronage: the character gains its Court’s role, spells and Rituals; non-Monster Elementals of its Court become Mainstay, and the Mortals of its warband join its Court.'
+          : c.name === 'Seanchas Sidhe'
+            ? 'The Seanchas Sidhe belongs to the Court of Summer or of Winter and knows all of that Court’s spells. As Warlord, the army’s regiments follow its Court.'
+            : 'The Taosidhe belongs to one Seasonal Court. As Warlord, the army’s regiments follow its Court.';
       lab.append(sel);
       hl.append(lab);
     }

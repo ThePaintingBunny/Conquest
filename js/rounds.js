@@ -20,8 +20,34 @@ function roundKills(side) {
     });
   return { v, why };
 }
+/* Prince of the Setting Moon (Sorcerer Kings Warlord Mastery): at the start of the Victory Phase, while the character
+   is on the table, friendly Mortal regiments within range of an Objective Zone heal 3 wounds */
+async function skPrince() {
+  let units = state.units;
+  const notes = [];
+  ['cs', 'nord'].forEach(side => {
+    const wl = supWl(side);
+    if (!wl || wl.destroyed || !wl.onTable || !upgOf(wl, /Prince of the Setting Moon/)) return;
+    units = units.map(x => {
+      if (x.side !== side || !x.onTable || x.destroyed || !(+x.wounds > 0)) return x;
+      if (!supRoles(x).includes('Mortals') || !inObjZone(x) || !canHeal(x)) return x;
+      const h = Math.min(3, +x.wounds);
+      notes.push((x.short || x.name) + ' ' + h);
+      return Object.assign({}, x, { wounds: x.wounds - h });
+    });
+  });
+  if (notes.length)
+    await putState({
+      units,
+      lastTitle: 'Prince of the Setting Moon',
+      lastText: 'Heals: ' + notes.join(', ') + '.'
+    });
+}
 async function endRound() {
   if (!state) return;
+  try {
+    await skPrince();
+  } catch (e) {}
   const R = state.round || 1,
     vp = Object.assign({ cs: 0, nord: 0 }, state.vp || {}),
     SR = scoreRound(R),
