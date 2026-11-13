@@ -510,7 +510,9 @@ function buildGroups(type, A, T) {
           !!(cb && cb.forceContact && s.rank === 0) ||
           !!(cb && cb.dieFight && cb.att === A.id),
         ie = vd + (eng && rh(RU(T), 'Inherited Excellence') && arcOf(T, [A.x, A.y]) === 'front' ? 1 : 0);
-      const ca = s.cmd && s.kind === 'reg' && offOn(A, 'cmdA') ? +A.cmdA || 0 : 0;
+      const ca =
+        (s.cmd && s.kind === 'reg' && offOn(A, 'cmdA') ? +A.cmdA || 0 : 0) +
+        (s.cmd && s.kind === 'reg' && fxHas(A, /^Epigenetic Trigger/) ? 2 : 0);
       add(
         K + (eng ? 'e' : 's') + ((ldr || ca) && eng ? 'L' : ''),
         ((ldr || ca) && eng ? (ldr ? 'Leader' : 'Command Stand') : nm) +
@@ -843,10 +845,13 @@ function hitSources(g, parry) {
   return S;
 }
 function rollHits(g, n, parry) {
-  const isHit = v => v === 1 || (v <= g.hitOn && v !== 6);
+  const isHit0 = v => v === 1 || (v <= g.hitOn && v !== 6);
   const rolls = [];
   for (let i = 0; i < n; i++) rolls.push({ v: d6(), re: false });
-  const P = rrPlan(hitSources(g, parry));
+  /* No Matter the Price: no re-rolls, and each failed hit becomes a hit that costs the regiment a wound */
+  g.nmtpMiss = g.nmtp ? rolls.filter(r => !isHit0(r.v)).length : 0;
+  const isHit = g.nmtp ? () => true : isHit0;
+  const P = g.nmtp ? rrPlan([]) : rrPlan(hitSources(g, parry));
   g.rrNotes = P.notes.concat(
     parry && (g.flurry || g.fiend || g.opp || g.blessed || g.reroll6 || g.eccentric)
       ? ['Parry: no hit re-rolls']
@@ -1346,6 +1351,37 @@ function renderCombat0() {
     });
     if (cb.step === 'att' && cb.groups.some(g => g.blessable) && blessOk(base(cb.att)))
       s1.appendChild(blessAsk('A', sA));
+    /* No Matter the Price (Spires Mutation), declared before rolling to hit */
+    {
+      const A0 = base(cb.att);
+      if (
+        cb.step === 'att' &&
+        cb.type === 'clash' &&
+        A0 &&
+        A0.charName &&
+        upgOf(A0, /No Matter the Price/) &&
+        frRoles(A0).includes('Clone') &&
+        !A0.nmtpUsed
+      ) {
+        const lab = document.createElement('label');
+        lab.className = 'row hint bless-q';
+        const x = document.createElement('input');
+        x.type = 'checkbox';
+        x.dataset.who = 'A';
+        x.checked = !!cb.nmtp;
+        x.onchange = () => {
+          cb.nmtp = x.checked;
+          renderCombat();
+        };
+        lab.append(
+          x,
+          document.createTextNode(
+            `${sA}: No Matter the Price (once per game)? Every failed hit becomes a hit and costs this regiment 1 wound; no re-rolls.`
+          )
+        );
+        s1.appendChild(lab);
+      }
+    }
     if (cb.step === 'att')
       s1.appendChild(
         cbtn(
@@ -1358,7 +1394,26 @@ function renderCombat0() {
               });
               cb.blessUsedA = true;
             }
+            if (cb.nmtp) cb.groups.forEach(g => (g.nmtp = true));
             cb.groups.forEach((g, gi) => rollHits(g, g.nUse, parry));
+            if (cb.nmtp) {
+              const A0 = base(cb.att),
+                miss = cb.groups.reduce((a, g) => a + (g.nmtpMiss || 0), 0);
+              state.units = state.units.map(x =>
+                x.id === cb.att ? Object.assign({}, x, { nmtpUsed: true }) : x
+              );
+              if (miss)
+                srQueue({
+                  type: 'freform',
+                  att: cb.att,
+                  tgt: cb.att,
+                  inAct: false,
+                  resumeAct: false,
+                  preWounds: miss,
+                  selfTitle: 'No Matter the Price: ' + (A0.short || A0.name),
+                  selfText: `${miss} failed hit${miss === 1 ? '' : 's'} became hits: ${A0.short || A0.name} suffers ${miss} wound${miss === 1 ? '' : 's'}. Morale Tests at the end of the action.`
+                });
+            }
             glimApply();
             cb.hits = cb.groups.reduce((a, g) => a + g.hits, 0);
             cb.wounds = 0;

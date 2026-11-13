@@ -316,6 +316,9 @@ function frRoles(u, char) {
   if (f === 'Weaver Courts' && !char && !r.some(x => /^Court of/.test(x)))
     r.push('Court of ' + (frG(u.side, 'wc').court || 'Spring'));
   if (u.vetRole && !char && !r.includes('Veteran')) r.push('Veteran');
+  /* Lineage Commander: the Bound Clones it leads gain the Husk role */
+  if (!char && f === 'Spires' && u.charName && !r.includes('Husk') && upgOf(u, /Lineage Commander/))
+    r.push('Husk');
   if (char && f === 'Yoroni' && /Daimyo/.test(u.charName || ''))
     r = r.filter(x => !['Ka', 'Chi', 'Fu', 'Sui', 'Mu'].includes(x)).concat([u.daimyoIdeal || 'Ka']);
   return r;
@@ -733,6 +736,21 @@ function frAfterAct(a, units) {
       AL.dead ? { onTable: false, destroyed: true, status: 'Destroyed', destroyedRound: state.round } : {}
     );
     out.notes.push('Decay: ' + n + ' wounds' + (AL.dead ? ', destroyed' : ''));
+    if (n && u.charName && upgOf(u, /Degenerative Aura/))
+      engaged(u).forEach(e0 => {
+        const e = typeof e0 === 'string' ? byId(e0) : e0,
+          j = e && units.findIndex(x => x.id === e.id);
+        if (!e || j < 0) return;
+        const k = live(e),
+          A2 = allocate(units[j], k);
+        units[j] = Object.assign(
+          {},
+          units[j],
+          { wounds: A2.w, auxWounds: A2.aw },
+          A2.dead ? { onTable: false, destroyed: true, status: 'Destroyed', destroyedRound: state.round } : {}
+        );
+        out.notes.push('Degenerative Aura: ' + (e.short || e.name) + ' takes ' + k + ' wounds');
+      });
   }
   if (f === 'Weaver Courts' && a.actions.some(x => x.type === 'clash' || x.type === 'volley')) {
     const s = Math.min(3, (+u.seeds || 0) + 1);

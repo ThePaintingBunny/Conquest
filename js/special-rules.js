@@ -265,6 +265,17 @@ function srFirstAct(u) {
 function seizeAdv(u) {
   return all().some(x => x.side === u.side && x.onTable && !x.destroyed && upgOf(x, /Seize the Advantage/));
 }
+/* Endocrine Overstimulation (Spires): friendly regiments within 8″ of the character roll 2D6, highest, for the Charge */
+function endocrineNear(u) {
+  return all().some(
+    x =>
+      x.side === u.side &&
+      x.onTable &&
+      !x.destroyed &&
+      upgOf(x, /Endocrine Overstimulation/) &&
+      (x.id === u.id || polyDist(corners(x), corners(u)) <= 8)
+  );
+}
 function srChargeBonus(u, t) {
   let b = 0;
   const F = fx(u).concat((u.rules || []).filter(r => /^Charge \+\d+″/.test(r) && !fx(u).includes(r)));
@@ -1023,6 +1034,12 @@ function srActions(u, out, used, eng, blocked) {
   if (!act || act.cur) return;
   const R = RU(u),
     bar = hasBarrage(u);
+  /* Preservation Protocols (Spires): Combat and Out-of-Combat Action */
+  if (u.charName && upgOf(u, /Preservation Protocols/) && frRoles(u).includes('Husk'))
+    out.push({
+      type: 'pres',
+      why: (+u.wounds || 0) + (+u.charWounds || 0) ? blocked('pres') : 'No wounds to remove'
+    });
   /* Implacable (Old Dominion): Break Their Lines, a Combat and Out-of-Combat Action */
   if (u.charName && upgOf(u, /Implacable/) && !act.extraFx.includes('Linebreaker (Break Their Lines)'))
     out.push({ type: 'btl', why: blocked('btl') });
@@ -1240,8 +1257,10 @@ function nodeOnDeath(T, foes) {
     return e && e.onTable && !e.destroyed;
   });
   if (!ids.length) return;
+  const chain = nodeChainPlan(T),
+    gone = [T.id].concat(chain.map(x => x.id));
   putState({
-    units: state.units.map(x => (x.id === T.id ? Object.assign({}, x, { nodeGone: true }) : x)),
+    units: state.units.map(x => (gone.includes(x.id) ? Object.assign({}, x, { nodeGone: true }) : x)),
     lastTitle: N(T.side) + ' · Catabolic Node',
     lastText: `${T.short || T.name} is destroyed and its Catabolic Node detonates: rolled ${d}, every enemy that was engaged with it takes ${d + 4} Hits, no Morale.`
   }).catch(() => {});
@@ -1263,12 +1282,15 @@ function nodeOnDeath(T, foes) {
       selfText: `${T.short || T.name} is destroyed and its Catabolic Node detonates (rolled ${d}): ${e.short || e.name} takes ${d + 4} Hits. No Morale Tests.`
     });
   });
+  nodeChainFire(chain);
 }
 /* Catabolic Node: Detonate */
 function offNode(u) {
   const eng = engaged(u);
   if (!eng.length) return true;
-  const d = d6();
+  const d = d6(),
+    chain = nodeChainPlan(u),
+    gone = [u.id].concat(chain.map(x => x.id));
   act.actions.push({
     type: 'node',
     free: true,
@@ -1277,7 +1299,7 @@ function offNode(u) {
     roll: d
   });
   putState({
-    units: state.units.map(x => (x.id === u.id ? Object.assign({}, x, { nodeGone: true }) : x)),
+    units: state.units.map(x => (gone.includes(x.id) ? Object.assign({}, x, { nodeGone: true }) : x)),
     lastTitle: N(u.side) + ' · Catabolic Node',
     lastText:
       (u.short || u.name) +
@@ -1315,8 +1337,71 @@ function offNode(u) {
     selfTitle: 'Catabolic Node',
     selfText: `The blast also hits ${u.short || u.name}: ${d} Hits. No Morale Tests.`
   });
+  nodeChainFire(chain);
   render();
   return true;
+}
+/* Chain Reaction (Spires Eccentricity, Biomancer Warlord): a detonation may set off a second friendly Catabolic Node within
+   18″, and that one a third within 18″ of it; the second adds 2 and the third 4 (taken here as extra Hits on each enemy
+   it hits). The map detonates the nearest node that is engaged, so the chain always does something. */
+function nodeChainPlan(src) {
+  const wl = supWl(src.side);
+  if (!wl || !wl.charName || !/Biomancer/.test(wl.charName) || !upgOf(wl, /Chain Reaction/)) return [];
+  const out = [];
+  let from = src;
+  for (let step = 1; step <= 2; step++) {
+    const seen = [src.id].concat(out.map(x => x.id));
+    const nx = all()
+      .filter(
+        x =>
+          x.side === src.side &&
+          x.onTable &&
+          !x.destroyed &&
+          !seen.includes(x.id) &&
+          offOn(x, 'node') &&
+          !x.nodeGone &&
+          engaged(x).length &&
+          polyDist(corners(from), corners(x)) <= 18
+      )
+      .sort((a, b) => polyDist(corners(from), corners(a)) - polyDist(corners(from), corners(b)))[0];
+    if (!nx) break;
+    out.push(nx);
+    from = nx;
+  }
+  return out;
+}
+function nodeChainFire(chain) {
+  chain.forEach((nx, i) => {
+    const d = d6(),
+      plus = i === 0 ? 2 : 4;
+    toast(`Chain Reaction: ${nx.short || nx.name}’s Catabolic Node detonates too (rolled ${d}, +${plus}).`);
+    engaged(nx).forEach(e =>
+      srQueue({
+        type: 'lethal',
+        att: nx.id,
+        tgt: e.id,
+        inAct: false,
+        lethalHits: d + 4 + plus,
+        lethalX: 0,
+        lethalLost: 0,
+        lethalLabel: 'Catabolic Node (Chain Reaction)',
+        selfTitle: 'Chain Reaction',
+        selfText: `${nx.short || nx.name}’s Catabolic Node detonates in the chain (rolled ${d}, +${plus}): ${e.short || e.name} takes ${d + 4 + plus} Hits. No Morale Tests.`
+      })
+    );
+    srQueue({
+      type: 'lethal',
+      att: nx.id,
+      tgt: nx.id,
+      inAct: false,
+      lethalHits: d,
+      lethalX: 0,
+      lethalLost: 0,
+      lethalLabel: 'Catabolic Node (Chain Reaction)',
+      selfTitle: 'Chain Reaction',
+      selfText: `The blast also hits ${nx.short || nx.name}: ${d} Hits. No Morale Tests.`
+    });
+  });
 }
 function srFinishAction(u, c, entry) {
   if (c.flame) entry.type = 'flame';

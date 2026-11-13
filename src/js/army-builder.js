@@ -251,6 +251,8 @@ function joinable(w, r) {
   const u = bldUnit(r.unit);
   if (!u) return false;
   if (u.type === 'Monster') return false;
+  /* Lineage Commander (Spires): the Lineage Highborne joins a Bound Clones regiment, and only that */
+  if ((w.upg || []).includes('Lineage Commander')) return r.unit === 'Bound Clones';
   const R = wbRules(c);
   return (
     u.type === c.type ||
@@ -755,7 +757,7 @@ function upgProblems(w, wi) {
     if (!e) return;
     const why = upgWhy(e, c, wi);
     if (why && !/^Taken/.test(why)) out.push(n + ': ' + why + '.');
-    if (!UPG_MULTI.test(e[0]) && !(e[0] === 'Crusading Bull' && holyCrusadeWb(w))) {
+    if (!UPG_MULTI.test(e[0]) && !(e[0] === 'Crusading Bull' && holyCrusadeWb(w)) && bld.fac !== 'Spires') {
       const k = e[0].replace(/^Discipline.*/, 'Discipline');
       cats[k] = (cats[k] || 0) + 1;
     }
@@ -763,6 +765,30 @@ function upgProblems(w, wi) {
   Object.entries(cats).forEach(([k, v]) => {
     if (v > 1) out.push(`More than one ${k} upgrade on the ${c.name}.`);
   });
+  /* Spires 2026: how many Apparatuses, Mutations and Eccentricities each character may take */
+  if (bld.fac === 'Spires') {
+    const U = (w.upg || []).map(upgFind).filter(Boolean),
+      ame = U.filter(e => /^(Apparatus|Mutation|Eccentricity)$/.test(e[0])),
+      app = U.filter(e => e[0] === 'Apparatus').length,
+      me = U.filter(e => /^(Mutation|Eccentricity)$/.test(e[0])).length;
+    if (/^(Pheromancer|Biomancer)$/.test(c.name) && ame.length > 2)
+      out.push(
+        `The ${c.name} may take up to 2 Apparatuses, Mutations or Eccentricities (has ${ame.length}).`
+      );
+    if (/^(High Clone Executor|Lineage Highborne|Lineage Prideborne|Merchant Prince)$/.test(c.name)) {
+      if (app) out.push(`The ${c.name} cannot take Apparatuses.`);
+      if (me > 2) out.push(`The ${c.name} may take up to 2 Mutations or Eccentricities (has ${me}).`);
+    }
+    if (c.name === 'Mimetic Assassin') {
+      if (app) out.push('The Mimetic Assassin cannot take Apparatuses.');
+      if (me > 1) out.push('The Mimetic Assassin may take a single Mutation or Eccentricity.');
+    }
+    if (
+      U.some(e => e[1] === 'Infiltration Optimization Strain') &&
+      U.some(e => e[1] === 'Marksman Optimization Strain')
+    )
+      out.push('Infiltration and Marksman Optimization Strain cannot be taken together.');
+  }
   /* City States 2026: Bestowed Relics (Banner, Armor, Weapon, Inscription) per character, Modifications, one Mastery.
      Long Lineage lets the character take one more Character Upgrade. */
   if (bld.fac === 'City States') {

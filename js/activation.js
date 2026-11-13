@@ -44,11 +44,13 @@ function drawEvents(u) {
     heal += fh;
     notes.push('Underspire Regeneration (+' + fh + ')');
   }
-  if ((u.abilities || []).some(a => /^Biotic Renewal/.test(a[0]))) {
-    const v = d6(),
-      h = u.type === 'inf' ? v : Math.ceil(v / 2);
-    heal += h;
-    notes.push('Biotic Renewal rolled ' + v);
+  if (u.charName && upgOf(u, /Biotic Renewal/)) {
+    heal += 3;
+    notes.push('Biotic Renewal: heals 3');
+  }
+  if (u.charName && upgOf(u, /Ferro-Ossified Carapace/) && act && act.id === u.id) {
+    act.extraFx.push('Hardened (1) (Ferro-Ossified Carapace)');
+    notes.push('Ferro-Ossified Carapace: Hardened (1) until the end of the round');
   }
   if (heal && !canHeal(u)) {
     notes.push('Primal Cacophony: it cannot Heal');

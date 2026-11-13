@@ -49,6 +49,9 @@ function chStatsX(u) {
     const m = String(g.src).match(/^Soul Reaper \(\+(\d+) Attacks\)/);
     if (m) s.A = (+s.A || 0) + +m[1];
   });
+  /* Convulsive Doom (Spires): +2 Attacks when it Dies Fighting */
+  if (typeof cb !== 'undefined' && cb && cb.dieFight && cb.att === u.id && upgOf(u, /Convulsive Doom/))
+    s.A = (+s.A || 0) + 2;
   itemSpec(u).forEach(([n, S]) => {
     const d = typeof S.cs === 'function' ? S.cs(u) : S.cs;
     if (d)

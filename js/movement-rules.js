@@ -199,6 +199,12 @@ function finishAction() {
   }
   if (c.segs)
     entry.segs = c.segs.map(s => ({ mode: s.mode, amt: +s.amt.toFixed(2), cost: +s.cost.toFixed(2) }));
+  if (c.type === 'pres') {
+    state.units = state.units.map(x =>
+      x.id === act.id ? Object.assign({}, x, { wounds: 0, auxWounds: 0, charWounds: 0 }) : x
+    );
+    toast('Preservation Protocols: all wounds removed from the character and its regiment.');
+  }
   if (c.type === 'btl' && !act.extraFx.includes('Linebreaker (Break Their Lines)'))
     act.extraFx.push('Linebreaker (Break Their Lines)');
   if (c.type === 'inspire' && !act.extraFx.includes('Inspired (Inspire action)'))
@@ -380,7 +386,13 @@ function chargeFixed(u) {
 function armyHas(side, re) {
   return (state.army?.[side] || []).some(x => re.test(x));
 }
+function lethargyT(u) {
+  const t =
+    act && act.id === u.id && act.cur && act.cur.type === 'charge' && act.cur.target && byId(act.cur.target);
+  return !!t && upgOf(t, /Induce Lethargy/);
+}
 function jugg(u) {
+  if (lethargyT(u) && !fx(u).some(x => /Clockwork Parade|^Aristia/.test(x))) return false;
   return hasRule(u, /^Juggernaut/) || fx(u).some(x => /Clockwork Parade|^Aristia/.test(x));
 }
 function chargeMax(u) {

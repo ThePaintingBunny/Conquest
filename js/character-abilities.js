@@ -254,6 +254,19 @@ const CHAB = {
 function chAbil(u) {
   if (!u || !u.charName) return [];
   let L = CHAB[u.charName] || [];
+  /* Grotesque Elixir (Spires Experiment): once per game, a friendly Monstrosity within 12″ heals D6 */
+  if (upgOf(u, /Grotesque Elixir/) && !(base(u.id) || {}).elixirUsed)
+    L = L.concat([
+      {
+        n: 'Grotesque Elixir',
+        kind: 'action',
+        rng: 12,
+        tgt: 'friend',
+        req: 'Monstrosity',
+        fn: 'elixir',
+        d: 'Once per game: a friendly Monstrosity within 12″ heals D6 wounds.'
+      }
+    ]);
   if (upgOf(u, /Schemophore/) && !L.some(a => a.n === 'Dark Shepherd'))
     L = L.concat((CHAB.Hierodeacon || []).filter(a => a.n === 'Dark Shepherd'));
   if (upgOf(u, /Reaping Crook/))
@@ -389,6 +402,20 @@ async function useAbil(cid, name, tid) {
     line =
       `Essence Transfer: ${nm(T)} takes ${lo} (rolled ${r1}, ${r2})` +
       (H ? `, ${nm(H)} heals 4` : ', nobody needed healing');
+  }
+  if (a.fn === 'elixir') {
+    const r = d6(),
+      h = Math.min(r, +T.wounds || 0);
+    units = units.map(x =>
+      x.id === T.id
+        ? Object.assign({}, x, { wounds: (+x.wounds || 0) - h })
+        : x.id === u.id
+          ? Object.assign({}, x, { elixirUsed: true })
+          : x
+    );
+    if (T.id === u.id)
+      units = units.map(x => (x.id === u.id ? Object.assign({}, x, { elixirUsed: true }) : x));
+    line = `Grotesque Elixir on ${nm(T)}: rolled ${r}, heals ${h}`;
   }
   if (a.fn === 'unstable') {
     const r = d6(),

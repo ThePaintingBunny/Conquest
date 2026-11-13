@@ -136,8 +136,14 @@ const ITEMS = {
   'Tourney Champion': { c: ['Impact (+2)'] },
   'Hyperadrenal Stimulation': { r: ['Counter Attack'] },
   'Induce Lethargy': { label: 'Induce Lethargy (chargers lose Unstoppable and Juggernaut)' },
-  'Ferro-Ossified Carapace': { r: ['Hardened (1)'] },
-  Convulsive: { cs: { A: 2 }, c: ['Always Dies Fighting'] },
+  /* Spires 2026: Ferro-Ossified Carapace is a Draw Event (activation.js); Convulsive Doom adds +2 Attacks only while
+     Dying Fighting (chStatsX) */
+  'Master of Flesh': {
+    army: u => !!u.warlord,
+    aura: 12,
+    to: () => true,
+    r: ['Epigenetic Trigger (Master of Flesh)']
+  },
   'Linked Neuroreceptors': {
     c: u => ((u.temp || []).some(g => /^Strain: /.test(g.src)) ? ['Untouchable'] : [])
   },

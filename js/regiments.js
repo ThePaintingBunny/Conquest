@@ -94,6 +94,7 @@ const ACT = {
   creform: { n: 'Combat Reform', d: 'Resolve test, then reshape' },
   inspire: { n: 'Inspire', d: '+1 Clash this activation' },
   btl: { n: 'Break Their Lines', d: 'Implacable: every stand gains Linebreaker' },
+  pres: { n: 'Preservation Protocols', d: 'Remove all wounds from the character and its Husk regiment' },
   cast: { n: 'Spellcasting', d: 'Cast one of its spells' },
   occupy: { n: 'Occupy building', d: 'Move into it; ends the activation' },
   leave: { n: 'Leave building', d: 'Takes both actions; ends the activation' },

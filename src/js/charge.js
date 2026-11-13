@@ -8,7 +8,7 @@ function chargeRollBtn(label, go, need) {
   b.onclick = async () => {
     b.disabled = true;
     const u = byId(act.id),
-      two = u && fxHas(u, /2D6 Charge/);
+      two = u && (fxHas(u, /2D6 Charge/) || endocrineNear(u));
     const d = [d6()].concat(two ? [d6()] : []),
       r = Math.max(...d);
     pubRoll(
@@ -84,7 +84,7 @@ function resolveCharge(roll, reroll) {
       }
     } else c.stage = 'blocked';
   } else if (
-    (hasRule(u, /Unstoppable/) || u.bearer) &&
+    ((hasRule(u, /Unstoppable/) && !lethargyT(u)) || u.bearer) &&
     !c.rerolled &&
     chargeFixed(u) == null &&
     !noChargeReroll(u)

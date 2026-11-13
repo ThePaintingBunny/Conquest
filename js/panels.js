@@ -786,6 +786,7 @@ function renderCard() {
     crally: '⚑',
     inspire: '★',
     btl: '⛨',
+    pres: '✚',
     memory: '☠︎',
     withdraw: '↩'
   };
