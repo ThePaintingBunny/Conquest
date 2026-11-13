@@ -7,11 +7,11 @@
 <title>Vale of Banners Battle Map</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="css/base.css?v=202611130748">
-<link rel="stylesheet" href="css/regiment-card.css?v=202611130748">
-<link rel="stylesheet" href="css/themes.css?v=202611130748">
-<link rel="stylesheet" href="css/regiment-tab.css?v=202611130748">
-<link rel="stylesheet" href="css/menu.css?v=202611130748">
+<link rel="stylesheet" href="css/base.css?v=202611130811">
+<link rel="stylesheet" href="css/regiment-card.css?v=202611130811">
+<link rel="stylesheet" href="css/themes.css?v=202611130811">
+<link rel="stylesheet" href="css/regiment-tab.css?v=202611130811">
+<link rel="stylesheet" href="css/menu.css?v=202611130811">
 <style>.fan-note{max-width:1240px;margin:24px auto 32px;font-size:13px;color:var(--muted)}.fan-note a{color:inherit}</style>
 </head>
 <body>
@@ -33,9 +33,8 @@
       <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9z" fill="#F3E6C4"/></marker></defs>
       <g id="legend"></g>
       <rect class="grass" x="170" y="40" width="504" height="336" rx="6"/>
-      <g transform="rotate(180 422 208)"><ellipse class="patch" cx="250" cy="100" rx="60" ry="26" opacity="0.6"/><ellipse class="patch" cx="520" cy="340" rx="70" ry="24" opacity="0.6"/><ellipse class="patch" cx="620" cy="190" rx="34" ry="52" opacity="0.4"/><ellipse class="patch" cx="215" cy="250" rx="34" ry="48" opacity="0.4"/><ellipse class="patch" cx="420" cy="210" rx="80" ry="34" opacity="0.35"/></g>
       <g id="tufts" class="tuft" stroke-width="1" fill="none" stroke-linecap="round"></g>
-      <path transform="rotate(180 422 208)" d="M176 228 C250 204 300 280 380 258 S480 150 560 186 S640 216 668 204" fill="none" stroke="#C9B27A" stroke-width="6" stroke-linecap="round" opacity="0.5"/>
+      <path id="road" transform="rotate(180 422 208)" d="M176 228 C250 204 300 280 380 258 S480 150 560 186 S640 216 668 204" fill="none" stroke="#C9B27A" stroke-width="6" stroke-linecap="round" opacity="0.5"/>
       <g stroke="#F4F1E4" stroke-width="0.6" stroke-dasharray="3 6" opacity="0.3">
         <line x1="254" y1="40" x2="254" y2="376"/><line x1="338" y1="40" x2="338" y2="376"/><line x1="422" y1="40" x2="422" y2="376"/><line x1="506" y1="40" x2="506" y2="376"/><line x1="590" y1="40" x2="590" y2="376"/>
         <line x1="170" y1="124" x2="674" y2="124"/><line x1="170" y1="208" x2="674" y2="208"/><line x1="170" y1="292" x2="674" y2="292"/></g>
@@ -102,55 +101,55 @@
 
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform. R toggles the ruler.</p>
 </div>
-<footer class="fan-note"><p>Version 2026-11-13 07:48 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
+<footer class="fan-note"><p>Version 2026-11-13 08:11 UTC. Unofficial, fan-made table for <em>Conquest: The Last Argument of Kings</em>. Conquest, its rules, factions and unit profiles belong to <a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. Unit data and rule summaries are paraphrased from their free army lists; always check the <a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>
 <script src="firebase-config.js"></script>
 <script src="shim.js"></script>
-<script src="js/data/glossary.js?v=202611130748"></script>
-<script src="js/data/factions.js?v=202611130748"></script>
-<script src="js/data/upgrades.js?v=202611130748"></script>
-<script src="js/data/spells.js?v=202611130748"></script>
-<script src="js/data/supremacy.js?v=202611130748"></script>
-<script src="js/data/items.js?v=202611130748"></script>
-<script src="js/data/officers.js?v=202611130748"></script>
-<script src="js/data/terrain.js?v=202611130748"></script>
-<script src="js/core.js?v=202611130748"></script>
-<script src="js/terrain.js?v=202611130748"></script>
-<script src="js/regiments.js?v=202611130748"></script>
-<script src="js/march.js?v=202611130748"></script>
-<script src="js/controls.js?v=202611130748"></script>
-<script src="js/movement-rules.js?v=202611130748"></script>
-<script src="js/charge.js?v=202611130748"></script>
-<script src="js/activation.js?v=202611130748"></script>
-<script src="js/draw.js?v=202611130748"></script>
-<script src="js/panels.js?v=202611130748"></script>
-<script src="js/combat.js?v=202611130748"></script>
-<script src="js/split-clash.js?v=202611130748"></script>
-<script src="js/scenarios.js?v=202611130748"></script>
-<script src="js/online.js?v=202611130748"></script>
-<script src="js/targeting.js?v=202611130748"></script>
-<script src="js/cards.js?v=202611130748"></script>
-<script src="js/turns.js?v=202611130748"></script>
-<script src="js/rounds.js?v=202611130748"></script>
-<script src="js/glossary.js?v=202611130748"></script>
-<script src="js/encyclopedia.js?v=202611130748"></script>
-<script src="js/units.js?v=202611130748"></script>
-<script src="js/army-builder.js?v=202611130748"></script>
-<script src="js/test-field.js?v=202611130748"></script>
-<script src="js/faction-rules.js?v=202611130748"></script>
-<script src="js/character-abilities.js?v=202611130748"></script>
-<script src="js/spells.js?v=202611130748"></script>
-<script src="js/supremacy.js?v=202611130748"></script>
-<script src="js/special-rules.js?v=202611130748"></script>
-<script src="js/duels.js?v=202611130748"></script>
-<script src="js/character-specials.js?v=202611130748"></script>
-<script src="js/supremacy-effects.js?v=202611130748"></script>
-<script src="js/items.js?v=202611130748"></script>
-<script src="js/setup.js?v=202611130748"></script>
-<script src="js/menu.js?v=202611130748"></script>
-<script src="js/calculator.js?v=202611130748"></script>
-<script src="js/menu-pages.js?v=202611130748"></script>
-<script src="js/turnbar.js?v=202611130748"></script>
-<script src="js/main.js?v=202611130748"></script>
+<script src="js/data/glossary.js?v=202611130811"></script>
+<script src="js/data/factions.js?v=202611130811"></script>
+<script src="js/data/upgrades.js?v=202611130811"></script>
+<script src="js/data/spells.js?v=202611130811"></script>
+<script src="js/data/supremacy.js?v=202611130811"></script>
+<script src="js/data/items.js?v=202611130811"></script>
+<script src="js/data/officers.js?v=202611130811"></script>
+<script src="js/data/terrain.js?v=202611130811"></script>
+<script src="js/core.js?v=202611130811"></script>
+<script src="js/terrain.js?v=202611130811"></script>
+<script src="js/regiments.js?v=202611130811"></script>
+<script src="js/march.js?v=202611130811"></script>
+<script src="js/controls.js?v=202611130811"></script>
+<script src="js/movement-rules.js?v=202611130811"></script>
+<script src="js/charge.js?v=202611130811"></script>
+<script src="js/activation.js?v=202611130811"></script>
+<script src="js/draw.js?v=202611130811"></script>
+<script src="js/panels.js?v=202611130811"></script>
+<script src="js/combat.js?v=202611130811"></script>
+<script src="js/split-clash.js?v=202611130811"></script>
+<script src="js/scenarios.js?v=202611130811"></script>
+<script src="js/online.js?v=202611130811"></script>
+<script src="js/targeting.js?v=202611130811"></script>
+<script src="js/cards.js?v=202611130811"></script>
+<script src="js/turns.js?v=202611130811"></script>
+<script src="js/rounds.js?v=202611130811"></script>
+<script src="js/glossary.js?v=202611130811"></script>
+<script src="js/encyclopedia.js?v=202611130811"></script>
+<script src="js/units.js?v=202611130811"></script>
+<script src="js/army-builder.js?v=202611130811"></script>
+<script src="js/test-field.js?v=202611130811"></script>
+<script src="js/faction-rules.js?v=202611130811"></script>
+<script src="js/character-abilities.js?v=202611130811"></script>
+<script src="js/spells.js?v=202611130811"></script>
+<script src="js/supremacy.js?v=202611130811"></script>
+<script src="js/special-rules.js?v=202611130811"></script>
+<script src="js/duels.js?v=202611130811"></script>
+<script src="js/character-specials.js?v=202611130811"></script>
+<script src="js/supremacy-effects.js?v=202611130811"></script>
+<script src="js/items.js?v=202611130811"></script>
+<script src="js/setup.js?v=202611130811"></script>
+<script src="js/menu.js?v=202611130811"></script>
+<script src="js/calculator.js?v=202611130811"></script>
+<script src="js/menu-pages.js?v=202611130811"></script>
+<script src="js/turnbar.js?v=202611130811"></script>
+<script src="js/main.js?v=202611130811"></script>
 
 </body>
 </html>

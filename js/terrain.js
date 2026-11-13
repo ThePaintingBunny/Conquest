@@ -417,6 +417,19 @@ function building(cx, cy, rx, ry, g) {
   el('rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, fill: '#9C5A3A', opacity: 0.35 }, g);
 }
 const TDRAW = { forest, hill, rocks, swamp, water, ruins, field, rubble, thorns, building };
+/* base colour under each terrain piece (the footprint the rules use) */
+const TBASE = {
+  forest: '#3F5F2C',
+  hill: '#9AA65C',
+  rocks: '#6F6C66',
+  swamp: '#4E5B3A',
+  water: '#3E6A86',
+  ruins: '#857A66',
+  field: '#B8A45A',
+  rubble: '#7A6A52',
+  thorns: '#4B5233',
+  building: '#8C8571'
+};
 const TLAYER = {
   forest: 'forests',
   hill: 'hills',
@@ -438,6 +451,12 @@ function drawTerrain() {
     k = JSON.stringify(T) + '|' + (typeof terrSel === 'number' ? terrSel : '');
   if (k === terrKey) return;
   terrKey = k;
+  /* the decorative road turns with the table for the player on the far side */
+  const road = $('road');
+  if (road) {
+    if (FLIP) road.removeAttribute('transform');
+    else road.setAttribute('transform', 'rotate(180 422 208)');
+  }
   ['forests', 'hills', 'rocks', 'terr-low'].forEach(i => ($(i).innerHTML = ''));
   T.forEach((t, i) => {
     const g = el('g', { 'data-tid': String(i), class: 'tpiece' }, $(TLAYER[t.type] || 'rocks'));
@@ -451,7 +470,32 @@ function drawTerrain() {
       ' · ' +
       I.kw.join(', ') +
       (I.kw.includes('Garrison') ? ' · Capacity ' + I.cap + ', Defense +' + I.def : '');
-    (TDRAW[t.type] || forest)(px(t.x), py(t.y), t.rx * S, t.ry * S, g);
+    /* The piece's base: the ellipse drawn here is exactly the area the rules use. Decoration is clipped to it,
+       and its outline is always visible (solid for terrain that blocks movement, dashed for terrain you can enter). */
+    const cx = px(t.x),
+      cy = py(t.y),
+      rx = t.rx * S,
+      ry = t.ry * S,
+      cid = 'tclip' + i,
+      blocks = I.kw.includes('Impassable') || I.kw.includes('Garrison');
+    el('ellipse', { cx, cy, rx, ry }, el('clipPath', { id: cid }, g));
+    el('ellipse', { cx, cy, rx, ry, fill: TBASE[t.type] || '#5E6B45', 'fill-opacity': 0.55 }, g);
+    (TDRAW[t.type] || forest)(cx, cy, rx, ry, el('g', { 'clip-path': 'url(#' + cid + ')' }, g));
+    el(
+      'ellipse',
+      {
+        cx,
+        cy,
+        rx,
+        ry,
+        fill: 'none',
+        stroke: blocks ? '#2B2620' : '#F3E6C4',
+        'stroke-opacity': blocks ? 0.85 : 0.7,
+        'stroke-width': blocks ? 2 : 1.4,
+        'stroke-dasharray': blocks ? '' : '5 3'
+      },
+      g
+    );
     if (terrSel === i)
       el(
         'ellipse',

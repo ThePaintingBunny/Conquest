@@ -300,7 +300,7 @@ function rayHit(A, B, d) {
 }
 /* Does a regiment outline P overlap a terrain ellipse? Tests points along every edge (and the centre) against the ellipse,
    and points around the ellipse against the outline, so small pieces inside a regiment are caught too.
-   ys scales the ellipse's height (Impassable rocks are drawn a little flatter than their box). */
+   The ellipse is the terrain's drawn outline. */
 function polyHitsEllipse(P, t, ys) {
   const ry = t.ry * (ys || 1),
     inE = q => ((q[0] - t.x) / t.rx) ** 2 + ((q[1] - t.y) / ry) ** 2 <= 1;
@@ -334,7 +334,7 @@ function terrBlockPoly(u, P, final, skip) {
   if (u.garrison) return null;
   const fly = rh(RU(u), 'Fly');
   for (const t of terrainOf()) {
-    if (tHas(t, 'Impassable') && (!fly || final) && polyHitsEllipse(P, t, 0.85)) return tInfo(t).name;
+    if (tHas(t, 'Impassable') && (!fly || final) && polyHitsEllipse(P, t, 1)) return tInfo(t).name;
     if (tHas(t, 'Garrison') && tId(t) !== skip && polyHitsEllipse(P, t, 1)) return tInfo(t).name;
   }
   return null;

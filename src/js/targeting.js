@@ -18,7 +18,7 @@ function poseOk(u, p, opt) {
       if (
         tHas(t, 'Impassable') &&
         !rh(u.rules || [], 'Fly') &&
-        pts.some(q => ((q[0] - t.x) / t.rx) ** 2 + ((q[1] - t.y) / (t.ry * 0.85)) ** 2 <= 1)
+        pts.some(q => ((q[0] - t.x) / t.rx) ** 2 + ((q[1] - t.y) / t.ry) ** 2 <= 1)
       )
         return false;
       if (tHas(t, 'Garrison') && pts.some(q => inT(t, q, 1))) return false;
