@@ -585,10 +585,8 @@ function frRoundOptions0(side) {
         def: s === 'Summer'
       })
     );
-  if (facs.includes('Spires') && !frG(side, 'sp').sect)
-    ['Underspire', 'Directorate', 'Sovereign Lineage'].forEach(s =>
-      out.push({ id: 'sect:' + s, label: 'Sect: ' + s, def: s === 'Underspire' })
-    );
+  if (facs.includes('Spires') && !spSect(side))
+    SECTS.forEach(s => out.push({ id: 'sect:' + s, label: 'Sect: ' + s, def: s === 'Underspire' }));
   if (facs.includes('Dweghom') && !frG(side, 'dw').creed && !dwCreed(side))
     ['Ardent', 'Tempered', 'Clan'].forEach(c =>
       out.push({ id: 'creed:' + c, label: 'Creed: ' + c, def: c === 'Clan' })

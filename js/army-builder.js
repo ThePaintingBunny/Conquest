@@ -350,6 +350,10 @@ function wlProblems() {
 function bldProblems() {
   const out = [];
   if (!bld.wbs.length) out.push('Add at least one warband.');
+  if (bld.fac === 'Spires' && !bld.sect)
+    out.push(
+      'Choose the army’s Sect (Underspire, Directorate or Sovereign Lineage): every Spires army must follow one.'
+    );
   bld.wbs.forEach((w, i) =>
     wbProblems(w)
       .concat(upgProblems(w, i))
@@ -585,7 +589,10 @@ function bldToList() {
       if (fm) fm.warlordMonster = true;
     }
   }
-  return { faction: f.name, armyRules: f.armyRules.slice(), points: bldTotal(), units };
+  /* Spires: the Sect travels with the list as an army rule */
+  const ar = f.armyRules.slice();
+  if (f.name === 'Spires' && bld.sect) ar.push('Sect: ' + bld.sect);
+  return { faction: f.name, armyRules: ar, points: bldTotal(), units };
 }
 function wbPtsChar(w) {
   const c = bldUnit(w.char);
@@ -1356,6 +1363,35 @@ function armyBuilder(add, mk, onUse, useLabel) {
       bEl('label', { className: 'ab-lab' }, [bEl('span', { textContent: 'Faction' }), fs])
     ])
   );
+  /* Spires: the army is dedicated to one Sect when the list is made */
+  if (bld.fac === 'Spires') {
+    const ss = bEl('select', { className: 'ab-sel ab-sect' });
+    ss.setAttribute('aria-label', 'Sect');
+    ss.appendChild(bEl('option', { value: '', textContent: 'Choose a Sect…' }));
+    SECTS.forEach(n => ss.appendChild(bEl('option', { value: n, textContent: n })));
+    ss.value = bld.sect || '';
+    ss.onchange = () => {
+      bld.sect = ss.value || undefined;
+      abRe();
+    };
+    const SD = {
+      Underspire:
+        'Violent Delirium: Drone regiments can Heal while Broken and gain Indomitable equal to their Resolve bonus from Stands; Drone and Clone regiments gain Regeneration (+2). Abomination (Just Desserts): Regeneration (2).',
+      Directorate:
+        'Lobotomytic Override: once per round, on drawing a Command Card, set it aside face down and activate the next card first, then put the first on the top or bottom of the Command Stack. Abomination (Just Desserts): +2 March.',
+      'Sovereign Lineage':
+        'Magnanimity: Husk regiments gain Inspired and Aimed Shot while they Clash or Volley an enemy below starting strength. Abomination (Just Desserts): Hardened (1).'
+    };
+    top.lastChild.append(
+      bEl('label', { className: 'ab-lab' }, [bEl('span', { textContent: 'Sect' }), ss]),
+      bEl('p', {
+        className: 'ab-sect-d',
+        textContent: bld.sect
+          ? SD[bld.sect]
+          : 'Every Spires army is dedicated to one Sect; it gives the army its Sect ability.'
+      })
+    );
+  }
   if (f0) {
     const probs = bldProblems(),
       nReg = bld.wbs.reduce((a, w) => a + w.regs.length, 0);

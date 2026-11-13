@@ -322,6 +322,16 @@ function frFacs(side) {
     )
   ];
 }
+/* Spires: the army's Sect. Chosen in the army builder (it travels with the list as the army rule "Sect: …"); an army
+   without one (an older list, the test field) can still pick it in the faction panel. */
+const SECTS = ['Underspire', 'Directorate', 'Sovereign Lineage'];
+function spSectList(side) {
+  const a = ((state && state.army && state.army[side]) || []).map(String).find(x => /^Sect: /.test(x));
+  return a ? a.slice(6).trim() : '';
+}
+function spSect(side) {
+  return spSectList(side) || frG(side, 'sp').sect || '';
+}
 function frG(side, k) {
   return Object.assign({}, ((state.fr || {})[side] || {})[k] || {});
 }
@@ -665,7 +675,7 @@ function frFx(u) {
 function frHeal(u) {
   if (
     frFac(u) === 'Spires' &&
-    frG(u.side, 'sp').sect === 'Underspire' &&
+    spSect(u.side) === 'Underspire' &&
     frRoles(u).some(r => r === 'Drone' || r === 'Clone')
   )
     return 2;
@@ -1483,7 +1493,7 @@ function frSummary(side, f) {
         (seeds === 1 ? '' : 's')
     ];
   }
-  if (f === 'Spires') return ['Sect: ' + (g('sp').sect || 'not chosen')];
+  if (f === 'Spires') return ['Sect: ' + (spSect(side) || 'not chosen')];
   if (f === 'Dweghom') {
     const o = g('dw');
     return [(dwCreed(side) || 'No Creed') + ' · Elemental Power ' + (+o.ep || 0) + '/10'];
@@ -1908,24 +1918,28 @@ function frBlock(side, f, mine) {
           )
         )
       );
+    const sect = spSect(side),
+      fromList = !!spSectList(side);
     const r = frRow('Sect:');
-    ['Underspire', 'Directorate', 'Sovereign Lineage'].forEach(s =>
-      r.append(
-        abBtn(
-          (g.sect === s ? '✓ ' : '') + s,
-          () => frSet(side, 'sp', { sect: s }),
-          'ab-tog' + (g.sect === s ? ' on' : '')
+    if (fromList) r.append(bEl('strong', { textContent: sect + ' (from the army list)' }));
+    else
+      SECTS.forEach(s =>
+        r.append(
+          abBtn(
+            (sect === s ? '✓ ' : '') + s,
+            () => frSet(side, 'sp', { sect: s }),
+            'ab-tog' + (sect === s ? ' on' : '')
+          )
         )
-      )
-    );
+      );
     box.append(r);
     box.append(
       ptext(
-        g.sect === 'Underspire'
+        sect === 'Underspire'
           ? 'Underspire: Drone and Clone regiments heal 2 at the start of each activation (applied); Drones may Heal while Broken and have Indomitable from their size.'
-          : g.sect === 'Directorate'
+          : sect === 'Directorate'
             ? 'Directorate: once per round set the drawn card aside and draw the next; apply it with your Command Stack.'
-            : g.sect === 'Sovereign Lineage'
+            : sect === 'Sovereign Lineage'
               ? 'Sovereign Lineage: Husk regiments gain Inspired and Aimed Shot while attacking an enemy below starting strength.'
               : 'Pick the army’s Sect.'
       )

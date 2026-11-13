@@ -113,7 +113,7 @@ function dRules(u) {
   )
     add('Cheerful (+1 Resolve)');
   if (rh(u.rules, 'Just Desserts')) {
-    const s = frG(u.side, 'sp').sect || '';
+    const s = spSect(u.side);
     if (/Sovereign/.test(s)) add('Hardened (1)');
     else if (/Directorate/.test(s)) add('March +2 (Just Desserts)');
     else if (/Underspire/.test(s)) add('Regeneration (2)');
