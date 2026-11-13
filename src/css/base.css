@@ -2826,7 +2826,8 @@ textarea {
   background: var(--panel);
   color: var(--ink);
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
-  pointer-events: none;
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
 }
 .threat-key ul {
   list-style: none;
@@ -2856,4 +2857,34 @@ textarea {
   color: var(--muted, inherit);
   opacity: 0.85;
   margin-top: 3px;
+}
+
+.threat-key .tk-h {
+  margin-top: 6px;
+  font-weight: 700;
+}
+.threat-key .tk-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 3px 0;
+  cursor: default;
+}
+.threat-key label.tk-row {
+  cursor: pointer;
+}
+.threat-key .tk-row input {
+  margin: 2px 0 0;
+  flex: none;
+}
+.threat-key .tk-row .tk-d {
+  white-space: nowrap;
+}
+.threat-key .tk-allrow {
+  font-weight: 600;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+}
+.threat-key .tk-on {
+  font-weight: 600;
 }
