@@ -378,7 +378,7 @@ function armyHas(side, re) {
   return (state.army?.[side] || []).some(x => re.test(x));
 }
 function jugg(u) {
-  return hasRule(u, /^Juggernaut/) || fx(u).some(x => /Clockwork Parade/.test(x));
+  return hasRule(u, /^Juggernaut/) || fx(u).some(x => /Clockwork Parade|^Aristia/.test(x));
 }
 function chargeMax(u) {
   const f = chargeFixed(u);

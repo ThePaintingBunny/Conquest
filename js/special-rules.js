@@ -205,6 +205,7 @@ function srFirstMarch(u) {
   let b = 0;
   if (act && act.id === u.id) {
     b += act.srFirstMarch || 0;
+    if (act.bloody && srFirstAct(u)) b += 1;
     if (srHas(u, /^Divine Purpose/) && !act.dpUsed) {
       b += 2;
       act.dpUsed = 'march';
@@ -212,9 +213,16 @@ function srFirstMarch(u) {
   }
   return b;
 }
+/* the first action of this activation still to come (Bloody Sacrifice: +1 March until the end of the first action) */
+function srFirstAct(u) {
+  return !!(act && act.id === u.id && !act.actions.some(a => !a.free));
+}
+function seizeAdv(u) {
+  return all().some(x => x.side === u.side && x.onTable && !x.destroyed && upgOf(x, /Seize the Advantage/));
+}
 function srChargeBonus(u, t) {
   let b = 0;
-  const F = fx(u);
+  const F = fx(u).concat((u.rules || []).filter(r => /^Charge \+\d+″/.test(r) && !fx(u).includes(r)));
   F.forEach(x => {
     const k = x.match(/^Charge \+(\d+)″/);
     if (k) b += +k[1];
@@ -225,6 +233,11 @@ function srChargeBonus(u, t) {
     if (fx(t).some(x => /^Marked \(Designate Target\)/.test(x))) b += 2;
   }
   if (srHas(u, /^Divine Purpose/) && act && act.id === u.id && !act.dpUsed) b += 2;
+  /* Seize the Advantage: Imperial regiments activated as an Entourage get +2″ Charge */
+  if (act && act.id === u.id && act.source === 'entourage' && frRoles(u).includes('Imperial') && seizeAdv(u))
+    b += 2;
+  /* Bloody Sacrifice: +1 March until the end of the first action (a Charge as the first action) */
+  if (act && act.bloody && srFirstAct(u)) b += 1;
   return b + srMarchMod(u);
 }
 function srSeizeStands(u, z, k) {
@@ -1319,6 +1332,88 @@ function srOptions(u) {
   if (!u || !act || act.id !== u.id) return out;
   const fresh = !act.actions.length && !act.cur,
     add = (label, fn, why, cls) => out.push({ label, fn, why, cls });
+  /* ---- character upgrades with Draw Events ---- */
+  if (fresh && !act.entering && u.charName) {
+    /* Inscription of Lighter Alloys (City States): Mobility */
+    const LA = 'Mobility (Inscription of Lighter Alloys)';
+    if (upgOf(u, /Lighter Alloys/) && /Infantry/.test(u.cls || '') && !hasGrant(base(u.id), LA))
+      add(
+        'Mobility (Inscription of Lighter Alloys): +3 March, −1 Defense, loses Phalanx and Shield until the end of the round',
+        async () => {
+          const x0 = base(u.id),
+            dD = (+x0.stats.D || 0) > 1 ? -1 : 0;
+          await putState({
+            units: state.units.map(x =>
+              x.id === u.id
+                ? grantLoseU(x, LA, [], Object.assign({ M: 3 }, dD ? { D: dD } : {}), [
+                    /^Phalanx\b/,
+                    /^Shield\b/
+                  ])
+                : x
+            ),
+            lastTitle: N(u.side) + ' · ' + (u.short || u.name),
+            lastText:
+              'Mobility: +3 March and −1 Defense, without Phalanx and Shield until the end of the round.'
+          });
+        }
+      );
+    /* Aristia (City States banner): a friendly non-Monster regiment within 8″ Charges at March +5″ this round */
+    if (upgOf(u, /Aristia/) && !act.aristia) {
+      const T = all().filter(
+        t =>
+          t.side === u.side &&
+          t.onTable &&
+          !t.destroyed &&
+          t.type !== 'monster' &&
+          t.type !== 'marker' &&
+          polyDist(corners(u), corners(t)) <= 8
+      );
+      if (T.length) {
+        out.push({
+          head: 'Aristia: a friendly non-Monster regiment within 8″ Charges at its March +5″ until the end of the round (ignores Phalanx)'
+        });
+        T.forEach(t =>
+          add('Aristia on ' + (t.short || t.name) + (t.id === u.id ? ' (this regiment)' : ''), async () => {
+            act.aristia = true;
+            await grant(
+              t.id,
+              'Aristia (Charge distance = March +5″)',
+              [],
+              null,
+              'Aristia: ' + (t.short || t.name) + ' Charges at March +5″ this round.'
+            );
+          })
+        );
+      }
+    }
+    /* Bloody Sacrifice (Beads of Death, Occultists Charm): 2 wounds, +1 March until the end of the first action */
+    if ((upgOf(u, /Beads of Death/) || upgOf(u, /Occultists Charm/)) && !act.bloody)
+      add(
+        'Bloody Sacrifice: the regiment suffers 2 wounds (no Morale Test) for +1 March until the end of its first action',
+        async () => {
+          act.bloody = true;
+          const units = state.units.map(x => {
+            if (x.id !== u.id) return x;
+            const AL = allocate(x, 2);
+            return Object.assign(
+              {},
+              x,
+              { wounds: AL.w, auxWounds: AL.aw },
+              AL.dead
+                ? { onTable: false, destroyed: true, status: 'Destroyed', destroyedRound: state.round }
+                : {}
+            );
+          });
+          await putState({
+            units,
+            lastTitle: N(u.side) + ' · Bloody Sacrifice',
+            lastText:
+              (u.short || u.name) +
+              ' suffers 2 wounds (no Morale Test) and adds +1 March until the end of its first action.'
+          });
+        }
+      );
+  }
   Object.entries(SKFORMS).forEach(([rule, ch]) => {
     if (!rh(u.rules, rule)) return;
     out.push({ head: rule + ' (choose one on activation)' });

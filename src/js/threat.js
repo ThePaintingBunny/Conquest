@@ -67,6 +67,12 @@ function threatBoosts(u) {
     fixed = chargeFixed(u),
     friends = all().filter(x => x.side === side && x.onTable && !x.destroyed),
     ST = typeof STRAIN !== 'undefined' ? STRAIN[base] : null;
+  const aristia =
+      u.type !== 'monster' && friends.some(x => upgOf(x, /Aristia/)) && !fx(u).some(x => /^Aristia/.test(x)),
+    seize =
+      frRoles(u).includes('Imperial') &&
+      seizeAdv(u) &&
+      !(act && act.id === u.id && act.source === 'entourage');
   /* Charge distance */
   if (fixed == null) {
     if (rh(u.rules, 'Hubris')) add('charge', 3, 'Hubris (if the target is a monster)');
@@ -86,8 +92,28 @@ function threatBoosts(u) {
     if (ST && /\+2″ Charge/.test(ST[2] || '') && !has(/Strain/))
       add('charge', 2, 'Strain Expression: ' + ST[0]);
     if (sp.has('Clockwork Parade')) add('cp', 5, 'Clockwork Parade (spell): Charge = March +5″, no roll');
-  } else if (sp.has('Clockwork Parade') && fixed < 5)
-    add('charge', 5 - fixed, 'Clockwork Parade (spell): Charge = March +5″');
+    if (aristia) add('cp', 5, 'Aristia (banner, within 8″): Charge = March +5″, no roll');
+    if (seize) add('charge', 2, 'Seize the Advantage (if activated as an Entourage)');
+  } else {
+    if (sp.has('Clockwork Parade') && fixed < 5)
+      add('charge', 5 - fixed, 'Clockwork Parade (spell): Charge = March +5″');
+    if (aristia && fixed < 5) add('charge', 5 - fixed, 'Aristia (banner, within 8″): Charge = March +5″');
+  }
+  /* Inscription of Lighter Alloys: +3 March, and a Phalanx loses its fixed 3″ Charge (it rolls instead) */
+  if (
+    upgOf(u, /Lighter Alloys/) &&
+    /Infantry/.test(u.cls || '') &&
+    !fx(u).includes('Mobility (Inscription of Lighter Alloys)')
+  )
+    add(
+      'la',
+      3,
+      'Mobility (Inscription of Lighter Alloys): +3 March' +
+        (fixed === 3 ? ', loses Phalanx (rolls its Charge)' : '')
+    );
+  /* Bloody Sacrifice: +1 March until the end of the first action (2 wounds) */
+  if ((upgOf(u, /Beads of Death/) || upgOf(u, /Occultists Charm/)) && !(act && act.id === u.id && act.bloody))
+    add('first', 1, 'Bloody Sacrifice (2 wounds): +1 March on its first action');
   /* March */
   if (
     !srHas(u, /^Divine Purpose/) &&
@@ -131,8 +157,8 @@ function threatBoosts(u) {
 /* which boosts matter in a view */
 function thrRelevant(b, mode) {
   return mode === 'charge'
-    ? ['charge', 'march', 'free', 'dp', 'cp'].includes(b.kind)
-    : ['range', 'rangeM', 'march', 'free', 'dp'].includes(b.kind);
+    ? ['charge', 'march', 'free', 'dp', 'cp', 'la', 'first'].includes(b.kind)
+    : ['range', 'rangeM', 'march', 'free', 'dp', 'la', 'first'].includes(b.kind);
 }
 
 /* ---------- shapes ---------- */
@@ -208,17 +234,24 @@ function threatLayers(u, mode, onKeys) {
     mfWhy = thrMarchFirst(u, true);
   if (u.activated && !(act && act.id === u.id))
     notes.push('Already activated this round: this is its reach next round.');
-  const mOn = S('march'),
+  const la = S('la') > 0,
+    mOn = S('march') + S('la') /* Lighter Alloys adds +3 March */,
     fOn = S('free'),
+    firstOn = S('first') /* +1 March on the first action only */,
     dpOn = NB.dp || (S('dp') ? 2 : 0);
   if (mode === 'charge') {
     if (u.garrison) notes.push('Garrisoned: it Charges out of its building, measured from the building.');
     if (broken)
       return { L: [], all: all0, NB, notes: notes.concat('Broken: it cannot Charge until it Rallies.') };
     if (eng) return { L: [], all: all0, NB, notes: notes.concat('Engaged: it cannot Charge.') };
-    const fixed = chargeFixed(u),
+    const fixed0 = chargeFixed(u),
+      /* Lighter Alloys takes Phalanx away: a Phalanx then rolls its Charge like everyone else */
+      fixed = la && fixed0 === 3 && !jugg(u) ? null : fixed0,
       selfDp = fixed == null && act && act.id === u.id && srHas(u, /^Divine Purpose/) && !act.dpUsed ? 2 : 0,
-      base = chargeMax(u) - selfDp /* March + 6 + Charge bonuses in force, without Divine Purpose */,
+      base =
+        fixed0 != null && fixed == null
+          ? (+u.m || 0) + 6 + srChargeBonus(u, null) - selfDp
+          : chargeMax(u) - selfDp /* March + 6 + Charge bonuses in force, without Divine Purpose */,
       cp = S('cp') > 0;
     let sure, roll;
     if (fixed != null) {
@@ -233,7 +266,12 @@ function threatLayers(u, mode, onKeys) {
     }
     /* Divine Purpose on a fixed Charge goes on the March instead */
     const dpMarch = (fixed != null || cp) && dpOn ? dpOn : 0,
-      first = M + mOn + NB.march + dpMarch;
+      first = M + mOn + NB.march + dpMarch + firstOn; /* the March is the first action */
+    /* Bloody Sacrifice also counts when the Charge itself is the first action; after a March it is spent */
+    const sure0 = sure,
+      roll0 = roll;
+    sure += firstOn;
+    if (roll != null) roll += firstOn;
     Ls.push({
       k: 'sure',
       R: sure,
@@ -241,14 +279,14 @@ function threatLayers(u, mode, onKeys) {
         fixed != null
           ? 'Charge (fixed distance)'
           : cp
-            ? 'Charge (Clockwork Parade, no roll)'
+            ? 'Charge at March +5″ (no roll)'
             : 'Charge, guaranteed (no roll)'
     });
     if (roll != null) Ls.push({ k: 'roll', R: roll, t: 'Charge on a roll of 6' });
     if (canMF) {
       /* rolling Charges: only the roll of 6 after a March; fixed Charges have no roll, so their one distance */
-      if (roll != null) Ls.push({ k: 'mroll', R: first + roll, t: 'March, then Charge on a 6' });
-      else Ls.push({ k: 'msure', R: first + sure, t: 'March, then Charge' });
+      if (roll0 != null) Ls.push({ k: 'mroll', R: first + roll0, t: 'March, then Charge on a 6' });
+      else Ls.push({ k: 'msure', R: first + sure0, t: 'March, then Charge' });
     } else notes.push(mfWhy);
     return { L: Ls, all: all0, NB, notes, span: 45, back: false, head: roll != null ? roll : sure };
   }
@@ -256,7 +294,7 @@ function threatLayers(u, mode, onKeys) {
   if (!vr) return { L: [], all: all0, NB, notes: notes.concat('No Barrage: it cannot Volley.') };
   const R = vr.range + S('range'),
     long = rh(RU(u).concat(fx(u)), 'Longshot'),
-    first = M + mOn + NB.march + dpOn;
+    first = M + mOn + NB.march + dpOn + firstOn;
   if (!long) Ls.push({ k: 'eff', R: R / 2 + fOn, t: 'Volley, effective range (half)' });
   Ls.push({ k: 'full', R: R + fOn, t: long ? 'Volley, full range (Longshot)' : 'Volley, full range' });
   if (canMF) Ls.push({ k: 'mfull', R: first + R + S('rangeM') + fOn, t: 'March, then Volley' });

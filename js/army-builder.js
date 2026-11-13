@@ -523,6 +523,11 @@ function bldToList() {
           };
           return;
         }
+        /* Hundred Kingdoms Order Regiment Upgrades that change play */
+        if (op.kind === 'order') {
+          if (op.name === 'Banner of Wrath') rules.push('Fury');
+          if (op.name === 'Disciplined Advance') rules.push('Charge +1″ (Disciplined Advance)');
+        }
         if (op.kind === 'vet' && op.detail && ruleInfo(op.detail, f.name) && !/[+]/.test(op.detail)) {
           rules.push(op.detail);
           ab.push(['Veteran', op.detail]);

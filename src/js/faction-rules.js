@@ -406,6 +406,7 @@ function ungrantU(x, pred) {
       const i = r.lastIndexOf(q);
       if (i >= 0) r.splice(i, 1);
     });
+    (g.lost || []).forEach(q => r.push(q)); /* rules the grant took away come back */
     Object.entries(g.d || {}).forEach(([k, v]) => {
       if (k === 'M') {
         m -= v;
@@ -418,6 +419,15 @@ function ungrantU(x, pred) {
   y.m = m;
   y.effects = (x.effects || []).filter(e => !drop.some(g => g.src === e));
   y.temp = keep;
+  return y;
+}
+/* a grant that also removes rules until it ends (Inscription of Lighter Alloys: loses Phalanx and Shield) */
+function grantLoseU(x, src, rules, stats, lose) {
+  const y = grantU(x, src, rules, stats);
+  if (y === x) return x;
+  const lost = (y.rules || []).filter(r => lose.some(re => re.test(String(r))));
+  y.rules = (y.rules || []).filter(r => !lost.includes(r));
+  y.temp = y.temp.map(g => (g.src === src ? Object.assign({}, g, { lost }) : g));
   return y;
 }
 function hasGrant(u, src) {
