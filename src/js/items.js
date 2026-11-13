@@ -45,6 +45,10 @@ function chRulesX(u) {
 }
 function chStatsX(u) {
   const s = Object.assign({}, u.charStats || {});
+  (u.temp || []).forEach(g => {
+    const m = String(g.src).match(/^Soul Reaper \(\+(\d+) Attacks\)/);
+    if (m) s.A = (+s.A || 0) + +m[1];
+  });
   itemSpec(u).forEach(([n, S]) => {
     const d = typeof S.cs === 'function' ? S.cs(u) : S.cs;
     if (d)

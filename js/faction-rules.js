@@ -482,6 +482,11 @@ function odTier(side, pool) {
   if (t4ok && n >= 23 + s) return 4;
   return n >= 18 + s ? 3 : n >= 9 + s ? 2 : 1;
 }
+/* the Dark Power tier a regiment counts as being under (Legio I 'Primigenia': +1 while its character is attached) */
+function odTierU(u, pool) {
+  const t = odTier(u.side, pool);
+  return pool === 'dark' && u && u.charName && upgOf(u, /Primigenia/) ? Math.min(4, t + 1) : t;
+}
 function odThr(side) {
   const s = Math.trunc((odPts(side) - 2000) / 250) * 2;
   return [9 + s, 18 + s, 23 + s];
@@ -671,8 +676,7 @@ function frFx(u) {
     const e = terrainOf().find(t => tHas(t, 'Elevated') && inT(t, [u.x, u.y]));
     if (e) out.push('On ' + tInfo(e).name.toLowerCase() + ' (Size ' + uSize(u) + ')');
   }
-  if (f === 'Old Dominion' && animate(u) && odTier(u.side, 'dark') >= 3)
-    out.push('Inspired (Dark Power III)');
+  if (f === 'Old Dominion' && animate(u) && odTierU(u, 'dark') >= 3) out.push('Inspired (Dark Power III)');
   if (
     f === 'Hundred Kingdoms' &&
     /Infantry/.test(u.cls || '') &&
@@ -969,7 +973,7 @@ function frOptions0(u) {
   }
   if (f === 'Old Dominion' && !act.entering) {
     const m = memOf(u);
-    if (m && odTier(u.side, 'dark') >= 2 && animate(u))
+    if (m && odTierU(u, 'dark') >= 2 && animate(u))
       add(
         'Memories of Old as a Draw Event: ' +
           m.text +

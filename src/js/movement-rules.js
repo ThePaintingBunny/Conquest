@@ -199,6 +199,8 @@ function finishAction() {
   }
   if (c.segs)
     entry.segs = c.segs.map(s => ({ mode: s.mode, amt: +s.amt.toFixed(2), cost: +s.cost.toFixed(2) }));
+  if (c.type === 'btl' && !act.extraFx.includes('Linebreaker (Break Their Lines)'))
+    act.extraFx.push('Linebreaker (Break Their Lines)');
   if (c.type === 'inspire' && !act.extraFx.includes('Inspired (Inspire action)'))
     act.extraFx.push('Inspired (Inspire action)');
   if (c.type === 'occupy') {

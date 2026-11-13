@@ -293,6 +293,9 @@ async function recordDuel() {
     });
     if (rh(A.rules || [], 'Arrogance'))
       set(A.id, x => grantU(x, 'Arrogance: Flurry (Duel refused)', ['Flurry']));
+    /* What we did in Life will Echo in Eternity: the refusing regiment also re-rolls successful Morale this round */
+    if (upgOf(A, /What we did in Life/))
+      set(T.id, x => grantU(x, 'Echo in Eternity (re-roll successful Morale)', []));
     text =
       `${DT.name} refuses the Duel with ${DA.name}` +
       (pen

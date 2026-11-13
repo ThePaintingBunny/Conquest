@@ -391,6 +391,11 @@ function spellTargets(u, sp) {
    Heralds of the Storm and Fudoshin for friends within 10″ */
 /* Primodynamic Globe (City States banner): friendly regiments within 8″ of the character stand count as having
    Wizard (1) for Enemy Interference */
+/* Unholy Sacrament is spent on the first Spellcasting Action of the round */
+function sacrSpend(u, asChar) {
+  if (!asChar || !fxHas(u, /^Unholy Sacrament/) || (base(u.id) || {}).sacrR === srRnd()) return;
+  state.units = state.units.map(x => (x.id === u.id ? Object.assign({}, x, { sacrR: srRnd() }) : x));
+}
 function globeWizard(t) {
   return all().some(
     x =>
@@ -890,6 +895,9 @@ function spellBox(box, u, asChar, ctx, onDone) {
     b.textContent = 'Cast ' + sp.name;
     b.onclick = () => {
       ctx.rolls = Array.from({ length: dice }, d6);
+      /* Devoted to Hazlia: the character re-rolls results of 6 */
+      if (asChar && upgOf(u, /Devoted to Hazlia/)) ctx.rolls = ctx.rolls.map(v => (v === 6 ? d6() : v));
+      sacrSpend(u, asChar);
       render();
     };
     box.appendChild(b);
@@ -964,7 +972,10 @@ async function aiCastSpell(u, asChar, spellName, targetId) {
     succ = Math.max(need, 2);
   else {
     const att = (S.a === 'D' ? +T.stats.D || 0 : sp.att) - (interf ? 1 : 0),
-      rolls = Array.from({ length: lvl + srSpellDice(u, asChar) }, d6);
+      rolls = Array.from({ length: lvl + srSpellDice(u, asChar) }, d6).map(v =>
+        v === 6 && asChar && upgOf(u, /Devoted to Hazlia/) ? d6() : v
+      );
+    sacrSpend(u, asChar);
     succ = rolls.filter(v => v === 1 || (v <= att && v !== 6)).length + srBrand(u, sp, T);
     if (
       T.side === u.side &&

@@ -168,7 +168,7 @@ function glimmerN(A) {
     supMem(A.side).glR === srRnd()
   )
     return 0;
-  return 1 + (supAct(A.side, 'Glimmers of a Golden Age') ? 4 : odTier(A.side, 'dark'));
+  return 1 + (supAct(A.side, 'Glimmers of a Golden Age') ? 4 : odTierU(A, 'dark'));
 }
 /* chants */
 function supOnChant(u, cult) {
@@ -321,6 +321,8 @@ function fsTok(side) {
 /* character extra spells: Divinity Grace, Omnipotence (4+ successes), Forgemaster (once per round), Crop Rotation, The Spirit Shines (activated), Blasphemous Mesa (1 token) */
 let lastSpellSucc = 0;
 function srExtraCast(u, res) {
+  if (charAct && res && res.success && lastSpellSucc >= 4 && upgOf(u, /Unholy Mastery/) && !charAct.um)
+    return 'Unholy Mastery';
   const S = supOf(u.side);
   if (!S || !charAct) return '';
   const wl = srIsWl(u),
@@ -357,6 +359,7 @@ async function srCharCast(res) {
       charAct.autoWin = true;
     }
     if (why === 'Omnipotence') charAct.omni = true;
+    if (why === 'Unholy Mastery') charAct.um = true;
     if (why === 'Blasphemous Mesa') charAct.mesa = false;
     Object.assign(charAct, { spell: 0, target: null, rolls: null, done: false });
     toast(why + ': the ' + u.charName + ' may cast one more spell (not the same one).');

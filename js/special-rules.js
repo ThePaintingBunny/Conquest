@@ -994,6 +994,9 @@ function srActions(u, out, used, eng, blocked) {
   if (!act || act.cur) return;
   const R = RU(u),
     bar = hasBarrage(u);
+  /* Implacable (Old Dominion): Break Their Lines, a Combat and Out-of-Combat Action */
+  if (u.charName && upgOf(u, /Implacable/) && !act.extraFx.includes('Linebreaker (Break Their Lines)'))
+    out.push({ type: 'btl', why: blocked('btl') });
   if (act.sweepDone) {
     out.length = 0;
     return;
@@ -1370,6 +1373,74 @@ function srOptions(u) {
       startAction('charge');
       if (act.cur && act.cur.type === 'charge') act.cur.free = true;
     });
+  /* ---- Old Dominion character upgrades that spend Dark Power tokens ---- */
+  if (u.charName && frFac(u) === 'Old Dominion') {
+    const tok = +frG(u.side, 'od').dark || 0;
+    if (fresh && !act.entering && upgOf(u, /Unholy Sacrament/) && !fxHas(u, /^Unholy Sacrament/))
+      add(
+        'Unholy Sacrament: spend 1 Dark Power token for Priest (+3) on the ' +
+          u.charName +
+          '’s first spell this round',
+        async () => {
+          await putState({
+            fr: frPatch(u.side, 'od', { dark: tok - 1 }),
+            units: state.units.map(x =>
+              x.id === u.id ? grantU(x, 'Unholy Sacrament (Priest +3, first spell)', []) : x
+            ),
+            lastTitle: N(u.side) + ' · Unholy Sacrament',
+            lastText:
+              'The ' + u.charName + ' spends 1 Dark Power token: Priest (+3) for its first spell this round.'
+          });
+        },
+        tok < 1 ? 'No Dark Power tokens' : ''
+      );
+    if (
+      upgOf(u, /Soul Reaper/) &&
+      engaged(u).length &&
+      !(u.temp || []).some(g => /^Soul Reaper/.test(g.src))
+    ) {
+      out.push({
+        head:
+          'Soul Reaper: spend Dark Power tokens for +1 Attack each on the ' +
+          u.charName +
+          ' (until the end of the round)'
+      });
+      [1, 2, 3]
+        .filter(n => n <= tok)
+        .forEach(n =>
+          add(
+            'Soul Reaper: +' +
+              n +
+              ' Attack' +
+              (n > 1 ? 's' : '') +
+              ' (' +
+              n +
+              ' token' +
+              (n > 1 ? 's' : '') +
+              ')',
+            async () => {
+              await putState({
+                fr: frPatch(u.side, 'od', { dark: tok - n }),
+                units: state.units.map(x =>
+                  x.id === u.id ? grantU(x, 'Soul Reaper (+' + n + ' Attacks)', []) : x
+                ),
+                lastTitle: N(u.side) + ' · Soul Reaper',
+                lastText:
+                  'The ' +
+                  u.charName +
+                  ' spends ' +
+                  n +
+                  ' Dark Power token' +
+                  (n > 1 ? 's' : '') +
+                  ' for +' +
+                  n +
+                  ' Attacks this round.'
+              });
+            }
+          )
+        );
+    }
+  }
   /* ---- character upgrades with Draw Events ---- */
   if (fresh && !act.entering && u.charName) {
     /* Inscription of Lighter Alloys (City States): Mobility */
@@ -1656,6 +1727,8 @@ function srNeed(u, asChar, n) {
   return !asChar && rh(u.rules || [], 'Herald of the Forge God') ? Math.max(n, 4) : n;
 }
 function srSpellDice(u, asChar) {
+  /* Unholy Sacrament (Old Dominion): Priest (+3) for the character's first Spellcasting Action this round */
+  if (asChar && fxHas(u, /^Unholy Sacrament/) && (base(u.id) || {}).sacrR !== srRnd()) return 3;
   if (asChar || !rh(u.rules || [], 'Herald of the Forge God') || !act || act.id !== u.id) return 0;
   return act.actions.reduce((a, x) => a + ((x.combat && x.combat.hits) || 0), 0);
 }

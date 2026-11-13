@@ -431,7 +431,12 @@ function buildGroups(type, A, T) {
           n: 0,
           hitOn: hm.hitOn,
           reroll6: hm.reroll6,
-          flurry: type === 'clash' && rh(R, 'Flurry'),
+          flurry:
+            type === 'clash' &&
+            (rh(R, 'Flurry') ||
+              (upgOf(A, /What we did in Life/) &&
+                (T.effects || []).includes('Broken'))) /* Echo in Eternity */,
+          anastegma: p.name === A.charName && upgOf(A, /Anastegma/),
           blessable: (type === 'clash' || type === 'impact') && rh(R, 'Blessed'),
           eccentric: p.name === A.charName && upgOf(A, /Eccentric Fighting Style/),
           forceDef:
@@ -880,7 +885,8 @@ function rollHits(g, n, parry) {
 function rollDef(T) {
   const A = byId(cb.att) || base(cb.att);
   let fails = 0,
-    dbl = 0;
+    dbl = 0,
+    anaN = 0; /* wounds from an Anastegma character */
   cb.groups.forEach(g => {
     const di = defInfo(T, A, g);
     g.def = di;
@@ -916,6 +922,7 @@ function rollDef(T) {
       g.drolls.push({ v, save, re, first });
       if (!save) {
         fails++;
+        if (g.anastegma) anaN++;
         if (
           (g.deadly || (cb.type === 'impact' && act && act.resoundT === cb.tgt && act.id === cb.att)) &&
           v === 6
@@ -956,6 +963,7 @@ function rollDef(T) {
   cb.tenacious = conv;
   cb.dbl = dbl;
   cb.wounds = fails - conv + dbl;
+  cb.anaN = Math.min(anaN, cb.wounds);
 }
 function moraleSources(T, mi) {
   const S = [],
@@ -965,6 +973,7 @@ function moraleSources(T, mi) {
   if (!iron && (cb.groups || []).some(g => g.forceMor && g.hits))
     S.push({ k: 'succ', src: (A.charName || 'character') + ' (re-roll successful Morale)' });
   if (upgOf(T, /Glimmer of Faith/)) S.push({ k: 'fail', src: 'Glimmer of Faith' });
+  if (fxHas(T, /^Echo in Eternity/)) S.push({ k: 'succ', src: 'Echo in Eternity (refused a Duel)' });
   if (fxHas(T, /^Refused a Duel/)) S.push({ k: 'succ', face: 1, src: 'Refused a Duel' });
   if (fxHas(T, /Pheromantic Drive/)) S.push({ k: 'fail', face: 6, src: 'Pheromantic Drive' });
   {
@@ -991,7 +1000,8 @@ function rollMor(T) {
   const P = rrPlan(moraleSources(T, mi));
   cb.mrrNotes = P.notes;
   cb.mrrUsed = P.used;
-  for (let i = 0; i < cb.wounds; i++) {
+  /* Anastegma: each wound from that character is tested twice */
+  for (let i = 0; i < cb.wounds + (cb.anaN || 0); i++) {
     let v = d6(),
       re = false,
       first = null,

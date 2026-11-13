@@ -252,7 +252,13 @@ const CHAB = {
   ]
 };
 function chAbil(u) {
-  return u && u.charName ? CHAB[u.charName] || [] : [];
+  if (!u || !u.charName) return [];
+  let L = CHAB[u.charName] || [];
+  if (upgOf(u, /Schemophore/) && !L.some(a => a.n === 'Dark Shepherd'))
+    L = L.concat((CHAB.Hierodeacon || []).filter(a => a.n === 'Dark Shepherd'));
+  if (upgOf(u, /Reaping Crook/))
+    L = L.map(a => (a.n === 'Dark Shepherd' ? Object.assign({}, a, { rng: 999 }) : a));
+  return L;
 }
 function chTargets(u, a) {
   if (a.tgt === 'self') return [u];

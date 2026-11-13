@@ -253,6 +253,18 @@ function joinable(w, r) {
     R.joinExtra.some(x => new RegExp(x.split(' ')[0], 'i').test(u.type + ' ' + u.warband))
   );
 }
+/* Sanctified Labaron (Old Dominion): one Restricted entry of the character counts as Mainstay. The builder picks the
+   Restricted entry the warband uses most, which is always the best choice. */
+function labaronKey(w, ch) {
+  if (!(w.upg || []).includes('Sanctified Labaron')) return null;
+  const cnt = {};
+  w.regs.forEach(r => {
+    const k = r.modular ? 'modular' : r.chariots ? 'chariot' : r.unit,
+      x = ch.find(q => q.key === k);
+    if (x && x.cat === 'res') cnt[k] = (cnt[k] || 0) + 1;
+  });
+  return Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || null;
+}
 function wbProblems(w) {
   const c = bldUnit(w.char),
     p = [];
@@ -272,11 +284,12 @@ function wbProblems(w) {
         p.push(`${r.unit}: at most ${mx} Officer${mx === 1 ? '' : 's'} (has ${offs.join(' and ')}).`);
     }
   });
+  const lab = labaronKey(w, ch);
   const n = w.regs.length,
     cat = r => {
       const k = r.modular ? 'modular' : r.chariots ? 'chariot' : r.unit;
       const x = ch.find(q => q.key === k);
-      return x ? x.cat : 'none';
+      return x ? (k === lab ? 'main' : x.cat) : 'none';
     };
   const nm = w.regs.filter(r => cat(r) === 'main').length,
     nr = w.regs.filter(r => cat(r) === 'res').length;
@@ -692,9 +705,7 @@ function upgProblems(w, wi) {
       relics = U.filter(e => /^(Banner|Armor|Weapon|Inscription)$/.test(e[0])).length,
       mods = U.filter(e => e[0] === 'Modification').length,
       mast = U.filter(e => /^Mastery/.test(e[0])).length,
-      RL = { Polemarch: 2, Aristarch: 1, Ipparchos: 1, Mechanist: 1, 'Promethean Oracle': 0 }[
-        c.name
-      ];
+      RL = { Polemarch: 2, Aristarch: 1, Ipparchos: 1, Mechanist: 1, 'Promethean Oracle': 0 }[c.name];
     if (RL != null) {
       const used = c.name === 'Mechanist' ? relics + mods : relics;
       if (used > RL + extra)
@@ -1046,7 +1057,7 @@ function abRegCard(f, w, wi, r, ri, choices) {
   const card = bEl('div', { className: 'ab-reg' + (led ? ' led' : '') });
   const key = r.modular ? 'modular' : r.chariots ? 'chariot' : r.unit,
     ch = choices.find(q => q.key === key),
-    cat = ch ? ch.cat : null;
+    cat = ch ? (key === labaronKey(w, choices) ? 'main' : ch.cat) : null;
   const u = r.modular ? null : bldUnit(r.unit || (r.chariots || [])[0]);
   const title = r.modular ? 'Modular Regiment' : r.chariots ? 'War Chariots' : r.unit || '';
   const head = bEl('div', { className: 'ab-rh' });

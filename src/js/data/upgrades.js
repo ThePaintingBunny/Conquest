@@ -398,13 +398,6 @@ const UPG = {
       ['Grim Crypt', 'Reaping Crook', 20, 'Hierodeacon', 'Dark Shepherd has unlimited range.'],
       [
         'Grim Crypt',
-        'Hierotekton',
-        15,
-        'Hierodeacon, Archimandrite',
-        'Bone Golems become Mainstay and it can join them.'
-      ],
-      [
-        'Grim Crypt',
         'Grave Step',
         10,
         'Hierodeacon, Archimandrite',
