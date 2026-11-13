@@ -1789,7 +1789,7 @@ async function recordCombat0() {
     stAfter = dead ? 0 : live(Object.assign({}, T, { wounds: newW, auxWounds: AL.aw })) - chN,
     stLost = Math.max(0, stBefore - stAfter);
   const ldX = Math.max(rx(RU(T), 'Lethal Demise'), T.aux != null ? rx(T.auxRules, 'Lethal Demise') : 0),
-    ldHits0 = cb.type === 'clash' || cb.type === 'impact' ? ldX * stLost : 0,
+    ldHits0 = (cb.type === 'clash' || cb.type === 'impact') && !fxHas(A, /^Cure/) ? ldX * stLost : 0,
     caHits =
       cb.type === 'clash' && (rh(RU(T), 'Counter Attack') || rh(RU(T), 'Counter-Attack'))
         ? cb.groups.reduce((a, g) => a + (g.rolls || []).filter(r => r.v === 6).length, 0)
@@ -1800,7 +1800,7 @@ async function recordCombat0() {
     dead && offOn(T, 'node') && !(cb.lethalLabel === 'Catabolic Node' && cb.att === T.id)
       ? engaged(T).map(e => e.id)
       : [];
-  const units = state.units.map(u =>
+  let units = state.units.map(u =>
     u.id !== cb.tgt
       ? u.id === cb.att && cb.dieFight && A.dyingFight
         ? Object.assign({}, u, {
@@ -1822,6 +1822,16 @@ async function recordCombat0() {
             : {}
         )
   );
+  /* Blood (W'adrhŭn, Teaching of Death): the regiment heals 1 wound per enemy stand it destroys in a Clash, at most 5,
+     once Morale Tests are done */
+  let bloodN = 0;
+  if (cb.type === 'clash' && stLost && A.charName && upgOf(A, /: Blood$/) && canHeal(A) && !A.destroyed) {
+    bloodN = Math.min(5, stLost, +A.wounds || 0);
+    if (bloodN)
+      units = units.map(u =>
+        u.id === A.id ? Object.assign({}, u, { wounds: (+u.wounds || 0) - bloodN }) : u
+      );
+  }
   const text =
     `${LBL[cb.type]}, ${A.short || A.name} on ${T.short || T.name}: ${sum.hits} hits, ${sum.wounds} wounds` +
     (sum.moraleExtra ? ` + ${sum.moraleExtra} from Morale` : '') +
@@ -1835,7 +1845,8 @@ async function recordCombat0() {
     (caHits
       ? ` Counter-Attack: ${caHits} attack roll${caHits > 1 ? 's' : ''} of 6 cause ${caHits} Hits on ${A.short || A.name}.`
       : '') +
-    (cb.dieFight && A.dyingFight ? ` ${A.short || A.name} fought to the last and is removed.` : '');
+    (cb.dieFight && A.dyingFight ? ` ${A.short || A.name} fought to the last and is removed.` : '') +
+    (bloodN ? ` Blood: ${A.short || A.name} heals ${bloodN} wound${bloodN > 1 ? 's' : ''}.` : '');
   try {
     const nextS = Object.assign({}, state, {
       units,

@@ -259,6 +259,7 @@ function buildUnits(side, list) {
       u.wbChar = String(x.wbChar || '');
     }
     if (x.vetRole) u.vetRole = true;
+    if (x.cult) u.cult = String(x.cult);
     if (x.warlordMonster) u.warlordMonster = true;
     if (hold)
       u.assassinHold = {

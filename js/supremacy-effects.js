@@ -239,10 +239,22 @@ function srGodflesh(side, card) {
 }
 /* reinforcements: Raid Tactics!, Infantry Tactics, Combat Maneuvers, Reigning Season, Tactical Superiority */
 function supReinfNeed(u, need) {
-  return supK(u.side) === 'Raid Tactics!' &&
-    (supRoles(u).includes('Mortals') || supRoles(u).includes('Exalted'))
-    ? need + 1
-    : need;
+  let n =
+    supK(u.side) === 'Raid Tactics!' && (supRoles(u).includes('Mortals') || supRoles(u).includes('Exalted'))
+      ? need + 1
+      : need;
+  /* Ways of the Speakers (W'adrhŭn): a Warlord with one of its Masteries gives the Monster regiments of its warband +1
+     to their Reinforcement Roll; a 6 always fails */
+  const wl = supWl(u.side);
+  if (
+    wl &&
+    u.type === 'monster' &&
+    frFac(u) === "W'adrhŭn" &&
+    srSameWb(wl, u) &&
+    upgOf(wl, /Apex Master|Drum Beast Rider|Tontorr Rider/)
+  )
+    n = Math.min(5, n + 1);
+  return n;
 }
 function supAfterReinf(side, units, res) {
   supAll(side).forEach(S => supAfterReinf1(side, units, res, S));

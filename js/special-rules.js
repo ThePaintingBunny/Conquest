@@ -181,6 +181,8 @@ function srStat(u, kind) {
   }
   if (srHas(u, /^Fury \(\+1 Attacks\)/)) d.A++;
   if (srHas(u, /^Gorged/)) d.A += 6;
+  /* Tribal Spear (W'adrhŭn): its regiment +1 Attacks while within range of an Objective Zone */
+  if (u.charName && upgOf(u, /Tribal Spear/) && inObjZone(u)) d.A++;
   return d;
 }
 /* movement */
@@ -219,10 +221,16 @@ function cadArmy(side) {
   return all().some(x => x.side === side && !x.destroyed && upgOf(x, /Combined Arms Drills/));
 }
 const CAD_MARK = 'Charged Infantry (Combined Arms Drills)';
+function inObjZone(u) {
+  return !!u && u.onTable && zonesOf().some(z => standsOf(u).some(st => inZone(st.poly, z)));
+}
 function cadOnCharge(cid, tid) {
   const C = byId(cid),
     T = byId(tid);
   if (!C || !T) return;
+  let units = null;
+  const put = f => (units = (units || state.units).map(f));
+  const notes = [];
   if (upgOf(C, /Like Gods Among Men/) && /Cavalry/.test(C.cls || '')) {
     const H = all()
       .filter(
@@ -238,25 +246,33 @@ function cadOnCharge(cid, tid) {
       .sort((a, b) => (+b.wounds || 0) - (+a.wounds || 0))[0];
     if (H) {
       const n = Math.min(4, +H.wounds || 0);
-      putState({
-        units: state.units.map(x =>
-          x.id === H.id ? Object.assign({}, x, { wounds: (+x.wounds || 0) - n }) : x
-        ),
-        lastTitle: N(C.side) + ' · Like Gods Among Men',
-        lastText: (H.short || H.name) + ' heals ' + n + ' wound' + (n === 1 ? '' : 's') + '.'
-      });
-      toast('Like Gods Among Men: ' + (H.short || H.name) + ' heals ' + n + '.');
+      put(x => (x.id === H.id ? Object.assign({}, x, { wounds: (+x.wounds || 0) - n }) : x));
+      notes.push('Like Gods Among Men: ' + (H.short || H.name) + ' heals ' + n);
     }
+  }
+  /* Scars of Endekar (W'adrhŭn, Cult of Famine): a successful Charge on an enemy within range of an Objective Zone
+     gives Terrifying (+1) until the end of the round */
+  if (upgOf(C, /Scars of Endekar/) && inObjZone(T)) {
+    put(x => (x.id === cid ? grantU(x, 'Scars of Endekar', ['Terrifying (+1)']) : x));
+    notes.push('Scars of Endekar: ' + (C.short || C.name) + ' gains Terrifying (+1) this round');
   }
   if (/Brute|Cavalry/.test(C.cls || '') && cadArmy(C.side) && hasGrant(base(T.id), CAD_MARK)) {
     const now = rx(RU(C), 'Terrifying');
     if (now < 2 && act && act.id === cid) {
       act.extraFx.push('Terrifying (+1) (Combined Arms Drills)');
-      toast('Combined Arms Drills: ' + (C.short || C.name) + ' gains Terrifying (+1) this activation.');
+      notes.push('Combined Arms Drills: ' + (C.short || C.name) + ' gains Terrifying (+1) this activation');
     }
   }
   if (/Infantry/.test(T.cls || '') && cadArmy(T.side) && !hasGrant(base(C.id), CAD_MARK))
-    putState({ units: state.units.map(x => (x.id === cid ? grantU(x, CAD_MARK, []) : x)) });
+    put(x => (x.id === cid ? grantU(x, CAD_MARK, []) : x));
+  if (notes.length) toast(notes.join(' · ') + '.');
+  if (units)
+    putState(
+      Object.assign(
+        { units },
+        notes.length ? { lastTitle: N(C.side) + ' · Charge', lastText: notes.join('; ') + '.' } : {}
+      )
+    );
 }
 /* the first action of this activation still to come (Bloody Sacrifice: +1 March until the end of the first action) */
 function srFirstAct(u) {

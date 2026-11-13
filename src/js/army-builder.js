@@ -49,8 +49,20 @@ function bnorm(t) {
 function isChariot(u) {
   return u && /chariot/i.test(u.type);
 }
+/* W'adrhŭn: every character follows a Cult. A Scion's is fixed by its name; the others choose Famine, Death or War when
+   the list is made, and only the Warlord may follow Conquest. */
+const WAD_CULTS = ['Famine', 'Death', 'War', 'Conquest'];
+function wadFixedCult(c) {
+  const m = c && String(c.name).match(/^Scion of (\w+)/);
+  return m ? m[1] : '';
+}
+function wadWbCult(w) {
+  const c = w && bldUnit(w.char);
+  if (!c || bld.fac !== "W'adrhŭn") return '';
+  return wadFixedCult(c) || w.cult || '';
+}
 /* warband rules for a character */
-function wbRules(c) {
+function wbRules(c, w) {
   const f = bldFac();
   let txt = c.warband || '';
   const same = txt.match(/^Same warband as the (.+)$/i);
@@ -94,6 +106,12 @@ function wbRules(c) {
     const mm = t.match(/and (\d+) (.+)/);
     if (mm) out.caps[bnorm(mm[2])] = +mm[1];
   });
+  /* the Cults of Ukunfazane: a character's Cult adds up to two Chosen of that Cult as a Restricted choice */
+  if (w && bld.fac === "W'adrhŭn" && !wadFixedCult(c) && w.cult) {
+    const ch = 'Chosen of ' + w.cult;
+    if (!out.main.includes(ch) && !out.res.includes(ch)) out.res.push(ch);
+    out.caps[bnorm(ch)] = 2;
+  }
   return out;
 }
 /* resolve an option name from a warband list to units of the faction */
@@ -116,8 +134,8 @@ function wbResolve(name) {
   hit = units.filter(u => bnorm(u.name).startsWith(rest) || bnorm(u.warband).includes(rest));
   return hit;
 }
-function wbChoices(c) {
-  const r = wbRules(c),
+function wbChoices(c, w) {
+  const r = wbRules(c, w),
     seen = new Set(),
     out = [];
   [
@@ -253,7 +271,7 @@ function joinable(w, r) {
   if (u.type === 'Monster') return false;
   /* Lineage Commander (Spires): the Lineage Highborne joins a Bound Clones regiment, and only that */
   if ((w.upg || []).includes('Lineage Commander')) return r.unit === 'Bound Clones';
-  const R = wbRules(c);
+  const R = wbRules(c, w);
   return (
     u.type === c.type ||
     R.joinExtra.some(x => new RegExp(x.split(' ')[0], 'i').test(u.type + ' ' + u.warband))
@@ -275,8 +293,8 @@ function wbProblems(w) {
   const c = bldUnit(w.char),
     p = [];
   if (!c) return ['Choose a character.'];
-  const R = wbRules(c),
-    ch = wbChoices(c);
+  const R = wbRules(c, w),
+    ch = wbChoices(c, w);
   if (R.none) return w.regs.length ? [c.name + ' has no warband of its own.'] : [];
   w.regs.forEach(r => {
     if (r.modular) modProblems(r.modular).forEach(t => p.push(t));
@@ -324,6 +342,12 @@ function wbProblems(w) {
     p.push('Must include at least one regiment.');
   if (c.type !== 'Monster' && w.joins != null && !(w.regs[w.joins] && joinable(w, w.regs[w.joins])))
     p.push('Choose which regiment the character joins.');
+  if (bld.fac === "W'adrhŭn" && !wadFixedCult(c)) {
+    if (!w.cult)
+      p.push(`Choose the ${c.name}’s Cult (Famine, Death or War; the Warlord may follow Conquest).`);
+    else if (w.cult === 'Conquest' && bld.wbs[bld.warlord] !== w)
+      p.push(`Only the Warlord may follow the Cult of Conquest (the ${c.name} is not the Warlord).`);
+  }
   return p;
 }
 const WL_CREED = {
@@ -535,6 +559,7 @@ function bldToList() {
       if (this.wbCur && x) {
         x.wb = this.wbCur[0];
         x.wbChar = this.wbCur[1];
+        if (this.wbCur[2]) x.cult = this.wbCur[2];
       }
     });
     return Array.prototype.push.apply(this, a);
@@ -548,7 +573,7 @@ function bldToList() {
     const c = bldUnit(w.char);
     if (!c && !w.bare) return;
     const wl = bld.warlord === wi;
-    units.wbCur = [wi, c ? c.name : null];
+    units.wbCur = [wi, c ? c.name : null, wadWbCult(w)];
     if (c && c.type === 'Monster') {
       units.push(
         unitJson(
@@ -725,6 +750,13 @@ function upgWhy(e, c, wi) {
   if (charNoUpg(c)) return 'The ' + c.name + ' cannot take upgrades';
   if (/Warlord only/i.test(who) && bld.warlord !== wi) return 'Warlord only';
   if (/except Jorogumo/i.test(who) && /Jorogumo/.test(c.name)) return 'Not for Jorogumo';
+  {
+    const cm = who.match(/Cult of (\w+)/);
+    if (cm && bld.fac === "W'adrhŭn") {
+      const cu = wadWbCult(bld.wbs[wi]);
+      if (cu !== cm[1]) return 'Cult of ' + cm[1] + ' characters only' + (cu ? '' : ' (choose its Cult)');
+    }
+  }
   const names = f.units
     .filter(u => u.kind === 'char')
     .map(u => u.name)
@@ -757,7 +789,11 @@ function upgProblems(w, wi) {
     if (!e) return;
     const why = upgWhy(e, c, wi);
     if (why && !/^Taken/.test(why)) out.push(n + ': ' + why + '.');
-    if (!UPG_MULTI.test(e[0]) && !(e[0] === 'Crusading Bull' && holyCrusadeWb(w)) && bld.fac !== 'Spires') {
+    if (
+      !UPG_MULTI.test(e[0]) &&
+      !(e[0] === 'Crusading Bull' && holyCrusadeWb(w)) &&
+      !/^(Spires|W'adrhŭn)$/.test(bld.fac)
+    ) {
       const k = e[0].replace(/^Discipline.*/, 'Discipline');
       cats[k] = (cats[k] || 0) + 1;
     }
@@ -765,6 +801,23 @@ function upgProblems(w, wi) {
   Object.entries(cats).forEach(([k, v]) => {
     if (v > 1) out.push(`More than one ${k} upgrade on the ${c.name}.`);
   });
+  /* W'adrhŭn: a single Artefact (Cult Artefact, Armor or Weapon) and a single Mastery (a Teaching or a Way of the
+     Speakers); a character with a Way of the Speakers may take one more Mastery. Brood of Omgorah bars the Speakers. */
+  if (bld.fac === "W'adrhŭn") {
+    const U = (w.upg || []).map(upgFind).filter(Boolean),
+      art = U.filter(e => /^(Cult Artefact|Armor|Weapon)$/.test(e[0])).length,
+      spk = U.filter(e => e[0] === 'Mastery').length,
+      mas = U.filter(e => /^(Teaching|Mastery)$/.test(e[0])).length;
+    if (art > 1) out.push(`The ${c.name} may take a single Artefact (has ${art}).`);
+    if (mas > (spk ? 2 : 1))
+      out.push(
+        spk
+          ? `With a Way of the Speakers the ${c.name} may take one more Mastery, no more (has ${mas}).`
+          : `The ${c.name} may take a single Mastery (has ${mas}).`
+      );
+    if (spk && U.some(e => e[1] === 'Brood of Omgorah'))
+      out.push('Brood of Omgorah: the character cannot take a Mastery from the Ways of the Speakers.');
+  }
   /* Spires 2026: how many Apparatuses, Mutations and Eccentricities each character may take */
   if (bld.fac === 'Spires') {
     const U = (w.upg || []).map(upgFind).filter(Boolean),
@@ -1366,7 +1419,7 @@ function abRegCard(f, w, wi, r, ri, choices) {
   return card;
 }
 function abPicker(f, w, wi, choices) {
-  const R = wbRules(bldUnit(w.char)),
+  const R = wbRules(bldUnit(w.char), w),
     box = bEl('div', { className: 'ab-pick' });
   box.append(
     bEl('div', { className: 'ab-pickh' }, [
@@ -1598,7 +1651,7 @@ function armyBuilder(add, mk, onUse, useLabel) {
   let mig = false;
   bld.wbs.forEach(w => {
     const c = bldUnit(w.char);
-    if (!c || !wbChoices(c).some(q => q.modular)) return;
+    if (!c || !wbChoices(c, w).some(q => q.modular)) return;
     w.regs = w.regs.map(r => {
       if (r.unit && MODULAR[r.unit]) {
         mig = true;
@@ -1616,8 +1669,8 @@ function armyBuilder(add, mk, onUse, useLabel) {
     const card = bEl('section', { className: 'ab-wb' });
     card.setAttribute('aria-label', 'Warband ' + (wi + 1));
     if (!c) return;
-    const R = wbRules(c),
-      choices = wbChoices(c),
+    const R = wbRules(c, w),
+      choices = wbChoices(c, w),
       isWL = bld.warlord === wi;
     const head = bEl('div', { className: 'ab-wbh' });
     const hl = bEl('div', { className: 'ab-wbt' });
@@ -1675,6 +1728,28 @@ function armyBuilder(add, mk, onUse, useLabel) {
         : why || 'A second character that uses its own Supremacy Ability as if it were the Warlord';
       if (why && !isAl) ab.disabled = true;
       hl.append(ab);
+    }
+    /* W'adrhŭn: the character's Cult */
+    if (bld.fac === "W'adrhŭn") {
+      const fixed = wadFixedCult(c);
+      if (fixed) hl.append(bEl('div', { className: 'ab-wlnote', textContent: 'Cult of ' + fixed }));
+      else {
+        const sel = bEl('select', { className: 'tf-in' });
+        sel.setAttribute('aria-label', 'Cult');
+        sel.append(bEl('option', { value: '', textContent: 'choose…' }));
+        WAD_CULTS.filter(k => k !== 'Conquest' || isWL || w.cult === 'Conquest').forEach(k =>
+          sel.append(bEl('option', { value: k, textContent: 'Cult of ' + k, selected: w.cult === k }))
+        );
+        sel.onchange = () => {
+          w.cult = sel.value || null;
+          abRe();
+        };
+        const lab = bEl('label', { className: 'ab-wlnote', textContent: 'Follows: ' });
+        lab.title =
+          'Every W’adrhŭn character follows a Cult: its warband adds that Cult’s Chant Markers, it may take up to two Chosen of that Cult as a Restricted choice, and it and its regiment gain the Cult’s Battlefield Role. Only the Warlord may follow Conquest.';
+        lab.append(sel);
+        hl.append(lab);
+      }
     }
     {
       const PB = (c.rules || []).some(r => /^Personal Bodyguard/.test(r))

@@ -319,9 +319,95 @@ function frRoles(u, char) {
   /* Lineage Commander: the Bound Clones it leads gain the Husk role */
   if (!char && f === 'Spires' && u.charName && !r.includes('Husk') && upgOf(u, /Lineage Commander/))
     r.push('Husk');
+  /* W'adrhŭn: the character and the regiment it joins gain the [Cult of …] role of the Cult it follows */
+  if (f === "W'adrhŭn" && u.cult && (char || u.charName) && !r.some(x => /^Cult of/.test(x)))
+    r.push('Cult of ' + u.cult);
   if (char && f === 'Yoroni' && /Daimyo/.test(u.charName || ''))
     r = r.filter(x => !['Ka', 'Chi', 'Fu', 'Sui', 'Mu'].includes(x)).concat([u.daimyoIdeal || 'Ka']);
   return r;
+}
+/* the Cult whose Chant Markers a W'adrhŭn regiment adds: its own [Cult of …] role (Chosen, Scions), otherwise the
+   Cult its warband's character follows */
+function wadCult(u) {
+  const r = (frRoles(u).find(x => /^Cult of/.test(x)) || '').replace('Cult of ', '');
+  return r || u.cult || '';
+}
+/* Chanting the Battlecry, step 3 and 5: the markers of the chosen Cult are discarded (Conquest markers make up the
+   two if needed) and the rest are Unsung */
+function wadUnsungOf(seq, c) {
+  const left = seq.slice();
+  const take = k => {
+    const i = left.indexOf(k);
+    if (i >= 0) left.splice(i, 1);
+    return i >= 0;
+  };
+  if (c === 'Conquest') while (take('Conquest'));
+  else {
+    let n = 0;
+    while (take(c)) n++;
+    while (n < 2 && take('Conquest')) n++;
+  }
+  return left;
+}
+/* W'adrhŭn character upgrades triggered by Chanting the Battlecry */
+async function wadOnChant(id, c, seq) {
+  const u = base(id);
+  if (!u) return [];
+  let units = state.units;
+  const notes = [];
+  if (c === 'Conquest' && /Infantry/.test(u.cls || '') && upgOf(u, /Roar of the Awe/)) {
+    units = units.map(x => (x.id === id ? grantU(x, "Roar of the Awe'khwge", ['Blessed']) : x));
+    notes.push("Roar of the Awe'khwge: Blessed until the end of the round");
+  }
+  if (c === 'War' && /Cavalry/.test(u.cls || '') && upgOf(u, /Horn of Ronan/)) {
+    units = units.map(x => (x.id === id ? grantU(x, 'The Horn of Ronan', ['Trample (+2)']) : x));
+    notes.push('The Horn of Ronan: Trample (+2) until the end of the round');
+  }
+  if (upgOf(u, /: Adaptability$/)) {
+    const mk = all()
+      .filter(m => isMarker(m) && m.onTable && !m.destroyed && m.side !== u.side)
+      .map(m => [m, polyDist(corners(u), corners(m))])
+      .filter(([, d]) => d <= 6)
+      .sort((a, b) => a[1] - b[1])[0];
+    if (mk) {
+      const m = mk[0];
+      units = units.map(x =>
+        x.id === m.id
+          ? Object.assign({}, x, {
+              onTable: false,
+              destroyed: true,
+              destroyedRound: state.round,
+              destroyedBy: u.side,
+              status: 'Destroyed'
+            })
+          : x
+      );
+      notes.push('Adaptability: ' + (m.short || m.name) + ' is destroyed');
+    } else notes.push('Adaptability: no non-friendly Objective Marker within 6″');
+  }
+  /* History (Teaching of Famine): once per round the Unsung markers may become Famine markers and stay */
+  const g = frG(u.side, 'wa'),
+    unsung = wadUnsungOf(seq || [], c);
+  let next = [];
+  if (
+    unsung.length &&
+    g.histR !== state.round &&
+    all().some(x => x.side === u.side && !x.destroyed && x.charName && upgOf(x, /: History$/))
+  ) {
+    next = unsung.map(() => 'Famine');
+    notes.push(
+      'History: ' +
+        unsung.length +
+        ' Unsung marker' +
+        (unsung.length > 1 ? 's return' : ' returns') +
+        ' as Famine'
+    );
+  }
+  if (notes.length) {
+    toast(notes.join(' · '));
+    await putState({ units, lastText: (state.lastText || '') + ' ' + notes.join('; ') + '.' });
+  }
+  return next;
 }
 function frFacs(side) {
   return [
@@ -1027,7 +1113,7 @@ function frOptions0(u) {
   if (f === "W'adrhŭn" && !act.entering) {
     const g = frG(u.side, 'wa'),
       seq = (g.seq || []).slice(),
-      own = (frRoles(u).find(r => /^Cult of/.test(r)) || '').replace('Cult of ', '');
+      own = wadCult(u);
     if (!act.frMarker)
       out.push({ head: 'Add this activation’s Chant Marker' + (own ? ' (its cult: ' + own + ')' : '') });
     if (!act.frMarker)
@@ -1115,7 +1201,10 @@ function frOptions0(u) {
                     lastText: (state.lastText || '') + ' ' + SC.notes.join('; ') + '.'
                   });
               }
-              await frSet(u.side, 'wa', { seq: [] });
+              {
+                const next = await wadOnChant(u.id, c, seq);
+                await frSet(u.side, 'wa', next.length ? { seq: next, histR: state.round } : { seq: [] });
+              }
             }
           },
           rh(u.rules, 'Swarm')
