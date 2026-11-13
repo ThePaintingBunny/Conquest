@@ -283,6 +283,31 @@ function drawThreat(u, mode, g, remote, onKeys) {
     .sort((a, b) => b.R - a.R)
     .forEach(l => {
       const S = THR_STYLE[l.k];
+      /* An outline-only layer (March, then …) shares its side lines with the zones inside it: every layer runs out
+         from the same front corners along the arc. Draw only the part beyond the next layer in, as an open line,
+         so the dashes never sit on top of the inner zone's edge. */
+      const inner = Math.max(0, ...T.L.filter(x => x.R < l.R - 1e-6).map(x => x.R));
+      if (S.fill === 'none' && T.span < 180 && inner > 0) {
+        const o = fanPoly(u, l.R, T.span, T.back),
+          n = o.length,
+          k = inner / l.R,
+          lerp = (a, b) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k],
+          line = [lerp(o[0], o[1])].concat(o.slice(1, n - 1), [lerp(o[n - 1], o[n - 2])]);
+        el(
+          'polyline',
+          {
+            points: line.map(p => px(p[0]).toFixed(1) + ',' + py(p[1]).toFixed(1)).join(' '),
+            fill: 'none',
+            stroke: S.stroke,
+            'stroke-width': S.w,
+            'stroke-dasharray': S.dash || '',
+            'clip-path': 'url(#thr-table)',
+            class: 'thr-' + l.k + (remote ? ' thr-remote' : '')
+          },
+          g
+        );
+        return;
+      }
       el(
         'polygon',
         {
@@ -360,6 +385,19 @@ function threatIds() {
   return ids.slice(0, 1);
 }
 function drawThreatLayer(g) {
+  /* the table, to clip open lines (polygons are clipped by clipTable) */
+  const xs = [px(0), px(72)],
+    ys = [py(0), py(48)];
+  el(
+    'rect',
+    {
+      x: Math.min(...xs),
+      y: Math.min(...ys),
+      width: Math.abs(xs[1] - xs[0]),
+      height: Math.abs(ys[1] - ys[0])
+    },
+    el('clipPath', { id: 'thr-table' }, g)
+  );
   /* ticks reset when the selection or the activating regiment changes */
   const aid = act ? act.id : null;
   if (selId !== thrSelSeen || aid !== thrActSeen) {
