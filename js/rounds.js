@@ -353,6 +353,11 @@ function reinfRule(cls, R) {
 function reserves(side) {
   return (state.units || []).filter(u => u.side === side && !u.onTable && !u.arriving && !u.destroyed);
 }
+/* a regiment's name in a reserve list, numbered when several share it */
+function reinfLabel(u, pool) {
+  const same = pool.filter(x => x.name === u.name);
+  return u.name + (same.length > 1 ? ' ' + (same.indexOf(u) + 1) : '') + ' (' + u.cls + ')';
+}
 function ravenOk(side) {
   const U = state.units || [];
   return (
@@ -375,13 +380,40 @@ function ravenSelect(side, add) {
   pool.forEach(u => {
     const o = document.createElement('option');
     o.value = u.id;
-    o.textContent = 'Raven Messengers: ' + u.name + ' (' + u.cls + ')';
+    o.textContent = 'Raven Messengers: ' + reinfLabel(u, pool);
     sel.appendChild(o);
   });
   add(sel);
   return sel;
 }
-async function doReinforcements(humanAuto, humanRaven) {
+function huntOk(side) {
+  const wl = supWl(side);
+  return !!(wl && upgOf(wl, /Call the Hunt/));
+}
+/* Call the Hunt: the extra Half-Bloods regiment, picked in the Reinforcement bar */
+function huntSelect(side, add) {
+  if (!huntOk(side)) return null;
+  const pool = reserves(side).filter(
+    u => supRoles(u).includes('Half-Bloods') && /^roll/.test(reinfRule(u.cls, state.round))
+  );
+  if (!pool.length) return null;
+  const sel = document.createElement('select');
+  sel.id = 'tb-hunt';
+  sel.setAttribute('aria-label', 'Call the Hunt: an additional Half-Bloods regiment');
+  const o0 = document.createElement('option');
+  o0.value = '';
+  o0.textContent = 'Call the Hunt: choose a Half-Bloods regiment';
+  sel.appendChild(o0);
+  pool.forEach(u => {
+    const o = document.createElement('option');
+    o.value = u.id;
+    o.textContent = 'Call the Hunt: ' + reinfLabel(u, pool);
+    sel.appendChild(o);
+  });
+  add(sel);
+  return sel;
+}
+async function doReinforcements(humanAuto, humanRaven, humanHunt) {
   const R = state.round,
     out = [];
   const units = (state.units || []).map(u => Object.assign({}, u));
@@ -389,7 +421,7 @@ async function doReinforcements(humanAuto, humanRaven) {
     units.forEach(u => {
       if (u.side === AI && privOk(u)) u.cls = u.cls.replace(/Light/, 'Medium');
     });
-  const roll = async (side, autoId, ravenId) => {
+  const roll = async (side, autoId, ravenId, huntId) => {
     const res = [],
       rollers = [],
       noL = [];
@@ -427,15 +459,21 @@ async function doReinforcements(humanAuto, humanRaven) {
             res.push(t2.name + ' arrives (Tactical Superiority)');
           }
         }
-        /* Call the Hunt (Nords Mastery, Half-Bloods Warlord): one more Half-Bloods regiment arrives automatically
-           (not when the chosen regiment has Flank) */
+        /* Call the Hunt (Nords Mastery, Half-Bloods Warlord): the player chooses one more Half-Bloods regiment that
+           would otherwise roll; it arrives automatically (not when the chosen regiment has Flank). The AI takes the
+           first. */
         {
-          const wl = supWl(side);
-          if (wl && upgOf(wl, /Call the Hunt/) && !hasRule(u, /^Flank/)) {
-            const h = pool.find(
-              x =>
-                x !== u && !x.arriving && supRoles(x).includes('Half-Bloods') && reinfRule(x.cls, R) !== 'no'
-            );
+          if (huntOk(side) && !hasRule(u, /^Flank/)) {
+            const ok = x =>
+              x !== u &&
+              !x.arriving &&
+              supRoles(x).includes('Half-Bloods') &&
+              /^roll/.test(reinfRule(x.cls, R));
+            const h = huntId
+              ? pool.find(x => x.id === huntId && ok(x))
+              : !PVP() && side === AI
+                ? pool.find(ok)
+                : null;
             if (h) {
               h.arriving = true;
               res.push(h.name + ' arrives (Call the Hunt)');
@@ -558,7 +596,12 @@ async function doReinforcements(humanAuto, humanRaven) {
     }
     return res;
   };
-  const hl = await roll(HU, humanAuto, humanRaven && humanRaven !== humanAuto ? humanRaven : null);
+  const hl = await roll(
+    HU,
+    humanAuto,
+    humanRaven && humanRaven !== humanAuto ? humanRaven : null,
+    humanHunt && humanHunt !== humanAuto ? humanHunt : null
+  );
   if (PVP()) {
     bannerHide();
     const nxt = HU === 'cs' ? { reinfTurn: 'nord' } : { reinfTurn: 'done' };

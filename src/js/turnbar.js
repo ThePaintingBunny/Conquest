@@ -30,13 +30,18 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
         sel.appendChild(o);
       });
     add(sel);
-    const rsel = ravenSelect(HU, add);
+    const rsel = ravenSelect(HU, add),
+      hsel = huntSelect(HU, add);
     add(
       mk('Roll reinforcements', async () => {
         aiBusy = true;
         render();
         try {
-          const rep = await doReinforcements(sel.value || null, (rsel && rsel.value) || null);
+          const rep = await doReinforcements(
+            sel.value || null,
+            (rsel && rsel.value) || null,
+            (hsel && hsel.value) || null
+          );
           aiBusy = false;
           if (HU === 'nord') {
             const prev = state.lastReinf || '';
@@ -684,13 +689,18 @@ function renderTurnbar0() {
         sel.appendChild(o);
       });
     add(sel);
-    const rsel = ravenSelect(HU, add);
+    const rsel = ravenSelect(HU, add),
+      hsel = huntSelect(HU, add);
     add(
       mk('Roll reinforcements', async () => {
         aiBusy = true;
         render();
         try {
-          const rep = await doReinforcements(sel.value || null, (rsel && rsel.value) || null);
+          const rep = await doReinforcements(
+            sel.value || null,
+            (rsel && rsel.value) || null,
+            (hsel && hsel.value) || null
+          );
           aiBusy = false;
           await startCommandPhase(rep);
         } catch (e) {
