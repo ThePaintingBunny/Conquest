@@ -1574,6 +1574,9 @@ function render() {
     r0 = b && b.getBoundingClientRect(),
     seen = r0 && r0.bottom > 0 && r0.top < innerHeight;
   render0();
+  try {
+    renderChain();
+  } catch (e) {}
   if (!seen) return;
   const d = b.getBoundingClientRect().top - r0.top;
   if (Math.abs(d) > 1) scrollBy({ top: d, behavior: 'instant' });
