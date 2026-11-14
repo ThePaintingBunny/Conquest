@@ -247,6 +247,21 @@ function cadArmy(side) {
   return all().some(x => x.side === side && !x.destroyed && upgOf(x, /Combined Arms Drills/));
 }
 const CAD_MARK = 'Charged Infantry (Combined Arms Drills)';
+/* friendly Infantry regiments within 8″ of the Cavalry regiment that can be healed (most wounded first) */
+function lgamTargets(C) {
+  return all()
+    .filter(
+      x =>
+        x.side === C.side &&
+        x.onTable &&
+        !x.destroyed &&
+        /Infantry/.test(x.cls || '') &&
+        (+x.wounds || 0) > 0 &&
+        canHeal(x) &&
+        polyDist(corners(C), corners(x)) <= 8
+    )
+    .sort((a, b) => (+b.wounds || 0) - (+a.wounds || 0));
+}
 function inObjZone(u) {
   return !!u && u.onTable && zonesOf().some(z => standsOf(u).some(st => inZone(st.poly, z)));
 }
@@ -257,19 +272,17 @@ function cadOnCharge(cid, tid) {
   let units = null;
   const put = f => (units = (units || state.units).map(f));
   const notes = [];
+  /* Like Gods Among Men (Hundred Kingdoms Mastery): after its Cavalry regiment completes a successful Charge, a friendly
+     Infantry regiment within 8″ of the Cavalry (closest points) heals 4 wounds. The player picks it in the activation
+     panel; the AI takes the most wounded. */
   if (upgOf(C, /Like Gods Among Men/) && /Cavalry/.test(C.cls || '')) {
-    const H = all()
-      .filter(
-        x =>
-          x.side === C.side &&
-          x.onTable &&
-          !x.destroyed &&
-          /Infantry/.test(x.cls || '') &&
-          (+x.wounds || 0) > 0 &&
-          canHeal(x) &&
-          polyDist(corners(C), corners(x)) <= 8
-      )
-      .sort((a, b) => (+b.wounds || 0) - (+a.wounds || 0))[0];
+    const L = lgamTargets(C);
+    const auto = !PVP() && C.side === AI;
+    if (L.length && !auto && act && act.id === cid) {
+      act.lgam = true;
+      notes.push('Like Gods Among Men: choose a friendly Infantry regiment within 8″ to heal 4 wounds');
+    }
+    const H = auto ? L[0] : null;
     if (H) {
       const n = Math.min(4, +H.wounds || 0);
       put(x => (x.id === H.id ? Object.assign({}, x, { wounds: (+x.wounds || 0) - n }) : x));
@@ -1511,6 +1524,31 @@ function srOptions(u) {
   if (!u || !act || act.id !== u.id) return out;
   const fresh = !act.actions.length && !act.cur,
     add = (label, fn, why, cls) => out.push({ label, fn, why, cls });
+  /* ---- Like Gods Among Men: the player picks the Infantry regiment that heals ---- */
+  if (act.lgam && act.id === u.id) {
+    const L = lgamTargets(u);
+    if (!L.length) act.lgam = false;
+    else {
+      out.push({ head: 'Like Gods Among Men: a friendly Infantry regiment within 8″ heals 4 wounds' });
+      L.forEach(x =>
+        add(
+          (x.short || x.name) + ' (' + (+x.wounds || 0) + ' wound' + (+x.wounds === 1 ? '' : 's') + ')',
+          async () => {
+            act.lgam = false;
+            const n = Math.min(4, +x.wounds || 0);
+            await putState({
+              units: state.units.map(y =>
+                y.id === x.id ? Object.assign({}, y, { wounds: (+y.wounds || 0) - n }) : y
+              ),
+              lastTitle: N(u.side) + ' · Like Gods Among Men',
+              lastText: (x.short || x.name) + ' heals ' + n + ' wound' + (n === 1 ? '' : 's') + '.'
+            });
+            toast('Like Gods Among Men: ' + (x.short || x.name) + ' heals ' + n + '.');
+          }
+        )
+      );
+    }
+  }
   /* ---- Lessons of the Jotun War (Nords Mastery): once per battle, when its regiment activates, one Tribal Tactic until
      the end of the round ---- */
   if (
