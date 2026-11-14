@@ -166,7 +166,17 @@ async function charCommit(id, extra) {
   const note = window.prompt ? null : null;
   const units = (state.units || []).map(x => {
     let y = x;
-    if (x.id === id) y = Object.assign({}, y, { charActivated: true });
+    if (x.id === id)
+      y = Object.assign({}, y, {
+        charActivated: true,
+        /* "Pass (no action)" is not an Action, for Die Fighting */
+        charActedR:
+          extra.note === 'No action.'
+            ? y.charActedR === (state.round || 1)
+              ? y.charActedR
+              : 0
+            : state.round || 1
+      });
     if (extra.target && x.id === extra.target && extra.effect)
       y = Object.assign({}, y, { effects: (y.effects || []).concat([extra.effect]) });
     return y;

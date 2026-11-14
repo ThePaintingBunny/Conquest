@@ -1796,16 +1796,20 @@ async function recordCombat0() {
       );
   const alwaysDF =
     !!T.charName && upgOf(T, /Bloody-Minded Focus|Strength and Honor|Convulsive/) && touching('char');
+  /* Die Fighting: only if neither the character nor its regiment has performed any Action this round (out-of-sequence
+     Actions included) */
+  const regActed = actedThisRound(T),
+    chActed = charActedThisRound(T);
   const dieF =
     dead &&
     cb.type !== 'lethal' &&
     cb.type !== 'freform' &&
-    ((!T.activated &&
+    ((!regActed &&
       (((T.abilities || []).some(a => /Shield Biter/.test(a[0])) && touching('cmd')) ||
-        (T.charName && !T.charActivated && touching('char')))) ||
+        (T.charName && !chActed && touching('char')))) ||
       alwaysDF);
   /* Die Fighting: only against enemies touching the stand that fights (the character, or the Command Stand); the dying side picks if there are several */
-  const dfKind = alwaysDF || (T.charName && !T.charActivated && touching('char')) ? 'char' : 'cmd',
+  const dfKind = alwaysDF || (T.charName && !chActed && touching('char')) ? 'char' : 'cmd',
     dfStand = lastStands.find(s => (dfKind === 'char' ? s.kind === 'char' : s.cmd && s.kind === 'reg'));
   const dfT =
     dieF && dfStand
@@ -1824,8 +1828,8 @@ async function recordCombat0() {
   const dieLost =
     dead &&
     !dieF &&
-    !T.activated &&
-    ((T.abilities || []).some(a => /Shield Biter/.test(a[0])) || (T.charName && !T.charActivated));
+    !regActed &&
+    ((T.abilities || []).some(a => /Shield Biter/.test(a[0])) || (T.charName && !chActed));
   const chN = T.char != null ? 1 : 0,
     stBefore = live(T) - chN,
     stAfter = dead ? 0 : live(Object.assign({}, T, { wounds: newW, auxWounds: AL.aw })) - chN,
@@ -2220,6 +2224,20 @@ document.addEventListener('keydown', ev => {
   if (k === 'q' || k === 'Q') rot(-15);
   if (k === 'e' || k === 'E') rot(15);
 });
+/* has the regiment performed any Action this round: its saved activations and out-of-sequence actions, or the
+   activation now running (older saved games fall back on "activated") */
+function actedThisRound(u) {
+  const R = state.round || 1;
+  if (act && act.id === u.id && act.actions.length) return true;
+  if (u.actedR === R) return true;
+  return u.actedR === undefined ? !!u.activated : false;
+}
+/* has the character performed any Action this round (its own activation; "Pass (no action)" does not count) */
+function charActedThisRound(u) {
+  const R = state.round || 1;
+  if (u.charActedR === R) return true;
+  return u.charActedR === undefined ? !!u.charActivated : false;
+}
 async function saveActivation() {
   const u = byId(act.id),
     G = geom(u),
@@ -2235,6 +2253,8 @@ async function saveActivation() {
           onTable: true,
           arriving: false,
           activated: true,
+          /* Die Fighting needs to know whether it performed any Action this round */
+          actedR: act.actions.length ? state.round || 1 : x.actedR === (state.round || 1) ? x.actedR : 0,
           arrivedRound: act.entering ? state.round : x.arrivedRound,
           effects: (x.effects || [])
             .filter(
