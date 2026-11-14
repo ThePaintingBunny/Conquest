@@ -901,7 +901,8 @@ function frFx(u) {
     supRoles(u).includes('Half-Bloods') &&
     all().some(x => x.side === u.side && !x.destroyed && x.charName && upgOf(x, /Pack Tactics/))
   )
-    out.push('Support (' + ((u.stats && +u.stats.A) || 0) + ') (Pack Tactics)');
+    /* X is the regiment's Attacks at that moment, bonuses included */
+    out.push('Support (' + (prof(u, 'reg').A || 0) + ') (Pack Tactics)');
   if (f === 'Dweghom' && firstInFray(u) && rx((u.rules || []).concat(itemRegRules(u)), 'Terrifying') < 2)
     out.push('Terrifying (+1) (First in the Fray)');
   if (
