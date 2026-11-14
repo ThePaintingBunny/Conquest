@@ -1087,6 +1087,7 @@ function spellBox(box, u, asChar, ctx, onDone) {
     if (won) go(succ);
     else {
       nullMage(u);
+      skSpellMarker(u.id, sp, asChar).catch(() => {});
       onDone({
         spell: sp.name,
         target: T.id,
@@ -1150,7 +1151,13 @@ async function aiCastSpell(u, asChar, spellName, targetId) {
     await sleep(1400);
     bannerHide();
   }
-  if (succ < need) return `${sp.name} on ${T.short || T.name} fails (${succ}/${need})`;
+  if (succ < need) {
+    /* Sorcerer Kings: every spell cast (even a failed one) adds a Ritual Marker */
+    try {
+      await skSpellMarker(u.id, sp, asChar);
+    } catch (e) {}
+    return `${sp.name} on ${T.short || T.name} fails (${succ}/${need})`;
+  }
   const line = await resolveSpell(u.id, sp, T.id, succ, asChar);
   return `casts ${sp.name}: ${line}`;
 }

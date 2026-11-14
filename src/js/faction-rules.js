@@ -497,7 +497,8 @@ function skSpellCourt(name) {
 function skConfluence(side) {
   return supAll(side).some(S => S.k === 'Elemental Confluence');
 }
-/* a Ritual Marker for each spell of the prepared Ritual's Court that is cast; Shu'laat adds one more once per
+/* a Ritual Marker for each spell of the prepared Ritual's Court that is cast (successful or not: "Every time a Spell
+   is cast"); Shu'laat adds one more once per
    activation */
 async function skSpellMarker(cid, sp, asChar) {
   const u = base(cid);
@@ -2247,7 +2248,7 @@ function frBlock(side, f, mine) {
       );
     box.append(
       ptext(
-        'Each spell of the Ritual’s Court that is cast adds 1 marker (applied automatically; Shu’laat adds one more once per activation). Elemental Conduit adds 1 from the activation panel: only for its own Court’s Ritual, unless a Maharajah Warlord gives Elemental Confluence. The first new Ritual each round starts with markers equal to the round (max 5). With Elemental Confluence, a completed Ritual may be followed at once by one of a different Court.'
+        'Each spell of the Ritual’s Court that is cast, even a failed one, adds 1 marker (applied automatically; Shu’laat adds one more once per activation). Elemental Conduit adds 1 from the activation panel: only for its own Court’s Ritual, unless a Maharajah Warlord gives Elemental Confluence. The first new Ritual each round starts with markers equal to the round (max 5). With Elemental Confluence, a completed Ritual may be followed at once by one of a different Court.'
       )
     );
     return lock(box);
