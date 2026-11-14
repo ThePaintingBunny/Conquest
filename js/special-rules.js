@@ -1082,9 +1082,6 @@ function srActions(u, out, used, eng, blocked) {
       type: 'pres',
       why: (+u.wounds || 0) + (+u.charWounds || 0) ? blocked('pres') : 'No wounds to remove'
     });
-  /* Implacable (Old Dominion): Break Their Lines, a Combat and Out-of-Combat Action */
-  if (u.charName && upgOf(u, /Implacable/) && !act.extraFx.includes('Linebreaker (Break Their Lines)'))
-    out.push({ type: 'btl', why: blocked('btl') });
   if (act.sweepDone) {
     out.length = 0;
     return;

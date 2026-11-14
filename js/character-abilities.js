@@ -267,6 +267,19 @@ function chAbil(u) {
         d: 'Once per game: a friendly Monstrosity within 12″ heals D6 wounds.'
       }
     ]);
+  /* Implacable (Old Dominion): Break Their Lines, a Combat Action of the character: its regiment gains Linebreaker until
+     the end of the round */
+  if (upgOf(u, /Implacable/))
+    L = L.concat([
+      {
+        n: 'Break Their Lines',
+        kind: 'action',
+        tgt: 'self',
+        combat: true,
+        grant: ['Linebreaker'],
+        d: 'Combat Action: its regiment gains Linebreaker until the end of the round.'
+      }
+    ]);
   if (upgOf(u, /Schemophore/) && !L.some(a => a.n === 'Dark Shepherd'))
     L = L.concat((CHAB.Hierodeacon || []).filter(a => a.n === 'Dark Shepherd'));
   if (upgOf(u, /Reaping Crook/))
@@ -298,6 +311,8 @@ function chWhy(u, a) {
   if (!u.onTable) return 'Not on the table';
   if (a.cost && (+frG(u.side, 'sk').rm || 0) < a.cost) return 'Needs ' + a.cost + ' Ritual Markers';
   if (!chTargets(u, a).length) return 'No legal target in range';
+  if (a.combat && !engaged(u).length) return 'A Combat Action: its regiment must be in combat';
+  if (a.combat && a.grant && (u.temp || []).some(g => g.src === a.n)) return 'Already active this round';
   return '';
 }
 function autoDefend(T, hits, ap) {
