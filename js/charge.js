@@ -93,19 +93,29 @@ function resolveCharge(roll, reroll) {
   } else failCharge();
   render();
 }
-function failCharge() {
+/* Cautious Strikes (Nords Mastery, Konungyr or Jarl Warlord): a friendly Exalted regiment that fails a charge moves
+   either the roll or its March, the player's choice (the AI takes the longer) */
+function cautiousOk(u, roll) {
+  const wl = supWl(u.side);
+  return !!(wl && upgOf(wl, /Cautious Strikes/) && supRoles(u).includes('Exalted') && (u.m || 0) !== roll);
+}
+function failCharge(useMarch) {
   const u = byId(act.id),
     c = act.cur;
   const a = ((u.facing || 0) * Math.PI) / 180,
     f = [Math.sin(a), Math.cos(a)];
   let k = c.roll || 0;
-  /* Cautious Strikes (Nords Mastery, Konungyr or Jarl Warlord): an Exalted regiment may move up to its March instead */
-  {
-    const wl = supWl(u.side);
-    if (wl && upgOf(wl, /Cautious Strikes/) && supRoles(u).includes('Exalted') && (u.m || 0) > k) {
-      k = u.m || 0;
-      toast('Cautious Strikes: it moves up to its March (' + k + '″) instead of the roll.');
+  if (useMarch == null && cautiousOk(u, k)) {
+    if (!PVP() && !SBX() && u.side === AI) useMarch = (u.m || 0) > k;
+    else {
+      c.stage = 'cautious';
+      render();
+      return;
     }
+  }
+  if (useMarch) {
+    k = u.m || 0;
+    toast('Cautious Strikes: it moves its March (' + k + '″) instead of the roll.');
   }
   let p = { x: c.start.x + f[0] * k, y: c.start.y + f[1] * k };
   /* a failed Charge halts 1″ away from any enemy regiment and any Garrison terrain */

@@ -1062,6 +1062,28 @@ function renderCard() {
       };
       chg.appendChild(b);
     }
+    if (c.stage === 'cautious') {
+      const u0 = byId(act.id);
+      chg.appendChild(
+        ptext(
+          `The charge failed. Cautious Strikes: move the Charge Roll (${c.roll}″) or its March (${u0.m || 0}″) straight forward; it still halts 1″ from enemies.`
+        )
+      );
+      [
+        ['Move the roll (' + c.roll + '″)', false],
+        ['Move its March (' + (u0.m || 0) + '″)', true]
+      ].forEach(([t, m]) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = m ? 'btn' : 'btn ghost';
+        b.textContent = t;
+        b.onclick = () => {
+          failCharge(m);
+          render();
+        };
+        chg.appendChild(b);
+      });
+    }
     if (c.stage === 'adjust') {
       const pl = c.plan || {};
       const steps = [];
