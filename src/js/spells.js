@@ -452,10 +452,11 @@ function spellNeed(sp, T) {
   );
 }
 /* Jadoo Kavach (Sorcerer Kings): friendly spellcasters within 10″ of the character may re-roll Spellcasting dice of 6,
-   in one Spellcasting action per activation (the first one) */
-function jadooUse(u) {
+   in one Spellcasting Action of their choice per activation: once per round for each spellcaster (the character and a
+   spellcasting regiment count separately). The player decides after seeing the dice; the AI uses it on its first cast. */
+function jadooAvail(u, asChar) {
   if (!u) return false;
-  const k = all().find(
+  const k = all().some(
     x =>
       x.side === u.side &&
       x.onTable &&
@@ -464,13 +465,14 @@ function jadooUse(u) {
       upgOf(x, /Jadoo Kavach/) &&
       (x.id === u.id || polyDist(corners(x), corners(u)) <= 10)
   );
-  if (!k) return false;
-  const tag = (state.round || 1) + ':' + (act ? act.id : charAct ? 'c' + charAct.id : u.id);
-  if (u._jadoo === tag) return false;
-  const b = base(u.id);
-  if (b) b._jadoo = tag;
-  u._jadoo = tag;
-  return true;
+  const b = base(u.id) || u;
+  return k && (asChar ? b.jadooC : b.jadooR) !== (state.round || 1);
+}
+function jadooMark(u, asChar) {
+  const k = asChar ? 'jadooC' : 'jadooR';
+  return putState({
+    units: state.units.map(x => (x.id === u.id ? Object.assign({}, x, { [k]: state.round || 1 }) : x))
+  }).catch(() => {});
 }
 /* Hits from a spell: Defense rolls, then Morale */
 function spellHitRes(T, hits, ap, noMorale) {
@@ -1029,10 +1031,8 @@ function spellBox(box, u, asChar, ctx, onDone) {
     b.textContent = 'Cast ' + sp.name;
     b.onclick = () => {
       ctx.rolls = Array.from({ length: dice }, d6);
-      /* Devoted to Hazlia: the character re-rolls results of 6; Jadoo Kavach: casters within 10″ of it too, in one
-         spellcasting action per activation */
-      if ((asChar && upgOf(u, /Devoted to Hazlia/)) || jadooUse(u))
-        ctx.rolls = ctx.rolls.map(v => (v === 6 ? d6() : v));
+      /* Devoted to Hazlia: the character re-rolls results of 6 */
+      if (asChar && upgOf(u, /Devoted to Hazlia/)) ctx.rolls = ctx.rolls.map(v => (v === 6 ? d6() : v));
       sacrSpend(u, asChar);
       render();
     };
@@ -1048,6 +1048,26 @@ function spellBox(box, u, asChar, ctx, onDone) {
     dr.appendChild(dieMini(v, s ? 'hit' : 'miss'));
   });
   box.appendChild(dr);
+  /* Jadoo Kavach: re-roll the 6s, the player's choice of cast */
+  if (
+    !ctx.jk &&
+    ctx.rolls.includes(6) &&
+    !(asChar && upgOf(u, /Devoted to Hazlia/)) &&
+    jadooAvail(u, asChar)
+  ) {
+    const jb = document.createElement('button');
+    jb.type = 'button';
+    jb.className = 'btn ghost';
+    jb.textContent = 'Jadoo Kavach: re-roll the 6s (once this round)';
+    jb.onclick = async () => {
+      jb.disabled = true;
+      ctx.jk = true;
+      ctx.rolls = ctx.rolls.map(v => (v === 6 ? d6() : v));
+      await jadooMark(u, asChar);
+      render();
+    };
+    box.appendChild(jb);
+  }
   succ += srBrand(u, sp, T);
   if (devout && T.side === u.side && succ < dice) succ++;
   if (vortex) succ = Math.max(0, succ - 2);
@@ -1108,11 +1128,12 @@ async function aiCastSpell(u, asChar, spellName, targetId) {
     succ = Math.max(need, 2);
   else {
     const att = (S.a === 'D' ? +T.stats.D || 0 : sp.att) - (interf ? 1 : 0),
-      jk = jadooUse(u),
+      jk = jadooAvail(u, asChar),
       rolls = Array.from({ length: lvl + srSpellDice(u, asChar) }, d6).map(v =>
         v === 6 && ((asChar && upgOf(u, /Devoted to Hazlia/)) || jk) ? d6() : v
       );
     sacrSpend(u, asChar);
+    if (jk) await jadooMark(u, asChar);
     succ = rolls.filter(v => v === 1 || (v <= att && v !== 6)).length + srBrand(u, sp, T);
     if (
       T.side === u.side &&
