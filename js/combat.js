@@ -960,8 +960,11 @@ function rollDef(T) {
         if (
           (g.deadly || (cb.type === 'impact' && act && act.resoundT === cb.tgt && act.id === cb.att)) &&
           v === 6
-        )
+        ) {
           dbl++;
+          /* Anastegma: the second wound of a Deadly Blades 6 also needs two Morale Tests */
+          if (g.anastegma) anaN++;
+        }
       }
     }
   });
@@ -997,6 +1000,8 @@ function rollDef(T) {
   cb.tenacious = conv;
   cb.dbl = dbl;
   cb.wounds = fails - conv + dbl;
+  /* Anastegma (Old Dominion): every wound from the character's failed Defense rolls needs two Morale Tests, so anaN
+     extra tests (one per such wound) */
   cb.anaN = Math.min(anaN, cb.wounds);
 }
 function moraleSources(T, mi) {
