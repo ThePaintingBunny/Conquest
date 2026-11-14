@@ -48,6 +48,10 @@ function drawEvents(u) {
     heal += 3;
     notes.push('Biotic Renewal: heals 3');
   }
+  if (act && act.id === u.id && glacialOn(u) && !act.extraFx.includes('Decay (Glacial Presence)')) {
+    act.extraFx.push('Decay (Glacial Presence)');
+    notes.push('Glacial Presence: Decay until the end of the round');
+  }
   if (u.charName && upgOf(u, /Ferro-Ossified Carapace/) && act && act.id === u.id) {
     act.extraFx.push('Hardened (1) (Ferro-Ossified Carapace)');
     notes.push('Ferro-Ossified Carapace: Hardened (1) until the end of the round');

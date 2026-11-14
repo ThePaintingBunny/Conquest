@@ -902,19 +902,6 @@ function frFx(u) {
     out.push('Support (' + ((u.stats && +u.stats.A) || 0) + ') (Pack Tactics)');
   if (f === 'Dweghom' && firstInFray(u) && rx((u.rules || []).concat(itemRegRules(u)), 'Terrifying') < 2)
     out.push('Terrifying (+1) (First in the Fray)');
-  /* Glacial Presence (Weaver Courts Gift): enemies engaged with its Court of Winter regiment gain Decay when they
-     Activate (Decay takes its wounds at the end of their activation) */
-  if (
-    u.onTable &&
-    engaged(u).some(
-      e =>
-        e.charName &&
-        upgOf(e, /Glacial Presence/) &&
-        frFac(e) === 'Weaver Courts' &&
-        frRoles(e).includes('Court of Winter')
-    )
-  )
-    out.push('Decay (Glacial Presence)');
   if (
     f === 'Hundred Kingdoms' &&
     /Infantry/.test(u.cls || '') &&
@@ -923,6 +910,21 @@ function frFx(u) {
   )
     out.push('Inspired (Relentless Drills)');
   return out;
+}
+/* Glacial Presence (Weaver Courts Gift): an enemy that activates engaged with its Court of Winter regiment gains Decay
+   until the end of the round (it keeps it if it withdraws) */
+function glacialOn(u) {
+  return (
+    !!u &&
+    u.onTable &&
+    engaged(u).some(
+      e =>
+        e.charName &&
+        upgOf(e, /Glacial Presence/) &&
+        frFac(e) === 'Weaver Courts' &&
+        frRoles(e).includes('Court of Winter')
+    )
+  );
 }
 function frHeal(u) {
   if (
