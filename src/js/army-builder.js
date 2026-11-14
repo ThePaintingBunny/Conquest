@@ -307,15 +307,13 @@ function joinable(w, r) {
 }
 /* Sanctified Labaron (Old Dominion): one Restricted entry of the character counts as Mainstay. The builder picks the
    Restricted entry the warband uses most, which is always the best choice. */
-function labaronKey(w, ch) {
-  if (!(w.upg || []).includes('Sanctified Labaron')) return null;
-  const cnt = {};
-  w.regs.forEach(r => {
-    const k = r.modular ? 'modular' : r.chariots ? 'chariot' : r.unit,
-      x = ch.find(q => q.key === k);
-    if (x && x.cat === 'res') cnt[k] = (cnt[k] || 0) + 1;
-  });
-  return Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || null;
+/* Sanctified Labaron (Old Dominion): the player picks one regiment of the warband taken as a Restricted choice; that one
+   regiment counts as Mainstay (army building only) */
+function labaronOn(w) {
+  return (w.upg || []).includes('Sanctified Labaron');
+}
+function labaronIdx(w) {
+  return labaronOn(w) ? w.regs.findIndex(r => r.labaron) : -1;
 }
 function wbProblems(w) {
   const c = bldUnit(w.char),
@@ -336,15 +334,17 @@ function wbProblems(w) {
         p.push(`${r.unit}: at most ${mx} Officer${mx === 1 ? '' : 's'} (has ${offs.join(' and ')}).`);
     }
   });
-  const lab = labaronKey(w, ch);
+  const lab = labaronIdx(w);
   const n = w.regs.length,
-    cat = r => {
+    cat = (r, i) => {
       const k = r.modular ? 'modular' : r.chariots ? 'chariot' : r.unit;
       const x = ch.find(q => q.key === k);
-      return x ? (k === lab ? 'main' : x.cat) : 'none';
+      return x ? (i === lab && x.cat === 'res' ? 'main' : x.cat) : 'none';
     };
-  const nm = w.regs.filter(r => cat(r) === 'main').length,
-    nr = w.regs.filter(r => cat(r) === 'res').length;
+  const nm = w.regs.filter((r, i) => cat(r, i) === 'main').length,
+    nr = w.regs.filter((r, i) => cat(r, i) === 'res').length;
+  if (labaronOn(w) && lab < 0 && w.regs.some((r, i) => cat(r, i) === 'res'))
+    p.push('Sanctified Labaron: mark the Restricted regiment that counts as Mainstay.');
   if (n > R.allow) p.push(`Too many regiments: ${n} of ${R.allow}.`);
   if (nr > 2) p.push(`At most 2 Restricted choices (you have ${nr}).`);
   if (nr > nm) p.push(`Each Restricted choice needs a Mainstay choice (${nm} Mainstay, ${nr} Restricted).`);
@@ -1257,7 +1257,8 @@ function abRegCard(f, w, wi, r, ri, choices) {
   const card = bEl('div', { className: 'ab-reg' + (led ? ' led' : '') });
   const key = r.modular ? 'modular' : r.chariots ? 'chariot' : r.unit,
     ch = choices.find(q => q.key === key),
-    cat = ch ? (key === labaronKey(w, choices) ? 'main' : ch.cat) : null;
+    labHere = labaronOn(w) && ch && ch.cat === 'res',
+    cat = ch ? (labHere && r.labaron ? 'main' : ch.cat) : null;
   const u = r.modular ? null : bldUnit(r.unit || (r.chariots || [])[0]);
   const title = r.modular ? 'Modular Regiment' : r.chariots ? 'War Chariots' : r.unit || '';
   const head = bEl('div', { className: 'ab-rh' });
@@ -1272,6 +1273,22 @@ function abRegCard(f, w, wi, r, ri, choices) {
   if (led) tl.append(abChip('★ Led by the ' + c.name, 'ab-led'));
   const tr = bEl('div', { className: 'ab-rr' });
   tr.append(bEl('span', { className: 'ab-pts', textContent: rowPts(r) + ' pts' }));
+  if (labHere) {
+    const lb = abBtn(
+      r.labaron ? 'Labaron: counts as Mainstay' : 'Labaron',
+      () => {
+        const on = !r.labaron;
+        w.regs.forEach(q => delete q.labaron);
+        if (on) r.labaron = true;
+        abRe();
+      },
+      'ab-tog ab-small',
+      'Sanctified Labaron: this Restricted regiment counts as Mainstay'
+    );
+    lb.setAttribute('aria-pressed', String(!!r.labaron));
+    lb.title = 'Sanctified Labaron: one Restricted regiment of this warband counts as Mainstay.';
+    tr.append(lb);
+  }
   if (u) tr.append(abBtn('Details', () => enDetail(u, f.name), 'ab-ghost ab-small ab-keep'));
   tr.append(
     abBtn(
