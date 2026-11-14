@@ -1786,12 +1786,15 @@ async function recordCombat0() {
   const AL = allocate(T, tot),
     newW = AL.w,
     dead = AL.dead;
+  /* a Rider has no stand of its own: it counts as in contact with every enemy stand its Monster touches */
+  const rider = !!T.charName && rh(T.charRules || [], 'Rider');
   const lastStands = standsOf(T),
     foes = engaged(T).map(corners),
+    charStand = s => s.kind === 'char' || (rider && s.kind === 'reg'),
     touching = k =>
       lastStands.some(
         s =>
-          (k === 'cmd' ? s.cmd && s.kind === 'reg' : s.kind === 'char') &&
+          (k === 'cmd' ? s.cmd && s.kind === 'reg' : charStand(s)) &&
           foes.some(c => polyDist(s.poly, c) <= 0.35)
       );
   const alwaysDF =
@@ -1810,7 +1813,11 @@ async function recordCombat0() {
       alwaysDF);
   /* Die Fighting: only against enemies touching the stand that fights (the character, or the Command Stand); the dying side picks if there are several */
   const dfKind = alwaysDF || (T.charName && !chActed && touching('char')) ? 'char' : 'cmd',
-    dfStand = lastStands.find(s => (dfKind === 'char' ? s.kind === 'char' : s.cmd && s.kind === 'reg'));
+    dfStand = lastStands.find(s =>
+      dfKind === 'char'
+        ? charStand(s) && (!rider || foes.some(c => polyDist(s.poly, c) <= 0.35))
+        : s.cmd && s.kind === 'reg'
+    );
   const dfT =
     dieF && dfStand
       ? engaged(T)
