@@ -155,7 +155,13 @@ function hitMods(A, p, type, T) {
   if (type === 'clash' && cb && cb.wiNoInsp && cb.att === A.id) r6 = r6;
   else if (type === 'clash') {
     const dread = engaged(A).some(e => rh(RU(e), 'Dread') || (e.char != null && rh(e.charRules, 'Dread')));
-    if (
+    /* Dauntless: always counts as Inspired, and overrides every rule that would stop it benefiting (Hindering, Dread,
+       Broken and the like) */
+    const daunt = rh(RU(A), 'Dauntless');
+    if (daunt) {
+      if (base + 1 >= 5) r6 = true;
+      else base += 1;
+    } else if (
       (fxHas(A, /Inspired/) || prey) &&
       !fxHas(A, /^Hindered/) &&
       !fxHas(A, /^Refused a Duel/) &&
