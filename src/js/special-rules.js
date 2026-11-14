@@ -216,16 +216,18 @@ function relentlessMarch(u) {
   );
 }
 /* First in the Fray (Dweghom Mastery, Ardent): the foremost friendly regiment, if Infantry, has Terrifying (+1), to at
-   most Terrifying (2). Foremost: the regiment whose rearmost corner is furthest towards the enemy edge. */
+   most Terrifying (2). Foremost: the regiment whose front edge is furthest towards the enemy edge; if that is not
+   Infantry, nobody gets it. */
 function firstInFray(u) {
   if (!u || !u.onTable || u.destroyed || !/Infantry/.test(u.cls || '')) return false;
   if (!all().some(x => x.side === u.side && !x.destroyed && x.charName && upgOf(x, /First in the Fray/)))
     return false;
   /* only for an army following the Ardent Creed */
   if (!/Ardent/.test(dwCreed(u.side) || '')) return false;
+  /* foremost: the regiment whose front edge reaches furthest towards the enemy's table edge */
   const rear = x => {
     const ys = corners(x).map(p => p[1]);
-    return x.side === 'nord' ? Math.min(...ys) : -Math.max(...ys);
+    return x.side === 'nord' ? Math.max(...ys) : -Math.min(...ys);
   };
   const L = all().filter(x => x.side === u.side && x.onTable && !x.destroyed && x.type !== 'marker');
   const best = L.reduce((m, x) => (!m || rear(x) > rear(m) ? x : m), null);
