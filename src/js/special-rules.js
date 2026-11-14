@@ -221,6 +221,8 @@ function firstInFray(u) {
   if (!u || !u.onTable || u.destroyed || !/Infantry/.test(u.cls || '')) return false;
   if (!all().some(x => x.side === u.side && !x.destroyed && x.charName && upgOf(x, /First in the Fray/)))
     return false;
+  /* only for an army following the Ardent Creed */
+  if (!/Ardent/.test(dwCreed(u.side) || '')) return false;
   const rear = x => {
     const ys = corners(x).map(p => p[1]);
     return x.side === 'nord' ? Math.min(...ys) : -Math.max(...ys);
