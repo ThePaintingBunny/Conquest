@@ -261,6 +261,19 @@ function slayChar(u) {
     { charSlain: u.charName, slotBase: FS0.slots.map(t => (t === 'c' ? null : t)), slotFiles: FS0.files }
   );
   if (u.order) x.order = (u.order || []).filter(t => t !== 'c');
+  /* a Rider's regiment counts as two Stands (the Monster and the character): losing the Rider is losing half its
+     Stands, so the Monster becomes Broken (or, if it already was, Shattered) unless it cannot be */
+  if (u.type === 'monster' && rh(u.charRules || [], 'Rider')) {
+    const was = (u.effects || []).includes('Broken');
+    if (!was && !breakImmune(u)) x.effects = (x.effects || []).concat(['Broken']);
+    else if (was && !shatterImmune(u))
+      return Object.assign({}, x, {
+        onTable: false,
+        destroyed: true,
+        status: 'Shattered (its Rider was slain)',
+        destroyedRound: state.round
+      });
+  }
   ['char', 'charName', 'charStats', 'charRules', 'warlord', 'spells', 'charActivated', 'charWounds'].forEach(
     k => delete x[k]
   );
