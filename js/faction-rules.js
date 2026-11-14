@@ -382,12 +382,11 @@ function wadUnsungOf(seq, c) {
     if (i >= 0) left.splice(i, 1);
     return i >= 0;
   };
-  if (c === 'Conquest') while (take('Conquest'));
-  else {
-    let n = 0;
-    while (take(c)) n++;
-    while (n < 2 && take('Conquest')) n++;
-  }
+  /* Step 3 needs at least two; discarding more gains nothing, so exactly two are discarded (the Cult's own first, then
+     exchanged Conquest markers) and the rest are Unsung (History may return any number of them) */
+  let n = 0;
+  while (n < 2 && take(c)) n++;
+  while (n < 2 && c !== 'Conquest' && take('Conquest')) n++;
   return left;
 }
 /* W'adrhŭn character upgrades triggered by Chanting the Battlecry */
@@ -1287,18 +1286,21 @@ function frOptions0(u) {
     }
     /* History: the player decides whether the Unsung markers return as Famine */
     if (act.histPend) {
-      const n = act.histPend;
-      out.push({ head: 'History (once per round): the Unsung Chant Markers' });
-      add('Return ' + n + ' as Famine Chant Marker' + (n > 1 ? 's' : ''), async () => {
-        act.histPend = 0;
-        await frSet(u.side, 'wa', {
-          seq: (frG(u.side, 'wa').seq || []).concat(Array.from({ length: n }, () => 'Famine')),
-          histR: state.round
-        });
-        toast(
-          'History: ' + n + ' Famine Chant Marker' + (n > 1 ? 's return' : ' returns') + ' to the Sequence.'
-        );
+      const N0 = act.histPend;
+      out.push({
+        head: 'History (once per round): any of the ' + N0 + ' Unsung Chant Markers may return as Famine'
       });
+      for (let n = N0; n >= 1; n--)
+        add('Return ' + n + ' as Famine Chant Marker' + (n > 1 ? 's' : ''), async () => {
+          act.histPend = 0;
+          await frSet(u.side, 'wa', {
+            seq: (frG(u.side, 'wa').seq || []).concat(Array.from({ length: n }, () => 'Famine')).slice(0, 3),
+            histR: state.round
+          });
+          toast(
+            'History: ' + n + ' Famine Chant Marker' + (n > 1 ? 's return' : ' returns') + ' to the Sequence.'
+          );
+        });
       add('Leave them Unsung', () => {
         act.histPend = 0;
         render();
