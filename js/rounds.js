@@ -353,7 +353,35 @@ function reinfRule(cls, R) {
 function reserves(side) {
   return (state.units || []).filter(u => u.side === side && !u.onTable && !u.arriving && !u.destroyed);
 }
-async function doReinforcements(humanAuto) {
+function ravenOk(side) {
+  const U = state.units || [];
+  return (
+    U.some(x => x.side === side && x.charName && !x.destroyed && upgOf(x, /Raven Messengers/)) &&
+    U.some(x => x.side === side && x.onTable && !x.destroyed && x.type !== 'marker' && engaged(x).length)
+  );
+}
+/* the second dropdown in the Reinforcement bar */
+function ravenSelect(side, add) {
+  if (!ravenOk(side)) return null;
+  const pool = reserves(side).filter(u => /^roll/.test(reinfRule(u.cls, state.round)));
+  if (!pool.length) return null;
+  const sel = document.createElement('select');
+  sel.id = 'tb-raven';
+  sel.setAttribute('aria-label', 'Raven Messengers: a second regiment arriving automatically');
+  const o0 = document.createElement('option');
+  o0.value = '';
+  o0.textContent = 'Raven Messengers: choose a second regiment';
+  sel.appendChild(o0);
+  pool.forEach(u => {
+    const o = document.createElement('option');
+    o.value = u.id;
+    o.textContent = 'Raven Messengers: ' + u.name + ' (' + u.cls + ')';
+    sel.appendChild(o);
+  });
+  add(sel);
+  return sel;
+}
+async function doReinforcements(humanAuto, humanRaven) {
   const R = state.round,
     out = [];
   const units = (state.units || []).map(u => Object.assign({}, u));
@@ -361,7 +389,7 @@ async function doReinforcements(humanAuto) {
     units.forEach(u => {
       if (u.side === AI && privOk(u)) u.cls = u.cls.replace(/Light/, 'Medium');
     });
-  const roll = async (side, autoId) => {
+  const roll = async (side, autoId, ravenId) => {
     const res = [],
       rollers = [],
       noL = [];
@@ -436,19 +464,19 @@ async function doReinforcements(humanAuto) {
       }
       rollers.push(u);
     }
-    /* Raven Messengers (Nords Trove-find): if one of your regiments is engaged, one more regiment passes its
-       Reinforcement Roll automatically (the costliest still to roll) */
-    if (
-      rollers.length &&
-      units.some(x => x.side === side && x.charName && !x.destroyed && upgOf(x, /Raven Messengers/)) &&
-      units.some(
-        x => x.side === side && x.onTable && !x.destroyed && x.type !== 'marker' && engaged(x).length
-      )
-    ) {
-      const best = rollers.slice().sort((a, b) => (+b.points || 0) - (+a.points || 0))[0];
-      best.arriving = true;
-      rollers.splice(rollers.indexOf(best), 1);
-      res.push(best.name + ' arrives (Raven Messengers)');
+    /* Raven Messengers (Nords): if one of your regiments is engaged, a second regiment you select passes its
+       Reinforcement Roll automatically (once, however many characters carry it); the AI takes its costliest */
+    if (rollers.length && ravenOk(side)) {
+      const best =
+        (ravenId && rollers.find(u => u.id === ravenId)) ||
+        (!PVP() && side === AI
+          ? rollers.slice().sort((a, b) => (+b.points || 0) - (+a.points || 0))[0]
+          : null);
+      if (best) {
+        best.arriving = true;
+        rollers.splice(rollers.indexOf(best), 1);
+        res.push(best.name + ' arrives (Raven Messengers)');
+      }
     }
     /* each weight class rolls its dice together; the player then picks which regiments of that class arrive */
     const W = u => (/Light/.test(u.cls || '') ? 'Light' : /Heavy/.test(u.cls || '') ? 'Heavy' : 'Medium');
@@ -530,7 +558,7 @@ async function doReinforcements(humanAuto) {
     }
     return res;
   };
-  const hl = await roll(HU, humanAuto);
+  const hl = await roll(HU, humanAuto, humanRaven && humanRaven !== humanAuto ? humanRaven : null);
   if (PVP()) {
     bannerHide();
     const nxt = HU === 'cs' ? { reinfTurn: 'nord' } : { reinfTurn: 'done' };
