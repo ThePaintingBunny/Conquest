@@ -391,6 +391,15 @@ function wadUnsungOf(seq, c) {
   return left;
 }
 /* W'adrhŭn character upgrades triggered by Chanting the Battlecry */
+/* Adaptability targets: non-friendly Objective Markers within 6″ of the regiment, nearest first */
+function wadAdaptTargets(u) {
+  return all()
+    .filter(m => isMarker(m) && m.onTable && !m.destroyed && m.side !== u.side)
+    .map(m => [m, polyDist(corners(u), corners(m))])
+    .filter(([, d]) => d <= 6)
+    .sort((a, b) => a[1] - b[1])
+    .map(([m]) => m);
+}
 async function wadOnChant(id, c, seq) {
   const u = base(id);
   if (!u) return [];
@@ -404,12 +413,17 @@ async function wadOnChant(id, c, seq) {
     units = units.map(x => (x.id === id ? grantU(x, 'The Horn of Ronan', ['Trample (+2)']) : x));
     notes.push('The Horn of Ronan: Trample (+2) until the end of the round');
   }
-  if (upgOf(u, /: Adaptability$/)) {
-    const mk = all()
-      .filter(m => isMarker(m) && m.onTable && !m.destroyed && m.side !== u.side)
-      .map(m => [m, polyDist(corners(u), corners(m))])
-      .filter(([, d]) => d <= 6)
-      .sort((a, b) => a[1] - b[1])[0];
+  /* the player picks the Adaptability target and decides on History in the activation panel; the AI takes the
+     nearest marker and always uses History */
+  const auto = !PVP() && !SBX() && u.side === AI;
+  if (upgOf(u, /: Adaptability$/) && !auto) {
+    if (wadAdaptTargets(u).length && act && act.id === id) {
+      act.adaptPend = true;
+      notes.push('Adaptability: choose the non-friendly Objective Marker within 6″ to destroy');
+    } else notes.push('Adaptability: no non-friendly Objective Marker within 6″');
+  }
+  if (upgOf(u, /: Adaptability$/) && auto) {
+    const mk = wadAdaptTargets(u).map(m => [m])[0];
     if (mk) {
       const m = mk[0];
       units = units.map(x =>
@@ -435,14 +449,24 @@ async function wadOnChant(id, c, seq) {
     g.histR !== state.round &&
     all().some(x => x.side === u.side && !x.destroyed && x.charName && upgOf(x, /: History$/))
   ) {
-    next = unsung.map(() => 'Famine');
-    notes.push(
-      'History: ' +
-        unsung.length +
-        ' Unsung marker' +
-        (unsung.length > 1 ? 's return' : ' returns') +
-        ' as Famine'
-    );
+    if (!auto && act && act.id === id) {
+      act.histPend = unsung.length;
+      notes.push(
+        'History: you may return the ' +
+          unsung.length +
+          ' Unsung marker' +
+          (unsung.length > 1 ? 's' : '') +
+          ' as Famine'
+      );
+    } else next = unsung.map(() => 'Famine');
+    if (next.length)
+      notes.push(
+        'History: ' +
+          unsung.length +
+          ' Unsung marker' +
+          (unsung.length > 1 ? 's return' : ' returns') +
+          ' as Famine'
+      );
   }
   if (notes.length) {
     toast(notes.join(' · '));
@@ -1232,6 +1256,54 @@ function frOptions0(u) {
     const g = frG(u.side, 'wa'),
       seq = (g.seq || []).slice(),
       own = wadCult(u);
+    /* Adaptability: the player targets the marker */
+    if (act.adaptPend) {
+      const M = wadAdaptTargets(u);
+      if (!M.length) act.adaptPend = false;
+      else {
+        out.push({ head: 'Adaptability: destroy a non-friendly Objective Marker within 6″' });
+        M.forEach(m =>
+          add((m.short || m.name) + ' (' + polyDist(corners(u), corners(m)).toFixed(1) + '″)', async () => {
+            act.adaptPend = false;
+            await putState({
+              units: state.units.map(x =>
+                x.id === m.id
+                  ? Object.assign({}, x, {
+                      onTable: false,
+                      destroyed: true,
+                      destroyedRound: state.round,
+                      destroyedBy: u.side,
+                      status: 'Destroyed'
+                    })
+                  : x
+              ),
+              lastTitle: N(u.side) + ' · Adaptability',
+              lastText: (m.short || m.name) + ' is destroyed.'
+            });
+            toast('Adaptability: ' + (m.short || m.name) + ' is destroyed.');
+          })
+        );
+      }
+    }
+    /* History: the player decides whether the Unsung markers return as Famine */
+    if (act.histPend) {
+      const n = act.histPend;
+      out.push({ head: 'History (once per round): the Unsung Chant Markers' });
+      add('Return ' + n + ' as Famine Chant Marker' + (n > 1 ? 's' : ''), async () => {
+        act.histPend = 0;
+        await frSet(u.side, 'wa', {
+          seq: (frG(u.side, 'wa').seq || []).concat(Array.from({ length: n }, () => 'Famine')),
+          histR: state.round
+        });
+        toast(
+          'History: ' + n + ' Famine Chant Marker' + (n > 1 ? 's return' : ' returns') + ' to the Sequence.'
+        );
+      });
+      add('Leave them Unsung', () => {
+        act.histPend = 0;
+        render();
+      });
+    }
     if (!act.frMarker)
       out.push({ head: 'Add this activation’s Chant Marker' + (own ? ' (its cult: ' + own + ')' : '') });
     if (!act.frMarker)
