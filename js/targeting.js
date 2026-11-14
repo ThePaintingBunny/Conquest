@@ -123,8 +123,20 @@ function volleyWhy(A, T, arcOverride) {
   const arc = arcOverride != null ? arcOverride : arcingOn(A);
   const vr = volleyRange(A);
   if (!vr) return 'It has no Barrage.';
-  if (!standsOf(A).some(st => polyDist(st.poly, corners(T)) <= vr.range + 1e-6))
-    return (T.short || T.name) + ' is out of range (Barrage range ' + vr.range + '″ from its stands).';
+  /* from a building, Range is measured from any edge of it */
+  if (
+    !(A.garrison && tGarrisonOf(A)
+      ? polyDist(terrPoly(tGarrisonOf(A)), occPoly(T)) <= vr.range + 1e-6
+      : standsOf(A).some(st => polyDist(st.poly, occPoly(T)) <= vr.range + 1e-6))
+  )
+    return (
+      (T.short || T.name) +
+      ' is out of range (Barrage range ' +
+      vr.range +
+      '″ from ' +
+      (A.garrison ? 'the edge of its building' : 'its stands') +
+      ').'
+    );
   if (!frontArcHas(A, T)) return (T.short || T.name) + ' is not in its front arc.';
   if (engaged(A).length && engVolley(A) && !engaged(A).some(e => e.id === T.id))
     return 'While engaged it can only volley at a regiment it is fighting.';

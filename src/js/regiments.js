@@ -457,10 +457,16 @@ function polyDist(A, B) {
     for (const p of P[0]) for (let i = 0; i < 4; i++) m = Math.min(m, segDist(p, P[1][i], P[1][(i + 1) % 4]));
   return m;
 }
+/* a regiment's footprint for contact: its stands, or the outline of the building it occupies (Garrison terrain: a
+   regiment in contact with the building is in contact with its occupant, and vice versa) */
+function occPoly(u) {
+  const t = u && u.garrison && typeof tGarrisonOf === 'function' ? tGarrisonOf(u) : null;
+  return t ? terrPoly(t) : corners(u);
+}
 function engaged(u) {
   if (!u.onTable) return [];
-  const A = corners(u);
-  return all().filter(o => o.onTable && o.side !== u.side && polyDist(A, corners(o)) <= 0.3);
+  const A = occPoly(u);
+  return all().filter(o => o.onTable && o.side !== u.side && polyDist(A, occPoly(o)) <= 0.3);
 }
 function overlapsAny(u) {
   const A = corners(u);

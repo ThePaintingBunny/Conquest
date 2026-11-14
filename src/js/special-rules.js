@@ -1651,6 +1651,43 @@ function srOptions(u) {
   if (!u || !act || act.id !== u.id) return out;
   const fresh = !act.actions.length && !act.cur,
     add = (label, fn, why, cls) => out.push({ label, fn, why, cls });
+  /* ---- Wiped Out in Garrison Terrain: occupy the emptied building (free; the activation still ends) ---- */
+  if (act.wipedOcc && act.id === u.id && !act.occupyT) {
+    const t = terrainOf().find(q => tId(q) === act.wipedOcc);
+    if (!t || all().some(o => o.garrison === act.wipedOcc && !o.destroyed)) act.wipedOcc = null;
+    else {
+      out.push({
+        head:
+          'Wiped out in Garrison: occupy the ' + tInfo(t).name.toLowerCase() + '? (free; its activation ends)'
+      });
+      add('Occupy it', () => {
+        const G = geom(u),
+          from = { x: u.x, y: u.y, facing: u.facing || 0, files: G.files };
+        act.occupyT = act.wipedOcc;
+        act.wipedOcc = null;
+        Object.assign(act.pose, { x: t.x, y: t.y });
+        act.actions.push({
+          type: 'occupy',
+          free: true,
+          from,
+          to: { x: t.x, y: t.y, facing: u.facing || 0, files: G.files },
+          building: tInfo(t).name
+        });
+        toast(
+          'It occupies the ' +
+            tInfo(t).name.toLowerCase() +
+            ' (+' +
+            tInfo(t).def +
+            ' Defense). End the activation.'
+        );
+        render();
+      });
+      add('Stay outside', () => {
+        act.wipedOcc = null;
+        render();
+      });
+    }
+  }
   /* ---- Like Gods Among Men: the player picks the Infantry regiment that heals ---- */
   if (act.lgam && act.id === u.id) {
     const L = lgamTargets(u);

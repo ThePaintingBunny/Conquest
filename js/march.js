@@ -364,7 +364,13 @@ function availableActions(u) {
     if (!animate(u)) can('inspire', inspWhy(u) || blocked('inspire'));
     can(
       'leave',
-      used.length ? 'Leaving takes both actions: do it as the first action' : broken ? '' : blocked('leave')
+      u.garrisonR === (state.round || 1)
+        ? 'It occupied the building this round: it cannot leave it in the same round'
+        : used.length
+          ? 'Leaving takes both actions: do it as the first action'
+          : broken
+            ? ''
+            : blocked('leave')
     );
     return out;
   }

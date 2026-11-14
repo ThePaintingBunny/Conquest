@@ -176,7 +176,7 @@ function uSize(u) {
   if (e) s += tInfo(e).size;
   if (u.garrison) {
     const g = terrainOf().find(t => tId(t) === u.garrison);
-    if (g) s = Math.max(s, tInfo(g).size);
+    if (g) s = tInfo(g).size;
   }
   return s;
 }
@@ -253,12 +253,12 @@ function tAfterMove(u, entry) {
 function tCover(A, T) {
   if (rh((A.rules || []).concat(fx(A)), 'Sureshot')) return null;
   const sz = uSize(T),
-    tc = standCenters(T);
+    TS = standsOf(T);
   for (const t of terrainOf()) {
     if (!tHas(t, 'Cover')) continue;
     const I = tInfo(t);
     if (sz > I.size) continue;
-    if (tc.every(p => inT(t, p))) return I.name + ' (target inside)';
+    if (TS.length && TS.every(s => stIn(t, s))) return I.name + ' (target inside)';
     if (!inT(t, [A.x, A.y]) && segHits(t, [A.x, A.y], [T.x, T.y])) return I.name + ' (shooting through)';
   }
   return null;
@@ -275,11 +275,15 @@ function tLos(A, T, volley) {
   }
   return null;
 }
+/* a stand is within a piece of Zonal terrain when any part of it is inside */
+function stIn(t, s) {
+  return terrDist(s.poly, t) === 0;
+}
 function tWater(u) {
-  const P = standCenters(u);
-  if (!P.length) return false;
-  const w = P.filter(p => terrainOf().some(t => tHas(t, 'Water') && inT(t, p))).length;
-  return w >= Math.ceil(P.length / 2);
+  const S = standsOf(u);
+  if (!S.length) return false;
+  const w = S.filter(s => terrainOf().some(t => tHas(t, 'Water') && stIn(t, s))).length;
+  return w >= Math.ceil(S.length / 2);
 }
 /* Garrison terrain */
 function tGarrisonNear(u) {

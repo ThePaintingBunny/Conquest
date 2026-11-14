@@ -343,7 +343,14 @@ function volleyStands(A, T) {
     });
     const pts = [q0]
       .concat(samples)
-      .filter(q => q && Math.hypot(q[0] - f0[0], q[1] - f0[1]) <= R + 1e-6 && volleyArcOk(A, q));
+      .filter(
+        q =>
+          q &&
+          (A.garrison && tGarrisonOf(A)
+            ? ptPoly(q, terrPoly(tGarrisonOf(A)))[0] <= R + 1e-6 || ptInPolyG(q, terrPoly(tGarrisonOf(A)))
+            : Math.hypot(q[0] - f0[0], q[1] - f0[1]) <= R + 1e-6) &&
+          volleyArcOk(A, q)
+      );
     const inRange = pts.length > 0;
     let clear = false,
       blocker = '',
@@ -512,8 +519,12 @@ function buildGroups(type, A, T) {
     const ldr = s.cmd && s.kind === 'reg' && A.leader !== false;
     if (type === 'clash') {
       const vd = cb && cb.wi && cb.att === A.id ? 1 : 0;
+      /* Garrison terrain: against an occupied building every stand of the first rank attacks as if in contact; an
+         occupying regiment attacks with all of its stands */
       const eng =
           polyDist(s.poly, Tc) <= 0.35 ||
+          (T.garrison && s.rank === 0) ||
+          !!A.garrison ||
           !!(cb && cb.forceContact && s.rank === 0) ||
           !!(cb && cb.dieFight && cb.att === A.id),
         ie = vd + (eng && rh(RU(T), 'Inherited Excellence') && arcOf(T, [A.x, A.y]) === 'front' ? 1 : 0);
@@ -1895,6 +1906,12 @@ async function recordCombat0() {
       return Object.assign({}, x, { seeds: (+x.seeds || 0) + 1 });
     });
   }
+  /* Wiped Out in Garrison Terrain: the regiment that destroyed the occupant may occupy the building at once if it can
+     (Infantry that fits its Capacity); offered in its activation panel */
+  if (dead && T.garrison && act && act.id === A.id && !(!PVP() && !SBX() && A.side === AI)) {
+    const gt = tGarrisonOf(T);
+    if (gt && /Infantry/.test(A.cls || '') && live(A) <= tInfo(gt).cap && !A.garrison) act.wipedOcc = tId(gt);
+  }
   /* Blood (W'adrhŭn, Teaching of Death): the regiment heals 1 wound per enemy stand it destroys in a Clash, at most 5,
      once Morale Tests are done */
   let bloodN = 0;
@@ -2302,6 +2319,7 @@ async function saveActivation() {
           d = t ? tInfo(t).def : 1;
         units[gi] = Object.assign({}, x, {
           garrison: act.occupyT,
+          garrisonR: state.round || 1,
           garrisonD: d,
           stats: Object.assign({}, x.stats, { D: (+x.stats.D || 0) + d })
         });
