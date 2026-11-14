@@ -500,7 +500,7 @@ function skConfluence(side) {
 /* a Ritual Marker for each spell of the prepared Ritual's Court that is cast (successful or not: "Every time a Spell
    is cast"); Shu'laat adds one more once per
    activation */
-async function skSpellMarker(cid, sp, asChar) {
+async function skSpellMarker(cid, sp, asChar, failed) {
   const u = base(cid);
   if (!u || frFac(u) !== 'Sorcerer Kings') return;
   const g = frG(u.side, 'sk'),
@@ -509,7 +509,8 @@ async function skSpellMarker(cid, sp, asChar) {
   if (!g.ritual || !rc || sc !== rc) return;
   let n = 1;
   const notes = [sp.name || sp];
-  if (asChar && upgOf(u, /Shu'laat/) && u.shulR !== state.round) {
+  /* Shu'laat: only for a successfully cast Spell */
+  if (asChar && !failed && upgOf(u, /Shu'laat/) && u.shulR !== state.round) {
     n++;
     notes.push("Shu'laat +1");
   }
