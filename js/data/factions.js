@@ -3017,12 +3017,12 @@ const ENCY = [
         rules: [
           'Impact (4)',
           'Crimson Tower: Brutal Impact (2), Terrifying (1)',
-          'Sealed Temple: +1 Attacks, Impact +1'
+          'Sealed Temple: +1 Attacks, Impact (+1)'
         ],
         draw: [],
         options: 'Supremacy: Relentless Protectors or Tactical Superiority; 1 Heirloom; 1 Mastery',
         warband:
-          'The Orders. Crimson Tower: Mainstay Order of the Crimson Tower. Sealed Temple: Mainstay Order of the Sealed Temple, Martyrs and Penitents of St Lazarus'
+          'The Orders. Crimson Tower: Mainstay: Order of the Crimson Tower; Restricted: Order of the Ashen Dawn, Order of the Sealed Temple, Order of the Sword, Penitents of St Lazarus, Martyrs of St Lazarus, Trebuchet. Sealed Temple: Mainstay: Order of the Sealed Temple, Martyrs of St Lazarus, Penitents of St Lazarus; Restricted: Order of the Ashen Dawn, Order of the Crimson Tower'
       },
       {
         name: 'Order of the Sword Priory Commander',
@@ -3038,7 +3038,7 @@ const ENCY = [
         options:
           'Supremacy: Lead by Example; Martial Paragon (attached regiment gains Counter Attack); 1 Heirloom; 1 Mastery',
         warband:
-          'The Orders. Mainstay: Order of the Sword, Men-at-Arms, Militia, Penitents of St Lazarus; Restricted: other Orders, Martyrs of St Lazarus'
+          'The Orders. Mainstay: Order of the Sword, Men-at-Arms, Militia, Penitents of St Lazarus; Restricted: Order of the Ashen Dawn, Order of the Sealed Temple, Order of the Crimson Tower, Martyrs of St Lazarus'
       },
       {
         name: 'Errant of the Order of the Shield',
@@ -3054,7 +3054,7 @@ const ENCY = [
         options:
           'Supremacy: For All Mankind; Raise Levies; Drive for Justice (Fearless to Infantry within 8"); 1 Heirloom; 1 Mastery',
         warband:
-          'The Orders. Mainstay: Militia, Militia Bowmen, Men-at-Arms, Penitents of St Lazarus; Restricted: the Orders, Martyrs of St Lazarus'
+          'The Orders. Mainstay: Militia, Militia Bowmen, Men-at-Arms, Penitents of St Lazarus; Restricted: Order of the Ashen Dawn, Order of the Crimson Tower, Order of the Sealed Temple, Order of the Sword, Martyrs of St Lazarus'
       },
       {
         name: 'Trebuchet',

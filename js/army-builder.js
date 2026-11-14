@@ -62,7 +62,7 @@ function wadWbCult(w) {
   return wadFixedCult(c) || w.cult || '';
 }
 /* Hundred Kingdoms: the Priory Commander belongs to the Order of the Crimson Tower or of the Sealed Temple. The Order
-   sets its warband, its profile (Crimson Tower: Brutal Impact (2), Terrifying (1); Sealed Temple: +1 Attacks, Impact +1)
+   sets its warband, its profile (Crimson Tower: Brutal Impact (2), Terrifying (1); Sealed Temple: +1 Attacks, Impact (+1))
    and its Supremacy Ability (Tactical Superiority or Relentless Protectors). */
 const PRIORY = ['Crimson Tower', 'Sealed Temple'];
 function prioryOf(c) {
@@ -1815,7 +1815,7 @@ function armyBuilder(add, mk, onUse, useLabel) {
       };
       const lab = bEl('label', { className: 'ab-wlnote', textContent: 'Order: ' });
       lab.title =
-        'Crimson Tower: Brutal Impact (2) and Terrifying (1), Order of the Crimson Tower as Mainstay, Supremacy Tactical Superiority. Sealed Temple: +1 Attacks and Impact +1, Order of the Sealed Temple, Martyrs and Penitents of St Lazarus as Mainstay, Supremacy Relentless Protectors.';
+        'Crimson Tower: Brutal Impact (2) and Terrifying (1); Mainstay Order of the Crimson Tower; Restricted Ashen Dawn, Sealed Temple, Sword, Penitents and Martyrs of St Lazarus, Trebuchet; Supremacy Tactical Superiority. Sealed Temple: +1 Attacks and Impact (+1); Mainstay Order of the Sealed Temple, Martyrs and Penitents of St Lazarus; Restricted Ashen Dawn, Crimson Tower; Supremacy Relentless Protectors.';
       lab.append(sel);
       hl.append(lab);
     }
