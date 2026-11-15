@@ -66,10 +66,16 @@ function colorPicker(side, label, editable) {
   const r = bEl('div', { className: 'col-pick' });
   r.setAttribute('role', 'group');
   r.setAttribute('aria-label', label);
-  r.append(bEl('span', { className: 'tf-l', textContent: label }));
   const o = side === 'cs' ? 'nord' : 'cs',
     mine = colId(side),
     theirs = colId(o);
+  /* the chosen colour is named in words, not only shown */
+  r.append(
+    bEl('span', { className: 'tf-l col-lab' }, [
+      bEl('span', { textContent: label }),
+      bEl('strong', { textContent: (PAL[mine] || {}).name || '' })
+    ])
+  );
   Object.entries(PAL).forEach(([id, P]) => {
     const b = bEl('button', { type: 'button', className: 'col-sw' + (id === mine ? ' on' : '') });
     b.style.background = P.fill;

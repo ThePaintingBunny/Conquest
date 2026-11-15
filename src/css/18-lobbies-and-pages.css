@@ -1,0 +1,158 @@
+/*
+ * Lobbies and other pages
+ *
+ * The single player and multiplayer lobbies (one column width, seats as cards), colour selection, the
+ * encyclopedia as a full page, and form controls on the menu pages.
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files and
+ * of the rules inside them matters.
+ */
+
+/* ---- lobbies: heading and panel share one column ---- */
+body.mm-lobby .mm,
+body.mm-lobby .turnbar {
+  max-width: 1040px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+body.mm-lobby .mm-in {
+  align-items: stretch;
+}
+/* "Main menu" is already on the page */
+body.mm-lobby #mm-open {
+  display: none;
+}
+body.mm-lobby .turnbar {
+  padding: 16px 18px;
+  gap: 12px;
+}
+
+/* ---- seats: one card per table edge ---- */
+.seats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.seats > h3 {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.seats > .seat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--edge, #555);
+  border-radius: 4px;
+  background: #1c2024;
+}
+.seats > .seat > .read {
+  flex: 0 0 auto;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.seats > .seat.open > .read {
+  color: var(--muted);
+}
+.seats > .seat.mine {
+  border-top-color: var(--brass2, #e7c987);
+  background: #24211a;
+}
+.seats > .seat.taken {
+  border-top-color: #6d8fb3;
+}
+
+/* ---- colour selection: larger swatches, the choice named, taken colours struck through ---- */
+.col-lab {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 96px;
+  line-height: 1.25;
+}
+.col-lab strong {
+  font-size: 15px;
+  color: var(--ink);
+}
+.col-pick {
+  gap: 8px;
+}
+.col-sw {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+.col-sw:hover:not(:disabled) {
+  transform: scale(1.12);
+}
+.col-sw.on {
+  outline: 3px solid var(--brass2, #e7c987);
+  outline-offset: 3px;
+}
+.col-sw.taken {
+  opacity: 0.5;
+}
+.col-sw.taken::after {
+  content: '';
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: calc(50% - 1px);
+  height: 2px;
+  background: #fff;
+  transform: rotate(-45deg);
+}
+
+/* ---- encyclopedia: a full page over whatever is behind it, with its heading always in view ---- */
+.ency:not([hidden]) {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 max(16px, calc((100vw - 1320px) / 2)) 24px;
+}
+.ency .en-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 14px 0 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+body:has(.ency:not([hidden])) {
+  overflow: hidden;
+}
+
+/* ---- menu pages: number boxes match the other controls ---- */
+.mm-in input[type='number']:not(.ab-lim) {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 8px 10px;
+  max-width: 120px;
+}
+
+@media (max-width: 700px) {
+  .seats {
+    grid-template-columns: 1fr;
+  }
+  .col-sw {
+    width: 36px;
+    height: 36px;
+  }
+  .col-pick {
+    gap: 10px;
+  }
+}

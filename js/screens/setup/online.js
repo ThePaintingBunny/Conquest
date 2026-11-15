@@ -13,14 +13,14 @@ function renderSetupPvp(tb, info, mk, add) {
   info.textContent =
     'Play against a friend. Press Host an online game above (or open the invite link your opponent sent), then each of you takes a seat. Each of you takes an edge and builds or pastes your own army.';
   const box = document.createElement('div');
-  box.className = 'rev';
+  box.className = 'rev seats';
   const h = document.createElement('h3');
   h.textContent = 'Seats';
   box.appendChild(h);
   ['cs', 'nord'].forEach(side => {
     const row = document.createElement('div');
-    row.className = 'row';
     const who = seats[side];
+    row.className = 'row seat ' + side + (who ? (who === myId ? ' mine' : ' taken') : ' open');
     const L = S0[side];
     const t = document.createElement('span');
     t.className = 'read';
