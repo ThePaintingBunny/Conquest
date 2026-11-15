@@ -3,7 +3,7 @@
  *
  * render() redraws the board and every panel from the current state. It is called after every change.
  *
- * In this file: fitBoard(), revealIn(), render(), render0()
+ * In this file: fitBoard(), BOARD_VIEW, boardView(), revealIn(), render(), render0()
  */
 
 /* Fit the board to the screen: as tall as the space below the top bars allows (on wide screens only).
@@ -30,11 +30,43 @@ function fitBoard() {
     H = Math.max(300, Math.floor(innerHeight - top - below - 20)),
     W = box.getBoundingClientRect().width;
   b.style.maxHeight = H + 'px';
-  const extra = Math.floor(W - H * ar);
+  /* never squeeze the map below a usable size: then the page scrolls instead */
+  const w = Math.max(Math.min(W, 760), H * ar),
+    extra = Math.floor(W - w);
+  b.style.maxHeight = Math.floor(w / ar) + 'px';
   if (extra > 2) wrap.style.maxWidth = Math.floor(wrap.getBoundingClientRect().width - extra) + 'px';
 }
 
 addEventListener('resize', () => requestAnimationFrame(fitBoard));
+
+/* the table with a thin frame; while a regiment is coming on, the view grows past the table edge so the whole
+   regiment and its name show where it enters */
+const BOARD_VIEW = [160, 30, 524, 352];
+
+function boardView() {
+  const b = $('board');
+  if (!b) return;
+  let x0 = BOARD_VIEW[0],
+    y0 = BOARD_VIEW[1],
+    x1 = x0 + BOARD_VIEW[2],
+    y1 = y0 + BOARD_VIEW[3];
+  const u = act && act.entering && byId(act.id);
+  if (u && u.onTable && isFinite(u.x) && isFinite(u.y)) {
+    corners(u).forEach(([x, y]) => {
+      const X = px(x),
+        Y = py(y);
+      x0 = Math.min(x0, X - 8);
+      x1 = Math.max(x1, X + 8);
+      y0 = Math.min(y0, Y - 20);
+      y1 = Math.max(y1, Y + 20);
+    });
+  }
+  const v = [x0, y0, x1 - x0, y1 - y0].map(n => +n.toFixed(1)).join(' ');
+  if (b.getAttribute('viewBox') !== v) {
+    b.setAttribute('viewBox', v);
+    requestAnimationFrame(fitBoard);
+  }
+}
 
 /* Bring something into view. Inside the side column (wide screens) only the column scrolls, never the page. */
 function revealIn(el, block) {
@@ -67,6 +99,11 @@ function render() {
 function render0() {
   requestAnimationFrame(fitBoard);
   if (!state) return;
+  try {
+    boardView();
+  } catch (e) {
+    console.error(e);
+  }
   applyColors();
   bldUse(SBX() ? 'test' : 'main');
   if (SBX()) {

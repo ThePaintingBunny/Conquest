@@ -86,9 +86,36 @@ function placeTurnbar(tb) {
   } else if (tb.parentNode === slot) $('mm').after(tb);
   document.body.classList.toggle('tb-top', tbInTop());
   placeNetBar();
-  /* during the activations the bar is one line; the Command Phase steps keep their room */
-  const st = (state && state.step) || 'activations';
-  tb.classList.toggle('tb-line', tbInTop() && (st === 'activations' || st === 'over'));
+  /* ordering the Command Stack happens in the Game tab, which opens by itself once per round */
+  const gs = $('gp-stack');
+  if (gs) {
+    gs.innerHTML = '';
+    const big = tbInTop() ? [...tb.children].filter(k => k.matches('ol.stackb, label.ab-inl')) : [];
+    gs.hidden = !big.length;
+    if (big.length) {
+      gs.append(
+        bEl('div', { className: 'gp-cardface' }, [
+          bEl('span', { className: 'gp-k', textContent: 'Command Phase · round ' + (state.round || 1) }),
+          bEl('strong', { textContent: 'Order your Command Stack' }),
+          bEl('span', {
+            className: 'gp-sub',
+            textContent: 'The top card acts first. Drag a card or use the arrows.'
+          })
+        ]),
+        ...big
+      );
+      const key = 'stack|' + state.round + '|' + (state.step || '');
+      if (placeTurnbar.key !== key) {
+        placeTurnbar.key = key;
+        if (rightTab !== 'game') setTab('game');
+      }
+    }
+  }
+  /* the bar is one line unless a step needs a choice in it (a menu, a note) */
+  tb.classList.toggle(
+    'tb-line',
+    tbInTop() && [...tb.children].every(k => k.matches('.tb-status, .read, button, details'))
+  );
   const inf = $('tb-info');
   if (inf) inf.title = inf.textContent;
 }
@@ -252,7 +279,7 @@ function renderTurnbar0() {
     return;
   }
   if (step === 'supremacy') {
-    info.textContent = `Round ${state.round} · Command Phase: put your cards in order (top acts first), then roll off for Supremacy. Your order stays hidden from ${N(AI)}.`;
+    info.textContent = `Round ${state.round} · Command Phase: put your cards in order in the Game tab (top acts first), then roll off for Supremacy. Your order stays hidden from ${N(AI)}.`;
     const valid = defaultHumanStack();
     if (!huDraft || huDraft.length !== valid.length || !huDraft.every(c => valid.includes(c)))
       huDraft = valid.slice();

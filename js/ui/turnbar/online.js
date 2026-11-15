@@ -93,7 +93,7 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
       info.textContent = `Your Command Stack is locked. Waiting for ${WHO(AI)} to lock theirs.`;
       return true;
     }
-    info.textContent = `Round ${state.round} · Command Phase: put your cards in order (top acts first), then lock the stack. Only you can see your order.`;
+    info.textContent = `Round ${state.round} · Command Phase: put your cards in order in the Game tab (top acts first), then lock the stack. Only you can see your order.`;
     const valid = defaultHumanStack();
     if (!huDraft || huDraft.length !== valid.length || !huDraft.every(c => valid.includes(c)))
       huDraft = valid.slice();
