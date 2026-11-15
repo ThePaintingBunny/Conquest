@@ -3,7 +3,7 @@
  *
  * Draws the combat panel step by step. One long function, renderCombat0, draws every step.
  *
- * In this file: stepBox(), renderCombat(), renderCombat0()
+ * In this file: stepBox(), aiDefAuto(), renderCombat(), renderCombat0()
  */
 
 function stepBox(t) {
@@ -15,19 +15,47 @@ function stepBox(t) {
   return s;
 }
 
+/* single player: when you attack the computer, its Defense and Morale are rolled for it, after a pause so you
+   can read your own dice first */
+function aiDefAuto() {
+  if (!cb || PVP() || SBX() || aiBusy || !['def', 'mor'].includes(cb.step)) return;
+  const T = byId(cb.tgt) || base(cb.tgt);
+  if (!T || T.side !== AI || cb.blessWait) return;
+  const c0 = cb,
+    st = cb.step;
+  if (c0.aiAutoAt === st) return;
+  c0.aiAutoAt = st;
+  setTimeout(() => {
+    if (cb !== c0 || cb.step !== st) return;
+    const T2 = byId(cb.tgt) || base(cb.tgt);
+    if (st === 'def') {
+      if ((cb.type === 'clash' || cb.type === 'impact') && blessOk(T2)) {
+        cb.blessT = true;
+        cb.blessUsedT = true;
+      }
+      rollDef(T2);
+      cb.step = cb.type !== 'volley' && cb.type !== 'lethal' && cb.wounds ? 'mor' : 'done';
+    } else {
+      const mi = moraleInfo(T2, byId(cb.att) || base(cb.att));
+      cb.mi = mi;
+      if (mi.auto) cb.extra = 0;
+      else rollMor(T2);
+      cb.step = 'done';
+    }
+    renderCombat();
+  }, 1400);
+}
+
 function renderCombat() {
   if (cb && !cb.uid) cb.uid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   renderCombat0();
-  /* when a new step appears (hits rolled, Defense rolled ...), scroll the side column to it */
-  try {
-    const steps = document.querySelectorAll('#combat .cstep'),
-      k = (cb && cb.uid) + ':' + steps.length;
-    if (cb && steps.length > 1 && renderCombat.stepKey !== k && renderCombat.stepUid === cb.uid)
-      revealIn(steps[steps.length - 1]);
-    renderCombat.stepKey = k;
-    renderCombat.stepUid = cb && cb.uid;
-  } catch (e) {}
+  /* the side column is not scrolled as steps appear: the dice stay where you are looking */
   if (cb) cbGate();
+  try {
+    aiDefAuto();
+  } catch (e) {
+    console.error(e);
+  }
   try {
     cbStepper();
   } catch (e) {}

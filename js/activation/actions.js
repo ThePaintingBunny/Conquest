@@ -347,11 +347,15 @@ function finishAction() {
   }
   srFinishAction(u, c, entry);
   act.actions.push(entry);
-  if (entry.type === 'rally' || entry.type === 'crally')
-    toast(
-      (byId(act.id).short || byId(act.id).name) +
-        ' Rallies: it is no longer Broken (from the end of this activation).'
+  if ((entry.type === 'rally' || entry.type === 'crally') && !entry.failed) {
+    /* Rallying removes Broken at once, for everything else this activation does */
+    const rid = act.id;
+    state.units = state.units.map(x =>
+      x.id === rid ? Object.assign({}, x, { effects: (x.effects || []).filter(f => f !== 'Broken') }) : x
     );
+    putState({ units: state.units }).catch(() => {});
+    toast((byId(rid).short || byId(rid).name) + ' Rallies: it is no longer Broken.');
+  }
   act.cur = null;
   render();
   if (TM && TM.wounds) {

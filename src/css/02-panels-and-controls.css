@@ -682,8 +682,8 @@ textarea {
   cursor: pointer;
   color: var(--muted);
 }
-.combat.busy button,
-.combat.busy input {
+.combat.busy:not(.hu-roll) button,
+.combat.busy:not(.hu-roll) input {
   pointer-events: none;
   opacity: 0.55;
 }

@@ -12,7 +12,7 @@ const SET = (() => {
   try {
     v = JSON.parse(localStorage.getItem('conquest-settings') || '{}') || {};
   } catch (e) {}
-  return Object.assign({ diceAnim: !rm, diceSpeed: 'normal' }, v);
+  return Object.assign({ diceAnim: !rm, diceSpeed: 'normal', ownSaves: true }, v);
 })();
 
 function saveSet() {
@@ -220,6 +220,27 @@ function openSettings(tab) {
     sp.appendChild(b);
   });
   row('Animation speed', 'How long the dice tumble.', sp);
+  {
+    const os = document.createElement('button');
+    os.type = 'button';
+    os.className = 'set-sw';
+    os.setAttribute('role', 'switch');
+    const u2 = () => {
+      os.setAttribute('aria-checked', String(SET.ownSaves !== false));
+      os.textContent = SET.ownSaves !== false ? 'On' : 'Off';
+    };
+    u2();
+    os.onclick = () => {
+      SET.ownSaves = SET.ownSaves === false;
+      saveSet();
+      u2();
+    };
+    row(
+      'Roll your own saves',
+      'When the computer attacks you, you press the Defense and Morale rolls yourself. Off: they are rolled for you.',
+      os
+    );
+  }
   const tr = document.createElement('button');
   tr.type = 'button';
   tr.className = 'btn ghost';

@@ -3,7 +3,8 @@
  *
  * Plays one regiment, runs the whole turn and shows the report afterwards.
  *
- * In this file: aiRegiment(), aiStep(), botRun(), runAITurn(), afterAITurn(), showReport()
+ * In this file: aiRegiment(), aiSay(), aiStepText(), aiStep(), botRun(), runAITurn(), afterAITurn(),
+ *   showReport()
  */
 
 async function aiRegiment(id, source, report, card) {
@@ -12,6 +13,16 @@ async function aiRegiment(id, source, report, card) {
   selId = id;
   const u = byId(id);
   aiStatus(`${N(AI)} are deciding what ${u.short || u.name} will do…`);
+  render();
+  await aiSay(
+    N(AI) + ' activate ' + (u.short || u.name),
+    source === 'entourage'
+      ? 'As the Entourage of its character'
+      : u.onTable
+        ? 'Its turn to act'
+        : 'Arriving this round',
+    1400
+  );
   const P = await planActivation(u, source);
   aiStatus(`${N(AI)}: ${u.short || u.name} is acting.`);
   const lines = [];
@@ -40,6 +51,7 @@ async function aiRegiment(id, source, report, card) {
       await sleep(300);
     }
   aiLog = null;
+  bannerHide();
   if (act && act.entering && !act.placed) {
     await exEnter({ edge: 'own', at: 36 });
   }
@@ -50,6 +62,58 @@ async function aiRegiment(id, source, report, card) {
   }
   const title = u0.name + (source === 'entourage' ? ' (Entourage)' : '');
   report.push({ title, lines, narration: P.narration });
+}
+
+/* the opponent says what it is about to do, on a banner over the map, and gives you time to see it */
+async function aiSay(title, text, ms) {
+  banner(title, [], text, 'say');
+  await sleep(ms);
+}
+
+/* a plan step in words */
+function aiStepText(st) {
+  const nm = id => {
+    const t = byId(String(id || ''));
+    return t ? t.short || t.name : 'the enemy';
+  };
+  const where = P => {
+    if (!P || typeof P !== 'object') return describeSpec(P);
+    const z = zonesOf().find(z => Math.hypot(z.x - P.x, z.y - P.y) <= 3);
+    if (z) return 'the ' + z.name;
+    const t = all()
+      .filter(o => o.onTable && !o.destroyed && Math.hypot(o.x - P.x, o.y - P.y) <= 6)
+      .sort((a, b) => Math.hypot(a.x - P.x, a.y - P.y) - Math.hypot(b.x - P.x, b.y - P.y))[0];
+    return t ? (t.side === AI ? 'its own ' : '') + (t.short || t.name) : 'a new position';
+  };
+  switch (st.do) {
+    case 'enter':
+      return 'Comes on from its table edge';
+    case 'march':
+      return st.mode ? 'Marches straight on' : 'Marches toward ' + where(st.toward);
+    case 'charge':
+      return 'Charges ' + nm(st.target) + '!';
+    case 'clash':
+      return 'Clashes with ' + nm(st.target);
+    case 'volley':
+      return 'Looses a Volley at ' + nm(st.target);
+    case 'inspire':
+      return 'Inspires its warriors (+1 Clash)';
+    case 'aim':
+      return 'Takes aim';
+    case 'reform':
+      return 'Turns to face the enemy';
+    case 'withdraw':
+      return 'Withdraws from the fight';
+    case 'combat_reform':
+      return 'Turns to face its attacker';
+    case 'rally':
+    case 'combat_rally':
+      return 'Rallies (no longer Broken)';
+    case 'cast':
+      return 'Casts ' + (st.spell || 'a spell');
+    default:
+      return '';
+  }
 }
 
 /* carry out one step of a plan; returns the line for the report */
@@ -141,13 +205,16 @@ async function botRun(lines) {
     if (!st) break;
     if (k === 0 && botLast && botLast.why && st.do !== 'enter') lines.push('plan: ' + botLast.why);
     const before = act.actions.length + (act.placed ? 1 : 0);
+    const u = byId(act.id),
+      say = aiStepText(st);
+    if (say && u) await aiSay(N(AI) + ' · ' + (u.short || u.name), say, 1300);
     aiLog = lines;
     const r = await aiStep(st);
     if (r) lines.push(r);
     const after = act ? act.actions.length + (act.placed ? 1 : 0) : before + 1;
     /* nothing happened: do not try the same step again */
     if (after === before) ban.add(JSON.stringify(st));
-    await sleep(300);
+    await sleep(800);
   }
   aiLog = null;
 }
@@ -195,6 +262,19 @@ async function runAITurn() {
       const u = byId(id);
       aiStatus(`${N(AI)}: the ${u.charName} is deciding…`);
       const d = await planCharacter(u);
+      await aiSay(
+        N(AI) + ' · the ' + u.charName,
+        d.char === 'cast'
+          ? 'Casts ' +
+              d.spell +
+              (d.target && byId(d.target) ? ' on ' + (byId(d.target).short || byId(d.target).name) : '')
+          : d.char === 'ability' || d.char === 'duel'
+            ? /^duel$/i.test(String(d.ability || '')) || d.char === 'duel'
+              ? 'Challenges to a Duel'
+              : 'Uses ' + d.ability
+            : 'Takes no action',
+        1400
+      );
       const cl = [];
       for (const x of (Array.isArray(d.draws) ? d.draws : []).slice(0, 3)) {
         const a = chAbil(byId(id)).find(

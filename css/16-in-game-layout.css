@@ -608,3 +608,40 @@ body.tb-top footer.fan-note {
   padding: 3px 8px;
   min-width: 0;
 }
+
+/* ---- the opponent's announcements float over the map instead of pushing it down ---- */
+.leftcol {
+  position: relative;
+}
+.leftcol > #aibanner {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  min-width: min(420px, 80%);
+  max-width: 90%;
+  text-align: center;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+.leftcol > #aibanner .aib-t {
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+.leftcol > #aibanner .aib-s {
+  font-size: 16px;
+  color: var(--ink);
+}
+/* the turn report floats at the lower left instead of pushing the map down */
+body.tb-top #ai-report:not([hidden]) {
+  position: fixed;
+  left: 20px;
+  bottom: 70px;
+  z-index: 20;
+  width: min(440px, 38vw);
+  max-height: 46vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
+}

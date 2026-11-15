@@ -37,6 +37,11 @@ function failCharge(useMarch) {
     const A = corners(Object.assign({}, u, pp));
     return (
       all().some(o => o.onTable && o.side !== u.side && polyDist(A, corners(o)) < 1) ||
+      /* nor on top of a friendly regiment */
+      all().some(
+        o =>
+          o.onTable && !o.destroyed && o.id !== u.id && o.side === u.side && polyDist(A, corners(o)) <= 0.02
+      ) ||
       terrainOf().some(t => tHas(t, 'Garrison') && terrDist(A, t) < 1)
     );
   };

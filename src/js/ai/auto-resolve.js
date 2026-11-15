@@ -3,8 +3,25 @@
  *
  * Resolves combat dice and spellcasting for Claude.
  *
- * In this file: autoResolve(), aiCast(), aiCastSpell()
+ * In this file: huRolls(), autoResolve(), aiCast(), aiCastSpell()
  */
+
+/* single player: when the computer attacks, the defender rolls its own Defense and Morale (unless switched off) */
+async function huRolls(step) {
+  const T = cb && (byId(cb.tgt) || base(cb.tgt));
+  if (!T || T.side === AI || PVP() || SET.ownSaves === false) return false;
+  const box = $('combat');
+  box.classList.add('hu-roll');
+  renderCombat();
+  try {
+    revealIn(box, 'start');
+  } catch (e) {}
+  toast(step === 'def' ? 'Your Defense roll: press Roll Defense.' : 'Your Morale test: press Roll Morale.');
+  const c0 = cb;
+  while (cb === c0 && cb.step === step) await sleep(150);
+  box.classList.remove('hu-roll');
+  return true;
+}
 
 async function autoResolve() {
   let guard = 0;
@@ -41,7 +58,7 @@ async function autoResolve() {
       continue;
     }
     renderCombat();
-    await sleep(cb.step === 'done' ? 900 : 750);
+    await sleep(cb.step === 'done' ? 1600 : 1300);
     if (!cb) break;
     const T = byId(cb.tgt) || base(cb.tgt);
     if (cb.step === 'att') {
@@ -81,6 +98,7 @@ async function autoResolve() {
         cb.blessT = true;
         cb.blessUsedT = true;
       }
+      if (await huRolls('def')) continue;
       rollDef(T);
       cb.step = cb.type !== 'volley' && cb.type !== 'lethal' && cb.wounds ? 'mor' : 'done';
     } else if (cb.step === 'mor') {
@@ -90,6 +108,7 @@ async function autoResolve() {
         cb.extra = 0;
         cb.step = 'done';
       } else {
+        if (await huRolls('mor')) continue;
         rollMor(T);
         cb.step = 'done';
       }
