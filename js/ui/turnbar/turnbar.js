@@ -83,7 +83,22 @@ function placeTurnbar(tb) {
       .filter(k => k.tagName === 'DETAILS' || (k.classList && k.classList.contains('ng')))
       .forEach(k => gp.appendChild(k));
   } else if (tb.parentNode === slot) $('mm').after(tb);
+  /* the connection bar of the online site joins the same row */
+  const nb = $('net-bar'),
+    top = slot.parentNode;
+  if (nb) {
+    /* playing on this device only: nothing to show */
+    nb.classList.toggle('nb-quiet', /^\s*Offline/.test(nb.textContent || ''));
+    if (tbInTop()) {
+      if (nb.parentNode !== top) top.insertBefore(nb, slot.nextSibling);
+    } else if (nb.parentNode === top) document.body.insertBefore(nb, document.body.firstChild);
+  }
   document.body.classList.toggle('tb-top', tbInTop());
+  /* during the activations the bar is one line; the Command Phase steps keep their room */
+  const st = (state && state.step) || 'activations';
+  tb.classList.toggle('tb-line', tbInTop() && (st === 'activations' || st === 'over'));
+  const inf = $('tb-info');
+  if (inf) inf.title = inf.textContent;
 }
 
 /* ---------- The turn bar keeps one status row; reference sections and tools fold behind one toggle ---------- */

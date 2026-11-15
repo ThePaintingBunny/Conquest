@@ -472,3 +472,99 @@ body.tb-top .top > div:last-child .btn {
   border-top: 0;
   padding-top: 0;
 }
+
+/* ---- during a game the top row is one straight line: turn bar, connection, menu ---- */
+body.tb-top .top-title {
+  display: none;
+}
+body.tb-top .top {
+  gap: 10px;
+}
+body.tb-top .top #net-bar {
+  flex: 0 0 auto;
+  max-width: none;
+  margin: 0;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  flex-wrap: nowrap;
+}
+body.tb-top .top #net-bar .nb-l span:last-child {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.tb-top .top #net-bar .nb-r {
+  flex-wrap: nowrap;
+}
+body.tb-top .top #net-bar .btn {
+  padding: 6px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+/* the map sits in the middle of its column when the window is short */
+.leftcol > .mapbox {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.leftcol > .tools {
+  width: 100%;
+  box-sizing: border-box;
+}
+body.tb-top .top {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+body.tb-top .top-turn {
+  flex: 1 1 0;
+}
+body.tb-top .top #net-bar.nb-quiet {
+  display: none;
+}
+/* Claude settings stay on the Menu during a game */
+body.tb-top .top #net-bar .nb-r .btn:last-child {
+  display: none;
+}
+/* one straight line: status, what is happening, End turn */
+.turnbar.tb-line {
+  flex-wrap: nowrap;
+}
+.turnbar.tb-line .tb-status {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+.turnbar.tb-line > .read {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.turnbar.tb-line > .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.leftcol > .tools {
+  margin-inline: auto;
+}
+/* the fine print stays on the menu */
+body.tb-top footer.fan-note {
+  display: none;
+}
+@media (max-width: 1100px) {
+  body.tb-top .top {
+    flex-wrap: wrap;
+  }
+  .turnbar.tb-line > .read {
+    white-space: normal;
+  }
+}
+@media (min-width: 901px) {
+  body.tb-top {
+    padding-bottom: 0;
+  }
+}

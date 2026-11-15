@@ -264,14 +264,7 @@
   }
 }
 
-/* ---- board zoom and bigger touch targets ---- */
-.tools .zoom-b {
-  min-width: 38px;
-  font-size: 16px;
-}
-.tools .zoom-b[hidden] {
-  display: none;
-}
+/* ---- bigger touch targets ---- */
 @media (max-width: 900px), (pointer: coarse) {
   .tools .tool,
   .tools .leg-btn,
