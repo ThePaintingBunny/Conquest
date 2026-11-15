@@ -243,7 +243,20 @@ function abEnhance(box) {
       limit && total > limit ? bEl('em', { textContent: total - limit + ' over' }) : ''
     ])
   );
-  bar.append(bEl('div', { className: 'ab-bar-fac', textContent: bld.fac }));
+  /* the army's name sits in the banner (the name box moves up from the foot); the faction under it */
+  const foot0 = box.querySelector('.ab-foot'),
+    nameIn = foot0 && foot0.querySelector('#ab-army-name');
+  if (nameIn) {
+    nameIn.classList.remove('tf-in');
+    nameIn.classList.add('ab-bar-name');
+    nameIn.placeholder = 'Name this army';
+    bar.append(
+      bEl('div', { className: 'ab-bar-fac has-name' }, [
+        nameIn,
+        bEl('span', { className: 'ab-bar-sub', textContent: bld.fac })
+      ])
+    );
+  } else bar.append(bEl('div', { className: 'ab-bar-fac', textContent: bld.fac }));
   const jump = bEl('div', { className: 'ab-bar-wbs' });
   jump.setAttribute('aria-label', 'Warbands');
   wbs.forEach(({ w, wi }) => {
@@ -287,23 +300,17 @@ function abEnhance(box) {
     iss.setAttribute('aria-expanded', String(!list.hidden));
   };
   acts.append(iss);
-  /* the page's own Check / Use button moves up here; Save jumps to the name box */
+  /* the page's own Check / Use button and the Save button move up here, so each appears once */
   const foot = box.querySelector('.ab-foot'),
     use = foot && [...foot.children].find(x => x.tagName === 'BUTTON');
   if (use) acts.append(use);
-  const nameBox = foot && foot.querySelector('input[type="text"], input:not([type])');
-  if (nameBox)
-    acts.append(
-      bEl('button', {
-        type: 'button',
-        className: 'ab-b ab-ghost',
-        textContent: 'Save…',
-        onclick: () => {
-          nameBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          nameBox.focus({ preventScroll: true });
-        }
-      })
-    );
+  const save =
+    foot && [...foot.querySelectorAll('.ab-store button')].find(b => b.textContent === 'Save army');
+  if (save) {
+    save.textContent = 'Save';
+    save.title = 'Save this army on this device';
+    acts.append(save);
+  }
   acts.append(
     bEl('button', { type: 'button', className: 'ab-b ab-ghost', textContent: 'Import…', onclick: pbDialog })
   );

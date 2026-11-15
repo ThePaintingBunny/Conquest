@@ -13,7 +13,7 @@ function armyModePicker(add) {
   g.setAttribute('aria-label', 'How to enter your army');
   [
     ['build', 'Build it here'],
-    ['paste', 'Paste a list (Claude reads it)']
+    ['paste', 'Paste a list']
   ].forEach(([m, t]) => {
     const b = document.createElement('button');
     b.type = 'button';

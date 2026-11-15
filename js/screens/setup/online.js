@@ -12,6 +12,9 @@ function renderSetupPvp(tb, info, mk, add) {
     seats = state.seats || {};
   info.textContent =
     'Play against a friend. Press Host an online game above (or open the invite link your opponent sent), then each of you takes a seat. Each of you takes an edge and builds or pastes your own army.';
+  /* once connected, the lobby above already says how to invite and join */
+  if (window.__conquestNet && window.__conquestNet.mode && window.__conquestNet.mode !== 'local')
+    info.textContent = 'Each of you takes an edge, then builds or pastes your own army.';
   const box = document.createElement('div');
   box.className = 'rev seats';
   const h = document.createElement('h3');
@@ -64,7 +67,9 @@ function renderSetupPvp(tb, info, mk, add) {
           })
         )
       );
-    if (who) row.appendChild(nameInput(side, 'Name', who === myId));
+    /* on the Multiplayer page your name is set once at the top, and the seat line shows both names */
+    if (who && !(typeof mmCurrent === 'function' && mmCurrent() === 'multi'))
+      row.appendChild(nameInput(side, 'Name', who === myId));
     row.appendChild(colorPicker(side, 'Colour', who === myId));
     if (who === myId)
       row.appendChild(

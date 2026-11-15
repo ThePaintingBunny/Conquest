@@ -179,3 +179,52 @@
     flex-basis: 30px;
   }
 }
+
+/* the army's name, edited in place on the banner */
+.ab-bar-fac.has-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ab-bar input.ab-bar-name {
+  font: inherit;
+  height: auto;
+  min-height: 0;
+  max-width: 100%;
+  flex: none;
+  box-shadow: none;
+  font-size: 19px;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 0;
+  padding: 2px 0;
+  width: min(100%, 420px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.ab-bar .ab-bar-name::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+.ab-bar input.ab-bar-name:hover,
+.ab-bar input.ab-bar-name:focus {
+  border-bottom-color: #d8b36a;
+  outline: none;
+  background: rgba(0, 0, 0, 0.15);
+}
+.ab-bar-sub {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: none;
+}
+
+/* the warband chips scroll sideways on a phone; keep them from widening the page */
+#mm.mm {
+  width: 100%;
+  min-width: 0;
+}

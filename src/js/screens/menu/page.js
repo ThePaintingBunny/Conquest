@@ -411,19 +411,11 @@ function renderMenu() {
           bEl('p', {
             className: 'hint',
             textContent:
-              (n.mode === 'host' ? 'You are hosting. ' : 'Connected. ') +
-              'Send your opponent the invite link, then both of you take a seat.'
+              n.mode === 'host'
+                ? 'You are hosting. Send your opponent the invite link (Copy invite link, at the top of the page), then both of you take a seat.'
+                : 'Connected to the host’s game. Take the open seat to play, or stay unseated to watch.'
           })
         );
-        if (n.invite)
-          c.append(
-            bEl('button', {
-              type: 'button',
-              className: 'btn ghost',
-              textContent: 'Copy invite link',
-              onclick: () => n.invite()
-            })
-          );
         inner.append(c);
       }
     }
