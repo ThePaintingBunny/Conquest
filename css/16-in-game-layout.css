@@ -338,3 +338,48 @@ body.tb-top .top > div:last-child .btn {
   padding: 7px 11px;
   white-space: nowrap;
 }
+
+/* ---- your turn: the card you drew and what it can activate ---- */
+.tb-card {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--line);
+  margin-top: 2px;
+}
+.tb-card-l {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tb-card-n {
+  font-family: var(--display, inherit);
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  color: var(--gold-ink, #f0d9a6);
+}
+.tb-card-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+.tb-card-b {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  padding: 6px 12px;
+}
+.tb-card-b small {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.8;
+}

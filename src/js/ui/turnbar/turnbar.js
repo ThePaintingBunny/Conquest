@@ -320,6 +320,10 @@ function renderTurnbar0() {
   info.textContent = `${scenOf().name} · Your turn · ${tp ? 'next card: ' + cardName(tp) + ' · ' : ''}${huHeldOk() ? 'held in the Strategic Stack: ' + cardName(PS().huHeld) + ' · ' : ''}you have ${hu} card${hu === 1 ? '' : 's'} left, ${N(AI)} have ${ai}.`;
   add(mk('End turn', endTurn));
   if (artOfWarOk(HU)) add(mk('Art of War: pass without drawing', artOfWarPass));
+  {
+    const cs = huCardStrip();
+    if (cs) add(cs);
+  }
   const vd = document.createElement('details');
   vd.className = 'vc';
   const vs = document.createElement('summary');
