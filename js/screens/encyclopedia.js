@@ -56,6 +56,8 @@ function enStats(u, big) {
 function enCard(u, fac, ff) {
   const c = document.createElement('article');
   c.className = 'en-card';
+  /* each card carries its own faction's colour, also in search results across factions */
+  if (ff || fac) c.style.setProperty('--fac', facColor(ff || fac));
   c.tabIndex = 0;
   c.setAttribute('role', 'button');
   c.setAttribute(
