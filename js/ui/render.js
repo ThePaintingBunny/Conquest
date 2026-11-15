@@ -8,32 +8,30 @@
 
 /* Fit the board to the screen: as tall as the space below the top bars allows (on wide screens only).
    When the bars above are very tall (tools opened), the board keeps a usable size and the page scrolls instead. */
-/* on wide screens the table, its frame and the tools under it fit the window: the map is as large as the height
-   allows, and narrower than its column when the window is short */
+/* on wide screens the game fits the window: the map is as large as the height allows, and when that makes it
+   narrower than its column the whole page narrows with it, so the map, the side panel, the top row and the tools
+   stay together instead of leaving gaps */
 function fitBoard() {
   const b = $('board'),
-    box = b && b.closest('.mapbox');
-  if (!b || !box) return;
+    box = b && b.closest('.mapbox'),
+    wrap = document.querySelector('.wrap');
+  if (!b || !box || !wrap) return;
   b.style.maxHeight = '';
   b.style.width = '';
   box.style.width = '';
-  if (innerWidth <= 900 || box.offsetParent === null) return;
+  wrap.style.maxWidth = '';
+  const tools = $('tools');
+  if (tools) tools.style.width = '';
+  if (innerWidth <= 900 || box.offsetParent === null || !document.body.classList.contains('tb-top')) return;
   const vb = b.viewBox && b.viewBox.baseVal,
     ar = vb && vb.height ? vb.width / vb.height : 1.49;
-  const tools = $('tools'),
-    below = tools && tools.offsetParent !== null ? tools.offsetHeight + 12 : 0,
+  const below = tools && tools.offsetParent !== null ? tools.offsetHeight + 12 : 0,
     top = box.getBoundingClientRect().top + scrollY,
     H = Math.max(300, Math.floor(innerHeight - top - below - 20)),
-    W = b.getBoundingClientRect().width;
+    W = box.getBoundingClientRect().width;
   b.style.maxHeight = H + 'px';
-  if (tools) tools.style.width = '';
-  if (W / ar > H) {
-    const w = Math.floor(H * ar);
-    b.style.width = w + 'px';
-    box.style.width = w + 'px';
-    /* the tools line up under the map */
-    if (tools) tools.style.width = Math.max(w, 560) + 'px';
-  }
+  const extra = Math.floor(W - H * ar);
+  if (extra > 2) wrap.style.maxWidth = Math.floor(wrap.getBoundingClientRect().width - extra) + 'px';
 }
 
 addEventListener('resize', () => requestAnimationFrame(fitBoard));

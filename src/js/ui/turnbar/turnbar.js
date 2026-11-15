@@ -3,7 +3,8 @@
  *
  * The bar above the board that shows the round, the step and what to do next.
  *
- * In this file: renderTurnbar(), tbInTop(), placeTurnbar(), tbMoreOpen, foldTurnbar(), renderTurnbar0()
+ * In this file: renderTurnbar(), tbInTop(), placeTurnbar(), placeNetBar(), tbMoreOpen, foldTurnbar(),
+ *   renderTurnbar0()
  */
 
 function renderTurnbar() {
@@ -83,23 +84,34 @@ function placeTurnbar(tb) {
       .filter(k => k.tagName === 'DETAILS' || (k.classList && k.classList.contains('ng')))
       .forEach(k => gp.appendChild(k));
   } else if (tb.parentNode === slot) $('mm').after(tb);
-  /* the connection bar of the online site joins the same row */
-  const nb = $('net-bar'),
-    top = slot.parentNode;
-  if (nb) {
-    /* playing on this device only: nothing to show */
-    nb.classList.toggle('nb-quiet', /^\s*Offline/.test(nb.textContent || ''));
-    if (tbInTop()) {
-      if (nb.parentNode !== top) top.insertBefore(nb, slot.nextSibling);
-    } else if (nb.parentNode === top) document.body.insertBefore(nb, document.body.firstChild);
-  }
   document.body.classList.toggle('tb-top', tbInTop());
+  placeNetBar();
   /* during the activations the bar is one line; the Command Phase steps keep their room */
   const st = (state && state.step) || 'activations';
   tb.classList.toggle('tb-line', tbInTop() && (st === 'activations' || st === 'over'));
   const inf = $('tb-info');
   if (inf) inf.title = inf.textContent;
 }
+
+/* the connection bar of the online site (made by its own script, at any time): in a game it joins the top row,
+   and when you play on this device only it has nothing to say */
+function placeNetBar() {
+  const nb = $('net-bar'),
+    slot = $('top-turn');
+  if (!nb || !slot) return;
+  if (!nb.__obs) {
+    /* its status text changes when the connection does */
+    nb.__obs = new MutationObserver(() => placeNetBar());
+    nb.__obs.observe(nb, { childList: true });
+  }
+  const quiet = /^\s*Offline/.test(nb.textContent || '');
+  if (nb.classList.contains('nb-quiet') !== quiet) nb.classList.toggle('nb-quiet', quiet);
+  const top = slot.parentNode;
+  if (document.body.classList.contains('tb-top')) {
+    if (nb.parentNode !== top) top.insertBefore(nb, slot.nextSibling);
+  } else if (nb.parentNode === top) document.body.insertBefore(nb, document.body.firstChild);
+}
+new MutationObserver(() => placeNetBar()).observe(document.body, { childList: true });
 
 /* ---------- The turn bar keeps one status row; reference sections and tools fold behind one toggle ---------- */
 const tbMoreOpen = {};

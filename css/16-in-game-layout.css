@@ -505,12 +505,6 @@ body.tb-top .top #net-bar .btn {
   white-space: nowrap;
 }
 /* the map sits in the middle of its column when the window is short */
-.leftcol > .mapbox {
-  width: 100%;
-  margin-inline: auto;
-  max-width: 100%;
-  box-sizing: border-box;
-}
 .leftcol > .tools {
   width: 100%;
   box-sizing: border-box;
@@ -522,7 +516,7 @@ body.tb-top .top {
 body.tb-top .top-turn {
   flex: 1 1 0;
 }
-body.tb-top .top #net-bar.nb-quiet {
+body.tb-top #net-bar.nb-quiet {
   display: none;
 }
 /* Claude settings stay on the Menu during a game */
@@ -548,9 +542,6 @@ body.tb-top .top #net-bar .nb-r .btn:last-child {
   flex: 0 0 auto;
   white-space: nowrap;
 }
-.leftcol > .tools {
-  margin-inline: auto;
-}
 /* the fine print stays on the menu */
 body.tb-top footer.fan-note {
   display: none;
@@ -566,5 +557,16 @@ body.tb-top footer.fan-note {
 @media (min-width: 901px) {
   body.tb-top {
     padding-bottom: 0;
+  }
+}
+/* the side panel runs the full height of the map and tools */
+@media (min-width: 901px) {
+  body.tb-top .main {
+    align-items: stretch;
+  }
+  body.tb-top .rcol > #card:not([hidden]),
+  body.tb-top .rcol > #armies:not([hidden]),
+  body.tb-top .rcol > #gamepanel:not([hidden]) {
+    flex: 1 1 auto;
   }
 }
