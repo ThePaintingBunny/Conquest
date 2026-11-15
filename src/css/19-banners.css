@@ -1,0 +1,166 @@
+/*
+ * Banners
+ *
+ * The theme's signature: headers in the faction's colour, points on a hanging brass banner with a
+ * swallowtail cut, faction-coloured edges, and a row of faction pennants over the main menu. Everything
+ * else stays dark steel with brass.
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files and
+ * of the rules inside them matters.
+ */
+
+/* ---- main menu: one pennant per faction ---- */
+.mm-pennants {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto 6px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border-top: 6px solid var(--brass, #c9a15a);
+}
+.mm-pennants span {
+  flex: 0 1 38px;
+  min-width: 18px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 14px), 0 100%);
+}
+
+/* ---- army builder: the summary bar becomes a banner header ---- */
+.ab-bar {
+  position: sticky;
+  background: var(--fac, #4a535c);
+  border: 0;
+  border-bottom: 2px solid var(--brass2, #e7c987);
+  border-radius: 0;
+  padding: 12px 14px 12px 116px;
+  margin-bottom: 34px;
+  min-height: 64px;
+  color: #fff;
+}
+.ab-bar-fac {
+  flex: 1 1 100%;
+  font-family: var(--display, inherit);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+/* the points hang from the header on a brass banner */
+.ab-bar .ab-bar-pts {
+  position: absolute;
+  left: 16px;
+  top: 0;
+  width: 84px;
+  height: calc(100% + 26px);
+  min-height: 100px;
+  box-sizing: border-box;
+  padding: 12px 4px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: linear-gradient(180deg, var(--brass2, #e7c987), var(--brass, #c9a15a));
+  color: #1c1407;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 16px), 0 100%);
+}
+.ab-bar .ab-bar-pts strong {
+  font-size: 24px;
+  line-height: 1;
+  color: #1c1407;
+}
+.ab-bar .ab-bar-pts.over strong {
+  color: #8a1c0c;
+}
+.ab-bar .ab-bar-pts .ab-of {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #3a2c10;
+}
+.ab-bar .ab-lim {
+  width: 62px;
+  text-align: center;
+  padding: 1px 2px;
+  font-size: 13px;
+  border: 0;
+  border-bottom: 1px solid rgba(28, 20, 7, 0.5);
+  background: transparent;
+  color: #1c1407;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.ab-bar .ab-lim::-webkit-inner-spin-button,
+.ab-bar .ab-lim::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.ab-bar .ab-bar-pts em {
+  margin: 0;
+  font-size: 10px;
+  color: #8a1c0c;
+}
+.ab-bar .ab-jump {
+  background: rgba(10, 13, 16, 0.42);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+.ab-bar .ab-jump.wl {
+  color: var(--gold-ink, #f0d9a6);
+}
+.ab-bar .ab-jump.bad {
+  border-color: #ffb3a3;
+  color: #ffd9d0;
+}
+.ab-bar .ab-b {
+  background: rgba(10, 13, 16, 0.6);
+}
+.ab-bar .ab-issl {
+  border-top-color: rgba(255, 255, 255, 0.3);
+}
+.ab-bar .ab-issi {
+  background: rgba(10, 13, 16, 0.6);
+}
+
+/* warbands and tiles carry the faction's colour on their top edge */
+.ab .ab-wb,
+[data-ui='steel'] .ab .ab-wb {
+  border-top: 3px solid var(--fac, var(--brass, #c9a15a));
+}
+.ab-factile {
+  border-top: 3px solid var(--fac, #555);
+}
+
+/* ---- encyclopedia: the open faction colours the header and the cards ---- */
+.ency .en-head {
+  margin: 0 calc(-1 * max(16px, (100vw - 1320px) / 2));
+  padding: 14px max(16px, calc((100vw - 1320px) / 2)) 12px;
+  background: var(--fac, #4a535c);
+  border-bottom: 2px solid var(--brass2, #e7c987);
+}
+.ency .en-head h2 {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+#en-facs button {
+  border-top: 3px solid var(--fac, #555);
+}
+.ency .en-card {
+  border-top: 3px solid var(--fac, var(--line));
+}
+
+@media (max-width: 900px) {
+  .ab-bar {
+    padding-left: 92px;
+  }
+  .ab-bar .ab-bar-pts {
+    left: 8px;
+    width: 74px;
+  }
+  .mm-pennants span {
+    flex-basis: 30px;
+  }
+}

@@ -159,6 +159,7 @@ The stylesheets in `src/css/` are numbered because **their order matters**: when
 | `16` | The in-game layout: status in the turn bar, the toolbar, activation markers, the activation bar and the phone layout. |
 | `17` | The grouped main menu and the army builder's summary bar, start screen and folded regiment rows. |
 | `18` | The lobbies, colour selection and the encyclopedia as a full page. |
+| `19` | Banners: faction-coloured headers, the hanging points banner, faction edges and the menu pennants. The colours are in `ui/faction-theme.js`. |
 
 The army builder appears in two files (`04` and `06`) because its rules sit in two places in the cascade. Merging them would need a check that no rule in between depends on the order.
 

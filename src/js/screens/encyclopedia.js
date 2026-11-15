@@ -352,7 +352,11 @@ function renderEncy() {
       fb.appendChild(b);
     });
   }
-  [...fb.children].forEach((b, i) => b.setAttribute('aria-pressed', String(!enQ && i === enFac)));
+  [...fb.children].forEach((b, i) => {
+    b.setAttribute('aria-pressed', String(!enQ && i === enFac));
+    b.style.setProperty('--fac', facColor(ENCY[i].name));
+  });
+  $('ency').style.setProperty('--fac', enQ ? '#4a535c' : facColor(ENCY[enFac].name));
   document
     .querySelectorAll('#ency .grp button')
     .forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === enKind)));

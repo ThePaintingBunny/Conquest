@@ -81,10 +81,11 @@ function abEnhance(box) {
     const tiles = bEl('div', { className: 'ab-facs' });
     ENCY.forEach(F => {
       const n = F.units.filter(u => u.kind !== 'char').length;
-      const t = bEl('button', { type: 'button', className: 'ab-factile' }, [
-        bEl('strong', { textContent: F.name }),
-        bEl('small', { textContent: n + ' regiments' })
-      ]);
+      const t = bEl(
+        'button',
+        { type: 'button', className: 'ab-factile', style: '--fac:' + facColor(F.name) },
+        [bEl('strong', { textContent: F.name }), bEl('small', { textContent: n + ' regiments' })]
+      );
       t.onclick = () => {
         fs.value = F.name;
         fs.onchange();
@@ -212,6 +213,7 @@ function abEnhance(box) {
     total = bldTotal(),
     limit = abLimit();
   const bar = bEl('div', { className: 'ab-bar' });
+  box.style.setProperty('--fac', facColor(bld.fac));
   const lim = bEl('input', {
     type: 'number',
     className: 'ab-lim',
@@ -227,12 +229,12 @@ function abEnhance(box) {
   bar.append(
     bEl('div', { className: 'ab-bar-pts' + (limit && total > limit ? ' over' : '') }, [
       bEl('strong', { textContent: String(total) }),
-      bEl('span', { textContent: ' / ' }),
+      bEl('span', { className: 'ab-of', textContent: 'of' }),
       lim,
-      bEl('span', { textContent: ' pts' }),
       limit && total > limit ? bEl('em', { textContent: total - limit + ' over' }) : ''
     ])
   );
+  bar.append(bEl('div', { className: 'ab-bar-fac', textContent: bld.fac }));
   const jump = bEl('div', { className: 'ab-bar-wbs' });
   jump.setAttribute('aria-label', 'Warbands');
   wbs.forEach(({ w, wi }) => {

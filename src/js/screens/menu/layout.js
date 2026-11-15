@@ -37,6 +37,20 @@ function mmLayout(grid) {
   /* anything this function does not know about stays visible, with the tools */
   const rest = cards.filter(c => !used.has(c));
   if (rest.length && out[1]) rest.forEach(c => out[1].querySelector('.mm-row').append(c));
+  /* a row of pennants, one per faction, hangs over the title */
+  const inner = grid.parentNode;
+  if (inner && !inner.querySelector('.mm-pennants')) {
+    const row = bEl('div', { className: 'mm-pennants' });
+    row.setAttribute('aria-hidden', 'true');
+    const H = [86, 64, 96, 70, 104, 74, 92, 62, 88, 72];
+    Object.keys(FACTION_COLOR).forEach((n, i) => {
+      const p = bEl('span', { title: n });
+      p.style.background = FACTION_COLOR[n];
+      p.style.height = H[i % H.length] + 'px';
+      row.append(p);
+    });
+    inner.prepend(row);
+  }
   grid.classList.add('mm-grouped');
   grid.append(...out);
 }
