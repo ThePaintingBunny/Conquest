@@ -1,0 +1,375 @@
+/*
+ * Main menu and army builder layout
+ *
+ * The grouped main menu, and the army builder's pinned summary bar, start screen, folded regiment rows,
+ * problem edges and Undo bar.
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files and
+ * of the rules inside them matters.
+ */
+
+/* ---- main menu: Play first, then tools, then settings ---- */
+.mm-grid.mm-grouped {
+  display: block;
+  max-width: 940px;
+}
+.mm-sec {
+  margin: 0 0 22px;
+}
+.mm-sech {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mm-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+.mm-play .mm-row {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.mm-play .mm-card {
+  padding: 24px 22px;
+  border-color: #8a6a2a;
+  background: linear-gradient(180deg, #2a2416, #1f1c14);
+}
+.mm-play .mm-card strong {
+  font-size: 21px;
+}
+.mm-play .mm-card .mm-ico {
+  font-size: 32px;
+  width: 44px;
+}
+.mm-play .mm-card.pri {
+  grid-column: 1 / -1;
+}
+.mm-tools .mm-card {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 16px;
+}
+.mm-tools .mm-card .mm-ico {
+  text-align: left;
+}
+.mm-sets {
+  margin-top: 4px;
+}
+.mm-sets .mm-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.mm-sets .mm-card {
+  padding: 8px 14px;
+  gap: 8px;
+  background: none;
+}
+.mm-sets .mm-card small {
+  display: none;
+}
+.mm-sets .mm-card strong {
+  font-size: 14px;
+}
+.mm-sets .mm-card .mm-ico {
+  font-size: 16px;
+  width: auto;
+}
+
+/* ---- army builder: pinned summary bar ---- */
+.ab-has-bar .ab-sum,
+.ab-has-bar .ab-load,
+.ab-is-start .ab-load,
+.ab-is-start .ab-title > .ab-lab,
+.mm-in .ab-title > h3 {
+  display: none;
+}
+.ab-bar {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px 12px;
+  margin: 0 0 12px;
+  border: 1px solid var(--brass, #c9a15a);
+  border-radius: 4px;
+  background: var(--plate, #1e2226);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+}
+.ab-bar-pts {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ab-bar-pts strong {
+  font-family: var(--display, inherit);
+  font-size: 26px;
+  color: var(--ink);
+}
+.ab-bar-pts.over strong {
+  color: #ff9d8a;
+}
+.ab-bar-pts em {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 13px;
+  color: #ff9d8a;
+  margin-left: 6px;
+}
+.ab-lim {
+  width: 74px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 3px 6px;
+}
+.ab-bar-wbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.ab-jump {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 2px;
+  border: 1px solid var(--edge, #555);
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.ab-jump:hover {
+  border-color: var(--brass, #c9a15a);
+}
+.ab-jump.wl {
+  color: var(--gold-ink, #f0d9a6);
+}
+.ab-jump.bad {
+  border-color: #c96a55;
+  color: #ffb3a3;
+}
+.ab-bar-acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.ab-b.ab-issb {
+  background: none;
+  font-weight: 700;
+}
+.ab-issb.ok {
+  color: #9fd197;
+  border-color: #4d7a48;
+  cursor: default;
+}
+.ab-issb.bad {
+  color: #ffb3a3;
+  border-color: #c96a55;
+}
+.ab-issl {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.ab-issl[hidden] {
+  display: none;
+}
+.ab-issi {
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  padding: 6px 8px;
+  border: 0;
+  border-left: 3px solid #c96a55;
+  background: rgba(201, 106, 85, 0.08);
+  color: #ffcfc4;
+  cursor: pointer;
+}
+.ab-issi:hover {
+  background: rgba(201, 106, 85, 0.18);
+}
+
+/* ---- army builder: start screen ---- */
+.ab-start {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+  margin: 8px 0 16px;
+}
+.ab-h {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ab-facs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.ab-factile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  font: inherit;
+  padding: 14px;
+  border: 1px solid var(--edge, #555);
+  border-radius: 4px;
+  background: #1c2024;
+  color: var(--ink);
+  cursor: pointer;
+}
+.ab-factile:hover,
+.ab-factile:focus-visible {
+  border-color: var(--brass2, #e7c987);
+  background: #232830;
+}
+.ab-factile strong {
+  font-family: var(--display, inherit);
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+.ab-factile small,
+.ab-saved-t small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.ab-saved {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #1c2024;
+}
+.ab-saved-t {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---- army builder: regiments fold to one line ---- */
+.ab-fold {
+  font: inherit;
+  font-size: 15px;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: 1px solid var(--edge, #555);
+  border-radius: 2px;
+  background: none;
+  color: var(--gold-ink, #f0d9a6);
+  cursor: pointer;
+}
+.ab-fold:hover {
+  border-color: var(--brass, #c9a15a);
+}
+.ab-foldt {
+  cursor: pointer;
+}
+.ab-reg.shut > :not(.ab-rh) {
+  display: none;
+}
+.ab-reg.shut {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.ab-reg.shut .ab-rh {
+  margin-bottom: 0;
+}
+.ab-brief {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ---- army builder: problems show where they are ---- */
+.ab-wb:has(> .ab-iss:not(.ok)) {
+  border-color: #c96a55;
+  box-shadow: inset 3px 0 0 #c96a55;
+}
+.ab-reg:has(.ab-rt .ab-chip.ab-bad) {
+  border-color: #c96a55;
+}
+.ab-wb {
+  scroll-margin-top: 84px;
+}
+
+/* ---- army builder: Remove is quiet until you reach for it, and can be undone ---- */
+.ab-b.ab-danger {
+  border-color: transparent;
+  color: var(--muted);
+  background: none;
+}
+.ab-b.ab-danger:hover:not(:disabled),
+.ab-b.ab-danger:focus-visible {
+  border-color: #c96a55;
+  color: #ffb3a3;
+}
+.ab-undo {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--brass, #c9a15a);
+  border-radius: 4px;
+  background: var(--plate, #1e2226);
+  color: var(--ink);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+}
+.ab-undo[hidden] {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .ab-start {
+    grid-template-columns: 1fr;
+  }
+  .ab-bar {
+    padding: 8px 10px;
+  }
+  .ab-bar-pts strong {
+    font-size: 22px;
+  }
+  .ab-bar-wbs {
+    flex: 1 1 100%;
+    order: 3;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ab-jump {
+    white-space: nowrap;
+  }
+}

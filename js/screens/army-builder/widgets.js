@@ -39,6 +39,10 @@ function abRe() {
   wlFix();
   bldSave();
   renderTurnbar();
+  /* the Army builder page of the main menu holds its own copy of the builder: redraw that too */
+  try {
+    if (mmCurrent() === 'army') renderMenu();
+  } catch (e) {}
 }
 
 function abStepper(val, min, max, onSet, label) {

@@ -203,6 +203,11 @@ function renderMenu() {
         })
       );
     inner.append(grid);
+    try {
+      mmLayout(grid);
+    } catch (e) {
+      console.error(e);
+    }
     if (mmOverlay && SBX()) {
       const row = bEl('div', { className: 'mm-foot' });
       row.append(

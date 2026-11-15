@@ -129,6 +129,11 @@ function armyBuilder(add, mk, onUse, useLabel) {
       })
     );
     add(box);
+    try {
+      abEnhance(box);
+    } catch (e) {
+      console.error(e);
+    }
     return;
   }
   const chars = f.units.filter(u => u.kind === 'char' && u.pts != null);
@@ -555,4 +560,9 @@ function armyBuilder(add, mk, onUse, useLabel) {
   );
   box.append(foot);
   add(box);
+  try {
+    abEnhance(box);
+  } catch (e) {
+    console.error(e);
+  }
 }
