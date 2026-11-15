@@ -54,6 +54,7 @@ function botArmyTry(fac, pts) {
         if (!w.regs.length && c.type !== 'Monster' && !joinable(w, r)) continue;
         if (bldTotal() + regPts(r) > pts) continue;
         w.regs.push(r);
+        if (w.joins == null && c.type !== 'Monster' && joinable(w, r)) w.joins = w.regs.length - 1;
         if (wbProblems(w).length) {
           w.regs.pop();
           continue;

@@ -138,81 +138,87 @@ function renderSetup(tb, info, mk, add) {
         },
         'Check the list'
       );
-    add(
-      mk('Build both armies', async () => {
-        const built = armyMode === 'build' ? bldToList() : null;
-        if (armyMode === 'build' && (!built || !built.units.length)) {
-          toast('Add at least one regiment to your army first.');
-          return;
-        }
-        if (armyMode === 'paste' && !setupDraft.list.trim()) {
-          toast('Paste your army list first.');
-          return;
-        }
-        const bot = setupDraft.aiPlayer !== 'claude';
-        if (!bot && !sample) {
-          toast(
-            'Claude is not available in this view. Choose the built-in opponent, or add an API key in Claude settings.'
-          );
-          return;
-        }
-        if (armyMode === 'paste' && !pbLooks(setupDraft.list) && !sample) {
-          toast(
-            'Without Claude only lists copied from the Para Bellum app can be read. Build your army here instead, or import it in the army builder.'
-          );
-          return;
-        }
-        aiBusy = true;
-        aiStatus(
-          armyMode === 'paste' && pbLooks(setupDraft.list)
-            ? 'Reading your Para Bellum list…'
-            : 'Claude is reading your list…'
+    const bProbs = armyMode === 'build' ? bldProblems() : [];
+    const bb = mk('Build both armies', async () => {
+      if (armyMode === 'build' && bldProblems().length) {
+        toast(bldProblems()[0]);
+        return;
+      }
+      const built = armyMode === 'build' ? bldToList() : null;
+      if (armyMode === 'build' && (!built || !built.units.length)) {
+        toast('Add at least one regiment to your army first.');
+        return;
+      }
+      if (armyMode === 'paste' && !setupDraft.list.trim()) {
+        toast('Paste your army list first.');
+        return;
+      }
+      const bot = setupDraft.aiPlayer !== 'claude';
+      if (!bot && !sample) {
+        toast(
+          'Claude is not available in this view. Choose the built-in opponent, or add an API key in Claude settings.'
         );
+        return;
+      }
+      if (armyMode === 'paste' && !pbLooks(setupDraft.list) && !sample) {
+        toast(
+          'Without Claude only lists copied from the Para Bellum app can be read. Build your army here instead, or import it in the army builder.'
+        );
+        return;
+      }
+      aiBusy = true;
+      aiStatus(
+        armyMode === 'paste' && pbLooks(setupDraft.list)
+          ? 'Reading your Para Bellum list…'
+          : 'Claude is reading your list…'
+      );
+      render();
+      try {
+        const mine = built || (await convertList(setupDraft.list, setupDraft.faction, setupDraft.pts));
+        const P =
+          built || mine.points ? Math.max(500, Math.round((built || mine).points / 50) * 50) : setupDraft.pts;
+        aiStatus(bot ? 'Building the opponent’s army…' : 'Claude is designing its army…');
         render();
-        try {
-          const mine = built || (await convertList(setupDraft.list, setupDraft.faction, setupDraft.pts));
-          const P =
-            built || mine.points
-              ? Math.max(500, Math.round((built || mine).points / 50) * 50)
-              : setupDraft.pts;
-          aiStatus(bot ? 'Building the opponent’s army…' : 'Claude is designing its army…');
-          render();
-          const theirs = bot
-            ? botArmy(setupDraft.aiFaction, P)
-            : await designList(setupDraft.aiFaction, P, mine.faction || setupDraft.faction);
-          if (!theirs) throw { code: 'no army' };
-          aiBusy = false;
-          aiStatus('');
-          await putState({
-            scenario: scenId(),
-            zones: scenOf().zones,
-            aiPlayer: bot ? 'bot' : 'claude',
-            botLevel: setupDraft.botLevel || 'normal'
-          });
-          await putState({
-            step: 'review',
-            terrain: genTerrain(),
-            setup: { cs: mine, nord: theirs },
-            names: {
-              cs: String(mine.faction || setupDraft.faction || 'Your army'),
-              nord: String(theirs.faction || setupDraft.aiFaction || (bot ? 'Opponent' : 'Claude'))
-            },
-            phase: 'New game · Check both armies'
-          });
-        } catch (e) {
-          aiBusy = false;
-          aiStatus('');
-          render();
-          toast(
-            e && e.code === 'not_granted'
-              ? 'Claude was not allowed to run, so the armies were not built.'
-              : bot
-                ? 'The armies could not be built (' + ((e && e.code) || 'error') + '). Try again.'
-                : 'Claude could not build the armies (' + ((e && e.code) || 'error') + '). Try again.'
-          );
-        }
-      })
-    );
+        const theirs = bot
+          ? botArmy(setupDraft.aiFaction, P)
+          : await designList(setupDraft.aiFaction, P, mine.faction || setupDraft.faction);
+        if (!theirs) throw { code: 'no army' };
+        aiBusy = false;
+        aiStatus('');
+        await putState({
+          scenario: scenId(),
+          zones: scenOf().zones,
+          aiPlayer: bot ? 'bot' : 'claude',
+          botLevel: setupDraft.botLevel || 'normal'
+        });
+        await putState({
+          step: 'review',
+          terrain: genTerrain(),
+          setup: { cs: mine, nord: theirs },
+          names: {
+            cs: String(mine.faction || setupDraft.faction || 'Your army'),
+            nord: String(theirs.faction || setupDraft.aiFaction || (bot ? 'Opponent' : 'Claude'))
+          },
+          phase: 'New game · Check both armies'
+        });
+      } catch (e) {
+        aiBusy = false;
+        aiStatus('');
+        render();
+        toast(
+          e && e.code === 'not_granted'
+            ? 'Claude was not allowed to run, so the armies were not built.'
+            : bot
+              ? 'The armies could not be built (' + ((e && e.code) || 'error') + '). Try again.'
+              : 'Claude could not build the armies (' + ((e && e.code) || 'error') + '). Try again.'
+        );
+      }
+    });
+    if (bProbs.length) {
+      bb.disabled = true;
+      bb.title = 'Fix your army first: ' + bProbs[0];
+    }
+    add(bb);
     return true;
   }
   if (state.step === 'review') {

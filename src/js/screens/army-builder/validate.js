@@ -61,8 +61,13 @@ function wbProblems(w) {
   }
   if ((R.needOne || c.type === 'Monster') && !n && !R.none && c.type === 'Monster' && R.needOne)
     p.push('Must include at least one regiment.');
-  if (c.type !== 'Monster' && w.joins != null && !(w.regs[w.joins] && joinable(w, w.regs[w.joins])))
-    p.push('Choose which regiment the character joins.');
+  /* a character that is not a Monster must be assigned to a regiment of its warband, or it never reaches the table */
+  if (
+    c.type !== 'Monster' &&
+    w.regs.some(r => joinable(w, r)) &&
+    !(w.joins != null && w.regs[w.joins] && joinable(w, w.regs[w.joins]))
+  )
+    p.push(`The ${c.name} is not assigned to a regiment: choose which regiment it joins.`);
   if (wcCourtChoices(c) && !w.court)
     p.push(
       `Choose the ${c.name}’s ${bld.fac === 'Sorcerer Kings' ? 'Court' : 'Seasonal Court'} (${wcCourtChoices(c).join(', ')}).`
