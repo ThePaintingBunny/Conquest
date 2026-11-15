@@ -140,7 +140,7 @@ function buildGroups(type, A, T) {
           !!A.garrison ||
           !!(cb && cb.forceContact && s.rank === 0) ||
           !!(cb && cb.dieFight && cb.att === A.id),
-        ie = vd + (eng && rh(RU(T), 'Inherited Excellence') && arcOf(T, [A.x, A.y]) === 'front' ? 1 : 0);
+        ie = vd + (eng && rh(RU(T), 'Inherited Excellence') && cArcU(T, A) === 'front' ? 1 : 0);
       const ca =
         (s.cmd && s.kind === 'reg' && offOn(A, 'cmdA') ? +A.cmdA || 0 : 0) +
         (s.cmd && s.kind === 'reg' && fxHas(A, /^Epigenetic Trigger/) ? 2 : 0);
@@ -184,7 +184,7 @@ function buildGroups(type, A, T) {
           0,
           rx(p.rules, 'Impact') -
             (fxHas(A, /^Phantom Onslaught/) ? 2 : 0) -
-            (rh(RU(T), 'Pike Formation') && arcOf(T, [A.x, A.y]) === 'front' ? 3 : 0)
+            (rh(RU(T), 'Pike Formation') && cArcU(T, A) === 'front' ? 3 : 0)
         ),
         p
       );

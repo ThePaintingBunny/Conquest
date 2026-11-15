@@ -40,6 +40,36 @@ function drawVolleyZones(u, g) {
     return o;
   };
   const front = standsOf(u).filter(s => s.rank === 0);
+  if (rh(RU(u), 'Weapon Platform') && !rh(RU(u), 'Acute Senses') && !u.garrison) {
+    /* Weapon Platform: front and both flank arcs, measured from the front and side facings */
+    if (!long)
+      el(
+        'polygon',
+        {
+          points: pts(wpReach(u, R)),
+          fill: '#6FA8FF',
+          'fill-opacity': 0.2,
+          stroke: '#9CC4FF',
+          'stroke-width': 2,
+          'stroke-dasharray': '6 4',
+          'pointer-events': 'none'
+        },
+        g
+      );
+    el(
+      'polygon',
+      {
+        points: pts(wpReach(u, H)),
+        fill: '#FFD66B',
+        'fill-opacity': 0.32,
+        stroke: '#FFE39A',
+        'stroke-width': 2,
+        'pointer-events': 'none'
+      },
+      g
+    );
+    return;
+  }
   if (span >= 180) {
     /* every direction: the shooting stands' outline grown by the range (a rounded rectangle). Acute Senses fires from the front rank only; Fluid Formation from whichever side faces the target, so the whole regiment */
     const back = rh(RU(u), 'Fluid Formation') || u.garrison ? -fe : fe - G.sd;

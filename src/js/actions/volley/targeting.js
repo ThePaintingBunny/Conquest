@@ -5,8 +5,8 @@
  * target.
  *
  * In this file: barrageOf(), fxBarrage(), rangeAdj(), volleyRange(), hasBarrage(), arcingOn(),
- *   arcingWhy(), friendSees(), volleyWhy(), volleySummary(), volleyArcSpan(), frontArcHas(),
- *   alwaysAim(), aimWhy(), fireVolley()
+ *   arcingWhy(), friendSees(), volleyWhy(), volleySummary(), volleyMainArc(), volleyArcSpan(),
+ *   wpReach(), frontArcHas(), alwaysAim(), aimWhy(), fireVolley()
  */
 
 /* Barrage of one profile, and of the regiment: any stand with Barrage (regiment, its character, auxiliary or modular stands) lets it Volley */
@@ -164,11 +164,51 @@ function volleySummary(VS, arcing) {
   );
 }
 
+/* the arc most of the shooting stands hit (each stand's own line decides; the regiment's centre only as a fallback) */
+function volleyMainArc(VS, T, A) {
+  const n = {};
+  (VS || []).filter(v => v.inRange && v.arc).forEach(v => (n[v.arc] = (n[v.arc] || 0) + 1));
+  const k = Object.keys(n).sort((a, b) => n[b] - n[a] || (a === 'front' ? -1 : 1))[0];
+  return k || arcOf(T, [A.x, A.y]);
+}
+
 function volleyArcSpan(A) {
   const R = RU(A);
   if (rh(R, 'Acute Senses') || rh(R, 'Fluid Formation')) return 180;
   if (rh(R, 'Weapon Platform')) return 135;
   return 45;
+}
+
+/* Weapon Platform: where its shots reach. Each front-rank stand measures from the centre of its front facing or of a
+   side facing, into anything that is not its rear arc. Traced ray by ray out from the regiment's centre. */
+function wpReach(u, R) {
+  const P = [];
+  standsOf(u)
+    .filter(s => s.rank === 0)
+    .forEach(s => {
+      const q = s.poly,
+        m = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      P.push(m(q[0], q[1]), m(q[1], q[2]), m(q[3], q[0]));
+    });
+  const ok = p => arcOf(u, p) !== 'rear' && P.some(c => Math.hypot(p[0] - c[0], p[1] - c[1]) <= R + 1e-6),
+    G = geom(u),
+    lim = R + Math.hypot(G.w, G.d),
+    o = [];
+  for (let k = 0; k < 240; k++) {
+    const an = (k / 240) * 2 * Math.PI,
+      v = [Math.sin(an), Math.cos(an)];
+    let t = 0,
+      seen = false;
+    for (let d = 0; d <= lim; d += 0.1) {
+      const p = [u.x + v[0] * d, u.y + v[1] * d];
+      if (ok(p)) {
+        seen = true;
+        t = d;
+      } else if (seen) break;
+    }
+    o.push([u.x + v[0] * t, u.y + v[1] * t]);
+  }
+  return o;
 }
 
 function frontArcHas(u, t) {

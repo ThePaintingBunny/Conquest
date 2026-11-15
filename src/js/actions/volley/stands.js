@@ -51,6 +51,22 @@ function volleyShooters(A, T) {
       f0: mid([s.poly[edge[0]], s.poly[edge[1]]])
     }));
   }
+  /* Weapon Platform (chariots): the flank arcs count as front arc, so a stand shoots from its front facing or from
+     the side facing nearest the target, never from its rear facing */
+  if (rh(R, 'Weapon Platform') && !rh(R, 'Acute Senses') && !A.garrison)
+    return ST.filter(s => s.rank === 0).map(s => {
+      const F = facings(s.poly);
+      let b = F[0],
+        bd = ptPoly(F[0], TP)[0];
+      [F[1], F[3]].forEach(q => {
+        const d = ptPoly(q, TP)[0];
+        if (d < bd - 1e-6) {
+          bd = d;
+          b = q;
+        }
+      });
+      return { s, f0: b };
+    });
   if (rh(R, 'Acute Senses') || A.garrison)
     return ST.filter(s => s.rank === 0).map(s => {
       const F = facings(s.poly);

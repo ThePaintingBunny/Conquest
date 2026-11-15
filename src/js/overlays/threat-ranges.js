@@ -172,6 +172,7 @@ function fanPoly(u, R, spanDeg, fromBack) {
     hw = G.w / 2,
     P = (fw, rr) => [u.x + f[0] * fw + r[0] * rr, u.y + f[1] * fw + r[1] * rr],
     o = [];
+  if (spanDeg === 'wp') return wpReach(u, R);
   if (spanDeg >= 180) {
     const back = fromBack ? -fe : fe - (G.sd || 0);
     [
@@ -295,7 +296,7 @@ function threatLayers(u, mode, onKeys) {
     all: all0,
     NB,
     notes,
-    span: volleyArcSpan(u),
+    span: rh(RU(u), 'Weapon Platform') && !rh(RU(u), 'Acute Senses') && !u.garrison ? 'wp' : volleyArcSpan(u),
     back: rh(RU(u), 'Fluid Formation') || !!u.garrison,
     head: R + fOn
   };

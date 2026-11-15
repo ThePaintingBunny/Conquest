@@ -4,7 +4,7 @@
  * Reforming while engaged: which stand anchors the regiment, the new facing and keeping contact with
  * the enemy.
  *
- * In this file: crPrim(), crAnchor(), crFace(), crContact(), crStart()
+ * In this file: crPrim(), crAnchor(), crFace(), crArc(), crContact(), crStart()
  */
 
 function crPrim(c) {
@@ -20,7 +20,7 @@ function crAnchor(c, files) {
     f = [Math.sin(a), Math.cos(a)],
     r = [Math.cos(a), -Math.sin(a)];
   if (!e) return { x: u.x, y: u.y };
-  const arc = arcOf(u, [e.x, e.y]);
+  const arc = contactArc(u, e) || arcOf(u, [e.x, e.y]);
   let v = [0, 0];
   if (arc === 'front') v = [(f[0] * (G0.d - G.d)) / 2, (f[1] * (G0.d - G.d)) / 2];
   else if (arc === 'rear') v = [(-f[0] * (G0.d - G.d)) / 2, (-f[1] * (G0.d - G.d)) / 2];
@@ -59,6 +59,11 @@ function crFace() {
   render();
 }
 
+/* which side of enemy e the regiment u is on: the side it touches, or (out of contact) where its centre lies */
+function crArc(e, u) {
+  return (polyDist(corners(u), corners(e)) <= 0.4 && contactArc(e, u)) || arcOf(e, [u.x, u.y]);
+}
+
 function crContact(c) {
   const u = byId(act.id),
     foes = (c.foes || [])
@@ -81,8 +86,10 @@ function crStart(u, st) {
     .sort((a, b) => b.n - a.n)[0];
   const foes = prim ? [prim.e.id].concat(eng.filter(e => e.id !== prim.e.id).map(e => e.id)) : [],
     foeArc = {};
+  /* the side of each enemy the regiment touches (not where its centre lies: a regiment in front contact but offset
+     to one side is still on the front) */
   eng.forEach(e => {
-    foeArc[e.id] = arcOf(e, [u.x, u.y]);
+    foeArc[e.id] = crArc(e, u);
   });
   const c = {
     type: 'creform',

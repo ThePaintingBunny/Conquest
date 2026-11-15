@@ -165,7 +165,7 @@ function renderCombat0() {
   }
   const sA = N(A.side),
     sT = N(T.side),
-    arc = cb.type === 'volley' ? arcOf(T, [A.x, A.y]) : cArcU(T, A);
+    arc = cb.type === 'volley' ? volleyMainArc(cb.vst, T, A) : cArcU(T, A);
   if (cb.type === 'duel') {
     renderDuel(body);
     return;
