@@ -3,7 +3,7 @@
  *
  * Hit modifiers, Impact, lost Support and Tenacious against Volleys.
  *
- * In this file: tenVol(), supportLost(), hasImpact(), hitMods()
+ * In this file: tenVol(), supportLost(), supportX(), hasImpact(), hitMods()
  */
 
 function tenVol(rules) {
@@ -15,9 +15,27 @@ function tenVol(rules) {
   return v;
 }
 
+/* Support (X) is lost while an enemy regiment is Engaged with the regiment's flank or rear. The side is the one the
+   enemy actually touches, so an enemy in front contact but offset to one side still counts as the front */
 function supportLost(u) {
   if (rh(RU(u), 'Iron Discipline')) return false;
-  return engaged(u).some(e => arcOf(u, [e.x, e.y]) !== 'front');
+  return engaged(u).some(e => (contactArc(u, e) || arcOf(u, [e.x, e.y])) !== 'front');
+}
+
+/* the Supporting Attacks each unengaged stand adds: 1, or X from Support (X); a Support (+X) bonus is added to that
+   (to 1 when the regiment has no Support (X) of its own) */
+function supportX(u) {
+  if (supportLost(u)) return 1;
+  const R = RU(u);
+  let base = 0,
+    add = 0;
+  R.forEach(r => {
+    const m = String(r).match(/(?:^|, )Support\s*\((\+?)(\d+)\)/);
+    if (!m) return;
+    if (m[1]) add += +m[2];
+    else base = Math.max(base, +m[2]);
+  });
+  return (base || 1) + add;
 }
 
 function hasImpact(u) {

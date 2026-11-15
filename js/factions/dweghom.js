@@ -23,8 +23,13 @@ function dwCreed(side) {
           : '';
 }
 
+/* the rules a regiment gains while Awakened: its own "Awakened: <rule>" lines (Initiates: Support (+1), Hold
+   Warriors: Impact (2), Wardens: Linebreaker) and, under the Clan creed, Oblivious and Iron Discipline for Clan regiments */
 function awakenRules(u) {
-  return dwCreed(u.side) === 'Clan' && frRoles(u).includes('Clan') ? ['Oblivious', 'Iron Discipline'] : [];
+  const own = (u.rules || []).map(r => (String(r).match(/^Awakened:\s*(.+)$/) || [])[1]).filter(Boolean);
+  return own
+    .map(r => r.trim())
+    .concat(dwCreed(u.side) === 'Clan' && frRoles(u).includes('Clan') ? ['Oblivious', 'Iron Discipline'] : []);
 }
 
 async function awaken0(id, why) {

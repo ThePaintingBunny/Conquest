@@ -32,7 +32,7 @@ function buildGroups(type, A, T) {
   const st = standsOf(A),
     Tc = corners(T),
     groups = {},
-    sup = supportLost(A) ? 1 : rx(RU(A), 'Support') || 1;
+    sup = supportX(A);
   const VS =
       type === 'volley'
         ? cb && cb.vst && cb.att === A.id && cb.tgt === T.id
