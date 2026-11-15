@@ -1,4 +1,11 @@
-/* Officers (Command Models bought for a regiment) and what each one does. */
+/*
+ * Officers
+ *
+ * Command Models bought for a regiment and what each one does.
+ *
+ * In this file: OFF
+ */
+
 const OFF = {
   Captain: {
     r: ['Vanguard (4)'],

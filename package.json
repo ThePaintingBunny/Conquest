@@ -1,0 +1,15 @@
+{
+  "name": "conquest-table",
+  "private": true,
+  "description": "A browser battle map for Conquest: The Last Argument of Kings",
+  "scripts": {
+    "build": "python3 tools/build.py",
+    "check": "node tools/check.js",
+    "index": "node tools/code-index.js",
+    "format": "prettier --write \"src/js/**/*.js\" \"tools/*.js\""
+  },
+  "devDependencies": {
+    "acorn": "^8.19.0",
+    "prettier": "^3.10.1"
+  }
+}

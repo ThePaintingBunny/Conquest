@@ -1,4 +1,12 @@
-/* Supremacy Abilities: passive and activated parts, per Warlord. */
+/*
+ * Supremacy Abilities
+ *
+ * Each Warlord's Supremacy Ability: its passive part, its activated part and what the game applies
+ * automatically.
+ *
+ * In this file: INF, CAV, ROLE, ANY, SUP
+ */
+
 const INF = u => /Infantry/.test(u.cls || ''),
   CAV = u => /Cavalry/.test(u.cls || ''),
   ROLE =
@@ -6,6 +14,9 @@ const INF = u => /Infantry/.test(u.cls || ''),
     u =>
       supRoles(u).some(x => r.includes(x)),
   ANY = () => true;
+
+/* t: when the passive part works; p: passive part; a: Activated part (once per battle unless every/uses);
+   g: what the map applies automatically when activated (who gets which rules/stats until the end of the round) */
 const SUP = {
   'Driven by Carnage': {
     c: /Blooded/,

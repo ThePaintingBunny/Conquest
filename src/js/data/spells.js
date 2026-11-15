@@ -1,4 +1,14 @@
-/* Spells from the 2026 army lists: range, attunement, scaling, targets and effects. */
+/*
+ * Spells
+ *
+ * Every spell from the 2026 army lists: range, attunement, scaling, targets and effects.
+ *
+ * In this file: SPELLDB
+ */
+
+/* fields: r range (0 = Self), a attunement (null = automatically cast, 'D' = target's Defense), s Scaling, t target (enemy/friend/self/any/zone/terrain),
+   q requirement, h [hits per success, AP], hf [fixed hits, AP], nm no Morale, heal 's' per success or a number, g rules gained, st stat changes, cap stat caps,
+   lbl label shown on the target, need successes needed, d effect text */
 const SPELLDB = {
   'Blurred Vision': {
     r: 12,

@@ -1,0 +1,253 @@
+/*
+ * Activation panel
+ *
+ * Faction options, the activation panel with its steps and pips, and the Done buttons.
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files
+ * and of the rules inside them matters.
+ */
+.fr-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.fr-opts .tf-l {
+  flex-basis: 100%;
+}
+.fr-opts .btn {
+  font-size: 13px;
+  padding: 5px 10px;
+  text-align: left;
+}
+.fr-blk {
+  margin: 4px 0 6px;
+}
+.fr-panel summary {
+  cursor: pointer;
+}
+
+.card.activating #c-fx-sec {
+  order: 2;
+}
+.card.activating #c-act-sec {
+  order: 3;
+}
+.card.activating #c-rules-sec {
+  order: 4;
+}
+.card.activating #c-abil-sec {
+  order: 5;
+}
+.card.activating #c-char {
+  order: 6;
+}
+.card.activating #c-roll-sec {
+  order: 7;
+}
+.card.activating > .sec:last-of-type,
+.card.activating > .row:last-child {
+  order: 9;
+}
+.actp.live {
+  border: 1.5px solid var(--gold);
+  border-radius: 12px;
+  padding: 12px;
+  gap: 10px;
+  background: var(--bg);
+}
+.actp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.actp.live .actp-head h3 {
+  font-family: var(--display);
+  font-size: 17px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  font-weight: 700;
+}
+.actp-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.actp-pips i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  display: inline-block;
+}
+.actp-pips i.on {
+  background: var(--gold);
+}
+.actp-pips i:last-of-type {
+  margin-right: 4px;
+}
+.actp-step {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+.actp-lbl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.actp-lbl .num {
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--panel);
+  display: inline-grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex: none;
+}
+.actp-step.done .actp-lbl .num {
+  background: var(--muted);
+}
+.actp-step.done .actp-body {
+  opacity: 0.75;
+}
+.actp-state {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--muted);
+  text-align: right;
+}
+.actp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dn {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.35;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+.dn-i {
+  color: var(--gold);
+  font-weight: 700;
+}
+.dn.ref {
+  background: transparent;
+  color: var(--muted);
+}
+.dn.ref b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.dn-h {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.dn-btn {
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: 100%;
+}
+.dn-btn.pri {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
+.dn-btn:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+.dn-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dn-btn small {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.actp-done {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.actp-done:empty {
+  display: none;
+}
+.actp-done li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+.actp-done .ck {
+  color: var(--gold);
+  font-weight: 700;
+}
+.actp-done small {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.actp-cur {
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  padding: 10px;
+}
+.actp-cur #c-cur-read {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.actp.live .act {
+  background: var(--panel);
+}
+.actp.live .act:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+.actp-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.actp-foot .row {
+  justify-content: space-between;
+}

@@ -1,0 +1,202 @@
+/*
+ * Theme: Sleek
+ *
+ * The Sleek look of the regiment card and activation panel (applies when the page has data-ui="sleek").
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files
+ * and of the rules inside them matters.
+ */
+[data-ui='sleek'] .card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 10px 30px -18px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+  padding-top: 18px;
+}
+[data-ui='sleek'] .card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--side);
+}
+[data-ui='sleek'] .card h2 {
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+[data-ui='sleek'] .card .stats {
+  border: 0;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 4px 0;
+}
+[data-ui='sleek'] .card .stats .k {
+  background: transparent;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+[data-ui='sleek'] .card .stats .v {
+  font-size: 18px;
+  font-weight: 700;
+  padding-top: 0;
+}
+[data-ui='sleek'] .card .sec h3 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+[data-ui='sleek'] .card .chip {
+  background: var(--bg);
+  border-color: transparent;
+  font-weight: 500;
+}
+[data-ui='sleek'] .card .chip.fx {
+  background: color-mix(in srgb, var(--side) 14%, var(--panel));
+  border-color: color-mix(in srgb, var(--side) 45%, transparent);
+  color: var(--ink);
+}
+[data-ui='sleek'] .card .btn {
+  background: var(--ink);
+  color: var(--panel);
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 9px 16px;
+}
+[data-ui='sleek'] .card .btn.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+[data-ui='sleek'] .card .meter {
+  height: 6px;
+  border: 0;
+  background: var(--bg);
+}
+[data-ui='sleek'] .card .meter i {
+  background: var(--side);
+}
+[data-ui='sleek'] .actp.live {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  gap: 12px;
+}
+[data-ui='sleek'] .actp.live .actp-head {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--side) 10%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--side) 35%, transparent);
+}
+[data-ui='sleek'] .actp.live .actp-head h3 {
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 700;
+}
+[data-ui='sleek'] .actp-pips i {
+  width: 18px;
+  height: 5px;
+  border-radius: 3px;
+  border: 0;
+  background: color-mix(in srgb, var(--side) 25%, transparent);
+}
+[data-ui='sleek'] .actp-pips i.on {
+  background: var(--side);
+}
+[data-ui='sleek'] .actp-step {
+  border-top: 0;
+  padding-top: 0;
+}
+[data-ui='sleek'] .actp-lbl {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 700;
+}
+[data-ui='sleek'] .actp-lbl .num {
+  width: 20px;
+  height: 20px;
+  background: var(--side);
+  font-size: 11px;
+}
+[data-ui='sleek'] .actp-step.done .actp-lbl .num {
+  background: var(--line);
+  color: var(--muted);
+}
+[data-ui='sleek'] .dn {
+  background: var(--bg);
+  border: 0;
+  border-radius: 10px;
+}
+[data-ui='sleek'] .dn-i {
+  color: var(--side);
+}
+[data-ui='sleek'] .dn-btn {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 11px;
+}
+[data-ui='sleek'] .dn-btn.pri,
+[data-ui='sleek'] .dn-btn:hover:not(:disabled) {
+  border-color: var(--side);
+  box-shadow: 0 0 0 1px var(--side);
+}
+[data-ui='sleek'] .actp-done li {
+  background: var(--bg);
+  border: 0;
+  border-radius: 10px;
+}
+[data-ui='sleek'] .actp-done .ck {
+  color: var(--side);
+}
+[data-ui='sleek'] .actp-cur {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 6px 20px -14px rgba(0, 0, 0, 0.4);
+}
+[data-ui='sleek'] .actp.live .act {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 10px 10px 44px;
+  position: relative;
+  min-height: 56px;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+[data-ui='sleek'] .actp.live .act::before {
+  content: attr(data-ico);
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--side) 14%, var(--panel));
+  color: var(--side);
+  font-size: 14px;
+}
+[data-ui='sleek'] .actp.live .act span {
+  font-weight: 700;
+}
+[data-ui='sleek'] .actp.live .act:hover:not(:disabled) {
+  border-color: var(--side);
+  box-shadow: 0 0 0 1px var(--side);
+}
+[data-ui='sleek'] .actp-foot {
+  border-top: 1px solid var(--line);
+}

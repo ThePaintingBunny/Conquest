@@ -1,0 +1,367 @@
+/*
+ * Page foundations
+ *
+ * Theme colours and fonts, the page layout (board on the left, side column on the right), the header,
+ * the faction tracker strip and the scores.
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files
+ * and of the rules inside them matters.
+ */
+:root {
+  --bg: #e8ecea;
+  --panel: #f6f8f7;
+  --ink: #1c2421;
+  --muted: #5b6863;
+  --line: #c9d1cd;
+  --gold: #b8862e;
+  --gold-soft: #f3e4c2;
+  --gold-ink: #5e4410;
+  --cs: #9a3328;
+  --nord: #2c5a8e;
+  --warn: #a5461a;
+  --ok: #3f7a3a;
+  --display: 'Alegreya SC', Georgia, serif;
+  --body: 'Alegreya Sans', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #111614;
+    --panel: #19201d;
+    --ink: #e3e9e6;
+    --muted: #9aa8a2;
+    --line: #2e3934;
+    --gold: #d4a24a;
+    --gold-soft: #3a2f18;
+    --gold-ink: #f0d9a6;
+    --cs: #d0675b;
+    --nord: #6e9bd3;
+    --warn: #e38a5b;
+    --ok: #86c27d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #111614;
+  --panel: #19201d;
+  --ink: #e3e9e6;
+  --muted: #9aa8a2;
+  --line: #2e3934;
+  --gold: #d4a24a;
+  --gold-soft: #3a2f18;
+  --gold-ink: #f0d9a6;
+  --cs: #d0675b;
+  --nord: #6e9bd3;
+  --warn: #e38a5b;
+  --ok: #86c27d;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap {
+  max-width: 1760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+h1 {
+  font-family: var(--display);
+  font-size: 28px;
+  margin: 0;
+  text-wrap: balance;
+}
+.phase {
+  font-size: 15px;
+  color: var(--muted);
+}
+.fr-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.fr-strip button {
+  font: inherit;
+  font-size: 12.5px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.fr-strip button b {
+  font-weight: 600;
+}
+.fr-strip .cs {
+  border-color: var(--cs);
+}
+.fr-strip .nord {
+  border-color: var(--nord);
+}
+.pn-in {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pn-in input {
+  width: 150px;
+  min-width: 0;
+}
+.col-row {
+  flex-basis: 100%;
+  width: 100%;
+  gap: 18px;
+}
+.col-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+.col-sw {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  cursor: pointer;
+  padding: 0;
+}
+.col-sw.on {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+  border-color: #fff;
+}
+.col-sw.taken {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+.col-sw:disabled:not(.taken) {
+  cursor: default;
+}
+.score {
+  display: flex;
+  gap: 10px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 18px;
+}
+.od-trk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-basis: 100%;
+}
+.od-trk[hidden] {
+  display: none;
+}
+.odg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--odc, #8c6bb1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  min-width: 220px;
+  flex: 1 1 220px;
+  max-width: 340px;
+  cursor: pointer;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+.odg.dark {
+  --odc: #8c6bb1;
+}
+.odg.pant {
+  --odc: #c8a24a;
+}
+.odg-n {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1;
+  min-width: 1.6em;
+  text-align: center;
+  color: var(--odc);
+  font-variant-numeric: tabular-nums;
+}
+.odg-m {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.odg-l {
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.odg-l .odg-t {
+  background: var(--odc);
+  color: #1c1410;
+  border-radius: 4px;
+  padding: 0 6px;
+  font-weight: 700;
+  font-size: 12px;
+}
+.odg-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.odg-bar i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--odc);
+  border-radius: 4px;
+}
+.odg-bar b {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 2px;
+  background: rgba(0, 0, 0, 0.55);
+}
+.odg-s {
+  font-size: 12px;
+  color: var(--muted);
+}
+.od-due {
+  flex-basis: 100%;
+  border: 1px dashed var(--gold);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: rgba(232, 198, 90, 0.08);
+}
+.od-due .tf-row {
+  margin: 2px 0;
+}
+.od-due .tf-l {
+  font-weight: 600;
+}
+.odg-who {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.rf-sec {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+.rf-sec h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.rf-sec .drow {
+  margin: 6px 0;
+}
+.rf-sec .md {
+  width: 38px;
+  height: 38px;
+}
+.rf-sec .set-row {
+  justify-content: flex-start;
+  gap: 10px;
+  text-align: left;
+}
+.rf-res {
+  font-weight: 700;
+}
+.rf-res.ok {
+  color: #7fc97f;
+}
+.rf-res.no {
+  color: #e57373;
+}
+.rf-ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.rf-ul li {
+  margin: 2px 0;
+}
+.score span {
+  padding: 4px 12px;
+  border-radius: 8px;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.score .cs {
+  background: var(--cs);
+}
+.score .nord {
+  background: var(--nord);
+}
+.main[hidden],
+.roster[hidden],
+.score[hidden],
+#last[hidden],
+#view-hint[hidden] {
+  display: none !important;
+}
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(340px, 25vw, 430px);
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.mapbox {
+  overflow-x: auto;
+  border-radius: 12px;
+  touch-action: none;
+  min-width: 0;
+}
+svg {
+  display: block;
+  width: 100%;
+  min-width: 600px;
+  height: auto;
+  user-select: none;
+}
+.lt {
+  fill: var(--ink);
+  font: 700 13px var(--body);
+}
+.ls {
+  fill: var(--muted);
+  font: 400 12px var(--body);
+}

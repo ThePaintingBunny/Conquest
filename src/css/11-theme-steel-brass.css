@@ -1,0 +1,301 @@
+/*
+ * Theme: Steel & Brass, the card
+ *
+ * The Steel & Brass look of the regiment card and activation panel (data-ui="steel", the look the game
+ * uses).
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files
+ * and of the rules inside them matters.
+ */
+/* ===== Theme: Steel & Brass ===== */
+[data-ui='steel'] .card {
+  --sx: #e7e2d6;
+  --sm: #a8a396;
+  --brass: #c9a15a;
+  --brass2: #e7c987;
+  --plate: #1e2226;
+  --plate2: #262b30;
+  --edge: #3a4148;
+  color: var(--sx);
+  background: linear-gradient(180deg, var(--plate2), var(--plate));
+  border: 1px solid var(--edge);
+  border-top: 2px solid var(--brass);
+  border-radius: 4px;
+  box-shadow:
+    0 12px 30px -16px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  position: relative;
+}
+[data-ui='steel'] .card::before {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: -2px;
+  width: 46px;
+  height: 5px;
+  background: var(--side);
+  clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%);
+}
+[data-ui='steel'] .card h2 {
+  color: var(--sx);
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 19px;
+}
+[data-ui='steel'] .card .meta,
+[data-ui='steel'] .card .hint,
+[data-ui='steel'] .card .read,
+[data-ui='steel'] .card .tf-l {
+  color: var(--sm);
+}
+[data-ui='steel'] .card .stats {
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  background: #15181b;
+}
+[data-ui='steel'] .card .stats .k {
+  background: #2c3238;
+  color: var(--brass);
+  font-family: var(--display);
+  letter-spacing: 0.14em;
+}
+[data-ui='steel'] .card .stats .v {
+  color: var(--sx);
+  font-family: var(--display);
+  font-size: 18px;
+}
+[data-ui='steel'] .card .stats div + div:not(:nth-child(9)) {
+  border-left: 1px solid #2c3238;
+}
+[data-ui='steel'] .card .sec h3 {
+  color: var(--brass);
+  font-family: var(--display);
+  letter-spacing: 0.18em;
+  font-size: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+[data-ui='steel'] .card .sec h3::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--edge), transparent);
+}
+[data-ui='steel'] .card .chip {
+  background: #2a2f35;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  color: var(--sx);
+}
+[data-ui='steel'] .card .chip.fx {
+  background: linear-gradient(180deg, var(--brass2), var(--brass));
+  color: #1c1407;
+  border-color: var(--brass);
+}
+[data-ui='steel'] .card .rules b {
+  color: var(--brass2);
+}
+[data-ui='steel'] .card .btn {
+  background: linear-gradient(180deg, var(--brass2), var(--brass));
+  color: #1c1407;
+  border-radius: 2px;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 15px;
+}
+[data-ui='steel'] .card .btn.ghost {
+  background: #2a2f35;
+  color: var(--sx);
+  border: 1px solid var(--edge);
+}
+[data-ui='steel'] .card input[type='text'],
+[data-ui='steel'] .card input[type='number'],
+[data-ui='steel'] .card select {
+  background: #15181b;
+  border-color: var(--edge);
+  color: var(--sx);
+  border-radius: 3px;
+}
+[data-ui='steel'] .card .grp {
+  border-color: var(--edge);
+  border-radius: 3px;
+}
+[data-ui='steel'] .card .grp button {
+  background: #2a2f35;
+  color: var(--sx);
+}
+[data-ui='steel'] .card .grp button + button {
+  border-left-color: var(--edge);
+}
+[data-ui='steel'] .card .grp button[aria-pressed='true'] {
+  background: var(--brass);
+  color: #1c1407;
+}
+[data-ui='steel'] .card .meter {
+  background: #15181b;
+  border-color: var(--edge);
+  border-radius: 2px;
+}
+[data-ui='steel'] .card .meter i {
+  background: linear-gradient(90deg, var(--brass), var(--brass2));
+}
+[data-ui='steel'] .actp.live {
+  background: #181b1f;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  padding: 0 12px 12px;
+}
+[data-ui='steel'] .actp.live .actp-head {
+  margin: 0 -12px;
+  padding: 9px 12px;
+  background: repeating-linear-gradient(135deg, #23282d 0 8px, #202429 8px 16px);
+  border-bottom: 2px solid var(--side);
+}
+[data-ui='steel'] .actp.live .actp-head h3 {
+  color: var(--brass2);
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 14px;
+}
+[data-ui='steel'] .actp-pips {
+  color: var(--sm);
+}
+[data-ui='steel'] .actp-pips i {
+  border-radius: 1px;
+  transform: rotate(45deg);
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--brass);
+}
+[data-ui='steel'] .actp-pips i.on {
+  background: var(--brass);
+}
+[data-ui='steel'] .actp-step {
+  border-top: 1px solid #2c3238;
+}
+[data-ui='steel'] .actp-lbl {
+  color: var(--sx);
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 13.5px;
+}
+[data-ui='steel'] .actp-lbl .num {
+  background: var(--side);
+  color: #fff;
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  width: 22px;
+  height: 24px;
+}
+[data-ui='steel'] .actp-step.done .actp-lbl .num {
+  background: #4a5158;
+}
+[data-ui='steel'] .actp-state {
+  color: var(--sm);
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--body);
+  font-size: 12px;
+  font-style: italic;
+}
+[data-ui='steel'] .dn {
+  background: #22272c;
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--brass);
+  border-radius: 2px;
+  color: var(--sx);
+}
+[data-ui='steel'] .dn-i {
+  color: var(--brass);
+}
+[data-ui='steel'] .dn.ref {
+  background: transparent;
+  color: var(--sm);
+}
+[data-ui='steel'] .dn.ref b {
+  color: var(--sx);
+}
+[data-ui='steel'] .dn-btn {
+  background: #22272c;
+  border: 1px solid var(--edge);
+  color: var(--sx);
+  border-radius: 2px;
+}
+[data-ui='steel'] .dn-btn small {
+  color: var(--sm);
+}
+[data-ui='steel'] .dn-btn.pri,
+[data-ui='steel'] .dn-btn:hover:not(:disabled) {
+  border-color: var(--brass);
+  box-shadow: inset 3px 0 0 var(--brass);
+}
+[data-ui='steel'] .actp-done li {
+  background: #22272c;
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+}
+[data-ui='steel'] .actp-done .ck {
+  color: var(--brass);
+}
+[data-ui='steel'] .actp-done small {
+  color: var(--sm);
+}
+[data-ui='steel'] .actp-cur {
+  background: #22272c;
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--side);
+  border-radius: 2px;
+}
+[data-ui='steel'] .actp-cur #c-cur-read {
+  color: var(--sx);
+}
+[data-ui='steel'] .actp.live .act {
+  background: #22272c;
+  border: 1px solid var(--edge);
+  color: var(--sx);
+  border-radius: 0;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  padding: 9px 10px 9px 42px;
+  position: relative;
+  min-height: 56px;
+}
+[data-ui='steel'] .actp.live .act::before {
+  content: attr(data-ico);
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--brass);
+  color: var(--brass2);
+  font-size: 13px;
+  border: 0;
+  background: #2e3439;
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+}
+[data-ui='steel'] .actp.live .act span {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 14px;
+}
+[data-ui='steel'] .actp.live .act small {
+  color: var(--sm);
+}
+[data-ui='steel'] .actp.live .act:hover:not(:disabled) {
+  background: #2a3036;
+  box-shadow: inset 0 -2px 0 var(--brass);
+}
+[data-ui='steel'] .actp-foot {
+  border-top: 1px solid #2c3238;
+}
+[data-ui='steel'] .card .warn {
+  color: #e38a5b;
+}

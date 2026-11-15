@@ -3,8 +3,9 @@
 
 src/ holds the same page that runs as a Claude artifact:
   src/index.html   the markup, with <link> and <script src> tags in load order
-  src/css/*.css    styles, split by area
-  src/js/*.js      the game, split by feature (src/js/data/ holds the rules data)
+  src/css/*.css    the stylesheets, numbered in the order they load
+  src/js/**/*.js   the game, one folder per area (src/js/data/ holds the rules data);
+                   docs/ARCHITECTURE.md explains the layout
 
 This script copies them to the site root and:
   - loads firebase-config.js and shim.js (which replace Claude's runtime with local

@@ -1,8 +1,16 @@
-/* Character upgrades as game effects: how each item, artefact and mastery changes play. */
-/* ================= Character upgrades (items, artefacts, masteries) applied in play ================= */
+/*
+ * Character upgrades as game effects
+ *
+ * How each item, artefact and mastery changes play (the catalogue with points is in each faction's
+ * upgrades.js).
+ *
+ * In this file: INF_, CAV_, HAS_, ITEMS
+ */
+
 const INF_ = u => /Infantry/.test(u.cls || ''),
   CAV_ = u => /Cavalry/.test(u.cls || ''),
   HAS_ = r => u => supRoles(u).includes(r);
+
 const ITEMS = {
   'Coils of the Serpent': { label: 'Coils of the Serpent (+1 Evasion, max 2)' },
   'Figurehead of the Naglfar': { label: 'Figurehead of the Naglfar (Tenacious (2) against Volleys)' },

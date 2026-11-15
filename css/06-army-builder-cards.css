@@ -1,0 +1,341 @@
+/*
+ * Army builder: regiment cards
+ *
+ * The regiment cards, option buttons, upgrade rows and problem list of the army builder.
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files
+ * and of the rules inside them matters.
+ */
+.ab-wlnote {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.ab-tog.on {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  color: var(--gold-ink);
+  font-weight: 600;
+}
+.ab-pri {
+  padding: 6px 14px;
+}
+.ab-wide {
+  width: 100%;
+  padding: 10px;
+  border-style: dashed;
+}
+.ab-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ab-sq {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.ab-n {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.ab-wb {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.ab-wbh {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.ab-wbt {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+.ab-wbt h4 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 22px;
+  line-height: 1.1;
+}
+.ab-kick {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-ink);
+}
+.ab-rr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.ab-pts {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ab-pts-l {
+  font-size: 18px;
+  font-family: var(--display);
+}
+.ab-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ab-lead .ab-inl > span:first-child {
+  color: var(--gold-ink);
+  font-weight: 600;
+}
+.ab-upg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.ab-upf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.ab-regs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ab-reg {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.ab-reg.led {
+  border-left-color: var(--gold);
+}
+.ab-rh {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+.ab-rt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ab-rt h5 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 18px;
+}
+.ab-mini {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(26px, 38px));
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  width: max-content;
+  max-width: 100%;
+}
+.ab-mk {
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--panel);
+  padding: 1px 0;
+  grid-row: 1;
+}
+.ab-mv {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 2px 0;
+  grid-row: 2;
+}
+.opt-info {
+  flex-basis: 100%;
+  width: 100%;
+  white-space: pre-line;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 6px 9px;
+  margin: 4px 0 2px;
+  border-left: 3px solid var(--accent, #c9a14a);
+  background: rgba(127, 127, 127, 0.09);
+  border-radius: 4px;
+  color: var(--ink);
+}
+.ab-rules {
+  font-size: 13px;
+  color: var(--ink);
+  opacity: 0.85;
+}
+.ab-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.ab-opts .ab-lab-t {
+  flex-basis: 100%;
+}
+.ab-mods {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+}
+.ab-mod {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.ab-mod.on {
+  border-color: var(--gold);
+}
+.ab-mod.cmd {
+  background: var(--gold-soft);
+}
+.ab-modh {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+.ab-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--gold);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.ab-pickh {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.ab-pickg {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.ab-pickgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px;
+}
+.ab-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+}
+.ab-opt:hover:not(:disabled) {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.ab-opt:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ab-opt strong {
+  font-size: 15px;
+}
+.ab-iss {
+  font-size: 13px;
+  color: var(--warn);
+}
+.ab-iss ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.ab-iss.ok {
+  color: var(--ok);
+}
+.ab-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 520px) {
+  .ab-mini {
+    grid-template-columns: repeat(8, 1fr);
+    width: 100%;
+  }
+  .ab-rr {
+    justify-content: flex-start;
+  }
+  .ab-lab.ab-inl .ab-sel {
+    width: 100%;
+  }
+  .ab-fac {
+    min-width: 0;
+    width: 100%;
+  }
+  .ab-title {
+    width: 100%;
+  }
+  .ab-title .ab-lab {
+    flex: 1;
+  }
+}
+.ab-opt.sel {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.ab-opth {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  align-items: baseline;
+}

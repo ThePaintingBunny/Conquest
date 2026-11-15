@@ -2,11 +2,21 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/regiment-card.css">
-<link rel="stylesheet" href="css/themes.css">
-<link rel="stylesheet" href="css/regiment-tab.css">
-<link rel="stylesheet" href="css/menu.css">
+<link rel="stylesheet" href="css/01-page.css">
+<link rel="stylesheet" href="css/02-panels-and-controls.css">
+<link rel="stylesheet" href="css/03-encyclopedia.css">
+<link rel="stylesheet" href="css/04-army-builder.css">
+<link rel="stylesheet" href="css/05-activation-panel.css">
+<link rel="stylesheet" href="css/06-army-builder-cards.css">
+<link rel="stylesheet" href="css/07-formation-and-legend.css">
+<link rel="stylesheet" href="css/08-board-extras.css">
+<link rel="stylesheet" href="css/09-regiment-card.css">
+<link rel="stylesheet" href="css/10-theme-sleek.css">
+<link rel="stylesheet" href="css/11-theme-steel-brass.css">
+<link rel="stylesheet" href="css/12-theme-steel-brass-table.css">
+<link rel="stylesheet" href="css/13-settings.css">
+<link rel="stylesheet" href="css/14-regiment-tab.css">
+<link rel="stylesheet" href="css/15-menu.css">
 <div class="wrap">
   <div class="top">
     <div class="top-title"><h1>Vale of Banners</h1><div class="phase" id="phase">Waiting for the game state…</div><div class="fr-strip" id="fr-strip" hidden></div></div>
@@ -94,52 +104,248 @@
   <p class="hint" id="view-hint">Shown from the City States side. Coordinates are inches, x from the west edge and y from the Nords edge. Arrow keys nudge ½″, Q and E wheel 15° during a March or Reform. R toggles the ruler.</p>
 </div>
 <!-- runtime -->
+<!-- data -->
 <script src="js/data/glossary.js"></script>
-<script src="js/data/factions.js"></script>
-<script src="js/data/upgrades.js"></script>
+<script src="js/data/factions/registry.js"></script>
+<script src="js/data/factions/nords/units.js"></script>
+<script src="js/data/factions/nords/upgrades.js"></script>
+<script src="js/data/factions/nords/rules-text.js"></script>
+<script src="js/data/factions/city-states/units.js"></script>
+<script src="js/data/factions/city-states/upgrades.js"></script>
+<script src="js/data/factions/city-states/rules-text.js"></script>
+<script src="js/data/factions/wadrhun/units.js"></script>
+<script src="js/data/factions/wadrhun/upgrades.js"></script>
+<script src="js/data/factions/wadrhun/rules-text.js"></script>
+<script src="js/data/factions/old-dominion/units.js"></script>
+<script src="js/data/factions/old-dominion/upgrades.js"></script>
+<script src="js/data/factions/old-dominion/rules-text.js"></script>
+<script src="js/data/factions/sorcerer-kings/units.js"></script>
+<script src="js/data/factions/sorcerer-kings/upgrades.js"></script>
+<script src="js/data/factions/sorcerer-kings/rules-text.js"></script>
+<script src="js/data/factions/yoroni/units.js"></script>
+<script src="js/data/factions/yoroni/upgrades.js"></script>
+<script src="js/data/factions/yoroni/rules-text.js"></script>
+<script src="js/data/factions/weaver-courts/units.js"></script>
+<script src="js/data/factions/weaver-courts/upgrades.js"></script>
+<script src="js/data/factions/weaver-courts/rules-text.js"></script>
+<script src="js/data/factions/hundred-kingdoms/units.js"></script>
+<script src="js/data/factions/hundred-kingdoms/upgrades.js"></script>
+<script src="js/data/factions/hundred-kingdoms/rules-text.js"></script>
+<script src="js/data/factions/spires/units.js"></script>
+<script src="js/data/factions/spires/upgrades.js"></script>
+<script src="js/data/factions/spires/rules-text.js"></script>
+<script src="js/data/factions/dweghom/units.js"></script>
+<script src="js/data/factions/dweghom/upgrades.js"></script>
+<script src="js/data/factions/dweghom/rules-text.js"></script>
 <script src="js/data/spells.js"></script>
+<script src="js/data/casters.js"></script>
 <script src="js/data/supremacy.js"></script>
 <script src="js/data/items.js"></script>
 <script src="js/data/officers.js"></script>
+<script src="js/data/character-abilities.js"></script>
+<script src="js/data/faction-mechanics.js"></script>
+<script src="js/data/modular-regiments.js"></script>
 <script src="js/data/terrain.js"></script>
-<script src="js/core.js"></script>
-<script src="js/terrain.js"></script>
-<script src="js/regiments.js"></script>
-<script src="js/march.js"></script>
-<script src="js/controls.js"></script>
-<script src="js/movement-rules.js"></script>
-<script src="js/charge.js"></script>
-<script src="js/activation.js"></script>
-<script src="js/draw.js"></script>
-<script src="js/panels.js"></script>
-<script src="js/combat.js"></script>
-<script src="js/split-clash.js"></script>
-<script src="js/scenarios.js"></script>
-<script src="js/online.js"></script>
-<script src="js/live-view.js"></script>
-<script src="js/arcs.js"></script>
-<script src="js/threat.js"></script>
-<script src="js/targeting.js"></script>
-<script src="js/cards.js"></script>
-<script src="js/turns.js"></script>
-<script src="js/rounds.js"></script>
-<script src="js/glossary.js"></script>
-<script src="js/encyclopedia.js"></script>
-<script src="js/units.js"></script>
-<script src="js/army-builder.js"></script>
-<script src="js/test-field.js"></script>
-<script src="js/faction-rules.js"></script>
-<script src="js/character-abilities.js"></script>
-<script src="js/spells.js"></script>
-<script src="js/supremacy.js"></script>
-<script src="js/special-rules.js"></script>
-<script src="js/duels.js"></script>
-<script src="js/character-specials.js"></script>
-<script src="js/supremacy-effects.js"></script>
-<script src="js/items.js"></script>
-<script src="js/setup.js"></script>
-<script src="js/menu.js"></script>
-<script src="js/calculator.js"></script>
-<script src="js/menu-pages.js"></script>
-<script src="js/turnbar.js"></script>
+<script src="js/data/scenarios.js"></script>
+<!-- core -->
+<script src="js/core/board.js"></script>
+<script src="js/core/random.js"></script>
+<script src="js/core/geometry.js"></script>
+<script src="js/core/state.js"></script>
+<!-- ui -->
+<script src="js/ui/widgets.js"></script>
+<script src="js/ui/toast.js"></script>
+<script src="js/ui/settings.js"></script>
+<script src="js/ui/dice.js"></script>
+<script src="js/ui/animation.js"></script>
+<script src="js/ui/army-colors.js"></script>
+<!-- terrain -->
+<script src="js/terrain/pieces.js"></script>
+<script src="js/terrain/rules.js"></script>
+<script src="js/terrain/painters.js"></script>
+<script src="js/terrain/draw.js"></script>
+<script src="js/terrain/generate.js"></script>
+<script src="js/terrain/editor.js"></script>
+<!-- ui -->
+<script src="js/ui/legend.js"></script>
+<!-- regiments -->
+<script src="js/regiments/stands.js"></script>
+<script src="js/regiments/footprint.js"></script>
+<script src="js/regiments/profile.js"></script>
+<script src="js/regiments/draw.js"></script>
+<script src="js/regiments/unit-factory.js"></script>
+<!-- rules -->
+<script src="js/rules/glossary-lookup.js"></script>
+<script src="js/rules/grants.js"></script>
+<script src="js/rules/queries.js"></script>
+<script src="js/rules/helpers.js"></script>
+<script src="js/rules/derived-rules.js"></script>
+<script src="js/rules/officers.js"></script>
+<script src="js/rules/items.js"></script>
+<script src="js/rules/movement.js"></script>
+<script src="js/rules/charge.js"></script>
+<script src="js/rules/combat.js"></script>
+<script src="js/rules/broken-shattered.js"></script>
+<script src="js/rules/extra-actions.js"></script>
+<script src="js/rules/activation-options.js"></script>
+<script src="js/rules/character-abilities.js"></script>
+<!-- spells -->
+<script src="js/spells/casters.js"></script>
+<script src="js/spells/targets.js"></script>
+<script src="js/spells/overlay.js"></script>
+<script src="js/spells/special-rules.js"></script>
+<script src="js/spells/casting.js"></script>
+<script src="js/spells/panel.js"></script>
+<!-- factions -->
+<script src="js/factions/roles.js"></script>
+<script src="js/factions/storage.js"></script>
+<script src="js/factions/city-states.js"></script>
+<script src="js/factions/wadrhun.js"></script>
+<script src="js/factions/weaver-courts.js"></script>
+<script src="js/factions/sorcerer-kings.js"></script>
+<script src="js/factions/old-dominion.js"></script>
+<script src="js/factions/dweghom.js"></script>
+<script src="js/factions/yoroni.js"></script>
+<script src="js/factions/spires/strains.js"></script>
+<script src="js/factions/spires/catabolic-node.js"></script>
+<script src="js/factions/spires/master-manipulator.js"></script>
+<script src="js/factions/spires/assassination-directive.js"></script>
+<script src="js/factions/hooks.js"></script>
+<script src="js/factions/activation-options.js"></script>
+<script src="js/factions/draw-step-panel.js"></script>
+<script src="js/factions/trackers-panel.js"></script>
+<!-- supremacy -->
+<script src="js/supremacy/queries.js"></script>
+<script src="js/supremacy/warlord.js"></script>
+<script src="js/supremacy/prey.js"></script>
+<script src="js/supremacy/step.js"></script>
+<script src="js/supremacy/passive-rules.js"></script>
+<script src="js/supremacy/hooks.js"></script>
+<script src="js/supremacy/extra-casts.js"></script>
+<script src="js/supremacy/activation-options.js"></script>
+<script src="js/supremacy/choices.js"></script>
+<script src="js/supremacy/dark-hand.js"></script>
+<script src="js/supremacy/trackers.js"></script>
+<!-- actions -->
+<script src="js/actions/action-types.js"></script>
+<script src="js/actions/pose.js"></script>
+<script src="js/actions/one-inch-rule.js"></script>
+<script src="js/actions/march.js"></script>
+<script src="js/actions/march-ui.js"></script>
+<script src="js/actions/combat-reform.js"></script>
+<script src="js/actions/withdraw.js"></script>
+<script src="js/actions/charge/range.js"></script>
+<script src="js/actions/charge/legality.js"></script>
+<script src="js/actions/charge/planner-geometry.js"></script>
+<script src="js/actions/charge/planner.js"></script>
+<script src="js/actions/charge/roll.js"></script>
+<script src="js/actions/charge/place.js"></script>
+<script src="js/actions/charge/fail.js"></script>
+<script src="js/actions/charge/fail-preview.js"></script>
+<script src="js/actions/charge/animation.js"></script>
+<script src="js/actions/charge/overlay.js"></script>
+<script src="js/actions/volley/targeting.js"></script>
+<script src="js/actions/volley/stands.js"></script>
+<script src="js/actions/volley/overlay.js"></script>
+<!-- activation -->
+<script src="js/activation/start.js"></script>
+<script src="js/activation/draw-events.js"></script>
+<script src="js/activation/character.js"></script>
+<script src="js/activation/entry.js"></script>
+<script src="js/activation/available-actions.js"></script>
+<script src="js/activation/actions.js"></script>
+<script src="js/activation/save.js"></script>
+<script src="js/activation/undo.js"></script>
+<!-- combat -->
+<script src="js/combat/modifiers.js"></script>
+<script src="js/combat/groups.js"></script>
+<script src="js/combat/open-close.js"></script>
+<script src="js/combat/rerolls.js"></script>
+<script src="js/combat/rolls.js"></script>
+<script src="js/combat/panel.js"></script>
+<script src="js/combat/record.js"></script>
+<script src="js/combat/split-clash.js"></script>
+<script src="js/combat/duels.js"></script>
+<script src="js/combat/duel-panel.js"></script>
+<!-- game -->
+<script src="js/game/scenarios.js"></script>
+<script src="js/game/objectives-draw.js"></script>
+<script src="js/game/scoring.js"></script>
+<script src="js/game/scenario-picks.js"></script>
+<script src="js/game/command-cards.js"></script>
+<script src="js/game/reinforcement-lines.js"></script>
+<script src="js/game/sanitize.js"></script>
+<script src="js/game/reinforcements.js"></script>
+<script src="js/game/reinforcements-panel.js"></script>
+<script src="js/game/command-phase.js"></script>
+<script src="js/game/end-turn.js"></script>
+<script src="js/game/end-round.js"></script>
+<script src="js/game/new-game.js"></script>
+<!-- input -->
+<script src="js/input/buttons.js"></script>
+<script src="js/input/board-pointer.js"></script>
+<script src="js/input/hotkeys.js"></script>
+<!-- online -->
+<script src="js/online/seats.js"></script>
+<script src="js/online/live-sync.js"></script>
+<script src="js/online/shared-combat.js"></script>
+<script src="js/online/presence.js"></script>
+<script src="js/online/live-view.js"></script>
+<!-- ai -->
+<script src="js/ai/status.js"></script>
+<script src="js/ai/prompt.js"></script>
+<script src="js/ai/army-lists.js"></script>
+<script src="js/ai/executors.js"></script>
+<script src="js/ai/auto-resolve.js"></script>
+<script src="js/ai/duels.js"></script>
+<script src="js/ai/faction-choices.js"></script>
+<script src="js/ai/planning.js"></script>
+<script src="js/ai/turn.js"></script>
+<!-- overlays -->
+<script src="js/overlays/ruler.js"></script>
+<script src="js/overlays/arcs.js"></script>
+<script src="js/overlays/threat-ranges.js"></script>
+<script src="js/overlays/threat-view.js"></script>
+<!-- ui -->
+<script src="js/ui/tooltips.js"></script>
+<script src="js/ui/formation-editor.js"></script>
+<script src="js/ui/regiment-card.js"></script>
+<script src="js/ui/tabs.js"></script>
+<script src="js/ui/armies-tab.js"></script>
+<script src="js/ui/render.js"></script>
+<script src="js/ui/turnbar/command-stack.js"></script>
+<script src="js/ui/turnbar/turn-notice.js"></script>
+<script src="js/ui/turnbar/host-override.js"></script>
+<script src="js/ui/turnbar/online.js"></script>
+<script src="js/ui/turnbar/turnbar.js"></script>
+<!-- screens -->
+<script src="js/screens/encyclopedia.js"></script>
+<script src="js/screens/army-builder/draft.js"></script>
+<script src="js/screens/army-builder/warbands.js"></script>
+<script src="js/screens/army-builder/points.js"></script>
+<script src="js/screens/army-builder/validate.js"></script>
+<script src="js/screens/army-builder/upgrades.js"></script>
+<script src="js/screens/army-builder/modular-regiments.js"></script>
+<script src="js/screens/army-builder/export.js"></script>
+<script src="js/screens/army-builder/saved-armies.js"></script>
+<script src="js/screens/army-builder/option-info.js"></script>
+<script src="js/screens/army-builder/widgets.js"></script>
+<script src="js/screens/army-builder/upgrade-picker.js"></script>
+<script src="js/screens/army-builder/regiment-card.js"></script>
+<script src="js/screens/army-builder/pickers.js"></script>
+<script src="js/screens/army-builder/page.js"></script>
+<script src="js/screens/setup/roster.js"></script>
+<script src="js/screens/setup/mode-pickers.js"></script>
+<script src="js/screens/setup/online.js"></script>
+<script src="js/screens/setup/solo.js"></script>
+<script src="js/screens/test-field/field.js"></script>
+<script src="js/screens/test-field/quick-add.js"></script>
+<script src="js/screens/test-field/panel.js"></script>
+<script src="js/screens/calculator/simulate.js"></script>
+<script src="js/screens/calculator/page.js"></script>
+<script src="js/screens/menu/state.js"></script>
+<script src="js/screens/menu/page.js"></script>
+<!-- start-up -->
 <script src="js/main.js"></script>
+<!-- dev -->
+<script src="js/dev/test-hooks.js"></script>
