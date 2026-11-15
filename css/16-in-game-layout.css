@@ -339,47 +339,136 @@ body.tb-top .top > div:last-child .btn {
   white-space: nowrap;
 }
 
-/* ---- your turn: the card you drew and what it can activate ---- */
-.tb-card {
-  flex: 1 1 100%;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-  padding: 6px 8px;
-  border-top: 1px solid var(--line);
-  margin-top: 2px;
+/* ---- the Game tab: the card you drew and who can act with it ---- */
+.gp-card[hidden] {
+  display: none;
 }
-.tb-card-l {
-  font-size: 12px;
+.gp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gp-cardface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px 12px 18px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.12)), var(--plate, #1e2226);
+  box-shadow: inset 4px 0 0 var(--fac, var(--brass, #c9a15a));
+}
+.gp-cardface .gp-k {
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.tb-card-n {
+.gp-cardface strong {
   font-family: var(--display, inherit);
-  font-size: 15px;
-  letter-spacing: 0.05em;
+  font-size: 20px;
+  letter-spacing: 0.04em;
   color: var(--gold-ink, #f0d9a6);
 }
-.tb-card-opts {
+.gp-cardface .gp-left {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.gp-ask {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.gp-pick {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-left: auto;
-}
-.tb-card-b {
-  display: inline-flex;
   flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.15;
-  padding: 6px 12px;
+  gap: 6px;
 }
-.tb-card-b small {
-  font-size: 11px;
+.gp-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'nm go' 'sub go';
+  align-items: center;
+  gap: 1px 10px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.gp-row:hover,
+.gp-row:focus-visible {
+  border-color: var(--brass, #c9a15a);
+  background: var(--gold-soft, #372e1e);
+  outline: none;
+}
+.gp-nm {
+  grid-area: nm;
+  font-weight: 700;
+  font-size: 15px;
+}
+.gp-tag,
+.gp-note {
+  grid-area: sub;
+  font-size: 12px;
+  color: var(--muted);
+}
+.gp-tag {
+  justify-self: start;
+  color: var(--gold-ink, #f0d9a6);
+  letter-spacing: 0.04em;
+}
+.gp-tag + .gp-note {
+  margin-left: 0;
+}
+.gp-go {
+  grid-area: go;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brass2, #e7c987);
+  white-space: nowrap;
+}
+/* a card is waiting: the Game tab says so */
+#tab-game.waiting::after {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: var(--brass2, #e7c987);
+  vertical-align: middle;
+  box-shadow: 0 0 8px rgba(231, 201, 135, 0.7);
+}
+.gp-card:not([hidden]) {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+/* the Game tab's sections all look alike */
+#gp-body > details > summary {
+  font-family: var(--display, inherit);
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0;
-  text-transform: none;
-  opacity: 0.8;
+  letter-spacing: 0.08em;
+  color: var(--gold-ink, #f0d9a6);
+  padding: 4px 0;
+}
+#gp-body > details.ovr {
+  border-top: 0;
+  padding-top: 0;
 }

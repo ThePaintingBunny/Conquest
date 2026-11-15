@@ -209,10 +209,6 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
   info.textContent = `${scenOf().name} · Your turn · ${tp ? 'next card: ' + cardName(tp) + ' · ' : ''}${huHeldOk() ? 'held in the Strategic Stack: ' + cardName(PS().huHeld) + ' · ' : ''}you have ${hu} card${hu === 1 ? '' : 's'} left, ${N(AI)} have ${op}.`;
   add(mk('End turn', endTurn));
   if (artOfWarOk(HU)) add(mk('Art of War: pass without drawing', artOfWarPass));
-  {
-    const cs = huCardStrip();
-    if (cs) add(cs);
-  }
   add(vd);
   add(armyRulesBox());
   add(frPanel());
