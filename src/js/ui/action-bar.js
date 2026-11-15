@@ -22,7 +22,8 @@ function renderActionBar() {
     btns = $('actbar-btns'),
     here = selId === act.id,
     pips = $('c-pips');
-  sub.textContent = here && pips && !pips.hidden ? pips.textContent.replace(/^[^A-Za-z0-9]+/, '') : 'Activating';
+  sub.textContent =
+    here && pips && !pips.hidden ? pips.textContent.replace(/^[^A-Za-z0-9]+/, '') : 'Activating';
   btns.innerHTML = '';
   const mirror = (id, ghost) => {
     const src = $(id);
