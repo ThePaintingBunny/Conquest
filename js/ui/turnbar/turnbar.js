@@ -37,6 +37,11 @@ function renderTurnbar() {
   } catch (e) {
     console.error(e);
   }
+  try {
+    tbStatus(tb0);
+  } catch (e) {
+    console.error(e);
+  }
   if (fid) {
     const e = document.getElementById(fid);
     if (e && !e.disabled) {

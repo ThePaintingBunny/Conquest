@@ -156,6 +156,7 @@ The stylesheets in `src/css/` are numbered because **their order matters**: when
 | `09` | The regiment card. |
 | `10` to `12` | Themes. The game uses Steel & Brass. |
 | `13` to `15` | Settings window, Regiment tab, main menu. |
+| `16` | The in-game layout: status in the turn bar, the toolbar, activation markers, the activation bar and the phone layout. |
 
 The army builder appears in two files (`04` and `06`) because its rules sit in two places in the cascade. Merging them would need a check that no rule in between depends on the order.
 

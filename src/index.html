@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="css/13-settings.css">
 <link rel="stylesheet" href="css/14-regiment-tab.css">
 <link rel="stylesheet" href="css/15-menu.css">
+<link rel="stylesheet" href="css/16-in-game-layout.css">
 <div class="wrap">
   <div class="top">
     <div class="top-title"><h1>Vale of Banners</h1><div class="phase" id="phase">Waiting for the game state…</div><div class="fr-strip" id="fr-strip" hidden></div></div>
@@ -27,7 +28,7 @@
   <section class="ency" id="ency" hidden aria-label="Encyclopedia"><div class="en-head"><h2>Encyclopedia</h2><button type="button" class="btn ghost" id="en-close">Close</button></div><div class="en-facs" id="en-facs" role="group" aria-label="Faction"></div><div class="en-ctl"><input type="search" id="en-q" placeholder="Search every faction: a name, a rule like Impact or Fly…" aria-label="Search the encyclopedia"><div class="grp" role="group" aria-label="Show"><button type="button" data-k="all" aria-pressed="true">All</button><button type="button" data-k="char" aria-pressed="false">Characters</button><button type="button" data-k="reg" aria-pressed="false">Regiments</button></div></div><div id="en-info"></div><div class="en-grid" id="en-grid"></div></section><span id="ai-status" hidden></span>
   <section class="report" id="ai-report" hidden aria-live="polite"><div class="cb-head"><h2 id="air-title">Turn report</h2><button type="button" class="btn ghost" id="air-close">Close</button></div><div id="air-body"></div></section>
   <div class="main">
-    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false" title="Ruler (R): Measure between two points, or tap two regiments for the closest distance." aria-keyshortcuts="R">📏 Ruler</button><button type="button" id="arcs-btn" class="tool" aria-pressed="false" title="Arcs (A): point at a regiment to see its front, flank and rear arcs; select one to keep them shown." aria-keyshortcuts="A">◩ Arcs</button><button type="button" id="threat-btn" class="tool" aria-pressed="false" title="Threat ranges (T): Charge threat, then Volley threat, then off. Point at a regiment or select one." aria-keyshortcuts="T">⚔ Threat</button><div class="last" id="last" title="Click to show the whole message">No moves yet.</div><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div><div class="od-trk" id="od-trk" hidden aria-label="Old Dominion Power tokens"></div></div><div class="mapbox"><p class="toast" id="toast" role="status" aria-live="polite"></p><button type="button" class="leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel">Legend</button><div class="leg-panel" id="leg-panel" hidden></div>
+    <div class="leftcol"><div class="aib" id="aibanner" hidden aria-live="polite"><div class="aib-t" id="aib-t"></div><div class="drow" id="aib-d"></div><div class="aib-s" id="aib-s"></div></div><div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false" title="Ruler (R): Measure between two points, or tap two regiments for the closest distance." aria-keyshortcuts="R">📏 Ruler</button><button type="button" id="arcs-btn" class="tool" aria-pressed="false" title="Arcs (A): point at a regiment to see its front, flank and rear arcs; select one to keep them shown." aria-keyshortcuts="A">◩ Arcs</button><button type="button" id="threat-btn" class="tool" aria-pressed="false" title="Threat ranges (T): Charge threat, then Volley threat, then off. Point at a regiment or select one." aria-keyshortcuts="T">⚔ Threat</button><button type="button" class="tool leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel" title="Legend: objective zones, terrain types and what each terrain rule does.">☰ Legend</button><button type="button" id="hk-btn" class="tool" title="Hotkeys (?): every keyboard shortcut." aria-keyshortcuts="?">⌨ Hotkeys</button><div class="last" id="last" title="Click to show the whole message">No moves yet.</div><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div><div class="od-trk" id="od-trk" hidden aria-label="Old Dominion Power tokens"></div></div><div class="mapbox"><p class="toast" id="toast" role="status" aria-live="polite"></p><div class="leg-panel" id="leg-panel" hidden></div>
     <svg id="board" viewBox="160 30 524 352" role="img" aria-labelledby="mt"><title id="mt">Battlefield with terrain, objectives and regiments</title>
       <style>.grass{fill:#86A85E}.patch{fill:#739650}.tuft{stroke:#5F8443}
       @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .grass{fill:#4C6A36}:root:not([data-theme="light"]) .patch{fill:#425E2F}:root:not([data-theme="light"]) .tuft{stroke:#37502A}}
@@ -72,7 +73,7 @@
             <div class="grp" role="group" aria-label="Wheel"><button type="button" id="rot-l">⟲ 15°</button><button type="button" id="rot-r">15° ⟳</button><button type="button" id="rot-180">180°</button></div>
             <div class="grp" role="group" aria-label="Formation"><button type="button" id="f-less">Deeper</button><button type="button" id="f-more">Wider</button></div>
           </div>
-          <div class="row"><button type="button" class="btn" id="done-act">Finish action</button><button type="button" class="btn ghost" id="cancel-act">Cancel action</button></div>
+          <div class="row ab-src"><button type="button" class="btn" id="done-act">Finish action</button><button type="button" class="btn ghost" id="cancel-act">Cancel action</button></div>
         </div>
           <div id="c-actions" class="acts"></div>
           <p class="hint" id="c-acts-done" hidden></p>
@@ -81,7 +82,7 @@
         <p class="warn" id="c-warn" hidden></p>
         <div class="actp-foot" id="c-foot">
           <input type="text" id="note" placeholder="Note for the log (optional)" maxlength="200" aria-label="Note for Claude">
-          <div class="row"><button type="button" class="btn" id="end">End activation</button><button type="button" class="btn ghost" id="abort">Undo activation</button></div>
+          <div class="row ab-src"><button type="button" class="btn" id="end">End activation</button><button type="button" class="btn ghost" id="abort">Undo activation</button></div>
         </div>
       </div>
       <div class="sec" id="c-char" hidden></div>
@@ -89,7 +90,7 @@
       <div class="rpane" data-p="prof"><div class="stats" id="c-stats" hidden></div><div class="rsubs" id="c-subs"></div></div>
       <div class="rpane" data-p="rules"><div class="sec" id="c-rules-sec" hidden><div class="chips" id="c-rules"></div><p class="hint">▲ marks a rule gained or raised this round. Hover a rule to read it.</p></div></div>
       <div class="rpane" data-p="abil"><div class="sec" id="c-abil-sec" hidden><div class="rules" id="c-abil"></div></div></div>
-      <details class="rtools" id="c-tools"><summary><span>Tools</span><span class="rt-s">Strategic Stack: <span id="strat-read">Empty</span></span></summary>
+      <details class="rtools" id="c-tools"><summary><span>Turn options</span><span class="rt-s">Strategic Stack: <span id="strat-read">Empty</span></span></summary>
         <div class="sec"><h3>Strategic Stack</h3><div class="row"><button type="button" class="btn ghost" id="strat-btn">Place top card face down</button></div><p class="hint" id="strat-hint">Once per round, instead of activating a regiment's card, hide it here, then press End turn. Only regiment cards, not Characters.</p></div>
         <div class="sec" id="c-roll-sec" hidden><h3>Combat roller</h3><div class="row"><select id="c-roll-type" aria-label="Attack type"><option value="clash">Clash</option><option value="impact">Impact Attacks</option><option value="volley">Volley</option></select><button type="button" class="btn ghost" id="c-roll-go">Pick target</button></div><p class="hint">Roll an attack from the selected regiment, for example one Claude declares.</p></div>
       </details>
@@ -98,6 +99,7 @@
       <div class="side cs"><div class="ar-h"><h2 id="h-cs">City States</h2><span class="ar-sum" id="sum-cs"></span></div><div id="r-cs"></div></div>
       <div class="side nord"><div class="ar-h"><h2 id="h-nord">Nords</h2><span class="ar-sum" id="sum-nord"></span></div><div id="r-nord"></div></div>
     </div>
+    <div class="actbar" id="actbar" hidden aria-label="Activation"><div class="actbar-who"><b id="actbar-name"></b><span id="actbar-sub"></span></div><div class="actbar-btns" id="actbar-btns"></div></div>
     </div>
   </div>
 
@@ -318,6 +320,9 @@
 <script src="js/ui/turnbar/host-override.js"></script>
 <script src="js/ui/turnbar/online.js"></script>
 <script src="js/ui/turnbar/turnbar.js"></script>
+<script src="js/ui/turnbar/status.js"></script>
+<script src="js/ui/board-markers.js"></script>
+<script src="js/ui/action-bar.js"></script>
 <!-- screens -->
 <script src="js/screens/encyclopedia.js"></script>
 <script src="js/screens/army-builder/draft.js"></script>

@@ -3,7 +3,7 @@
  *
  * Shows the Draw Event and faction choices at the start of an activation.
  *
- * In this file: renderDrawStep(), renderFacBox()
+ * In this file: renderDrawStep(), facSupOpen, renderFacBox()
  */
 
 /* the Draw Events step of the activation panel */
@@ -149,6 +149,9 @@ function renderDrawStep(u, fresh) {
   }
 }
 
+/* whether the player has unfolded the Supremacy text in the regiment card */
+let facSupOpen = false;
+
 function renderFacBox() {
   const box = $('c-fac');
   if (!box) return;
@@ -187,7 +190,13 @@ function renderFacBox() {
   box.hidden = false;
   box.append(bEl('h3', { textContent: 'Faction rules · ' + f }));
   if (SB) {
-    box.append(bEl('div', { className: 'tf-l', textContent: 'Warlord · Supremacy Ability' }), SB);
+    /* reference text: folded away unless it holds something to press */
+    const d = document.createElement('details');
+    d.className = 'fr-sup';
+    d.open = facSupOpen || !!SB.querySelector('button:not(:disabled), select');
+    d.append(bEl('summary', { textContent: 'Warlord · Supremacy Ability' }), SB);
+    d.addEventListener('toggle', () => (facSupOpen = d.open));
+    box.append(d);
   }
   info.forEach(([a, b, btns]) => {
     const r = bEl('div', { className: 'tf-row' });

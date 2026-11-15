@@ -42,6 +42,9 @@ function render() {
   try {
     renderChain();
   } catch (e) {}
+  try {
+    renderActionBar();
+  } catch (e) {}
   if (!seen) return;
   const d = b.getBoundingClientRect().top - r0.top;
   if (Math.abs(d) > 1) scrollBy({ top: d, behavior: 'instant' });
@@ -180,6 +183,11 @@ function render0() {
   all()
     .filter(u => u.onTable)
     .forEach(u => drawUnit(u, ug));
+  try {
+    drawActivationMarkers(ug);
+  } catch (e) {
+    console.error(e);
+  }
   setTimeout(() => {
     try {
       marchGhost();

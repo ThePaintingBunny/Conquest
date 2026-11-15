@@ -1,0 +1,265 @@
+/*
+ * In-game layout
+ *
+ * Where things are during play: the status at the front of the turn bar, one toolbar above the board, the
+ * activation markers on the board, the activation bar that stays in view, and the phone layout.
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files and
+ * of the rules inside them matters.
+ */
+
+/* ---- turn bar: whose turn, round and score come first ---- */
+.tb-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-right: 4px;
+}
+.tb-pill {
+  font-family: var(--display, inherit);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--ink);
+  background: var(--plate2, transparent);
+  white-space: nowrap;
+}
+.tb-pill.wait {
+  color: var(--muted);
+}
+.tb-pill.you {
+  color: #1c1407;
+  border-color: var(--brass2, #e7c987);
+  background: linear-gradient(180deg, var(--brass2, #e7c987), var(--brass, #c9a15a));
+  box-shadow:
+    0 0 0 1px rgba(231, 201, 135, 0.35),
+    0 0 14px rgba(231, 201, 135, 0.35);
+}
+.tb-round {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tb-vp {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 2px;
+  white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+}
+/* the score now lives in the turn bar */
+.tools .score {
+  display: none;
+}
+
+/* ---- one toolbar above the board ---- */
+.tools {
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+}
+.tools .tool,
+.tools .leg-btn {
+  position: static;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 11px;
+  border-radius: 2px;
+  border: 1px solid var(--edge, #555);
+  background: var(--plate, #222);
+  color: var(--ink);
+  box-shadow: none;
+  white-space: nowrap;
+}
+.tools .tool:hover,
+.tools .leg-btn:hover {
+  border-color: var(--brass, #c9a24a);
+}
+.tools .tool[aria-pressed='true'],
+.tools .leg-btn[aria-expanded='true'] {
+  border-color: var(--brass, #c9a24a);
+  background: var(--gold-soft, #372e1e);
+  color: var(--gold-ink, #f0d9a6);
+  box-shadow: inset 0 0 0 1px var(--brass, #c9a24a);
+}
+.tools > .last {
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.leg-panel {
+  top: 8px;
+}
+/* the hotkeys are behind the Hotkeys button */
+#view-hint {
+  display: none;
+}
+
+/* ---- activation markers on the board ---- */
+.am-next {
+  fill: none;
+  stroke: #ffe07a;
+  stroke-width: 2;
+  stroke-dasharray: 7 4;
+  stroke-linejoin: round;
+  animation: amnext 2.4s ease-in-out infinite;
+}
+@keyframes amnext {
+  0%,
+  100% {
+    stroke-opacity: 1;
+  }
+  50% {
+    stroke-opacity: 0.45;
+  }
+}
+.am-badge circle {
+  stroke-width: 1.2;
+}
+.am-badge.next circle {
+  fill: #e7c987;
+  stroke: #1c1407;
+}
+.am-badge.next text {
+  fill: #1c1407;
+}
+.am-badge.done circle {
+  fill: #1d2125;
+  stroke: #8bc283;
+}
+.am-badge.done text {
+  fill: #8bc283;
+}
+@media (prefers-reduced-motion: reduce) {
+  .am-next {
+    animation: none;
+  }
+}
+
+/* ---- the activation bar: always in view while a regiment is activating ---- */
+.actbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--brass, #c9a15a);
+  border-radius: 4px;
+  background: var(--plate, #1e2226);
+  box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.45);
+}
+.actbar[hidden] {
+  display: none;
+}
+.actbar-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.actbar-who b {
+  font-family: var(--display, inherit);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-ink, #f0d9a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.actbar-who span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.actbar-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* the card's own copies of these buttons are replaced by the bar */
+body.has-actbar .ab-src {
+  display: none;
+}
+
+/* ---- regiment card: reference text folds away ---- */
+.fr-sup {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0 10px;
+  margin: 4px 0 8px;
+}
+.fr-sup > summary {
+  cursor: pointer;
+  padding: 7px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.fr-sup[open] > summary {
+  color: var(--ink);
+}
+
+/* ---- phones and narrow windows ---- */
+@media (max-width: 900px) {
+  /* the whole table fits the width of the screen */
+  #board {
+    min-width: 0;
+    min-height: 0;
+  }
+  .top {
+    gap: 6px;
+  }
+  .top-title h1,
+  [data-ui='steel'] .top-title h1 {
+    font-size: 20px;
+  }
+  .top .btn {
+    font-size: 14px;
+    padding: 6px 10px;
+  }
+  #hk-btn {
+    display: none;
+  }
+  .tools {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tools > .last {
+    flex: 0 0 auto;
+    max-width: 70vw;
+  }
+  .tb-status {
+    flex: 1 1 100%;
+  }
+  .actbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-width: 1px 0 0;
+    border-radius: 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  body.has-actbar {
+    padding-bottom: 96px;
+  }
+}

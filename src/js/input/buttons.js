@@ -67,6 +67,7 @@ $('done-act').onclick = finishAction;
 $('cancel-act').onclick = cancelAction;
 $('abort').onclick = abort;
 $('ruler').onclick = () => toggleRuler();
+$('hk-btn').onclick = () => openSettings('controls');
 $('set-open').onclick = () => openSettings();
 
 $('mm-open').onclick = () => {
