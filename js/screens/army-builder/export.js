@@ -111,6 +111,15 @@ function bldToList() {
   const f = bldFac();
   if (!f) return null;
   (bld.wbs || []).forEach(riderFix);
+  /* a character always joins a regiment: when none was picked (a list built by the computer, pasted from the Para
+     Bellum app, or the joined regiment was removed) it joins the first regiment of its own type */
+  (bld.wbs || []).forEach(w => {
+    const c = bldUnit(w.char);
+    if (!c || c.type === 'Monster') return;
+    if (w.joins != null && w.regs[w.joins] && joinable(w, w.regs[w.joins])) return;
+    const i = w.regs.findIndex(r => joinable(w, r));
+    w.joins = i >= 0 ? i : null;
+  });
   const units = [],
     count = {};
   units.push = function (...a) {
