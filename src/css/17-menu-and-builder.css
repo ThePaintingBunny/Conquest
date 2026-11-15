@@ -373,3 +373,52 @@
     white-space: nowrap;
   }
 }
+
+/* ---- army builder: import from the Para Bellum app ---- */
+.pb-open {
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 12px;
+  font-weight: 700;
+}
+.pb-dlg textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 10px;
+}
+.pb-dlg .pb-acts {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.pb-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  padding: 10px 12px;
+  margin: -20px 0 16px;
+  border: 1px solid #4d7a48;
+  border-left-width: 3px;
+  border-radius: 2px;
+  background: rgba(77, 122, 72, 0.12);
+  font-size: 14px;
+}
+.pb-note.warn {
+  border-color: #b8862f;
+  background: rgba(184, 134, 47, 0.1);
+}
+.pb-note ul {
+  flex: 1 1 100%;
+  margin: 2px 0 0;
+  padding-left: 18px;
+  color: var(--ink);
+}
+.pb-note > button {
+  margin-left: auto;
+}

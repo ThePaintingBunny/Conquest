@@ -94,7 +94,16 @@ function abEnhance(box) {
     });
     start.append(bEl('div', {}, [bEl('h4', { className: 'ab-h', textContent: 'Start a new army' }), tiles]));
     const AL = armyList();
-    const saved = bEl('div', {}, [bEl('h4', { className: 'ab-h', textContent: 'Your saved armies' })]);
+    const saved = bEl('div', {}, [
+      bEl('h4', { className: 'ab-h', textContent: 'Bring a list' }),
+      bEl('button', {
+        type: 'button',
+        className: 'ab-b pb-open',
+        textContent: 'Import from the Para Bellum app',
+        onclick: pbDialog
+      }),
+      bEl('h4', { className: 'ab-h', textContent: 'Your saved armies' })
+    ]);
     if (!AL.length)
       saved.append(
         bEl('p', {
@@ -295,9 +304,35 @@ function abEnhance(box) {
         }
       })
     );
+  acts.append(
+    bEl('button', { type: 'button', className: 'ab-b ab-ghost', textContent: 'Import…', onclick: pbDialog })
+  );
   bar.append(acts, list);
   box.classList.add('ab-has-bar');
   const top = box.querySelector('.ab-top');
   if (top) top.after(bar);
   else box.prepend(bar);
+  /* what the last import could not match, until the player dismisses it */
+  if (abImportNote) {
+    const n = bEl('div', { className: 'pb-note' + (abImportNote.notes.length ? ' warn' : '') }, [
+      bEl('strong', { textContent: abImportNote.head }),
+      abImportNote.notes.length
+        ? bEl(
+            'ul',
+            {},
+            abImportNote.notes.map(t => bEl('li', { textContent: t }))
+          )
+        : bEl('span', { textContent: ' Everything matched.' }),
+      bEl('button', {
+        type: 'button',
+        className: 'ab-b ab-ghost ab-small',
+        textContent: 'Dismiss',
+        onclick: () => {
+          abImportNote = null;
+          abRe();
+        }
+      })
+    ]);
+    bar.after(n);
+  }
 }

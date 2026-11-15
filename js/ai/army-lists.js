@@ -20,6 +20,9 @@ const UNIT_SCHEMA = `{"faction":"<faction name>","armyRules":["<army-wide rules 
 }]}`;
 
 async function convertList(text, faction, pts) {
+  /* a list copied from the Para Bellum app is read directly, no Claude needed */
+  const direct = typeof pbToList === 'function' && pbToList(text);
+  if (direct) return direct;
   const prompt = `Convert this Conquest: The Last Argument of Kings army list into JSON for a battle map. Use the official current rules and profiles for each regiment, character, upgrade and option as best you know them. Put options and upgrades into rules, abilities, auxiliary or character as appropriate; a character joins the regiment it leads (its Warband regiment of the same Type). Mark exactly one character as the warlord (the one the list names, or the first).\nFaction: ${faction || 'as stated in the list'}. Points: ${pts}.\nLIST:\n${text}\n\nReply with JSON only, in this shape:\n${UNIT_SCHEMA}`;
   const E = encyFor(text, faction);
   const ref = E.units.length

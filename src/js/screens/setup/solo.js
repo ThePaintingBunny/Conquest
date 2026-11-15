@@ -54,7 +54,8 @@ function renderSetup(tb, info, mk, add) {
       const ta = document.createElement('textarea');
       ta.rows = 9;
       ta.value = setupDraft.list;
-      ta.placeholder = 'Paste your list here: characters, regiments, stands, options and upgrades.';
+      ta.placeholder =
+        'Paste your list here. A list copied from the Para Bellum app is read directly; any other list is read by Claude.';
       ta.oninput = () => (setupDraft.list = ta.value);
       lab('Your army list', ta).parentNode.classList.add('wide');
     } else {
@@ -103,7 +104,11 @@ function renderSetup(tb, info, mk, add) {
           return;
         }
         aiBusy = true;
-        aiStatus('Claude is reading your list…');
+        aiStatus(
+          armyMode === 'paste' && pbLooks(setupDraft.list)
+            ? 'Reading your Para Bellum list…'
+            : 'Claude is reading your list…'
+        );
         render();
         try {
           const mine = built || (await convertList(setupDraft.list, setupDraft.faction, setupDraft.pts));

@@ -102,6 +102,7 @@ Many names are short. The prefix tells you the area:
 | `reinf`, `rl` | reinforcements, Reinforcement Lines | `game/` |
 | `ai`, `ex`, `plan` | Claude's turn (`ex` = carry out one step) | `ai/` |
 | `bld`, `ab`, `wb`, `upg` | army builder (`wb` = warband, `upg` = upgrade) | `screens/army-builder/` |
+| `pb` | lists copied from the Para Bellum app (read without Claude) | `screens/army-builder/import-pb.js` |
 | `en` | encyclopedia | `screens/encyclopedia.js` |
 | `mm` | main menu (and Master Manipulator in `factions/spires/`) | `screens/menu/` |
 | `tf`, `qa` | test field, its quick-add form | `screens/test-field/` |
