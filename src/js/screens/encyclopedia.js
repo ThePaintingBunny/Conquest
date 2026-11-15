@@ -181,6 +181,7 @@ function enDetail(u, ff, nav) {
     dg._hist = [];
   } else if (nav === 'push') dg._hist.push(dg._cur);
   dg._cur = [u, ff];
+  dg.style.setProperty('--fac', facColor(ff));
   dg.innerHTML = '';
   dg.setAttribute('aria-labelledby', 'en-dlg-t');
   const hd = document.createElement('div');

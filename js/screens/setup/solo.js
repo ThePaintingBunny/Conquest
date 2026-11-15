@@ -67,11 +67,13 @@ function renderSetup(tb, info, mk, add) {
         state._pnTried = 1;
         putState({ players: Object.assign({}, state.players || {}, { cs: savedName() }) }).catch(() => {});
       }
-      cr.append(
-        nameInput('cs', 'Your name', true),
-        colorPicker('cs', 'Your colour', true),
-        colorPicker('nord', "Claude's colour", true)
-      );
+      /* one card per side: who you are and what Claude plays */
+      cr.className = 'side-cards';
+      const you = bEl('section', { className: 'side-card cs' }, [bEl('h4', { textContent: 'You' })]);
+      you.append(nameInput('cs', 'Your name', true), colorPicker('cs', 'Your colour', true));
+      const them = bEl('section', { className: 'side-card nord' }, [bEl('h4', { textContent: 'Claude' })]);
+      them.append(colorPicker('nord', "Claude's colour", true), aif.parentNode);
+      cr.append(you, them);
       add(cr);
     }
     armyModePicker(add);

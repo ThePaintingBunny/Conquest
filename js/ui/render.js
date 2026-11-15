@@ -259,6 +259,10 @@ function render0() {
   renderArmies();
   renderCard();
   try {
+    cardStrength();
+    cbStepper();
+  } catch (e) {}
+  try {
     renderFacBox();
     renderFrStrip();
     renderOdTrk();

@@ -195,7 +195,11 @@ function renderLegend() {
     btn = $('leg-btn');
   if (!pan || !btn) return;
   btn.setAttribute('aria-expanded', String(legOpen));
-  btn.textContent = legOpen ? 'Hide legend' : 'Legend';
+  btn.textContent = '';
+  btn.append(
+    (typeof icon === 'function' && icon('map', 18)) || '',
+    document.createTextNode(legOpen ? 'Hide legend' : 'Legend')
+  );
   pan.hidden = !legOpen;
   if (!legOpen || !state) return;
   pan.innerHTML = '';

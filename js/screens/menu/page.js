@@ -14,7 +14,7 @@ function mmCard(t, sub, ico, fn, opt) {
   });
   b.disabled = !!opt.disabled;
   b.append(
-    bEl('span', { className: 'mm-ico', textContent: ico }),
+    bEl('span', { className: 'mm-ico' }, [icon(ico, 28) || ico]),
     bEl('span', { className: 'mm-tx' }, [
       bEl('strong', { textContent: t }),
       bEl('small', { textContent: sub })

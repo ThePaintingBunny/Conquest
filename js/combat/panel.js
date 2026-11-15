@@ -28,6 +28,9 @@ function renderCombat() {
     renderCombat.stepUid = cb && cb.uid;
   } catch (e) {}
   if (cb) cbGate();
+  try {
+    cbStepper();
+  } catch (e) {}
   cbSync();
   if (act && !renderCombat.busy) {
     renderCombat.busy = true;
@@ -226,7 +229,13 @@ function renderCombat0() {
         g.n = cb.type === 'volley' && cb.cover ? v * 2 : v;
         renderCombat();
       };
-      h.append(nm, inp, document.createTextNode(' dice · ' + tags.join(' · ')));
+      h.append(
+        nm,
+        inp,
+        bEl('span', { className: 'gdice', textContent: ' dice' }),
+        bEl('span', { className: 'gsep', textContent: ' · ' }),
+        bEl('span', { className: 'gtags', textContent: tags.join(' · ') })
+      );
       row.appendChild(h);
       if (g.rolls) {
         const dr = document.createElement('div');

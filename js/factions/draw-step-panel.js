@@ -188,6 +188,7 @@ function renderFacBox() {
     return;
   }
   box.hidden = false;
+  box.style.setProperty('--fac', facColor(f));
   box.append(bEl('h3', { textContent: 'Faction rules · ' + f }));
   if (SB) {
     /* reference text: folded away unless it holds something to press */

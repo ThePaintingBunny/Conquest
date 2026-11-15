@@ -1,0 +1,354 @@
+/*
+ * In-game panels
+ *
+ * The regiment card (strength bar, faction section spacing), the combat panel as a stepper with the
+ * current step marked, the Armies tab rows and the faction tracker chips.
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files and
+ * of the rules inside them matters.
+ */
+
+/* ---- regiment card ---- */
+.c-str {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 6px 0 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.c-str[hidden] {
+  display: none;
+}
+.c-str-n {
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.c-str .u-bar {
+  flex: 1 1 80px;
+  max-width: 160px;
+  height: 6px;
+  border-radius: 3px;
+}
+.c-str-w {
+  flex: 1 1 100%;
+  color: var(--warn, #e0a03c);
+}
+/* the faction section starts clearly apart from the activation text above it */
+#c-fac:not([hidden]) {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+#c-fac .tf-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 4px 0;
+  font-size: 14px;
+}
+#c-fac .tf-row > span:not(.tf-l) {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+#c-fac .tf-row .tf-l {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+#c-fac .fr-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ---- combat panel: one step at a time ---- */
+.cstep {
+  position: relative;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.015);
+}
+.cstep h3 {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.cstep.cs-now {
+  border-color: var(--brass, #c9a15a);
+  border-left-width: 3px;
+  background: rgba(201, 161, 90, 0.06);
+}
+.cstep.cs-now h3 {
+  color: var(--gold-ink, #f0d9a6);
+}
+.cstep.cs-done {
+  opacity: 0.72;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.cstep.cs-done h3::after {
+  content: '  ✓';
+  color: var(--ok, #7fbf76);
+}
+/* each attack group: name and dice count on one line, its rules as a quieter line under it */
+#combat .gl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  line-height: 1.35;
+}
+#combat .gl .nin {
+  width: 56px;
+  text-align: center;
+  font-weight: 700;
+}
+#combat .gl .gdice {
+  color: var(--muted);
+}
+#combat .gl .gtags {
+  flex: 1 1 100%;
+  font-size: 13px;
+  color: var(--muted);
+}
+#combat .grow + .grow {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+#combat .cb-head h2 {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---- Armies tab ---- */
+.roster .u,
+.armies .u {
+  min-height: 44px;
+}
+.armies .u.done {
+  opacity: 0.62;
+}
+.armies .u.sel {
+  box-shadow: inset 3px 0 0 var(--brass, #c9a15a);
+}
+
+/* ---- faction tracker chips at the top of the screen ---- */
+.fr-strip {
+  gap: 6px;
+}
+.fr-strip button,
+[data-ui='steel'] .fr-strip button {
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 2px;
+  border: 1px solid var(--edge, #555);
+  background: var(--plate, #1e2226);
+  color: var(--ink);
+  cursor: pointer;
+}
+.fr-strip button:hover {
+  border-color: var(--brass, #c9a15a);
+}
+.fr-strip button::after {
+  content: ' ▸';
+  color: var(--muted);
+}
+
+/* ---- game setup: a clear stepper and one card per side ---- */
+.mm-steps {
+  gap: 0;
+  margin: 6px 0 4px;
+}
+.mm-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.mm-steps li + li::after {
+  content: none;
+}
+.mm-steps li + li {
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+.mm-steps li::before,
+.mm-steps li.ok::before {
+  content: counter(mms);
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--edge, #555);
+  font-size: 13px;
+  font-weight: 700;
+}
+.mm-steps li.ok {
+  background: none;
+  color: #a9d8b0;
+}
+.mm-steps li.ok::before {
+  content: '✓';
+  border-color: #4d7a48;
+  color: #a9d8b0;
+}
+.mm-steps li.now {
+  background: none;
+  border-color: var(--line);
+  color: var(--gold-ink, #f0d9a6);
+}
+.mm-steps li.now::before {
+  background: var(--brass2, #e7c987);
+  border-color: var(--brass2, #e7c987);
+  color: #1c1407;
+}
+.side-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.side-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #1c2024;
+  min-width: 0;
+}
+.side-card h4 {
+  margin: 0;
+  font-family: var(--display, inherit);
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  color: var(--gold-ink, #f0d9a6);
+}
+.side-card .sf {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.side-card .sf input {
+  width: 100%;
+  box-sizing: border-box;
+}
+@media (max-width: 700px) {
+  .side-cards {
+    grid-template-columns: 1fr;
+  }
+  .mm-steps li {
+    padding-right: 10px;
+  }
+  .mm-steps li + li {
+    padding-left: 10px;
+  }
+}
+
+/* ---- board zoom and bigger touch targets ---- */
+.tools .zoom-b {
+  min-width: 38px;
+  font-size: 16px;
+}
+.tools .zoom-b[hidden] {
+  display: none;
+}
+@media (max-width: 900px), (pointer: coarse) {
+  .tools .tool,
+  .tools .leg-btn,
+  .actbar .btn,
+  .rtabs button,
+  .mm-in .btn,
+  .ab-b,
+  .ab-fold {
+    min-height: 44px;
+  }
+  .ab-fold {
+    min-width: 44px;
+  }
+  .actp-act,
+  #c-acts button {
+    min-height: 48px;
+  }
+}
+
+/* ---- icons ---- */
+svg.ico {
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -4px;
+}
+.tools .tool,
+#mm-open,
+#set-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tools .tool svg.ico,
+#mm-open svg.ico,
+#set-open svg.ico {
+  color: var(--brass2, #e7c987);
+}
+.mm-card .mm-ico {
+  color: var(--brass2, #e7c987);
+}
+.mm-card .mm-ico svg.ico {
+  vertical-align: middle;
+}
+.mm-sets .mm-card .mm-ico svg.ico {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+}
+svg.ico {
+  max-width: none;
+  max-height: none;
+}
+
+/* ---- encyclopedia detail: the faction's banner across the top ---- */
+.en-dlg .en-dhead {
+  background: var(--fac, transparent);
+  border-bottom: 2px solid var(--brass2, #e7c987);
+}
+.en-dlg .en-dhead h2 {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.en-dlg .en-dhead .en-sub {
+  color: rgba(255, 255, 255, 0.85);
+}
+.en-dlg .en-dhead .en-kind {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* ---- in game: the faction's colour marks only its own faction section, so it never competes with the
+   army colours on the board ---- */
+#c-fac:not([hidden]) {
+  border-left: 3px solid var(--fac, transparent);
+  padding-left: 10px;
+}
