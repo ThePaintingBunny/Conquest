@@ -15,11 +15,14 @@ function setTab(t) {
 }
 
 function renderTabs() {
-  const a = rightTab === 'army';
-  $('tab-reg').setAttribute('aria-selected', String(!a));
+  const a = rightTab === 'army',
+    g = rightTab === 'game';
+  $('tab-reg').setAttribute('aria-selected', String(!a && !g));
   $('tab-army').setAttribute('aria-selected', String(a));
-  $('card').hidden = a;
+  $('tab-game').setAttribute('aria-selected', String(g));
+  $('card').hidden = a || g;
   $('armies').hidden = !a;
+  $('gamepanel').hidden = !g;
   const n = ((state && state.units) || []).filter(
     u => u.type !== 'marker' && !u.destroyed && u.onTable && !u.activated
   ).length;

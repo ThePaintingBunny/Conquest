@@ -82,6 +82,7 @@ $('mm-open').onclick = () => {
 
 $('tab-reg').onclick = () => setTab('reg');
 $('tab-army').onclick = () => setTab('army');
+$('tab-game').onclick = () => setTab('game');
 
 $('end').onclick = async () => {
   if (!act) return;

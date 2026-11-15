@@ -91,8 +91,9 @@ function renderFrStrip() {
           b.title = 'Open the Faction rules panel';
           b.onclick = () => {
             frOpen = true;
+            setTab('game');
             renderTurnbar();
-            const d = document.querySelector('#turnbar .fr-panel');
+            const d = document.querySelector('#gp-body .fr-panel, #turnbar .fr-panel');
             if (d) d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
           };
           el.appendChild(b);

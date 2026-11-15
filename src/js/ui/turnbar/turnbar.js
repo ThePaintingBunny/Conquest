@@ -3,7 +3,7 @@
  *
  * The bar above the board that shows the round, the step and what to do next.
  *
- * In this file: renderTurnbar(), tbMoreOpen, foldTurnbar(), renderTurnbar0()
+ * In this file: renderTurnbar(), tbInTop(), placeTurnbar(), tbMoreOpen, foldTurnbar(), renderTurnbar0()
  */
 
 function renderTurnbar() {
@@ -33,6 +33,11 @@ function renderTurnbar() {
     console.error(e);
   }
   try {
+    placeTurnbar(tb0);
+  } catch (e) {
+    console.error(e);
+  }
+  try {
     foldTurnbar(tb0);
   } catch (e) {
     console.error(e);
@@ -51,6 +56,29 @@ function renderTurnbar() {
       } catch (err) {}
     }
   }
+}
+
+/* during a game the turn bar sits in the top row, and its reference sections move to the Game tab */
+function tbInTop() {
+  const st = (state && state.step) || 'activations';
+  return (
+    !!state && !SBX() && !document.body.classList.contains('mm-lobby') && !['setup', 'review'].includes(st)
+  );
+}
+
+function placeTurnbar(tb) {
+  const slot = $('top-turn'),
+    gp = $('gp-body');
+  if (!tb || !slot || !gp) return;
+  gp.innerHTML = '';
+  if (tbInTop()) {
+    if (tb.parentNode !== slot) slot.appendChild(tb);
+    /* victory conditions, army and faction rules, the host console and New game: on the Game tab */
+    [...tb.children]
+      .filter(k => k.tagName === 'DETAILS' || (k.classList && k.classList.contains('ng')))
+      .forEach(k => gp.appendChild(k));
+  } else if (tb.parentNode === slot) $('mm').after(tb);
+  document.body.classList.toggle('tb-top', tbInTop());
 }
 
 /* ---------- The turn bar keeps one status row; reference sections and tools fold behind one toggle ---------- */

@@ -263,3 +263,78 @@ body.has-actbar .ab-src {
     padding-bottom: 96px;
   }
 }
+
+/* ---- during a game: the turn bar in the top row, the tools under the map, reference on the Game tab ---- */
+.top-turn {
+  display: none;
+}
+body.tb-top .top {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+body.tb-top .top-turn {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+body.tb-top .top-turn .turnbar {
+  margin: 0;
+  padding: 6px 10px;
+}
+body.tb-top .top .phase {
+  display: none;
+}
+.leftcol > .tools {
+  margin: 8px 0 0;
+}
+.gamepanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gamepanel[hidden] {
+  display: none;
+}
+.gamepanel .gp-h h2 {
+  margin: 0;
+}
+.gamepanel .gp-h .hint {
+  margin: 2px 0 0;
+}
+.gamepanel .fr-strip {
+  margin: 0;
+}
+#gp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#gp-body > details {
+  margin: 0;
+}
+#gp-body > .ng {
+  align-self: flex-start;
+  order: 9;
+}
+@media (max-width: 1100px) {
+  body.tb-top .top {
+    flex-wrap: wrap;
+  }
+  body.tb-top .top-turn {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+body.tb-top .top-title h1,
+body.tb-top[data-ui='steel'] .top-title h1 {
+  font-size: 19px;
+  white-space: nowrap;
+}
+body.tb-top .top > div:last-child {
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+}
+body.tb-top .top > div:last-child .btn {
+  padding: 7px 11px;
+  white-space: nowrap;
+}

@@ -22,12 +22,14 @@ document.addEventListener('keydown', ev => {
   }
 });
 
-['tab-reg', 'tab-army'].forEach(id =>
+['tab-reg', 'tab-army', 'tab-game'].forEach(id =>
   $(id).addEventListener('keydown', e => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
       e.preventDefault();
-      setTab(rightTab === 'reg' ? 'army' : 'reg');
-      $(rightTab === 'reg' ? 'tab-reg' : 'tab-army').focus();
+      const T = ['reg', 'army', 'game'],
+        i = Math.max(0, T.indexOf(rightTab));
+      setTab(T[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]);
+      $('tab-' + rightTab).focus();
     }
   })
 );
