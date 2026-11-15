@@ -13,7 +13,9 @@ A browser battle map for **Conquest: The Last Argument of Kings**: build your ar
 - **Army builder:** choose a faction and add regiments and characters. The profiles come from the built-in encyclopedia, so no API key is needed.
 - **Encyclopedia:** all 10 factions, with every character and regiment, its stat line, special rules, options and warband choices. Hover a rule to see what it does.
 - **Online play:** the host starts a game and sends the invite link or code. Each player sees the table from their own edge, Command Stacks stay hidden, and the defender rolls their own saves.
-- **Play against Claude (optional):** add your own Anthropic API key under *Claude settings*. Claude can read a pasted army list, design its own army and play its turns with animated moves and dice.
+- **Single player, free:** the built-in opponent (Easy, Normal or Hard) builds a legal army for any faction and plays its turns itself: it weighs every Charge, March and Volley in points (damage, zones, how exposed it ends up), orders its Command Stack by what acting early is worth, and sacrifices cheap regiments when that saves something more valuable. No API key, works offline.
+- **Army import:** paste a list copied from the Para Bellum app and it is read directly, no AI involved.
+- **Play against Claude (optional):** add your own Anthropic API key under *Claude settings* and choose Claude as the opponent instead.
 
 ## How to play online
 
