@@ -118,7 +118,7 @@ function ovrPanel() {
     ),
     ...(!PVP()
       ? [
-          b('Claude takes a turn now', async () => {
+          b('The opponent takes a turn now', async () => {
             act = null;
             cb = null;
             aiBusy = false;

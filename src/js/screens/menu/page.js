@@ -124,7 +124,7 @@ function renderMenu() {
     grid.append(
       mmCard(
         'Single player',
-        bs('Play against Claude: build or paste your army, Claude designs its own'),
+        bs('Play against the built-in opponent (free) or Claude: bring your army, it brings its own'),
         '⚔',
         () => mmStart('single'),
         bz
@@ -314,7 +314,7 @@ function renderMenu() {
     }
     head(
       page === 'single' ? 'Single player' : 'Multiplayer',
-      page === 'single' ? 'You against Claude.' : 'You against a friend, online.',
+      page === 'single' ? 'You against the built-in opponent or Claude.' : 'You against a friend, online.',
       {
         label: 'Main menu',
         fn: () => {

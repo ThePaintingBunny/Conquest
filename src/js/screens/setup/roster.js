@@ -6,7 +6,7 @@
  * In this file: setupDraft, resetArm, rosterTable(), scenarioPanel(), AUTO_ARMY, armyRulesBox()
  */
 
-let setupDraft = { faction: '', pts: 2000, list: '', aiFaction: '' },
+let setupDraft = { faction: '', pts: 2000, list: '', aiFaction: '', aiPlayer: 'bot', botLevel: 'normal' },
   resetArm = false;
 
 function rosterTable(units, onBanner) {

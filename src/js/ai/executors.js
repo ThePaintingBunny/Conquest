@@ -29,12 +29,11 @@ async function exEnter(st) {
   if (e !== 'own' && ((state.round === 3 && /Heavy/.test(u.cls || '')) || aiRl() - G.w < 0)) e = 'own';
   if (e === 'own') {
     const x = isFinite(+st.at) ? +st.at : 36;
-    Object.assign(act.pose, {
-      x: Math.max(G.w / 2, Math.min(72 - G.w / 2, x)),
-      y: -G.d / 2,
-      facing: 0,
-      onTable: true
-    });
+    Object.assign(
+      act.pose,
+      { x: Math.max(G.w / 2, Math.min(72 - G.w / 2, x)), onTable: true },
+      ownEntry(u.side, G.d)
+    );
   } else {
     const lo = G.w / 2,
       hi = aiRl() - G.w / 2,

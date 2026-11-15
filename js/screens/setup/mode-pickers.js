@@ -34,7 +34,7 @@ function modePicker(add) {
   g.setAttribute('role', 'group');
   g.setAttribute('aria-label', 'Opponent');
   [
-    ['ai', 'Play against Claude'],
+    ['ai', 'Play against the computer'],
     ['pvp', 'Play against a friend'],
     ['test', 'Test field']
   ].forEach(([m, t]) => {

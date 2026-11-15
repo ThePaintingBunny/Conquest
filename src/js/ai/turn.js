@@ -3,7 +3,7 @@
  *
  * Plays one regiment, runs the whole turn and shows the report afterwards.
  *
- * In this file: aiRegiment(), runAITurn(), afterAITurn(), showReport()
+ * In this file: aiRegiment(), aiStep(), botRun(), runAITurn(), afterAITurn(), showReport()
  */
 
 async function aiRegiment(id, source, report, card) {
@@ -29,82 +29,16 @@ async function aiRegiment(id, source, report, card) {
     )
   )
     await aiAutoFaction(byId(id), lines);
-  for (const st of steps) {
-    if (!act || act.chargeFailed) break;
-    if (!st || !st.do) continue;
-    let r = '';
-    aiLog = lines;
-    try {
-      switch (st.do) {
-        case 'enter':
-          if (act.entering && !act.placed) r = await exEnter(st);
-          break;
-        case 'march':
-          r = await exMarch(st);
-          break;
-        case 'reform':
-          r = await exReform(st);
-          break;
-        case 'charge':
-          r = await exCharge(st);
-          break;
-        case 'clash':
-          r = await exClash(st);
-          break;
-        case 'volley':
-          r = await exVolley(st);
-          break;
-        case 'inspire':
-          r = await exSimple('inspire', 'inspires its warriors');
-          break;
-        case 'aim':
-          r = await exSimple('aim', 'takes aim');
-          break;
-        case 'rally':
-          r = await exSimple('rally', 'rallies');
-          break;
-        case 'combat_rally':
-          r = await exSimple('crally', 'rallies in combat');
-          break;
-        case 'combat_reform':
-          r = await exCReform();
-          break;
-        case 'withdraw':
-          r = await exWithdraw();
-          break;
-        case 'faction':
-          r = await exFaction(st);
-          break;
-        case 'cast':
-          r = await exRegCast(st);
-          break;
-        case 'memory':
-          r = await exSimple('memory', 'recalls its Memory of Old');
-          break;
-        case 'occupy':
-          r = await exSimple('occupy', 'occupies the building');
-          break;
-        case 'leave':
-          r = await exSimple('leave', 'leaves the building');
-          break;
-        default:
-          r = '';
-      }
-    } catch (e) {
-      r = 'could not ' + st.do;
-      if (act && act.cur) {
-        try {
-          cancelAction();
-        } catch (_) {
-          act.cur = null;
-        }
-      }
-      cb = null;
-      renderCombat();
+  if (P.bot) await botRun(lines);
+  else
+    for (const st of steps) {
+      if (!act || act.chargeFailed) break;
+      if (!st || !st.do) continue;
+      aiLog = lines;
+      const r = await aiStep(st);
+      if (r) lines.splice(lines.length, 0, r);
+      await sleep(300);
     }
-    if (r) lines.splice(lines.length, 0, r);
-    await sleep(300);
-  }
   aiLog = null;
   if (act && act.entering && !act.placed) {
     await exEnter({ edge: 'own', at: 36 });
@@ -116,6 +50,106 @@ async function aiRegiment(id, source, report, card) {
   }
   const title = u0.name + (source === 'entourage' ? ' (Entourage)' : '');
   report.push({ title, lines, narration: P.narration });
+}
+
+/* carry out one step of a plan; returns the line for the report */
+async function aiStep(st) {
+  let r = '';
+  try {
+    switch (st.do) {
+      case 'enter':
+        if (act.entering && !act.placed) r = await exEnter(st);
+        break;
+      case 'march':
+        r = await exMarch(st);
+        break;
+      case 'reform':
+        r = await exReform(st);
+        break;
+      case 'charge':
+        r = await exCharge(st);
+        break;
+      case 'clash':
+        r = await exClash(st);
+        break;
+      case 'volley':
+        r = await exVolley(st);
+        break;
+      case 'inspire':
+        r = await exSimple('inspire', 'inspires its warriors');
+        break;
+      case 'aim':
+        r = await exSimple('aim', 'takes aim');
+        break;
+      case 'rally':
+        r = await exSimple('rally', 'rallies');
+        break;
+      case 'combat_rally':
+        r = await exSimple('crally', 'rallies in combat');
+        break;
+      case 'combat_reform':
+        r = await exCReform();
+        break;
+      case 'withdraw':
+        r = await exWithdraw();
+        break;
+      case 'faction':
+        r = await exFaction(st);
+        break;
+      case 'cast':
+        r = await exRegCast(st);
+        break;
+      case 'memory':
+        r = await exSimple('memory', 'recalls its Memory of Old');
+        break;
+      case 'occupy':
+        r = await exSimple('occupy', 'occupies the building');
+        break;
+      case 'leave':
+        r = await exSimple('leave', 'leaves the building');
+        break;
+      default:
+        r = '';
+    }
+  } catch (e) {
+    console.error(e);
+    r = 'could not ' + st.do;
+    if (act && act.cur) {
+      try {
+        cancelAction();
+      } catch (_) {
+        act.cur = null;
+      }
+    }
+    cb = null;
+    renderCombat();
+  }
+  return r;
+}
+
+/* the built-in opponent: plan a step, carry it out, plan again from the new situation */
+async function botRun(lines) {
+  const ban = new Set();
+  for (let k = 0; k < 8 && act && !act.chargeFailed; k++) {
+    botCacheReset();
+    let st = null;
+    try {
+      st = botNextStep(ban);
+    } catch (e) {
+      console.error(e);
+    }
+    if (!st) break;
+    if (k === 0 && botLast && botLast.why && st.do !== 'enter') lines.push('plan: ' + botLast.why);
+    const before = act.actions.length + (act.placed ? 1 : 0);
+    aiLog = lines;
+    const r = await aiStep(st);
+    if (r) lines.push(r);
+    const after = act ? act.actions.length + (act.placed ? 1 : 0) : before + 1;
+    /* nothing happened: do not try the same step again */
+    if (after === before) ban.add(JSON.stringify(st));
+    await sleep(300);
+  }
+  aiLog = null;
 }
 
 async function runAITurn() {

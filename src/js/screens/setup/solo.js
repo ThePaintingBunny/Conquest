@@ -10,7 +10,7 @@ function renderSetup(tb, info, mk, add) {
   if (state.step === 'setup') {
     if (PVP()) return renderSetupPvp(tb, info, mk, add);
     info.textContent =
-      'New game. Build your army here or paste a list for Claude to read, and Claude will design its own army to play against you.';
+      'New game. Build your army here or paste one, then choose your opponent: the built-in opponent (free, works offline) or Claude.';
     const f = document.createElement('div');
     f.className = 'setupf';
     const lab = (t, el) => {
@@ -41,15 +41,14 @@ function renderSetup(tb, info, mk, add) {
       })
     );
     pts.oninput = () => (setupDraft.pts = +pts.value || 2000);
-    const aif = lab(
-      "Claude's faction",
-      Object.assign(document.createElement('input'), {
-        type: 'text',
-        value: setupDraft.aiFaction,
-        placeholder: 'Leave empty to let Claude choose'
-      })
+    const useClaude = setupDraft.aiPlayer === 'claude';
+    const aif = lab('Its faction', bEl('select', { className: 'tf-in' }));
+    aif.append(bEl('option', { value: '', textContent: useClaude ? 'Let Claude choose' : 'Random' }));
+    ENCY.filter(x => x.units.some(u => u.kind === 'char')).forEach(x =>
+      aif.append(bEl('option', { value: x.name, textContent: x.name }))
     );
-    aif.oninput = () => (setupDraft.aiFaction = aif.value);
+    aif.value = setupDraft.aiFaction || '';
+    aif.onchange = () => (setupDraft.aiFaction = aif.value);
     if (armyMode === 'paste') {
       const ta = document.createElement('textarea');
       ta.rows = 9;
@@ -72,8 +71,59 @@ function renderSetup(tb, info, mk, add) {
       cr.className = 'side-cards';
       const you = bEl('section', { className: 'side-card cs' }, [bEl('h4', { textContent: 'You' })]);
       you.append(nameInput('cs', 'Your name', true), colorPicker('cs', 'Your colour', true));
-      const them = bEl('section', { className: 'side-card nord' }, [bEl('h4', { textContent: 'Claude' })]);
-      them.append(colorPicker('nord', "Claude's colour", true), aif.parentNode);
+      const them = bEl('section', { className: 'side-card nord' }, [bEl('h4', { textContent: 'Opponent' })]);
+      /* who plays it: the built-in opponent (free) or Claude */
+      const seg = (label, opts, cur, pick) => {
+        const g = bEl('div', { className: 'grp opp-grp' });
+        g.setAttribute('role', 'group');
+        g.setAttribute('aria-label', label);
+        opts.forEach(([v, t, dis]) => {
+          const b = bEl('button', { type: 'button', textContent: t });
+          b.setAttribute('aria-pressed', String(cur === v));
+          if (dis) {
+            b.disabled = true;
+            b.title = dis;
+          }
+          b.onclick = () => {
+            pick(v);
+            renderTurnbar();
+          };
+          g.append(b);
+        });
+        return bEl('div', { className: 'opp-row' }, [
+          bEl('span', { className: 'tf-l', textContent: label }),
+          g
+        ]);
+      };
+      them.append(
+        seg(
+          'Played by',
+          [
+            ['bot', 'Built-in (free)'],
+            [
+              'claude',
+              'Claude',
+              sample ? '' : 'Claude is not available here (add an API key in Claude settings)'
+            ]
+          ],
+          useClaude ? 'claude' : 'bot',
+          v => (setupDraft.aiPlayer = v)
+        )
+      );
+      if (!useClaude)
+        them.append(
+          seg(
+            'Difficulty',
+            [
+              ['easy', 'Easy'],
+              ['normal', 'Normal'],
+              ['hard', 'Hard']
+            ],
+            setupDraft.botLevel || 'normal',
+            v => (setupDraft.botLevel = v)
+          )
+        );
+      them.append(aif.parentNode, colorPicker('nord', 'Its colour', true));
       cr.append(you, them);
       add(cr);
     }
@@ -99,8 +149,17 @@ function renderSetup(tb, info, mk, add) {
           toast('Paste your army list first.');
           return;
         }
-        if (!sample) {
-          toast('Claude is not available in this view, so the armies cannot be built here.');
+        const bot = setupDraft.aiPlayer !== 'claude';
+        if (!bot && !sample) {
+          toast(
+            'Claude is not available in this view. Choose the built-in opponent, or add an API key in Claude settings.'
+          );
+          return;
+        }
+        if (armyMode === 'paste' && !pbLooks(setupDraft.list) && !sample) {
+          toast(
+            'Without Claude only lists copied from the Para Bellum app can be read. Build your army here instead, or import it in the army builder.'
+          );
           return;
         }
         aiBusy = true;
@@ -112,23 +171,31 @@ function renderSetup(tb, info, mk, add) {
         render();
         try {
           const mine = built || (await convertList(setupDraft.list, setupDraft.faction, setupDraft.pts));
-          aiStatus('Claude is designing its army…');
+          const P =
+            built || mine.points
+              ? Math.max(500, Math.round((built || mine).points / 50) * 50)
+              : setupDraft.pts;
+          aiStatus(bot ? 'Building the opponent’s army…' : 'Claude is designing its army…');
           render();
-          const theirs = await designList(
-            setupDraft.aiFaction,
-            built ? Math.max(500, Math.round(built.points / 50) * 50) : setupDraft.pts,
-            mine.faction || setupDraft.faction
-          );
+          const theirs = bot
+            ? botArmy(setupDraft.aiFaction, P)
+            : await designList(setupDraft.aiFaction, P, mine.faction || setupDraft.faction);
+          if (!theirs) throw { code: 'no army' };
           aiBusy = false;
           aiStatus('');
-          await putState({ scenario: scenId(), zones: scenOf().zones });
+          await putState({
+            scenario: scenId(),
+            zones: scenOf().zones,
+            aiPlayer: bot ? 'bot' : 'claude',
+            botLevel: setupDraft.botLevel || 'normal'
+          });
           await putState({
             step: 'review',
             terrain: genTerrain(),
             setup: { cs: mine, nord: theirs },
             names: {
               cs: String(mine.faction || setupDraft.faction || 'Your army'),
-              nord: String(theirs.faction || setupDraft.aiFaction || 'Claude')
+              nord: String(theirs.faction || setupDraft.aiFaction || (bot ? 'Opponent' : 'Claude'))
             },
             phase: 'New game · Check both armies'
           });
@@ -139,7 +206,9 @@ function renderSetup(tb, info, mk, add) {
           toast(
             e && e.code === 'not_granted'
               ? 'Claude was not allowed to run, so the armies were not built.'
-              : 'Claude could not build the armies (' + ((e && e.code) || 'error') + '). Try again.'
+              : bot
+                ? 'The armies could not be built (' + ((e && e.code) || 'error') + '). Try again.'
+                : 'Claude could not build the armies (' + ((e && e.code) || 'error') + '). Try again.'
           );
         }
       })
@@ -162,7 +231,7 @@ function renderSetup(tb, info, mk, add) {
             : (side === 'cs' ? 'South' : 'North') + ' army: '
           : side === HU
             ? 'Your army: '
-            : 'Claude’s army: ') +
+            : (state.aiPlayer === 'claude' ? 'Claude’s' : 'Opponent’s') + ' army: ') +
         (L.faction || N(side)) +
         (L.points ? ' · ' + L.points + ' points' : '');
       box.appendChild(h);

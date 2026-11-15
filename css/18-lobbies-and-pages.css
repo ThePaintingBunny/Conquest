@@ -156,3 +156,36 @@ body:has(.ency:not([hidden])) {
     gap: 10px;
   }
 }
+
+/* ---- single player: who plays the opponent, and how hard ---- */
+.side-card .opp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0 8px;
+}
+.side-card .opp-grp {
+  flex-wrap: wrap;
+}
+.side-card .opp-grp button[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.side-card .opp-grp {
+  align-self: flex-start;
+  width: auto;
+  display: inline-flex;
+}
+.side-card label.sf {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 2px 0 8px;
+}
+.side-card label.sf select {
+  height: auto;
+  min-height: 0;
+  flex: none;
+  width: min(100%, 280px);
+}

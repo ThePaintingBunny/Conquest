@@ -45,6 +45,7 @@ function heuristicPlan(u) {
 }
 
 async function planActivation(u, source) {
+  if (botOn()) return { plan: [], narration: '', by: 'bot', bot: true };
   const brief = {
     activeRegiment: u.id,
     source,
@@ -85,10 +86,11 @@ async function planActivation(u, source) {
     if (e && e.code === 'not_granted')
       aiNote('Claude was not allowed to play, so the map used simple tactics.');
   }
-  return { plan: heuristicPlan(u), narration: '', by: 'bot' };
+  return { plan: [], narration: '', by: 'bot', bot: true };
 }
 
 async function planCharacter(u) {
+  if (botOn()) return botPlanCharacter(u);
   const sp = spellsOf(u, true).filter(s => magicLevel(u, true) > 0 && spellTargets(u, s).length),
     AB = chAbil(u)
       .filter(a => !chWhy(u, a))
@@ -138,6 +140,7 @@ function aiNote(t) {
 }
 
 async function planRound() {
+  if (botOn()) return botPlanRound();
   const cards = defaultStack();
   const prompt = `You are Claude, commanding the ${N(AI)} army in Conquest: The Last Argument of Kings, round ${state.round}. Arrange your Command Stack for this round: every card exactly once, top first. Cards are "u:<id>" for a regiment and "c:<id>" for the character attached to that regiment. A character card played right before its own regiment lets that regiment act straight after as its Entourage (it counts as a Strategic Stack activation and gains Inspired).\nYour cards: ${JSON.stringify(cards)}\n\n${RULES}\n\nBOARD: ${JSON.stringify(boardFor(null))}\n${frRoundOptions(AI).length ? 'Faction choices available now (pick by id; one per group such as soma/tactic/ritual/season/sect/creed; a Tribal Tactic is once per game, so save it for a decisive round): ' + JSON.stringify(frRoundOptions(AI).map(o => ({ id: o.id, choice: o.label }))) + '\n' : ''}${(() => {
     const S = supOf(AI);
