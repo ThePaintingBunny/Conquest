@@ -121,6 +121,15 @@ function buildUnits(side, list) {
       u.auxName = String(x.auxiliary.name || 'Auxiliary');
       u.auxStats = x.auxiliary.stats;
       u.auxRules = (x.auxiliary.rules || []).map(String);
+      /* a pasted list may give the regiment's profile for its Auxiliary: use the army list's Auxiliary profile */
+      {
+        const AX = (ENCY.find(e => e.name === u.fac) || {}).auxiliaries || {},
+          k = Object.keys(AX).find(n => u.auxName.toLowerCase().includes(n.toLowerCase().replace(/s$/, '')));
+        if (k) {
+          u.auxStats = Object.assign({}, AX[k].stats);
+          u.auxRules = AX[k].rules.slice();
+        }
+      }
     }
     if (ch) {
       u.char = files >= 3 ? 2 : Math.min(files - 1, 1);

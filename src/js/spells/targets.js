@@ -68,7 +68,25 @@ function spellLos(u, T) {
 function spellTargets(u, sp) {
   const S = sp.db || {},
     cp = casterPoly(u);
-  if (S.t === 'self' || S.t === 'zone' || S.t === 'terrain' || sp.range === 0) return [u];
+  if (S.t === 'self' || S.t === 'zone' || S.t === 'terrain' || sp.range === 0) {
+    /* Sacred Warriors (City States Auxiliary): a Sacred Band regiment may cast its Self spells on a friendly
+       regiment within 12″ that has a living Sacred Band Veteran stand */
+    if (S.t === 'self' && /^Sacred Band/.test(frBase(u)))
+      return [u].concat(
+        all().filter(
+          t =>
+            t.id !== u.id &&
+            t.side === u.side &&
+            t.onTable &&
+            !t.destroyed &&
+            t.aux != null &&
+            rh(t.auxRules || [], 'Sacred Warriors') &&
+            !auxDead(t) &&
+            polyDist(cp, corners(t)) <= 12 + 1e-6
+        )
+      );
+    return [u];
+  }
   const eng = engaged(u).map(byId).filter(Boolean),
     hits = S.h || S.hf || /Hit/.test(sp.text || '');
   let C = all().filter(

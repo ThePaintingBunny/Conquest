@@ -38,6 +38,23 @@ function optInfo(o) {
     );
   }
   if (o.kind === 'aux') {
+    const ax = ((ENCY.find(x => x.name === bld.fac) || {}).auxiliaries || {})[o.name];
+    if (ax)
+      return (
+        'Auxiliary (+' +
+        o.cost +
+        ' pts): adds a ' +
+        o.name +
+        ' stand to the regiment (one Auxiliary per regiment). Clash ' +
+        ax.stats.C +
+        ', Attacks ' +
+        ax.stats.A +
+        ', Wounds ' +
+        ax.stats.W +
+        '; ' +
+        ax.rules.join(', ') +
+        '. March, Defense, Resolve and Evasion are the regiment’s.'
+      );
     let u = null;
     try {
       u = bldUnit(o.name);

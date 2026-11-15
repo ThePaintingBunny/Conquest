@@ -182,11 +182,15 @@ function bldToList() {
           const au = f.units.find(x =>
             bnorm(x.name).startsWith(bnorm(op.name).split(' ').slice(0, 2).join(' '))
           );
-          aux = {
-            name: op.name,
-            stats: au ? { C: au.stats.C, A: au.stats.A, W: au.stats.W } : { C: 3, A: 4, W: 6 },
-            rules: au ? au.rules.slice() : []
-          };
+          /* the Auxiliary's own profile from the army list; only without one, the regiment of the same name */
+          const ax = (f.auxiliaries || {})[op.name];
+          aux = ax
+            ? { name: op.name, stats: Object.assign({}, ax.stats), rules: ax.rules.slice() }
+            : {
+                name: op.name,
+                stats: au ? { C: au.stats.C, A: au.stats.A, W: au.stats.W } : { C: 3, A: 4, W: 6 },
+                rules: au ? au.rules.slice() : []
+              };
           return;
         }
         /* Hundred Kingdoms Order Regiment Upgrades that change play */

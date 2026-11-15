@@ -18,6 +18,23 @@ ENCY.push({
     'Bestowed Relics',
     'Modifications'
   ],
+  /* Auxiliary Stands (army rule): their own Clash, Attacks, Wounds and Special Rules. March, Defense, Resolve,
+     Evasion, Class and Type come from the regiment they join. These are NOT the profiles of the regiments
+     of the same name. */
+  auxiliaries: {
+    'Minotaur Haspist': {
+      stats: { V: 1, C: 3, A: 4, W: 6 },
+      rules: ['Brutal Impact (1)', 'Cleave (1)', 'Impact (2)', 'Shield']
+    },
+    'Minotaur Thyrean': {
+      stats: { V: 1, C: 3, A: 5, W: 7 },
+      rules: ['Brutal Impact (1)', 'Cleave (3)', 'Impact (3)', 'Linebreaker']
+    },
+    'Sacred Band Veteran': {
+      stats: { V: 1, C: 3, A: 5, W: 5 },
+      rules: ['Cleave (2)', 'Sacred Warriors']
+    }
+  },
   units: [
     {
       name: 'Eidolon',

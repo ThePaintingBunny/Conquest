@@ -32,7 +32,11 @@ FGLOSS['City States'] = {
   'direct orders': ['Direct Orders', 'Entourage activations count as Strategic Stack activations.'],
   'auxiliary stands': [
     'Auxiliary Stands',
-    'Extra stands bought for a regiment with their own profile; they sit in the front rank and are never restored.'
+    'Extra stands bought for a regiment. They have their own Clash, Attacks, Wounds and Special Rules, and take March, Defense, Resolve, Evasion, Class and Type from the regiment. Their Attacks are rolled separately but struck at the same time. They sit in the front rank and are never restored.'
+  ],
+  'sacred warriors': [
+    'Sacred Warriors',
+    'Friendly Sacred Band regiments within 12″ may target this regiment with their spells, even though those spells have a Range of Self.'
   ],
   'carrier of the godflesh': [
     'Carrier of the Godflesh',
