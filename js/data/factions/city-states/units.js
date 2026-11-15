@@ -23,7 +23,8 @@ ENCY.push({
      of the same name. */
   auxiliaries: {
     'Minotaur Haspist': {
-      stats: { V: 1, C: 3, A: 4, W: 6 },
+      /* the army list prints Wounds 6 for this stand: a typo, it has 7 like the Minotaur Haspists regiment */
+      stats: { V: 1, C: 3, A: 4, W: 7 },
       rules: ['Brutal Impact (1)', 'Cleave (1)', 'Impact (2)', 'Shield']
     },
     'Minotaur Thyrean': {
