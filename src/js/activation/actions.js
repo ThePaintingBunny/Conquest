@@ -205,12 +205,12 @@ function finishAction() {
       uc = corners(uu),
       bad = (c0.foes || [])
         .map(byId)
-        .filter(e => e && polyDist(uc, corners(e)) <= 0.35 && arcOf(e, [uu.x, uu.y]) !== c0.foeArc[e.id]);
+        .filter(e => e && polyDist(uc, corners(e)) <= 0.35 && crArc(e, uu) !== c0.foeArc[e.id]);
     if (bad.length) {
       const e = bad[0],
         L = a => (a === 'left' || a === 'right' ? a + ' flank' : a);
       toast(
-        `You were on the ${L(c0.foeArc[e.id])} of ${e.short || e.name}; a Combat Reform cannot move you to its ${L(arcOf(e, [uu.x, uu.y]))}.`
+        `You were on the ${L(c0.foeArc[e.id])} of ${e.short || e.name}; a Combat Reform cannot move you to its ${L(crArc(e, uu))}.`
       );
       return;
     }
