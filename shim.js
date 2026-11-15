@@ -4,7 +4,8 @@
  *  - db: a document store. Offline it lives in this browser (localStorage).
  *        Online, the host's browser holds the game and guests sync with it through a
  *        public MQTT broker over secure WebSockets. Paths under data/users/ never leave
- *        the device, so Command Stacks stay hidden.
+ *        the device, so Command Stacks stay hidden. Every message is signed: only the
+ *        host can publish the game, and only seated players can make moves.
  *  - user: a random id kept in this browser.
  *  - sample: Claude through the player's own Anthropic API key (optional).
  */
@@ -63,6 +64,98 @@
     persist(); fire(p);
   }
 
+  /* ---------- signed messages ----------
+     The relay is public: anyone who knows a game code can read its messages and send their own. So every
+     message is signed with ECDSA (P-256) keys kept in this browser:
+     - The host's key decides the game code (the code is made from a hash of the key), so a guest who has the
+       code can check that documents really come from the host and ignores everything else.
+     - Each guest signs its moves with its own key. The host ties that key to the guest's player id the first
+       time it sees it; from then on only that key can write as that player.
+     - The host only accepts moves from players in a seat. Watchers can show up in the lobby and take an open
+       seat, nothing else. Nobody but the host can change who else sits where, or who the host is. */
+  const SUB = (window.isSecureContext && window.crypto && crypto.subtle) || null;
+  const ALG = { name: 'ECDSA', namedCurve: 'P-256' }, SIG = { name: 'ECDSA', hash: 'SHA-256' };
+  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const enc = t => new TextEncoder().encode(t);
+  const b64 = buf => { let t = ''; new Uint8Array(buf).forEach(c => (t += String.fromCharCode(c))); return btoa(t); };
+  const unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+  const pubOnly = j => ({ kty: j.kty, crv: j.crv, x: j.x, y: j.y });
+  async function newKeyPair() {
+    const kp = await SUB.generateKey(ALG, true, ['sign', 'verify']);
+    return { pub: pubOnly(await SUB.exportKey('jwk', kp.publicKey)), priv: await SUB.exportKey('jwk', kp.privateKey) };
+  }
+  /* the 8-letter game code that belongs to a host key */
+  async function codeOf(jwk) {
+    const h = new Uint8Array(await SUB.digest('SHA-256', enc(jwk.crv + '.' + jwk.x + '.' + jwk.y)));
+    let c = ''; for (let i = 0; i < 8; i++) c += CODE_CHARS[h[i] % 32];
+    return c;
+  }
+  const sameKey = (a, b) => !!a && !!b && a.x === b.x && a.y === b.y;
+  const keyName = PREFIX + 'key-' + (mode === 'guest' ? 'guest-' : 'host-') + room;
+  const keysP = (mode === 'local' || !SUB) ? null : (async () => {
+    let j = LS.get(keyName, null);
+    if (!j) { j = await newKeyPair(); LS.set(keyName, j); }
+    return { pub: j.pub, priv: await SUB.importKey('jwk', j.priv, ALG, false, ['sign']) };
+  })();
+  async function signed(body, withKey) {
+    if (!keysP) return { b: body, s: '' };
+    const K = await keysP;
+    const m = { b: body, s: b64(await SUB.sign(SIG, K.priv, enc(body))) };
+    if (withKey) m.k = K.pub;
+    return m;
+  }
+  async function checks(jwk, m) {
+    if (!SUB) return true;
+    if (!jwk || !m || typeof m.b !== 'string' || typeof m.s !== 'string') return false;
+    try { return await SUB.verify(SIG, await SUB.importKey('jwk', pubOnly(jwk), ALG, false, ['verify']), unb64(m.s), enc(m.b)); } catch (e) { return false; }
+  }
+  /* sequence numbers only go up, so an old message sent again is ignored */
+  let lastSeq = 0;
+  const nextSeq = () => (lastSeq = Math.max(Date.now(), lastSeq + 1));
+  /* one message at a time, in the order they arrive */
+  let chain = Promise.resolve();
+  const inOrder = fn => (chain = chain.then(fn).catch(e => console.error(e)));
+
+  /* ---------- who may write what (the host checks every guest write) ---------- */
+  const regKey = PREFIX + 'players-' + room;
+  const reg = mode === 'host' ? LS.get(regKey, {}) : {};
+  function seatOf(id, seats) { return seats.cs === id ? 'cs' : seats.nord === id ? 'nord' : null; }
+  /* the seats after a guest's change: they may take an open seat (if not seated already) or leave their own */
+  function allowedSeats(from, cur, want) {
+    const out = Object.assign({ cs: null, nord: null }, cur), mine = seatOf(from, cur);
+    ['cs', 'nord'].forEach(side => {
+      if (!want || !(side in want)) return;
+      const was = cur[side] || null, now = want[side] || null;
+      if (was === now) return;
+      if (now === from && !was && !mine) out[side] = from;
+      else if (now === null && was === from) out[side] = null;
+    });
+    return out;
+  }
+  /* returns the write to apply, or null to refuse it */
+  function vet(from, p, v, u) {
+    if (isPrivate(p) || p.startsWith('events/') || !/^game\/[a-z]+$/.test(p)) return null;
+    if (p === 'game/lobby') {
+      /* the lobby: everyone may update their own line, nothing else */
+      return u && v && typeof v === 'object' && Object.keys(v).length === 1 && Object.keys(v)[0] === from ? v : null;
+    }
+    const st = docs['game/state'] || {}, cur = st.seats || {}, mine = seatOf(from, cur);
+    if (p !== 'game/state') return mine ? v : null;
+    if (!v || typeof v !== 'object') return null;
+    v = Object.assign({}, v);
+    if (!u || 'seats' in v) v.seats = allowedSeats(from, cur, v.seats || (u ? {} : cur));
+    if ('hostId' in v || (!u && st.hostId !== undefined)) v.hostId = st.hostId;
+    if (mine) return v;
+    /* not seated: only taking an open seat, with your name on it */
+    const side = seatOf(from, v.seats || {});
+    if (!u || !side) return null;
+    const keys = Object.keys(v).filter(k => !['seats', 'players', 'updatedAt'].includes(k));
+    if (keys.length) return null;
+    if (v.players) v.players = v.players[side] != null ? { [side]: String(v.players[side]).slice(0, 24) } : undefined;
+    if (v.players === undefined) delete v.players;
+    return v;
+  }
+
   /* ---------- online play ----------
      Players meet on a public MQTT broker over secure WebSockets, which works on almost
      any network (no WebRTC, no TURN). The host's browser is the referee: guests send
@@ -78,16 +171,42 @@
   function markReady() { if (ready) return; ready = true; readyWaiters.splice(0).forEach(r => r()); }
   function pub(topic, obj, retain) { if (client && client.connected) client.publish(topic, obj == null ? '' : JSON.stringify(obj), { qos: 1, retain: !!retain }); }
 
+  const lastPub = {}, rejected = [];
+  function hostPublish(p) {
+    const body = JSON.stringify({ room, p, v: docs[p] == null ? null : docs[p], seq: nextSeq() });
+    lastPub[p] = body;
+    return signed(body).then(m => pub(TOPIC + 'doc/' + p, m, true));
+  }
   function hostWrite(p, data, isUpdate) {
     applyLocal(p, data, isUpdate);
-    pub(TOPIC + 'doc/' + p, docs[p] == null ? null : docs[p], true);
+    inOrder(() => hostPublish(p));
+  }
+  /* a guest's write: check the signature, the player's key and what they may change */
+  async function hostReceive(m) {
+    if (!m || typeof m.b !== 'string') return;
+    let w; try { w = JSON.parse(m.b); } catch (e) { return; }
+    if (!w || w.room !== room || typeof w.from !== 'string' || typeof w.p !== 'string' || !(+w.seq > 0)) return;
+    if (!(await checks(m.k, m))) return;
+    const known = reg[w.from];
+    if (known && !sameKey(known.k, m.k)) return;
+    if (known && +w.seq <= +known.seq) return;
+    const v = vet(w.from, w.p, w.v, !!w.u);
+    reg[w.from] = { k: pubOnly(m.k), seq: +w.seq };
+    LS.set(regKey, reg);
+    if (v === null) {
+      /* refused: the writer already shows its own change, so send everyone the real document again */
+      rejected.push({ from: w.from, p: w.p, at: Date.now() }); if (rejected.length > 20) rejected.shift();
+      if (w.p === 'game/state' && docs[w.p] !== undefined) return hostPublish(w.p);
+      return;
+    }
+    hostWrite(w.p, v, !!w.u);
   }
   async function write(p, data, isUpdate) {
     if (isPrivate(p) || mode === 'local') { applyLocal(p, data, isUpdate); return; }
     if (FB) { await whenReady(); applyLocal(p, data, isUpdate); return fbWrite(p, data, isUpdate); }
     if (mode === 'host') { hostWrite(p, data, isUpdate); return; }
     await whenReady();
-    const msg = { p, v: data, u: !!isUpdate, from: myId };
+    const msg = await signed(JSON.stringify({ room, p, v: data, u: !!isUpdate, from: myId, seq: nextSeq() }), true);
     if (client && client.connected) pub(TOPIC + 'w', msg, false); else wq.push(msg);
     // Show our own change straight away; the host's copy follows and wins.
     applyLocal(p, data, isUpdate);
@@ -112,15 +231,46 @@
       c.once('connect', () => fin(true)); c.once('error', () => fin(false)); setTimeout(() => fin(false), 6000);
     });
   }
+  /* the host's key as this guest has checked it: its hash must give the game code. A game code made before
+     signed messages (or typed wrong) has no matching key; then the first key seen is trusted for this game. */
+  const hostPinKey = PREFIX + 'hostkey-' + room;
+  let hostKey = mode === 'guest' ? LS.get(hostPinKey, null) : null, hostKeyChecked = false;
+  const docSeq = {}, pendingDocs = [];
+  async function learnHostKey(k) {
+    if (!k || !SUB || (hostKey && hostKeyChecked)) return;
+    const ok = (await codeOf(k)) === room;
+    if (ok) { hostKey = pubOnly(k); hostKeyChecked = true; LS.set(hostPinKey, hostKey); }
+    else if (!hostKey) { hostKey = pubOnly(k); LS.set(hostPinKey, hostKey); }
+    pendingDocs.splice(0).forEach(([p, m]) => guestDoc(p, m));
+  }
+  async function guestDoc(p, m) {
+    if (SUB && !hostKey) { pendingDocs.push([p, m]); return; }
+    if (!(await checks(hostKey, m))) return;
+    let d; try { d = JSON.parse(m.b); } catch (e) { return; }
+    if (!d || d.room !== room || d.p !== p || !(+d.seq > (docSeq[p] || 0))) return;
+    docSeq[p] = +d.seq;
+    if (d.v == null) delete docs[p]; else docs[p] = d.v;
+    fire(p);
+  }
   function onMessage(topic, buf) {
     const rest = topic.slice(TOPIC.length); let v = null; const txt = buf ? buf.toString() : '';
     if (txt) { try { v = JSON.parse(txt); } catch (e) { return; } }
+    if (rest === 'host' && mode === 'guest' && v && v.key) inOrder(() => learnHostKey(v.key));
     if (rest === 'host') { if (mode === 'guest') { hostSeen = !!(v && v.online); setStatus(hostSeen ? 'Connected to game ' + room : 'Game ' + room + ': waiting for the host to come back…'); if (hostSeen) markReady(); } return; }
-    if (rest === 'w') { if (mode === 'host' && v && typeof v.p === 'string' && !isPrivate(v.p)) hostWrite(v.p, v.v, v.u); return; }
+    if (rest === 'w') { if (mode === 'host') inOrder(() => hostReceive(v)); return; }
     if (rest.startsWith('doc/')) {
       const p = rest.slice(4);
-      if (mode === 'guest') { if (v == null) delete docs[p]; else docs[p] = v; fire(p); }
-      else if (mode === 'host' && restoring && v != null && docs[p] == null) { docs[p] = v; persist(); fire(p); }
+      if (mode === 'guest') { if (v) inOrder(() => guestDoc(p, v)); }
+      else if (mode === 'host') inOrder(async () => {
+        if (!v || v.b === lastPub[p]) return;
+        /* the host's own document from an earlier session: take it back after a reload */
+        if (restoring && docs[p] == null && keysP && (await checks((await keysP).pub, v))) {
+          try { const d = JSON.parse(v.b); if (d.room === room && d.p === p && d.v != null) { docs[p] = d.v; lastPub[p] = v.b; persist(); fire(p); } } catch (e) { }
+          return;
+        }
+        /* anything else on the host's topic replaces the host's copy for newcomers: publish the real one again */
+        if (!restoring && docs[p] !== undefined) return hostPublish(p);
+      });
     }
   }
   /* ---------- Firebase (Cloud Firestore) ---------- */
@@ -163,7 +313,7 @@
     addEventListener('offline', () => setStatus('You are offline. Moves will sync when you reconnect.'));
   }
 
-  let restoring = false;
+  let restoring = false, firstAnnounce = null;
   async function startNetwork() {
     if (mode === 'local') return;
     if (FB) return startFirebase();
@@ -176,7 +326,7 @@
       if (mode === 'guest') {
         // Check that the host is on this server before settling on it.
         const found = await new Promise(res => {
-          let ok = false; const h = (t, b) => { if (t === TOPIC + 'host') { try { const v = JSON.parse(b.toString() || 'null'); if (v && v.online) { ok = true; res(true); } } catch (e) { } } };
+          let ok = false; const h = (t, b) => { if (t === TOPIC + 'host') { try { const v = JSON.parse(b.toString() || 'null'); if (v && v.key) firstAnnounce = v; if (v && v.online) { ok = true; res(true); } } catch (e) { } } };
           c.on('message', h); c.subscribe(TOPIC + 'host', { qos: 1 }); setTimeout(() => { c.removeListener('message', h); res(ok); }, 3500);
         });
         if (!found) { if (!fallback) fallback = [c, i]; else { try { c.end(true); } catch (e) { } } continue; }
@@ -189,14 +339,17 @@
     if (!client && fallback) { client = fallback[0]; brokerIx = fallback[1]; }
     if (!client) { setStatus('Could not reach any game server. Your network may block them; try another network (for example mobile data).'); return; }
     client.on('message', onMessage);
+    /* the host's announcement was read while looking for the host: learn its key from it */
+    if (mode === 'guest' && firstAnnounce) inOrder(() => learnHostKey(firstAnnounce.key));
     client.on('reconnect', () => setStatus('Connection lost, reconnecting…'));
     client.on('offline', () => setStatus('Offline, reconnecting…'));
     if (mode === 'host') {
-      const announce = () => { pub(TOPIC + 'host', { online: true, at: Date.now(), id: myId }, true); setStatus('Hosting game ' + room + ' · keep this tab open'); };
-      client.on('connect', () => { announce(); Object.keys(docs).forEach(p => pub(TOPIC + 'doc/' + p, docs[p], true)); });
+      const announce = async () => { pub(TOPIC + 'host', { online: true, at: Date.now(), id: myId, key: keysP ? (await keysP).pub : null }, true); setStatus('Hosting game ' + room + ' · keep this tab open'); };
+      const publishAll = () => Object.keys(docs).forEach(p => inOrder(() => hostPublish(p)));
+      client.on('connect', () => { announce(); publishAll(); });
       restoring = !Object.keys(docs).length;
       client.subscribe([TOPIC + 'w', TOPIC + 'doc/#'], { qos: 1 }, () => {
-        setTimeout(() => { restoring = false; Object.keys(docs).forEach(p => pub(TOPIC + 'doc/' + p, docs[p], true)); announce(); }, 1500);
+        setTimeout(() => inOrder(() => { restoring = false; publishAll(); announce(); }), 1500);
       });
       addEventListener('pagehide', () => { try { client.publish(TOPIC + 'host', JSON.stringify({ online: false, at: Date.now() }), { qos: 0, retain: true }); } catch (e) { } });
     } else {
@@ -269,7 +422,14 @@
 
   /* ---------- connection bar and settings ---------- */
   let bar = null;
-  function newCode() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
+  function newCode() { const a = CODE_CHARS; let s = ''; for (let i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
+  /* a new game: make the host's key first, its hash is the game code */
+  async function hostNew() {
+    if (!SUB) { location.href = urlWith('host=' + newCode()); return; }
+    const j = await newKeyPair(), code = await codeOf(j.pub);
+    LS.set(PREFIX + 'key-host-' + code, j);
+    location.href = urlWith('host=' + code);
+  }
   function urlWith(q) { return location.origin + location.pathname + (q ? '?' + q : ''); }
   function renderBar() {
     if (!document.body) return;
@@ -325,8 +485,8 @@
   document.head.appendChild(css);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderBar); else renderBar();
   startNetwork();
-  window.__conquestNet = { mode, room, docs: () => docs, id: () => myId,
-    host: () => { location.href = urlWith('host=' + newCode()); },
+  window.__conquestNet = { mode, room, docs: () => docs, id: () => myId, rejected: () => rejected.slice(),
+    host: () => { hostNew(); },
     join: c => { c = clean(c || ''); if (c.length >= 4) location.href = urlWith('join=' + c); else flash('Type the game code your host sent you.'); },
     invite: async () => { const link = urlWith('join=' + room + (brokerIx > 0 ? '&b=' + brokerIx : '')); try { await navigator.clipboard.writeText(link); flash('Invite link copied: ' + link); } catch (e) { flash('Send this link to your opponent: ' + link); } },
     leave: () => { try { window.__presenceLeave && window.__presenceLeave(); } catch (e) { } setTimeout(() => { location.href = urlWith(''); }, 400); },

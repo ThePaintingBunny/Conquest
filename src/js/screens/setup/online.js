@@ -78,6 +78,19 @@ function renderSetupPvp(tb, info, mk, add) {
           true
         )
       );
+    /* the host can free a seat, for a player who comes back on another device */
+    if (who && who !== myId && window.__conquestNet && window.__conquestNet.mode === 'host')
+      row.appendChild(
+        mk(
+          'Free this seat',
+          () =>
+            db
+              .doc('game/state')
+              .update({ seats: { [side]: null }, updatedAt: Date.now() })
+              .catch(() => {}),
+          true
+        )
+      );
     box.appendChild(row);
   });
   add(box);
