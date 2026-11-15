@@ -140,7 +140,6 @@ A few helpers appear everywhere:
 - **A spell:** its entry in `data/spells.js`; unusual effects are in `resolveSpell0` in `spells/casting.js`.
 - **Scenario zones or scoring:** `data/scenarios.js` and `game/scoring.js`.
 - **Colours, spacing, layout:** `src/css/` (see below).
-- **Board zoom:** `input/board-zoom.js` (pinch, Ctrl + wheel and the toolbar buttons; it only changes the SVG viewBox).
 - **An icon:** `ui/icons.js` (one SVG path per icon).
 - **A hotkey:** `ui/settings.js` (the list shown to the player) and `input/hotkeys.js` (what it does; the overlays handle their own keys in `overlays/`).
 
@@ -165,7 +164,7 @@ The stylesheets in `src/css/` are numbered because **their order matters**: when
 | `17` | The grouped main menu and the army builder's summary bar, start screen and folded regiment rows. |
 | `18` | The lobbies, colour selection and the encyclopedia as a full page. |
 | `19` | Banners: faction-coloured headers, the hanging points banner, faction edges and the menu pennants. The colours are in `ui/faction-theme.js`. |
-| `20` | In-game panels: the regiment card's strength bar, the combat stepper, the Armies tab rows, tracker chips, game setup side cards, board zoom buttons, touch target sizes and the icon set (`ui/icons.js`). |
+| `20` | In-game panels: the regiment card's strength bar, the combat stepper, the Armies tab rows, tracker chips, game setup side cards, touch target sizes and the icon set (`ui/icons.js`). |
 
 The army builder appears in two files (`04` and `06`) because its rules sit in two places in the cascade. Merging them would need a check that no rule in between depends on the order.
 
