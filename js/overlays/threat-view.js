@@ -11,9 +11,10 @@
  * Charge (outline). Volley view: Volley from where it stands (effective and full range) and March then
  * Volley (outline).
  *
- * In this file: threatMode, rThreat, thrSent, thrSendT, thrOn, thrSelSeen, thrActSeen, THR_STYLE,
- *   drawThreat(), thrKeys(), thrToggle(), thrAllKeys(), thrAll(), threatIds(), drawThreatLayer(),
- *   redrawThreat(), threatKey(), threatShare(), onThreat(), THR_NEXT, cycleThreat()
+ * In this file: threatMode, rThreat, thrSent, thrSendT, thrOn, thrSelSeen, thrActSeen, thrPins,
+ *   thrFoes, THR_STYLE, drawThreat(), thrKeys(), thrToggle(), thrAllKeys(), thrAll(), threatIds(),
+ *   drawThreatLayer(), thrPin(), redrawThreat(), threatKey(), threatShare(), onThreat(), THR_NEXT,
+ *   cycleThreat()
  */
 
 let threatMode = '' /* '' | 'charge' | 'volley' */,
@@ -22,7 +23,10 @@ let threatMode = '' /* '' | 'charge' | 'volley' */,
   thrSendT = 0,
   thrOn = {} /* unit id -> array of ticked boost keys */,
   thrSelSeen = null,
-  thrActSeen = null;
+  thrActSeen = null,
+  thrPins =
+    [] /* regiments whose threat stays shown (Shift+click), so you can see them while moving your own */,
+  thrFoes = false; /* every enemy regiment's threat at once */
 
 /* ---------- the layers ---------- */
 const THR_STYLE = {
@@ -175,6 +179,20 @@ function drawThreatLayer(g) {
   }
   let shown = null;
   const id = threatIds()[0];
+  /* kept regiments (Shift+click) and, when ticked, every enemy regiment: drawn underneath, without a key */
+  thrPins = thrPins.filter(x => byId(x) && byId(x).onTable && !byId(x).destroyed);
+  if (threatMode) {
+    const foes = thrFoes
+      ? all()
+          .filter(o => o.onTable && !o.destroyed && o.side !== HU && o.type !== 'marker')
+          .map(o => o.id)
+      : [];
+    [...new Set(thrPins.concat(foes))]
+      .filter(x => x !== id)
+      .forEach(x =>
+        drawThreat(byId(x), threatMode, el('g', { opacity: 0.7, 'data-kept': x }, g), false, thrKeys(x))
+      );
+  }
   if (id) {
     const k = thrKeys(id);
     shown = {
@@ -196,6 +214,18 @@ function drawThreatLayer(g) {
   threatShare();
 }
 
+/* keep a regiment's threat shown, or let it go */
+function thrPin(id) {
+  if (!id || !byId(id)) return;
+  thrPins = thrPins.includes(id) ? thrPins.filter(x => x !== id) : thrPins.concat(id);
+  toast(
+    thrPins.includes(id)
+      ? (byId(id).short || byId(id).name) + ': threat kept on the map.'
+      : (byId(id).short || byId(id).name) + ': no longer kept.'
+  );
+  redrawThreat();
+}
+
 function redrawThreat() {
   const g = $('thrg');
   if (!g) return render();
@@ -212,8 +242,17 @@ function threatKey(s) {
     const mb = document.querySelector('.mapbox');
     if (!mb) return;
     mb.appendChild(k);
+    k.addEventListener('click', ev => {
+      const b = ev.target.closest && ev.target.closest('[data-pin]');
+      if (b) thrPin(b.dataset.pin);
+    });
     k.addEventListener('change', ev => {
       const t = ev.target;
+      if (t && t.dataset.foes) {
+        thrFoes = t.checked;
+        redrawThreat();
+        return;
+      }
       if (!t || t.type !== 'checkbox' || !t.dataset.uid) return;
       if (t.dataset.all) thrAll(t.dataset.uid, t.checked);
       else thrToggle(t.dataset.uid, t.dataset.key, t.checked);
@@ -224,7 +263,10 @@ function threatKey(s) {
     k.innerHTML =
       '<b>' +
       (threatMode === 'charge' ? 'Charge' : 'Volley') +
-      ' threat</b><div class="tk-n">Point at a regiment, or select one to try its boosts. T: next view.</div>';
+      ' threat</b><div class="tk-n">Point at a regiment, or select one to try its boosts. Shift+click a regiment to keep its threat shown while you move. T: next view.</div>' +
+      '<label class="tk-row"><input type="checkbox" data-foes="1"' +
+      (thrFoes ? ' checked' : '') +
+      '> <span>Show every enemy regiment</span></label>';
     return;
   }
   if (!s || !s.T) {
@@ -308,6 +350,18 @@ function threatKey(s) {
     h += '</div>';
     if (!s.edit && !s.remote) h += '<div class="tk-n">Select the regiment to tick boosts on.</div>';
   } else h += '<div class="tk-n">No boosts it could still get this round.</div>';
+  if (!s.remote)
+    h +=
+      '<div class="tk-pin">' +
+      '<button type="button" class="btn ghost tk-pb" data-pin="' +
+      esc(s.u.id) +
+      '">' +
+      (thrPins.includes(s.u.id) ? 'Stop keeping it shown' : 'Keep it shown') +
+      '</button>' +
+      '<label class="tk-row"><input type="checkbox" data-foes="1"' +
+      (thrFoes ? ' checked' : '') +
+      '> <span>Show every enemy regiment</span></label></div>' +
+      '<div class="tk-n">Kept regiments stay on the map while you move your own. Shift+click a regiment to keep it or let it go.</div>';
   h +=
     '<div class="tk-n">From the front edge, over the ' +
     (s.mode === 'charge' ? 'front' : 'firing') +
@@ -378,6 +432,25 @@ document.addEventListener('keydown', ev => {
     cycleThreat();
   }
 });
+
+/* Shift+click a regiment while threat ranges are on: keep its threat shown (works while your own regiment moves) */
+$('board').addEventListener(
+  'pointerdown',
+  ev => {
+    if (!threatMode || !ev.shiftKey) return;
+    let u = null;
+    try {
+      const p = svgPt(ev),
+        q = [ix(p.x), iy(p.y)];
+      u = (state ? state.units : []).find(x => x.onTable && !x.destroyed && ptInPolyG(q, corners(x)));
+    } catch (e) {}
+    if (!u || (act && act.id === u.id)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    thrPin(u.id);
+  },
+  true
+);
 
 /* the regiment under the pointer (shared with the arcs viewer) */
 $('board').addEventListener('pointermove', ev => {

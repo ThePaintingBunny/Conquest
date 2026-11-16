@@ -37,6 +37,10 @@ const HOTKEYS = [
         'T',
         'Threat ranges: Charge threat, then Volley threat, then off. Select the regiment to tick its boosts.'
       ],
+      [
+        'Shift + click',
+        'With threat ranges on: keep that regiment’s threat shown (also while your own regiment moves).'
+      ],
       ['P', 'Ping the spot under the pointer. Online, your opponent sees it.'],
       ['?', 'Open this list.']
     ]
