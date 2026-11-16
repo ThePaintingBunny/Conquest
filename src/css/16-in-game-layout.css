@@ -649,3 +649,74 @@ body.tb-top #ai-report:not([hidden]) {
   overflow-y: auto;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
 }
+
+/* ---- narrow windows and phones during a game: the turn bar gets its own full-width row and wraps ---- */
+@media (max-width: 1100px) {
+  body.tb-top .top {
+    flex-wrap: wrap;
+  }
+  body.tb-top .top-turn {
+    order: 3;
+    flex: 1 1 100%;
+  }
+}
+@media (max-width: 900px) {
+  body.tb-top .top > div:last-child {
+    flex-wrap: wrap !important;
+  }
+  body.tb-top .top > div:last-child .btn {
+    padding: 6px 9px;
+    font-size: 13px;
+  }
+  .turnbar.tb-line {
+    flex-wrap: wrap;
+    gap: 6px 8px;
+  }
+  /* first row: whose turn and End turn; then round and score; then what is happening */
+  .turnbar.tb-line .tb-status {
+    display: contents;
+  }
+  .turnbar.tb-line .tb-pill {
+    order: 1;
+  }
+  .turnbar.tb-line > .btn {
+    order: 2;
+  }
+  .turnbar.tb-line .tb-round,
+  .turnbar.tb-line .tb-vp {
+    order: 3;
+  }
+  .turnbar.tb-line .tb-round {
+    margin-right: 2px;
+  }
+  .leftcol > .tools .tool,
+  .leftcol > .tools .leg-btn {
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+  /* the tools wrap instead of scrolling sideways */
+  .leftcol > .tools {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .leftcol > .tools > .last {
+    flex: 1 1 100%;
+    max-width: none;
+    margin-left: 0;
+    border-left: 0;
+    padding: 2px 4px;
+  }
+  .turnbar.tb-line > .read {
+    order: 5;
+    flex: 1 1 100%;
+    white-space: normal;
+    overflow: visible;
+  }
+  .turnbar.tb-line > .btn {
+    margin-left: auto;
+  }
+  .tb-pill {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+}
