@@ -460,7 +460,7 @@
   background: var(--warn);
 }
 #units g.hi {
-  filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px var(--gold));
+  filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 6px #ffd76a) drop-shadow(0 0 12px #ffb63a);
 }
 [data-ui='steel'] .rtabs {
   border-color: var(--edge);

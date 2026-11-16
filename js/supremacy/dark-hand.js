@@ -28,7 +28,14 @@ function darkHandBox(u, box) {
   if (!/Eidolon/.test(u.charName || '')) return;
   const h = huntedOf(u.side);
   if (h) {
-    box.appendChild(ptext('Dark Hand of the Scholae: ' + (h.short || h.name) + ' is Hunted.'));
+    box.appendChild(
+      ptext(
+        'Dark Hand of the Scholae: ' +
+          (h.short || h.name) +
+          (regBrief(h) ? ' (' + regBrief(h) + ')' : '') +
+          ' is Hunted.'
+      )
+    );
     return;
   }
   const E = (state.units || []).filter(x => x.side !== u.side && srAlive(x));
@@ -37,17 +44,34 @@ function darkHandBox(u, box) {
   r.className = 'row';
   const sel = document.createElement('select');
   sel.setAttribute('aria-label', 'Hunted regiment');
-  E.forEach(e => {
+  /* several regiments of the same kind: tell them apart by stands, character, upgrades and distance, and light up the
+     chosen one on the map */
+  const uc = corners(u);
+  E.sort((a, b) => polyDist(uc, corners(a)) - polyDist(uc, corners(b))).forEach(e => {
     const o = document.createElement('option');
     o.value = e.id;
-    o.textContent = e.short || e.name;
+    o.textContent =
+      (e.short || e.name) +
+      ' · ' +
+      [regBrief(e), polyDist(uc, corners(e)).toFixed(0) + '″ away'].filter(Boolean).join(' · ');
     sel.appendChild(o);
   });
+  let lit = null;
+  const light = () => {
+    if (lit) hiUnit(lit, false);
+    lit = sel.value;
+    hiUnit(lit, true);
+  };
+  sel.onchange = light;
+  requestAnimationFrame(light);
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'btn';
   b.textContent = 'Mark as Hunted';
-  b.onclick = () => setHunted(u.side, sel.value);
+  b.onclick = () => {
+    if (lit) hiUnit(lit, false);
+    setHunted(u.side, sel.value);
+  };
   r.append(sel, b);
   box.appendChild(
     ptext(
