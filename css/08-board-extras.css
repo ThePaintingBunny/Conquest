@@ -352,3 +352,12 @@
   font-size: 12px;
   padding: 3px 9px;
 }
+/* the key moves to the corner away from the regiment it describes */
+.threat-key.tk-left {
+  right: auto;
+  left: 8px;
+}
+.threat-key.tk-bottom {
+  top: auto;
+  bottom: 8px;
+}

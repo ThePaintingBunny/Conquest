@@ -13,8 +13,8 @@
  *
  * In this file: threatMode, rThreat, thrSent, thrSendT, thrOn, thrSelSeen, thrActSeen, thrPins,
  *   thrFoes, THR_STYLE, drawThreat(), thrKeys(), thrToggle(), thrAllKeys(), thrAll(), threatIds(),
- *   drawThreatLayer(), thrPin(), redrawThreat(), threatKey(), threatShare(), onThreat(), THR_NEXT,
- *   cycleThreat()
+ *   drawThreatLayer(), thrPin(), redrawThreat(), threatKey(), thrKeyPlace(), threatShare(), onThreat(),
+ *   THR_NEXT, cycleThreat()
  */
 
 let threatMode = '' /* '' | 'charge' | 'volley' */,
@@ -371,6 +371,58 @@ function threatKey(s) {
   k.hidden = false;
   k.innerHTML = h;
   if (k.querySelector('.tk-list')) k.querySelector('.tk-list').scrollTop = sc;
+  /* the regiments are drawn after this layer: place the key once they are on the board */
+  requestAnimationFrame(() => thrKeyPlace(k, s.u));
+}
+
+/* keep the key out of the way: of the four corners of the map, the one that covers the least of the threat zones
+   and of the regiments (the one it describes counts most), checked on a grid of points */
+function thrKeyPlace(k, u) {
+  let best = [false, false];
+  try {
+    const svg = $('board'),
+      M = svg.getScreenCTM().inverse(),
+      mb = k.parentNode.getBoundingClientRect(),
+      kw = k.offsetWidth,
+      kh = k.offsetHeight,
+      zones = [...document.querySelectorAll('#thrg polygon')],
+      regs = [...document.querySelectorAll('#units g[data-id]')].map(e => ({
+        r: e.getBoundingClientRect(),
+        w: u && e.dataset.id === u.id ? 8 : 3
+      })),
+      P = svg.createSVGPoint();
+    let low = Infinity;
+    [
+      [false, false],
+      [true, false],
+      [false, true],
+      [true, true]
+    ].forEach(([l, b], i) => {
+      const x0 = l ? mb.left + 8 : mb.right - 8 - kw,
+        y0 = b ? mb.bottom - 8 - kh : mb.top + 8;
+      let sc = i * 0.01; /* ties: top right first */
+      for (let a = 0; a <= 8; a++)
+        for (let c = 0; c <= 6; c++) {
+          const X = x0 + (kw * a) / 8,
+            Y = y0 + (kh * c) / 6;
+          regs.forEach(g => {
+            if (X >= g.r.left && X <= g.r.right && Y >= g.r.top && Y <= g.r.bottom) sc += g.w;
+          });
+          P.x = X;
+          P.y = Y;
+          const q = P.matrixTransform(M);
+          zones.forEach(z => {
+            if (z.isPointInFill(q)) sc += 1;
+          });
+        }
+      if (sc < low) {
+        low = sc;
+        best = [l, b];
+      }
+    });
+  } catch (e) {}
+  k.classList.toggle('tk-left', best[0]);
+  k.classList.toggle('tk-bottom', best[1]);
 }
 
 /* online: tell the opponent which regiment's threat you are looking at, and what is ticked */
