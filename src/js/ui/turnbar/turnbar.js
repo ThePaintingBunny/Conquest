@@ -7,6 +7,8 @@
  *   tbMoreOpen, foldTurnbar(), renderTurnbar0()
  */
 
+let reinfSkipKey = ''; /* the round whose empty Reinforcements step was skipped automatically */
+
 function renderTurnbar() {
   try {
     turnWatch();
@@ -303,25 +305,34 @@ function renderTurnbar0() {
     add(sel);
     const rsel = ravenSelect(HU, add),
       hsel = huntSelect(HU, add);
-    add(
-      mk('Roll reinforcements', async () => {
-        aiBusy = true;
+    const roll = async () => {
+      aiBusy = true;
+      render();
+      try {
+        const rep = await doReinforcements(
+          sel.value || null,
+          (rsel && rsel.value) || null,
+          (hsel && hsel.value) || null
+        );
+        aiBusy = false;
+        await startCommandPhase(rep);
+      } catch (e) {
+        aiBusy = false;
+        toast('That could not be saved. Try again.');
         render();
-        try {
-          const rep = await doReinforcements(
-            sel.value || null,
-            (rsel && rsel.value) || null,
-            (hsel && hsel.value) || null
-          );
-          aiBusy = false;
-          await startCommandPhase(rep);
-        } catch (e) {
-          aiBusy = false;
-          toast('That could not be saved. Try again.');
-          render();
-        }
-      })
-    );
+      }
+    };
+    /* nothing to choose (no reserves that may arrive, no Raven Messengers or Call the Hunt): skip the question */
+    if (sel.options.length === 1 && !rsel && !hsel) {
+      sel.remove();
+      info.textContent = `Round ${state.round} · Reinforcements: nothing to choose, carrying on…`;
+      if (reinfSkipKey !== state.round + ':' + HU) {
+        reinfSkipKey = state.round + ':' + HU;
+        setTimeout(roll, 0);
+        return;
+      }
+    }
+    add(mk('Roll reinforcements', roll));
     return;
   }
   if (step === 'supremacy') {

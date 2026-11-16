@@ -39,34 +39,43 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
     add(sel);
     const rsel = ravenSelect(HU, add),
       hsel = huntSelect(HU, add);
-    add(
-      mk('Roll reinforcements', async () => {
-        aiBusy = true;
-        render();
-        try {
-          const rep = await doReinforcements(
-            sel.value || null,
-            (rsel && rsel.value) || null,
-            (hsel && hsel.value) || null
-          );
-          aiBusy = false;
-          if (HU === 'nord') {
-            const prev = state.lastReinf || '';
-            await startCommandPhase([{ title: prev, lines: [] }].filter(r => r.title).concat(rep));
-          } else {
-            await putState({
-              lastReinf: rep.map(r => r.title + ': ' + r.lines.join(', ')).join(' · '),
-              lastTitle: 'Reinforcements',
-              lastText: rep.map(r => r.title + ': ' + r.lines.join(', ')).join(' · ')
-            });
-          }
-        } catch (e) {
-          aiBusy = false;
-          toast('That could not be saved. Try again.');
-          render();
+    const roll = async () => {
+      aiBusy = true;
+      render();
+      try {
+        const rep = await doReinforcements(
+          sel.value || null,
+          (rsel && rsel.value) || null,
+          (hsel && hsel.value) || null
+        );
+        aiBusy = false;
+        if (HU === 'nord') {
+          const prev = state.lastReinf || '';
+          await startCommandPhase([{ title: prev, lines: [] }].filter(r => r.title).concat(rep));
+        } else {
+          await putState({
+            lastReinf: rep.map(r => r.title + ': ' + r.lines.join(', ')).join(' · '),
+            lastTitle: 'Reinforcements',
+            lastText: rep.map(r => r.title + ': ' + r.lines.join(', ')).join(' · ')
+          });
         }
-      })
-    );
+      } catch (e) {
+        aiBusy = false;
+        toast('That could not be saved. Try again.');
+        render();
+      }
+    };
+    /* nothing to choose (no reserves that may arrive, no Raven Messengers or Call the Hunt): skip the question */
+    if (sel.options.length === 1 && !rsel && !hsel) {
+      sel.remove();
+      info.textContent = `Round ${state.round} · Reinforcements: nothing to choose, carrying on…`;
+      if (reinfSkipKey !== state.round + ':' + HU) {
+        reinfSkipKey = state.round + ':' + HU;
+        setTimeout(roll, 0);
+        return true;
+      }
+    }
+    add(mk('Roll reinforcements', roll));
     return true;
   }
   if (step === 'supremacy') {
