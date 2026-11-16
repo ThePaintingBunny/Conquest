@@ -116,7 +116,9 @@ function huCardChoices() {
   if (act || aiBusy || SBX() || !huStackOn()) return null;
   /* the card was put in the Strategic Stack this turn: the turn is spent */
   if (myTurnStrat && PS().strategicUsedRound === state.round) return null;
-  const top = humanTop(),
+  /* once this turn's card is played, only the Strategic Stack card is still on offer */
+  const played = myTurnCards != null && humanCardsLeft() < myTurnCards;
+  const top = played ? null : humanTop(),
     held = huHeldOk() ? PS().huHeld : null;
   if (!top && !held) return null;
   const L = [];
@@ -154,7 +156,7 @@ function huCardChoices() {
         });
     });
   }
-  if (held)
+  if (held && !stratWhy())
     mine
       .filter(u => !u.activated && stratU(u) && sameCard(held, u))
       .forEach(u =>
@@ -186,13 +188,22 @@ function renderGpCard() {
     gpCardKey = key;
     if (rightTab !== 'game') setTab('game');
   }
-  const left = Math.max(0, validCards(PS().huStack || []).length - 1);
+  const left = Math.max(0, validCards(PS().huStack || []).length - (C.top ? 1 : 0));
   const card = bEl('div', { className: 'gp-cardface' });
   card.style.setProperty('--fac', facColor((cardOf(C.top || C.held) || {}).fac || ''));
   card.append(
     bEl('span', { className: 'gp-k', textContent: C.top ? 'Your card' : 'Your Strategic Stack' }),
     bEl('strong', { textContent: cardName(C.top || C.held) }),
-    bEl('span', { className: 'gp-left', textContent: left ? left + ' more in your stack' : 'last card' })
+    bEl('span', {
+      className: 'gp-left',
+      textContent: C.top
+        ? left
+          ? left + ' more in your stack'
+          : 'last card'
+        : left
+          ? left + ' left in your Command Stack'
+          : 'Command Stack empty'
+    })
   );
   const ul = bEl('ul', { className: 'gp-pick' });
   C.L.forEach(o => {
@@ -242,7 +253,11 @@ function renderGpCard() {
     C.L.length
       ? bEl('p', {
           className: 'gp-ask',
-          textContent: C.L.length === 1 ? 'It activates:' : 'Choose who acts with it:'
+          textContent: !C.top
+            ? 'You may play it now, or keep it and press End turn:'
+            : C.L.length === 1
+              ? 'It activates:'
+              : 'Choose who acts with it:'
         })
       : bEl('p', {
           className: 'gp-ask',

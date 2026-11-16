@@ -11,6 +11,10 @@ function startActivation(id, source, card) {
     toast('It is not your turn.');
     return;
   }
+  if (source === 'strategic' && base(id) && base(id).side === HU && stratWhy()) {
+    toast(stratWhy());
+    return;
+  }
   const u = base(id),
     G = geom(u);
   const entering = !u.onTable;

@@ -3,7 +3,8 @@
  *
  * Strategic Stack and Direct Orders, and the Eidolon's Combat Directives.
  *
- * In this file: canStrat(), directOrders(), stratU(), ordersU(), CDIR, cdirKeys(), cdirOf(), cdirSet()
+ * In this file: canStrat(), directOrders(), stratU(), stratWhy(), ordersU(), CDIR, cdirKeys(),
+ *   cdirOf(), cdirSet()
  */
 
 function canStrat(side) {
@@ -20,6 +21,15 @@ function directOrders(side) {
 
 function stratU(u) {
   return canStrat(u.side) && (!u.fac || u.fac === 'City States');
+}
+
+/* the card in the Strategic Stack is played after this turn's normal activation, or when no Command Stack card is
+   left; '' when it can be played now, otherwise why not */
+function stratWhy() {
+  if (SBX() || !huStackOn()) return '';
+  if (!validCards(PS().huStack || []).length) return '';
+  if (myTurnCards != null && humanCardsLeft() < myTurnCards) return '';
+  return 'Activate your drawn card first: the Strategic Stack card can be played after it, or once your Command Stack is empty.';
 }
 
 function ordersU(u) {

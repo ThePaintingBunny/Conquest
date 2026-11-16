@@ -487,7 +487,8 @@ function renderCard() {
         b.type = 'button';
         b.className = 'btn ghost';
         b.textContent = 'Activate from Strategic Stack';
-        b.disabled = !!why;
+        b.disabled = !!why || !!stratWhy();
+        if (stratWhy()) b.title = stratWhy();
         b.onclick = () => startActivation(u.id, 'strategic');
         row.appendChild(b);
       }
@@ -539,6 +540,8 @@ function renderCard() {
         b.type = 'button';
         b.className = 'btn';
         b.textContent = 'Activate from Strategic Stack';
+        b.disabled = !!stratWhy();
+        if (stratWhy()) b.title = stratWhy();
         b.onclick = () => startActivation(u.id, 'strategic');
         r.appendChild(b);
         startBox.appendChild(r);
@@ -550,7 +553,7 @@ function renderCard() {
             : !myTurn
               ? 'It is not your turn.'
               : held && stratU(u)
-                ? 'Your Command Stack is empty; the card in your Strategic Stack can activate this regiment.'
+                ? stratWhy() || 'The card in your Strategic Stack can activate this regiment.'
                 : 'Your Command Stack has no card left for this regiment this round.',
           'hint'
         )
