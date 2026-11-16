@@ -282,6 +282,11 @@ function renderTurnbar0() {
   const ng = mk(resetArm ? 'Click again to reset the game' : 'New game', newGame, true);
   ng.classList.add('ng');
   add(ng);
+  if (simEndOk()) {
+    const sb = mk('Simulate to the end', simToEnd);
+    sb.title = `${N(other(simEndSide()))} have no regiments left. Score the Victory Phase of this round and every round after it, with every regiment staying where it stands.`;
+    add(sb);
+  }
   if (PVP() && renderTurnbarPvp(tb, info, mk, add, step)) return;
   if (step === 'reinforce') {
     if (mmBar(add, mk, HU, info)) return;
