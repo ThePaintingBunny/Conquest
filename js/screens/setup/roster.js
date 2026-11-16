@@ -3,11 +3,41 @@
  *
  * The army overview, the scenario choice and the army rules box.
  *
- * In this file: setupDraft, resetArm, rosterTable(), scenarioPanel(), AUTO_ARMY, armyRulesBox()
+ * In this file: setupDraft, resetArm, rosterOpts(), rosterUpg(), rosterTable(), scenarioPanel(),
+ *   AUTO_ARMY, armyRulesBox()
  */
 
 let setupDraft = { faction: '', pts: 2000, list: '', aiFaction: '', aiPlayer: 'bot', botLevel: 'normal' },
   resetArm = false;
+
+/* a regiment's options, officers and its own upgrades, from its abilities (not Draw Events, not the character's upgrades) */
+function rosterOpts(u) {
+  return (u.abilities || []).filter(
+    ([n, d]) =>
+      !/^The [^:]+: /.test(n) &&
+      (/^(Officer|Option)\b/.test(d) || /^Upgrade, \d+ pts/.test(d) || n === 'Veteran')
+  );
+}
+
+/* the character's upgrades for a warband: listed on its regiments as "The <character>: <upgrade>", or on a monster
+   character as "<description> (<type>, <n> pts)" */
+function rosterUpg(L) {
+  const out = [],
+    seen = new Set();
+  L.forEach(u =>
+    (u.abilities || []).forEach(([n, d]) => {
+      let m = n.match(/^The [^:]+: (.+)$/),
+        name = m && m[1];
+      if (!name && u.type === 'monster' && /\([^()]*,\s*\d+ pts\)$/.test(d)) name = n;
+      if (!name && u.type === 'monster' && /^Upgrade, \d+ pts/.test(d)) name = n;
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        out.push([name, d]);
+      }
+    })
+  );
+  return out;
+}
 
 /* the army overview before the game: one card per regiment, grouped by warband, readable on a phone and a PC */
 function rosterTable(units, onBanner) {
@@ -43,6 +73,15 @@ function rosterTable(units, onBanner) {
           'div',
           { className: 'rc-rules' },
           u.rules.map(r => bEl('span', { className: 'chip', textContent: r }))
+        )
+      );
+    const op = rosterOpts(u);
+    if (op.length)
+      c.append(
+        bEl(
+          'div',
+          { className: 'rc-rules rc-opts' },
+          op.map(([n, d]) => bEl('span', { className: 'chip rc-op', textContent: n, title: d }))
         )
       );
     if (u.charName)
@@ -86,6 +125,14 @@ function rosterTable(units, onBanner) {
         ])
       );
     }
+    const up = rosterUpg(g.u);
+    if (up.length)
+      sec.append(
+        bEl('div', { className: 'rc-rules rost-upg' }, [
+          bEl('span', { className: 'rc-cl', textContent: 'Upgrades' }),
+          ...up.map(([n, d]) => bEl('span', { className: 'chip rc-up', textContent: n, title: d }))
+        ])
+      );
     sec.append(bEl('div', { className: 'rost-grid' }, g.u.map(card)));
     box.append(sec);
   });

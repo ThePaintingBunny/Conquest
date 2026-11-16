@@ -753,6 +753,16 @@ textarea {
   padding: 1px 7px;
   background: var(--panel);
 }
+.rc-opts .chip,
+.rost-upg .chip {
+  border-color: var(--gold);
+  color: var(--gold-ink, var(--gold));
+  cursor: help;
+}
+.rost-upg {
+  align-items: center;
+  margin: -2px 0 8px;
+}
 .rc-char {
   display: flex;
   flex-wrap: wrap;
