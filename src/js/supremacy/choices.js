@@ -281,7 +281,16 @@ function supChoiceBar(add, mk, me, info) {
       'Combat Directive for the Eidolon with ' +
       (e.short || e.name) +
       ' (end of the Supremacy Phase): choose one until the end of the round.';
-    cdirKeys(e).forEach(k => add(mk(k, () => cdirSet(e.id, k))));
+    cdirKeys(e).forEach(k => {
+      const b = mk('', () => cdirSet(e.id, k));
+      b.className = 'gp-row';
+      b.append(
+        bEl('span', { className: 'gp-nm', textContent: k }),
+        bEl('span', { className: 'gp-note', textContent: CDIR_D[k] || CDIR[k][0] }),
+        bEl('span', { className: 'gp-go', textContent: 'Choose ›' })
+      );
+      add(b);
+    });
     return true;
   }
   if (c === 'fb') {

@@ -3,8 +3,8 @@
  *
  * The bar above the board that shows the round, the step and what to do next.
  *
- * In this file: renderTurnbar(), tbInTop(), placeTurnbar(), placeNetBar(), tbMoreOpen, foldTurnbar(),
- *   renderTurnbar0()
+ * In this file: renderTurnbar(), tbInTop(), placeTurnbar(), GP_STEPS, gpChoice(), placeNetBar(),
+ *   tbMoreOpen, foldTurnbar(), renderTurnbar0()
  */
 
 function renderTurnbar() {
@@ -115,6 +115,7 @@ function placeTurnbar(tb) {
       }
     }
   }
+  gpChoice(tb);
   /* the bar is one line unless a step needs a choice in it (a menu, a note) */
   tb.classList.toggle(
     'tb-line',
@@ -122,6 +123,47 @@ function placeTurnbar(tb) {
   );
   const inf = $('tb-info');
   if (inf) inf.title = inf.textContent;
+}
+
+/* Decisions before the round (Reinforcements, the Master Manipulator Offer, the Supremacy roll-off and abilities,
+   the Eidolon's Combat Directive, scenario picks, who goes first) go to the Game tab with their explanation; the top
+   row keeps a short line saying where to look. */
+const GP_STEPS = {
+  reinforce: 'Reinforcements',
+  supremacy: 'Command Phase',
+  picks: 'Scenario choice',
+  supdecl: 'Supremacy Phase',
+  choose: 'Who goes first'
+};
+
+function gpChoice(tb) {
+  const gc = $('gp-choice');
+  if (!gc) return;
+  gc.innerHTML = '';
+  const step = state && (state.step || 'activations'),
+    title = GP_STEPS[step];
+  const items =
+    tbInTop() && title && !aiBusy
+      ? [...tb.children].filter(k => !k.matches('.tb-status, #tb-info, details, .ng'))
+      : [];
+  gc.hidden = !items.length;
+  if (!items.length) return;
+  const inf = $('tb-info'),
+    text = inf ? inf.textContent : '';
+  gc.append(
+    bEl('div', { className: 'gp-cardface' }, [
+      bEl('span', { className: 'gp-k', textContent: 'Round ' + (state.round || 1) + ' · ' + title }),
+      bEl('strong', { textContent: 'Your decision' }),
+      text ? bEl('span', { className: 'gp-sub', textContent: text }) : ''
+    ]),
+    bEl('div', { className: 'gp-choices' }, items)
+  );
+  if (inf) inf.textContent = title + ': your decision is in the Game tab.';
+  const key = 'choice|' + state.round + '|' + step + '|' + text;
+  if (gpChoice.key !== key) {
+    gpChoice.key = key;
+    if (rightTab !== 'game') setTab('game');
+  }
 }
 
 /* the connection bar of the online site (made by its own script, at any time): in a game it joins the top row,

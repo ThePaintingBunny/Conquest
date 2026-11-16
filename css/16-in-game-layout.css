@@ -726,3 +726,33 @@ body.tb-top #ai-report:not([hidden]) {
     padding: 5px 10px;
   }
 }
+
+/* ---- the Game tab: decisions before the round ---- */
+.gp-choice[hidden] {
+  display: none;
+}
+.gp-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.gp-choice .gp-cardface .gp-sub {
+  line-height: 1.45;
+}
+.gp-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.gp-choices > .gp-row,
+.gp-choices > p,
+.gp-choices > div,
+.gp-choices > label {
+  flex: 1 1 100%;
+}
+.gp-choices > select {
+  flex: 1 1 100%;
+}

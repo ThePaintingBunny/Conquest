@@ -3,7 +3,7 @@
  *
  * Strategic Stack and Direct Orders, and the Eidolon's Combat Directives.
  *
- * In this file: canStrat(), directOrders(), stratU(), stratWhy(), ordersU(), CDIR, cdirKeys(),
+ * In this file: canStrat(), directOrders(), stratU(), stratWhy(), ordersU(), CDIR, CDIR_D, cdirKeys(),
  *   cdirOf(), cdirSet()
  */
 
@@ -45,6 +45,17 @@ const CDIR = {
   /* Alternate Programming (Eidolon Modification) replaces the first two */
   'Heavy Exoskeleton': ['Heavy Exoskeleton (Brute: Brutal Impact +1)', ['Brutal Impact (+1)'], true],
   Relentless: ['Relentless (Brute: Oblivious)', ['Oblivious'], true]
+};
+
+/* what each Directive does, shown when it is chosen */
+const CDIR_D = {
+  'Greetings to a Fellow General':
+    'The Eidolon gains +5 Attacks but suffers −1 Evasion until the end of the round.',
+  'Secure the Breach': 'The Eidolon’s regiment gains Parry until the end of the round.',
+  'Precision Armament': 'The Eidolon’s Clash attacks gain Cleave (+3) until the end of the round.',
+  'Heavy Exoskeleton':
+    'Alternate Programming: a Brute regiment gains Brutal Impact (+1) until the end of the round.',
+  Relentless: 'Alternate Programming: a Brute regiment gains Oblivious until the end of the round.'
 };
 
 /* the Directives this Eidolon may choose */
