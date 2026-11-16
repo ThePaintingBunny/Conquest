@@ -272,7 +272,9 @@ async function runAITurn() {
             ? /^duel$/i.test(String(d.ability || '')) || d.char === 'duel'
               ? 'Challenges to a Duel'
               : 'Uses ' + d.ability
-            : 'Takes no action',
+            : d.char === 'rally'
+              ? 'Rallies its Broken regiment'
+              : 'Takes no action',
         1400
       );
       const cl = [];
@@ -293,6 +295,9 @@ async function runAITurn() {
           line = `the ${u.charName} ${r}` + r2;
           await charCommit(id, { spell: d.spell, note: r + r2 + '.' });
         } else line = await aiCast(id, d.spell, d.target);
+      } else if (d.char === 'rally') {
+        await charCommit(id, { note: 'Rallied its regiment: no longer Broken.', rally: true });
+        line = `the ${u.charName} rallies its regiment: it is no longer Broken`;
       } else if (d.char === 'duel' || (d.char === 'ability' && /^duel$/i.test(String(d.ability || '')))) {
         line = `the ${u.charName}: ` + (await aiDuel(id, d.target));
       } else if (d.char === 'ability') {

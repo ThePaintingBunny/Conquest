@@ -122,6 +122,8 @@ function botPlanCharacter(u) {
       if (o >= 1.2) opts.push({ v: (o - 1) * 120, r: { char: 'ability', ability: 'Duel', target: t.id } });
     });
   } catch (e) {}
+  /* a Broken regiment: Rallying it lets it Charge and be Inspired again */
+  if ((u.effects || []).includes('Broken')) opts.push({ v: botVal(u) * 0.25, r: { char: 'rally' } });
   opts.forEach(o => (o.v += botNoise(15)));
   opts.sort((a, b) => b.v - a.v);
   if (opts[0] && opts[0].v > 2) Object.assign(out, opts[0].r);

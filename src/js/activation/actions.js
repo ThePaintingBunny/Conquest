@@ -272,7 +272,8 @@ function finishAction() {
     entry.face = c.face;
     entry.chargeDistance = c.cd;
     if (c.rerolled) entry.rerolled = true;
-    if (!act.extraFx.includes('Inspired (charged)')) act.extraFx.push('Inspired (charged)');
+    if (!act.extraFx.includes('Inspired (charged)') && !rh(RU(byId(act.id)), 'Automaton'))
+      act.extraFx.push('Inspired (charged)');
   }
   if (c.roll != null) entry.roll = c.roll;
   if (c.type === 'withdraw') {

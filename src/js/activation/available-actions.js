@@ -142,6 +142,8 @@ function availableActions(u) {
 }
 
 function inspWhy(u) {
+  /* Automatons (Clockwork Hoplites and the like) can never be Inspired */
+  if (rh(RU(u), 'Automaton') && !rh(RU(u), 'Dauntless')) return 'An Automaton cannot be Inspired';
   if (act && act.id === u.id && act.actions.some(a => a.type === 'inspire')) return '';
   return fxHas(u, /^Inspired/) || rh(u.rules || [], 'Inspired') ? 'Already Inspired' : '';
 }

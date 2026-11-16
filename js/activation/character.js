@@ -29,6 +29,9 @@ async function charCommit(id, extra) {
               : 0
             : state.round || 1
       });
+    /* the character's Rally: its regiment is no longer Broken, straight away */
+    if (extra.rally && x.id === id)
+      y = Object.assign({}, y, { effects: (y.effects || []).filter(e => e !== 'Broken') });
     if (extra.target && x.id === extra.target && extra.effect)
       y = Object.assign({}, y, { effects: (y.effects || []).concat([extra.effect]) });
     return y;
@@ -167,6 +170,19 @@ function renderCharPanel() {
     charAct = null;
     render();
   };
+  /* a Broken regiment: the character may use its action to Rally it */
+  if ((base(charAct.id).effects || []).includes('Broken') && u.onTable) {
+    const ra = document.createElement('button');
+    ra.type = 'button';
+    ra.className = 'btn';
+    ra.textContent = 'Rally the regiment';
+    ra.title = 'Uses the character’s action: the regiment is no longer Broken, straight away.';
+    ra.onclick = () => {
+      toast((u.short || u.name) + ' Rallies: it is no longer Broken.');
+      charCommit(charAct.id, { note: 'Rallied its regiment: no longer Broken.', rally: true });
+    };
+    row0.append(ra);
+  }
   row0.append(pass, cl);
   const sps = spellsOf(u, true),
     lvl = magicLevel(u, true);
