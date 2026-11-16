@@ -32,7 +32,8 @@ function supNeeded() {
   return ['cs', 'nord'].some(s => {
     const S = supOf(s),
       SA = supOf(s, 'ally');
-    return wlMissing(s) || (SA && SA.can) || (S && (S.can || supNeedPrey(s) || supChoiceNeeded(s)));
+    /* choices such as the Eidolon's Combat Directive come up even without a Supremacy to use */
+    return wlMissing(s) || (SA && SA.can) || (S && (S.can || supNeedPrey(s))) || !!supChoiceNeeded(s);
   });
 }
 

@@ -3,7 +3,8 @@
  *
  * Viewing and reordering the Command Stack.
  *
- * In this file: daimyoPick(), stackDnD(), stackView(), gpCardKey, huCardChoices(), renderGpCard()
+ * In this file: daimyoPick(), stackDnD(), stackView(), gpCardKey, regBrief(), huCardChoices(),
+ *   renderGpCard()
  */
 
 /* reorder the Command Stack: drag a card onto another card to swap them, or between two cards to insert it there */
@@ -111,6 +112,19 @@ function stackView() {
    Shown at the top of the Game tab, which opens by itself each time a new card is waiting. */
 let gpCardKey = '';
 
+/* a short line that tells two regiments of the same kind apart: stands left now, its character and its upgrades */
+function regBrief(u) {
+  if (!u) return '';
+  const opts = (typeof rosterOpts === 'function' ? rosterOpts(u) : []).map(o => o[0]);
+  return [
+    u.type === 'monster' ? '' : live(u) + '/' + (u.stands || 1) + ' stands',
+    u.charName ? 'with the ' + u.charName + (u.warlord ? ' (Warlord)' : '') : '',
+    opts.join(', ')
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
 function huCardChoices() {
   if (!state || (state.step || 'activations') !== 'activations' || state.turn !== HU) return null;
   if (act || aiBusy || SBX()) return null;
@@ -120,8 +134,11 @@ function huCardChoices() {
   /* the card was put in the Strategic Stack this turn: the turn is spent */
   if (myTurnStrat && PS().strategicUsedRound === state.round) return null;
   /* once this turn's card is played, only the Strategic Stack card is still on offer */
-  const played = myTurnCards != null && humanCardsLeft() < myTurnCards;
-  const top = played ? null : humanTop(),
+  const played = myTurnCards != null && humanCardsLeft() < myTurnCards,
+    t0 = humanTop(),
+    /* after the character's activation its regiment may follow as an Entourage, in the same turn */
+    entNext = played && t0 && t0[0] === 'u' && (state.units || []).some(u => sameCard(t0, u) && entOk(u));
+  const top = played && !entNext ? null : t0,
     held = huHeldOk() ? PS().huHeld : null;
   if (!top && !held) return null;
   const L = [];
@@ -133,7 +150,7 @@ function huCardChoices() {
         okC = yc ? ySame(top, u, true) : top[0] === 'c' && sameCard(top, u);
       const nm = u.short || u.name;
       if (okU) {
-        if (PS().huLastCard === 'c:' + u.id && !noEntourage(u))
+        if (entOk(u))
           L.push({
             u,
             name: nm,
@@ -141,18 +158,14 @@ function huCardChoices() {
             note: 'Inspired, straight after its character',
             go: () => startActivation(u.id, 'entourage', top)
           });
-        L.push({
-          u,
-          name: nm,
-          tag: u.onTable ? '' : 'Arriving',
-          note:
-            yc && yMatch(u, cardIdeal(top))
-              ? 'The Ideal matches'
-              : u.charName && !u.onTable
-                ? 'with the ' + u.charName
-                : '',
-          go: () => startActivation(u.id, 'command', top)
-        });
+        if (!played)
+          L.push({
+            u,
+            name: nm,
+            tag: u.onTable ? '' : 'Arriving',
+            note: yc && yMatch(u, cardIdeal(top)) ? 'The Ideal matches' : '',
+            go: () => startActivation(u.id, 'command', top)
+          });
       }
       if (okC)
         L.push({
@@ -220,6 +233,7 @@ function renderGpCard() {
       bEl('span', { className: 'gp-nm', textContent: o.name }),
       o.tag ? bEl('span', { className: 'gp-tag', textContent: o.tag }) : '',
       o.note ? bEl('span', { className: 'gp-note', textContent: o.note }) : '',
+      regBrief(o.u) ? bEl('span', { className: 'gp-info', textContent: regBrief(o.u) }) : '',
       bEl('span', { className: 'gp-go', textContent: 'Activate ›' })
     );
     b.onmouseenter = () => hiUnit(o.u.id, true);
@@ -239,6 +253,7 @@ function renderGpCard() {
     C.top &&
     C.top[0] === 'u' &&
     !SBX() &&
+    !(myTurnCards != null && humanCardsLeft() < myTurnCards) &&
     canStrat(ME) &&
     !PS().strategicHeld &&
     PS().strategicUsedRound !== state.round &&
@@ -261,11 +276,14 @@ function renderGpCard() {
     C.L.length
       ? bEl('p', {
           className: 'gp-ask',
-          textContent: !C.top
-            ? 'You may play it now, or keep it and press End turn:'
-            : C.L.length === 1
-              ? 'It activates:'
-              : 'Choose who acts with it:'
+          textContent:
+            C.L.length && C.L.every(o => o.tag === 'Entourage')
+              ? 'Its regiment may follow straight away as an Entourage, or press End turn:'
+              : !C.top
+                ? 'You may play it now, or keep it and press End turn:'
+                : C.L.length === 1
+                  ? 'It activates:'
+                  : 'Choose who acts with it:'
         })
       : bEl('p', {
           className: 'gp-ask',

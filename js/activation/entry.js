@@ -50,7 +50,7 @@ function setEdge(e, keep) {
       return;
     }
     const y =
-      keep && act.edge === e
+      keep && (act.edge || 'own') === e
         ? Math.max(lo, Math.min(hi, act.pose.y))
         : Math.max(lo, Math.min(hi, (lo + hi) / 2));
     Object.assign(
@@ -58,7 +58,8 @@ function setEdge(e, keep) {
       e === 'west' ? { x: -G.d / 2, y, facing: 90 } : { x: 72 + G.d / 2, y, facing: 270 }
     );
   } else {
-    const x = keep && act.edge === 'own' ? Math.max(G.w / 2, Math.min(72 - G.w / 2, act.pose.x)) : 36;
+    const x =
+      keep && (act.edge || 'own') === 'own' ? Math.max(G.w / 2, Math.min(72 - G.w / 2, act.pose.x)) : 36;
     Object.assign(act.pose, Object.assign({ x }, ownEntry(u.side, G.d)));
   }
   act.edge = e;

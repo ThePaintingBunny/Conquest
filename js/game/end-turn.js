@@ -71,6 +71,9 @@ async function endTurn() {
     }
     if (mine > 0) {
       toast(N(AI) + ' have no cards left this round, so keep activating until you are done.');
+      myTurnCards = humanCardsLeft();
+      myTurnStrat = false;
+      render();
       return;
     }
     await endRound();
@@ -90,6 +93,9 @@ async function endTurn() {
   }
   if (hu > 0) {
     toast(N(AI) + ' have no cards left this round, so keep activating until you are done.');
+    myTurnCards = humanCardsLeft();
+    myTurnStrat = false;
+    render();
     return;
   }
   await endRound();

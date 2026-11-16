@@ -20,6 +20,10 @@ function renderTurnbar() {
     if (myTurnCards == null) {
       myTurnCards = humanCardsLeft();
       myTurnStrat = false;
+    } else if (!act && !charAct && humanCardsLeft() > 0 && humanCardsLeft() < myTurnCards && oppOut()) {
+      /* the opponent is out of cards: the next card is ready at once, no End turn needed */
+      myTurnCards = humanCardsLeft();
+      myTurnStrat = false;
     }
   } else myTurnCards = null;
   const a = document.activeElement,

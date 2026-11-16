@@ -29,6 +29,7 @@ function stratWhy() {
   if (SBX() || !huStackOn()) return '';
   if (!validCards(PS().huStack || []).length) return '';
   if (myTurnCards != null && humanCardsLeft() < myTurnCards) return '';
+  if (oppOut()) return '';
   return 'Activate your drawn card first: the Strategic Stack card can be played after it, or once your Command Stack is empty.';
 }
 

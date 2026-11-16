@@ -445,7 +445,7 @@ function renderCard() {
           : (top === 'u:' + u.id && sameCard(top, u)) || (top && top[0] === 'u' && sameCard(top, u)),
         okC = yc ? ySame(top, u, true) : top === 'c:' + u.id || (top && top[0] === 'c' && sameCard(top, u));
       if (okU) {
-        const ent = PS().huLastCard === 'c:' + u.id && !noEntourage(u),
+        const ent = entOk(u),
           tail = yc
             ? ' with the ' +
               cardIdeal(top) +
@@ -469,7 +469,10 @@ function renderCard() {
         b.type = 'button';
         b.className = ent ? 'btn ghost' : 'btn';
         b.textContent = 'Activate' + tail;
-        b.disabled = !!why;
+        /* one card a turn: after it, only an Entourage (or the Strategic Stack card) may follow */
+        const spent = myTurnCards != null && humanCardsLeft() < myTurnCards && !ovrMine();
+        b.disabled = !!why || spent;
+        if (spent) b.title = 'You already played a card this turn. Press End turn.';
         b.onclick = () => startActivation(u.id, 'command', top);
         row.appendChild(b);
       }

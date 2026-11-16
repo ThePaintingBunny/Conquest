@@ -4,9 +4,9 @@
  * Command Cards and the Command Stack, including Yoroni Ideal Cards.
  *
  * In this file: regCardLive(), huStackOn(), humanTop(), huHeldOk(), cardName(), sideCardsLeft(),
- *   humanCardsLeft(), defaultHumanStack(), huDraft, popHuCard(), cardOf(), IDEALS, yCard(),
- *   cardIdeal(), ySame(), sameCard(), cardAvail(), cardPick(), cardKey(), yCap(), validCards(),
- *   cardOk(), aiCardsLeft(), cardsTotal0(), cardsTotal(), defaultStack()
+ *   humanCardsLeft(), defaultHumanStack(), oppOut(), entOk(), huDraft, popHuCard(), cardOf(), IDEALS,
+ *   yCard(), cardIdeal(), ySame(), sameCard(), cardAvail(), cardPick(), cardKey(), yCap(),
+ *   validCards(), cardOk(), aiCardsLeft(), cardsTotal0(), cardsTotal(), defaultStack()
  */
 
 function regCardLive(u) {
@@ -62,6 +62,24 @@ function defaultHumanStack() {
       out.push('u:' + u.id);
     });
   return out;
+}
+
+/* the opponent has no cards left this round: you keep activating, one card after the other */
+function oppOut() {
+  if (!state || SBX()) return false;
+  return PVP() ? sideCardsLeft(other(HU)) === 0 : aiCardsLeft() === 0;
+}
+
+/* Entourage: only in the same turn, straight after its character's activation, with the regiment's card next
+   (when the opponent is out of cards, every card is a turn of its own, so it is the next card) */
+function entOk(u) {
+  return (
+    !!u &&
+    PS().huLastCard === 'c:' + u.id &&
+    !noEntourage(u) &&
+    myTurnCards != null &&
+    (humanCardsLeft() === myTurnCards - 1 || oppOut())
+  );
 }
 
 let huDraft = null;

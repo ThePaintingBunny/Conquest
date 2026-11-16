@@ -27,7 +27,7 @@ function reinfLabel(u, pool) {
     (same.length > 1 ? ' ' + (same.indexOf(u) + 1) : '') +
     ' (' +
     u.cls +
-    (u.charName ? ', with the ' + u.charName + (u.warlord ? ' · Warlord' : '') : '') +
+    (regBrief(u) ? ' · ' + regBrief(u) : '') +
     ')'
   );
 }

@@ -315,8 +315,11 @@ function charAbilBox(u, box) {
     row.append(t);
     return row;
   };
-  const D = L.filter(a => a.kind === 'draw'),
+  /* Draw Events only trigger while the character is on the table */
+  const D = u.onTable ? L.filter(a => a.kind === 'draw') : [],
     A = L.filter(a => a.kind === 'action');
+  if (!u.onTable && L.some(a => a.kind === 'draw'))
+    box.appendChild(ptext('Not on the table yet: its Draw Events do not trigger.', 'hint'));
   if (D.length) {
     box.appendChild(ptext('Draw Events (resolve before acting):', 'hint'));
     D.forEach(a => box.appendChild(mk2(a)));

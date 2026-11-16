@@ -6,12 +6,9 @@
  * In this file: rfName(), reinfChoose(), reinfPanel()
  */
 
-/* a regiment's name, and the character who arrives with it */
+/* a regiment's name, with its stands, the character who arrives with it and its upgrades */
 function rfName(u) {
-  return (
-    (u.short || u.name) +
-    (u.charName ? ' (with the ' + u.charName + (u.warlord ? ', Warlord' : '') + ')' : '')
-  );
+  return (u.short || u.name) + (regBrief(u) ? ' (' + regBrief(u) + ')' : '');
 }
 
 /* pick which regiments of a weight class arrive after rolling for the whole class */

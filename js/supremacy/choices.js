@@ -185,7 +185,9 @@ function supChoiceNeeded(side) {
 
 function cdirNeeded(side) {
   return (state.units || []).find(
-    u => u.side === side && srAlive(u) && /Eidolon/.test(u.charName || '') && !cdirOf(u)
+    /* every Supremacy Phase, on the table or not yet arrived: the Directive lasts the round */
+    u =>
+      u.side === side && !u.destroyed && u.type !== 'marker' && /Eidolon/.test(u.charName || '') && !cdirOf(u)
   );
 }
 
