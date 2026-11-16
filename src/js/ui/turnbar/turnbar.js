@@ -277,6 +277,19 @@ function renderTurnbar0() {
       (state.vp?.nord || 0) +
       '.';
     add(mk(resetArm ? 'Click again to confirm' : 'Start a new game', newGame));
+    /* Leave: the finished game is cleared and you are back on the main menu */
+    const lv = mk(
+      'Leave',
+      async () => {
+        mmLeaveArm = false;
+        mmOverlay = false;
+        mmPage = null;
+        await newGameNow();
+      },
+      true
+    );
+    lv.title = 'End this game completely and return to the main menu';
+    add(lv);
     return;
   }
   const ng = mk(resetArm ? 'Click again to reset the game' : 'New game', newGame, true);
