@@ -210,67 +210,28 @@ function planCharge(u0, t, cd) {
       Math.abs(a.th) + Math.abs(a.dl) - (Math.abs(b.th) + Math.abs(b.dl)) ||
       a.s - b.s
   );
-  /* line the stands up: the best contact points are tried again slid along the face (up to one stand) so the charger's
-     stand edges meet the target's stand edges, but only where that keeps all the contact the charge already has; when
-     lining up is not possible the charge stays where it makes the most contact */
+  /* among Charge Moves that are equally good (same stands and the same stretch of the face in contact), prefer one
+     whose stands meet the target's stands edge to edge. Only the Wheel, the straight move and closing the door decide
+     where it ends: the charger is never slid along the face afterwards. */
   {
     const prj = (F, p) => (p[0] - F.e[0]) * F.along[0] + (p[1] - F.e[1]) * F.along[1],
       edges = (L, F) => [...new Set(L.flatMap(st => st.poly.map(p => +prj(F, p).toFixed(2))))],
-      tEdges = {},
-      seenP = new Set(),
-      extra = [];
-    for (const c of cands.slice(0, 120)) {
-      const k0 = c.face + ':' + Math.round(prj(c.F, [c.P3.x, c.P3.y]) * 10);
-      if (seenP.has(k0)) continue;
-      seenP.add(k0);
-      if (seenP.size > 30) break;
-      const TE = (tEdges[c.face] =
-          tEdges[c.face] ||
-          edges(standsOf(t), c.F).filter(v => v >= -c.F.half - 0.05 && v <= c.F.half + 0.05)),
-        U = Object.assign({}, u, c.P3),
-        fr = standsOf(U).filter(st => st.rank === 0),
-        CE = edges(fr, c.F),
-        sw = Math.max(
-          0.5,
-          ...fr.map(
-            st => Math.max(...st.poly.map(p => prj(c.F, p))) - Math.min(...st.poly.map(p => prj(c.F, p)))
-          )
-        ),
-        ds = new Set();
-      CE.forEach(ce => TE.forEach(te => Math.abs(te - ce) <= sw + 0.01 && ds.add(+(te - ce).toFixed(2))));
-      ds.delete(0);
-      ds.forEach(d => {
-        const P3 = Object.assign({}, c.P3, { x: c.P3.x + c.F.along[0] * d, y: c.P3.y + c.F.along[1] * d }),
-          sc = chgScore(u, t, P3, c.F);
-        /* a slide is only worth it when it keeps every bit of contact the charge already had, and never pushes into
-           another regiment */
-        const PS3 = PU(P3);
-        if (
-          sc.pairs >= c.sc.pairs &&
-          sc.len >= c.sc.len - 0.05 &&
-          !others.some(o => polyDist(PS3, corners(o)) <= 0.05)
-        )
-          extra.push(Object.assign({}, c, { P3, sc, slide: d }));
-      });
-    }
+      tEdges = {};
     const mis = c => {
-      const TE = tEdges[c.face];
-      if (!TE) return 0;
+      const TE = (tEdges[c.face] =
+        tEdges[c.face] || edges(standsOf(t), c.F).filter(v => v >= -c.F.half - 0.05 && v <= c.F.half + 0.05));
       const fr = standsOf(Object.assign({}, u, c.P3)).filter(st => st.rank === 0);
       return edges(fr, c.F)
         .filter(v => v >= -c.F.half - 0.05 && v <= c.F.half + 0.05)
         .reduce((a, v) => a + Math.min(...TE.map(te => Math.abs(te - v))), 0);
     };
-    cands.push(...extra);
-    cands.forEach(c => (c.mis = c.mis != null ? c.mis : mis(c)));
+    cands.forEach(c => (c.mis = mis(c)));
     cands.sort(
       (a, b) =>
         b.sc.pairs - a.sc.pairs ||
-        /* never give up contact to line up: the most of the face in contact first, lining up only breaks a tie */
         Math.round((b.sc.len - a.sc.len) * 20) ||
         (a.mis > 0.05) - (b.mis > 0.05) ||
         Math.abs(a.th) + Math.abs(a.dl) - (Math.abs(b.th) + Math.abs(b.dl)) ||
-        Math.abs(a.slide || 0) - Math.abs(b.slide || 0) ||
         a.s - b.s
     );
   }
@@ -402,7 +363,6 @@ function planCharge(u0, t, cd) {
         dl: c.dl,
         pairs: c.sc.pairs,
         push: c.push || [],
-        slide: c.slide || 0,
         off
       };
       if (!first) first = o;
