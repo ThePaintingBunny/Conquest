@@ -211,7 +211,8 @@ function planCharge(u0, t, cd) {
       a.s - b.s
   );
   /* line the stands up: the best contact points are tried again slid along the face (up to one stand) so the charger's
-     stand edges meet the target's stand edges, which brings the most stands into contact */
+     stand edges meet the target's stand edges, but only where that keeps all the contact the charge already has; when
+     lining up is not possible the charge stays where it makes the most contact */
   {
     const prj = (F, p) => (p[0] - F.e[0]) * F.along[0] + (p[1] - F.e[1]) * F.along[1],
       edges = (L, F) => [...new Set(L.flatMap(st => st.poly.map(p => +prj(F, p).toFixed(2))))],
@@ -241,7 +242,15 @@ function planCharge(u0, t, cd) {
       ds.forEach(d => {
         const P3 = Object.assign({}, c.P3, { x: c.P3.x + c.F.along[0] * d, y: c.P3.y + c.F.along[1] * d }),
           sc = chgScore(u, t, P3, c.F);
-        if (sc.pairs || sc.len >= 0.05) extra.push(Object.assign({}, c, { P3, sc, slide: d }));
+        /* a slide is only worth it when it keeps every bit of contact the charge already had, and never pushes into
+           another regiment */
+        const PS3 = PU(P3);
+        if (
+          sc.pairs >= c.sc.pairs &&
+          sc.len >= c.sc.len - 0.05 &&
+          !others.some(o => polyDist(PS3, corners(o)) <= 0.05)
+        )
+          extra.push(Object.assign({}, c, { P3, sc, slide: d }));
       });
     }
     const mis = c => {
@@ -257,8 +266,9 @@ function planCharge(u0, t, cd) {
     cands.sort(
       (a, b) =>
         b.sc.pairs - a.sc.pairs ||
+        /* never give up contact to line up: the most of the face in contact first, lining up only breaks a tie */
+        Math.round((b.sc.len - a.sc.len) * 20) ||
         (a.mis > 0.05) - (b.mis > 0.05) ||
-        b.sc.len - a.sc.len ||
         Math.abs(a.th) + Math.abs(a.dl) - (Math.abs(b.th) + Math.abs(b.dl)) ||
         Math.abs(a.slide || 0) - Math.abs(b.slide || 0) ||
         a.s - b.s
