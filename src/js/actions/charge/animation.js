@@ -131,6 +131,18 @@ async function playChargePath(pl, u, tid, setPose, setTgt) {
       setPose({ x: p.x, y: p.y, facing: p.facing });
     });
   }
+  /* lining the stands up: the last bit slides along the charged face */
+  if (pl.slide && Math.abs(pl.slide) > 0.01) {
+    const a = (pl.P3.facing * Math.PI) / 180,
+      along = [Math.cos(a), -Math.sin(a)],
+      F = pl.F || null,
+      v = F ? F.along : along,
+      x0 = pl.P3.x - v[0] * pl.slide,
+      y0 = pl.P3.y - v[1] * pl.slide;
+    await animFrames(Math.round(200 + 120 * Math.abs(pl.slide)), e =>
+      setPose({ x: x0 + v[0] * pl.slide * e, y: y0 + v[1] * pl.slide * e, facing: pl.P3.facing })
+    );
+  }
   setPose({ x: pl.P3.x, y: pl.P3.y, facing: pl.P3.facing });
 }
 
@@ -139,7 +151,7 @@ async function animateCharge(pl) {
     tid = act.cur && act.cur.target;
   /* only what the animation needs (the plan also refers to its alternatives, which refer back to it) */
   const lite = {};
-  ['start', 'th', 'dir', 'P1', 's', 'tgtPose', 'pv', 'dl', 'P2', 'P3'].forEach(k => {
+  ['start', 'th', 'dir', 'P1', 's', 'tgtPose', 'pv', 'dl', 'P2', 'P3', 'slide', 'F'].forEach(k => {
     if (pl[k] !== undefined) lite[k] = pl[k];
   });
   pushAnim('charge', { id: act.id, tid, pl: lite });
