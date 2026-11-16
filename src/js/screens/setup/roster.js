@@ -1,7 +1,7 @@
 /*
  * Setup: roster and scenario
  *
- * The roster table, the scenario choice and the army rules box.
+ * The army overview, the scenario choice and the army rules box.
  *
  * In this file: setupDraft, resetArm, rosterTable(), scenarioPanel(), AUTO_ARMY, armyRulesBox()
  */
@@ -9,48 +9,87 @@
 let setupDraft = { faction: '', pts: 2000, list: '', aiFaction: '', aiPlayer: 'bot', botLevel: 'normal' },
   resetArm = false;
 
+/* the army overview before the game: one card per regiment, grouped by warband, readable on a phone and a PC */
 function rosterTable(units, onBanner) {
-  const t = document.createElement('table');
-  t.className = 'rost';
-  const h = t.insertRow();
-  ['Regiment', 'Class', 'Stands', 'M V C A W R D E', 'Rules', 'Character']
-    .concat(onBanner ? ['Standard Bearer'] : [])
-    .forEach(x => {
-      const th = document.createElement('th');
-      th.textContent = x;
-      h.appendChild(th);
-    });
-  units.forEach(u => {
-    const r = t.insertRow();
-    const S0 = u.stats;
-    [
-      u.name + (u.points ? ' (' + u.points + ')' : ''),
-      u.cls,
-      String(u.stands),
-      ['M', 'V', 'C', 'A', 'W', 'R', 'D', 'E'].map(k => S0[k]).join(' '),
-      (u.rules || []).join(', ') + (u.auxName ? ' · with ' + u.auxName : ''),
-      u.charName
-        ? u.charName +
-          (u.warlord ? ' (Warlord)' : '') +
-          ((u.spells || []).length ? ' · ' + u.spells.map(s => s.name).join(', ') : '')
-        : ''
-    ].forEach(v => {
-      const c = r.insertCell();
-      c.textContent = v;
-    });
-    if (onBanner) {
-      const c = r.insertCell();
-      if (u.type !== 'monster') {
-        const x = document.createElement('input');
-        x.type = 'checkbox';
-        x.checked = !!u.bearer;
-        x.setAttribute('aria-label', 'Standard Bearer for ' + u.name);
-        x.onchange = () => onBanner(units.indexOf(u), x.checked);
-        c.appendChild(x);
-      }
+  const box = bEl('div', { className: 'rost' }),
+    K = ['M', 'V', 'C', 'A', 'W', 'R', 'D', 'E'],
+    val = v => (v == null || v === '' ? '–' : String(v));
+  const card = u => {
+    const S0 = u.stats || {},
+      c = bEl('article', { className: 'rc' + (u.charName ? ' rc-led' : '') });
+    c.append(
+      bEl('header', { className: 'rc-h' }, [
+        bEl('b', { className: 'rc-n', textContent: u.name }),
+        u.points ? bEl('span', { className: 'rc-pts', textContent: u.points + ' pts' }) : ''
+      ]),
+      bEl('div', {
+        className: 'rc-sub',
+        textContent:
+          [u.cls, u.type === 'monster' ? '' : u.stands + ' stand' + (u.stands === 1 ? '' : 's')]
+            .filter(Boolean)
+            .join(' · ') + (u.auxName ? ' · with ' + u.auxName : '')
+      })
+    );
+    const st = bEl('div', { className: 'rc-stats' });
+    K.forEach(k =>
+      st.append(
+        bEl('div', {}, [bEl('span', { textContent: k }), bEl('b', { textContent: val(S0[k]) })])
+      )
+    );
+    c.append(st);
+    if ((u.rules || []).length)
+      c.append(
+        bEl(
+          'div',
+          { className: 'rc-rules' },
+          u.rules.map(r => bEl('span', { className: 'chip', textContent: r }))
+        )
+      );
+    if (u.charName)
+      c.append(
+        bEl('div', { className: 'rc-char' }, [
+          bEl('span', { className: 'rc-cl', textContent: 'Led by' }),
+          bEl('b', { textContent: u.charName }),
+          u.warlord ? bEl('span', { className: 'rc-wl', textContent: 'Warlord' }) : '',
+          (u.spells || []).length
+            ? bEl('span', { className: 'rc-sp', textContent: u.spells.map(x => x.name).join(', ') })
+            : ''
+        ])
+      );
+    if (onBanner && u.type !== 'monster') {
+      const x = bEl('input', { type: 'checkbox' });
+      x.checked = !!u.bearer;
+      x.onchange = () => onBanner(units.indexOf(u), x.checked);
+      c.append(bEl('label', { className: 'rc-sb' }, [x, bEl('span', { textContent: 'Standard Bearer' })]));
     }
+    return c;
+  };
+  /* warbands in list order; a list without warbands is one group */
+  const groups = [];
+  units.forEach(u => {
+    const k = u.wb != null ? 'w' + u.wb : '-';
+    let g = groups.find(x => x.k === k);
+    if (!g) groups.push((g = { k, u: [], ch: u.wbChar || '' }));
+    g.u.push(u);
   });
-  return t;
+  groups.forEach(g => {
+    const sec = bEl('section', { className: 'rost-wb' });
+    if (g.k !== '-') {
+      const lead = g.u.find(u => u.charName) || g.u.find(u => u.type === 'monster' && u.name === g.ch),
+        wl = g.u.some(u => u.warlord),
+        pts = g.u.reduce((a, u) => a + (+u.points || 0), 0);
+      sec.append(
+        bEl('h4', { className: 'rost-wh' }, [
+          bEl('span', { textContent: (g.ch || (lead && lead.charName) || 'Warband') + '’s warband' }),
+          wl ? bEl('span', { className: 'rc-wl', textContent: 'Warlord' }) : '',
+          bEl('span', { className: 'rost-wp', textContent: pts + ' pts' })
+        ])
+      );
+    }
+    sec.append(bEl('div', { className: 'rost-grid' }, g.u.map(card)));
+    box.append(sec);
+  });
+  return box;
 }
 
 function scenarioPanel(add, mk) {

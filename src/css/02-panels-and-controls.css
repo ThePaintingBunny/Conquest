@@ -653,23 +653,146 @@ textarea {
   font-size: 18px;
 }
 .rost-wrap {
-  overflow-x: auto;
+  min-width: 0;
 }
+/* army overview: one card per regiment, grouped by warband */
 .rost {
-  border-collapse: collapse;
-  font-size: 13px;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-.rost th,
-.rost td {
-  text-align: left;
-  border-bottom: 1px solid var(--line);
-  padding: 3px 6px;
-  vertical-align: top;
+.rost-wh {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold-ink, var(--gold));
 }
-.rost th {
-  color: var(--muted);
+.rost-wp {
+  margin-left: auto;
   font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.rost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+  gap: 10px;
+}
+.rc {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.rc.rc-led {
+  border-color: var(--gold);
+}
+.rc-h {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.rc-n {
+  font-size: 15px;
+  line-height: 1.25;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rc-pts {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.rc-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: -4px;
+}
+.rc-stats {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.rc-stats div {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0 3px;
+}
+.rc-stats div + div {
+  border-left: 1px solid var(--line);
+}
+.rc-stats span {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.rc-stats b {
+  font-size: 15px;
+}
+.rc-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.rc-rules .chip {
+  font-size: 12px;
+  padding: 1px 7px;
+  background: var(--panel);
+}
+.rc-char {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+.rc-cl,
+.rc-sp {
+  font-size: 12px;
+  color: var(--muted);
+}
+.rc-sp {
+  flex-basis: 100%;
+}
+.rc-wl {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1c1408;
+  background: var(--gold);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.rc-sb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  margin-top: auto;
+}
+.rc-sb input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
 }
 .turnbar .ng {
   order: 9;
