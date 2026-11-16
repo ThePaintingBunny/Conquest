@@ -4,7 +4,7 @@
  * Generates a random terrain layout, checks that a piece may be placed, and keeps the player's filter
  * for which types may appear.
  *
- * In this file: terrWhy(), TSIZE, terrPref, saveTerrPref(), terrFilterBox(), genTerrain()
+ * In this file: terrWhy(), TEDGE, TSIZE, terrPref, saveTerrPref(), terrFilterBox(), genTerrain()
  */
 
 function terrWhy(p, list) {
@@ -37,6 +37,9 @@ function terrWhy(p, list) {
     return 'Terrain cannot cover an Objective Marker.';
   return '';
 }
+
+/* random terrain keeps this gap from every table edge (two stands wide), so regiments can always come on and pass */
+const TEDGE = 4;
 
 const TSIZE = { small: [2.5, 1.8], medium: [4, 3], large: [5.5, 4] };
 
@@ -146,13 +149,15 @@ function genTerrain() {
         RY = big ? 2.2 : ry,
         p = {
           type,
-          x: +(RX + Math.random() * (72 - 2 * RX)).toFixed(1),
-          y: +(RY + Math.random() * (48 - 2 * RY)).toFixed(1),
+          x: +(TEDGE + RX + Math.random() * (72 - 2 * (RX + TEDGE))).toFixed(1),
+          y: +(TEDGE + RY + Math.random() * (48 - 2 * (RY + TEDGE))).toFixed(1),
           rx: RX,
           ry: RY,
           seed: Math.floor(Math.random() * 1e9)
         };
-      if (!terrWhy(p, out)) out.push(p);
+      const P = terrPoly(p),
+        inside = P.every(([x, y]) => x >= TEDGE && x <= 72 - TEDGE && y >= TEDGE && y <= 48 - TEDGE);
+      if (inside && !terrWhy(p, out)) out.push(p);
     }
     if (out.length > best.length) best = out;
     if (best.length >= n) break;

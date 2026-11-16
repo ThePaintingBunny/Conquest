@@ -3,7 +3,8 @@
  *
  * render() redraws the board and every panel from the current state. It is called after every change.
  *
- * In this file: fitBoard(), BOARD_VIEW, boardView(), revealIn(), render(), render0()
+ * In this file: fitBoard(), BOARD_VIEW, boardRoom, boardMargin(), boardView(), revealIn(), render(),
+ *   render0()
  */
 
 /* Fit the board to the screen: as tall as the space below the top bars allows (on wide screens only).
@@ -39,29 +40,37 @@ function fitBoard() {
 
 addEventListener('resize', () => requestAnimationFrame(fitBoard));
 
-/* the table with a thin frame; while a regiment is coming on, the view grows past the table edge so the whole
-   regiment and its name show where it enters */
+/* the table with a thin frame, and room beyond the top and bottom edges for a regiment coming on, so the whole
+   regiment and its name show where it enters. The room is sized once per game for its deepest regiment, so the
+   board never rescales while a regiment enters. */
 const BOARD_VIEW = [160, 30, 524, 352];
+let boardRoom = { key: '', m: 0 };
+
+function boardMargin() {
+  const key = state && state.step !== 'setup' && state.step !== 'review' ? state.gid || 'g' : '';
+  if (!key) return 0;
+  if (boardRoom.key !== key) {
+    let d = 0;
+    (state.units || []).forEach(u => {
+      if (u.type === 'marker' || u.destroyed) return;
+      try {
+        d = Math.max(d, geom(u).d);
+      } catch (e) {}
+    });
+    if (!d) return 0;
+    /* the regiment's depth beyond the edge, plus its name; the frame already gives about 1.4 inches */
+    boardRoom = { key, m: Math.max(0, Math.min(9, d) + 2.8 - 1.4) * S };
+  }
+  return boardRoom.m;
+}
 
 function boardView() {
   const b = $('board');
   if (!b) return;
-  let x0 = BOARD_VIEW[0],
-    y0 = BOARD_VIEW[1],
-    x1 = x0 + BOARD_VIEW[2],
-    y1 = y0 + BOARD_VIEW[3];
-  const u = act && act.entering && byId(act.id);
-  if (u && u.onTable && isFinite(u.x) && isFinite(u.y)) {
-    corners(u).forEach(([x, y]) => {
-      const X = px(x),
-        Y = py(y);
-      x0 = Math.min(x0, X - 8);
-      x1 = Math.max(x1, X + 8);
-      y0 = Math.min(y0, Y - 20);
-      y1 = Math.max(y1, Y + 20);
-    });
-  }
-  const v = [x0, y0, x1 - x0, y1 - y0].map(n => +n.toFixed(1)).join(' ');
+  const m = boardMargin(),
+    v = [BOARD_VIEW[0], BOARD_VIEW[1] - m, BOARD_VIEW[2], BOARD_VIEW[3] + 2 * m]
+      .map(n => +n.toFixed(1))
+      .join(' ');
   if (b.getAttribute('viewBox') !== v) {
     b.setAttribute('viewBox', v);
     requestAnimationFrame(fitBoard);

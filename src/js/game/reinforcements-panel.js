@@ -3,8 +3,16 @@
  *
  * The panel where the player picks which regiments arrive.
  *
- * In this file: reinfChoose(), reinfPanel()
+ * In this file: rfName(), reinfChoose(), reinfPanel()
  */
+
+/* a regiment's name, and the character who arrives with it */
+function rfName(u) {
+  return (
+    (u.short || u.name) +
+    (u.charName ? ' (with the ' + u.charName + (u.warlord ? ', Warlord' : '') + ')' : '')
+  );
+}
 
 /* pick which regiments of a weight class arrive after rolling for the whole class */
 function reinfChoose(g, succ, side) {
@@ -60,12 +68,7 @@ function reinfChoose(g, succ, side) {
         upd();
       };
       const t = document.createElement('span');
-      t.textContent =
-        (u.short || u.name) +
-        ' · ' +
-        (u.cls || '') +
-        (u.charName ? ' · with ' + u.charName : '') +
-        (u.points ? ' · ' + u.points + ' pts' : '');
+      t.textContent = rfName(u) + ' · ' + (u.cls || '') + (u.points ? ' · ' + u.points + ' pts' : '');
       l.append(c, t);
       body.appendChild(l);
     });
@@ -142,9 +145,7 @@ function reinfPanel(side, G, auto, noL, mine) {
       if (succ >= n || !succ) {
         picks.set(g, succ ? g.units.slice() : []);
         g.units.forEach(u =>
-          ul.append(
-            bEl('li', { textContent: (u.short || u.name) + (succ ? ' arrives' : ' stays in reserve') })
-          )
+          ul.append(bEl('li', { textContent: rfName(u) + (succ ? ' arrives' : ' stays in reserve') }))
         );
         sec.append(ul);
       } else if (mine) {
@@ -171,12 +172,7 @@ function reinfPanel(side, G, auto, noL, mine) {
           l.append(
             c,
             bEl('span', {
-              textContent:
-                (u.short || u.name) +
-                ' · ' +
-                (u.cls || '') +
-                (u.charName ? ' · with ' + u.charName : '') +
-                (u.points ? ' · ' + u.points + ' pts' : '')
+              textContent: rfName(u) + ' · ' + (u.cls || '') + (u.points ? ' · ' + u.points + ' pts' : '')
             })
           );
           sec.append(l);
@@ -191,7 +187,7 @@ function reinfPanel(side, G, auto, noL, mine) {
         g.units.forEach(u =>
           ul.append(
             bEl('li', {
-              textContent: (u.short || u.name) + (pk.includes(u) ? ' arrives (chosen)' : ' stays in reserve')
+              textContent: rfName(u) + (pk.includes(u) ? ' arrives (chosen)' : ' stays in reserve')
             })
           )
         );
@@ -207,7 +203,7 @@ function reinfPanel(side, G, auto, noL, mine) {
         ul.append(
           bEl('li', {
             textContent:
-              (u.short || u.name) +
+              rfName(u) +
               ' · ' +
               (/Heavy/.test(u.cls || '')
                 ? 'Heavy regiments cannot roll before round 3'

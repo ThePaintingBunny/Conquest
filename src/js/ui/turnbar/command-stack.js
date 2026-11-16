@@ -113,7 +113,10 @@ let gpCardKey = '';
 
 function huCardChoices() {
   if (!state || (state.step || 'activations') !== 'activations' || state.turn !== HU) return null;
-  if (act || aiBusy || SBX() || !huStackOn()) return null;
+  if (act || aiBusy || SBX()) return null;
+  /* no Command Stack cards left: the Strategic Stack card is offered on its own */
+  if (!huStackOn() && !(huHeldOk() && PS().huHeld && (state.step || 'activations') === 'activations'))
+    return null;
   /* the card was put in the Strategic Stack this turn: the turn is spent */
   if (myTurnStrat && PS().strategicUsedRound === state.round) return null;
   /* once this turn's card is played, only the Strategic Stack card is still on offer */
@@ -142,7 +145,12 @@ function huCardChoices() {
           u,
           name: nm,
           tag: u.onTable ? '' : 'Arriving',
-          note: yc && yMatch(u, cardIdeal(top)) ? 'The Ideal matches' : '',
+          note:
+            yc && yMatch(u, cardIdeal(top))
+              ? 'The Ideal matches'
+              : u.charName && !u.onTable
+                ? 'with the ' + u.charName
+                : '',
           go: () => startActivation(u.id, 'command', top)
         });
       }

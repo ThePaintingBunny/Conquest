@@ -29,29 +29,32 @@ async function saveActivation() {
   const units = (state.units || []).map(x =>
     x.id !== act.id
       ? x
-      : Object.assign({}, x, u.order ? { order: u.order.slice() } : {}, {
-          x: u.x,
-          y: u.y,
-          facing: u.facing,
-          files: G.files,
-          onTable: true,
-          arriving: false,
-          activated: true,
-          /* Die Fighting needs to know whether it performed any Action this round */
-          actedR: act.actions.length ? state.round || 1 : x.actedR === (state.round || 1) ? x.actedR : 0,
-          arrivedRound: act.entering ? state.round : x.arrivedRound,
-          effects: (x.effects || [])
-            .filter(
-              f =>
-                !(
-                  f === 'Broken' &&
-                  act.actions.some(a => (a.type === 'rally' || a.type === 'crally') && !a.failed)
-                )
-            )
-            .concat(
-              act.extraFx.filter(f => !(x.effects || []).includes(f) && !/charged|Inspire action/.test(f))
-            )
-        })
+      : act.holdBack
+        ? /* used the card but stayed off the table: still arriving, it can come on with a later card */
+          Object.assign({}, x, { activated: true, arriving: true, onTable: false })
+        : Object.assign({}, x, u.order ? { order: u.order.slice() } : {}, {
+            x: u.x,
+            y: u.y,
+            facing: u.facing,
+            files: G.files,
+            onTable: true,
+            arriving: false,
+            activated: true,
+            /* Die Fighting needs to know whether it performed any Action this round */
+            actedR: act.actions.length ? state.round || 1 : x.actedR === (state.round || 1) ? x.actedR : 0,
+            arrivedRound: act.entering ? state.round : x.arrivedRound,
+            effects: (x.effects || [])
+              .filter(
+                f =>
+                  !(
+                    f === 'Broken' &&
+                    act.actions.some(a => (a.type === 'rally' || a.type === 'crally') && !a.failed)
+                  )
+              )
+              .concat(
+                act.extraFx.filter(f => !(x.effects || []).includes(f) && !/charged|Inspire action/.test(f))
+              )
+          })
   );
   (act.postFx || []).forEach(([id, src]) => {
     const i = units.findIndex(x => x.id === id);
@@ -104,7 +107,7 @@ async function saveActivation() {
           ? `Charge vs ${(base(a.target) || {}).short || a.target} at ${a.dist.toFixed(1)}″, rolled ${a.roll}${a.rerolled ? ' (re-rolled)' : ''}: ${a.result === 'failed' ? 'failed, moved ' + (a.moved || 0).toFixed(1) + '″' : 'contact on the ' + a.face}`
           : ACT[a.type].n + (a.dist != null ? ' ' + a.dist.toFixed(1) + '″' : '')
       )
-      .join(', ') || 'no actions';
+      .join(', ') || (act.holdBack ? 'card used, stays off the table for now' : 'no actions');
   const note = side === ME ? $('note').value.trim() : '';
   const pp =
     side === ME

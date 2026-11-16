@@ -702,7 +702,22 @@ function renderCard() {
     b.className = 'btn';
     b.textContent = 'Confirm entry point';
     b.onclick = confirmEntry;
-    startBox.append(p, fr, b);
+    /* use the card without coming on: the regiment stays off the table, still arriving, and comes on later */
+    const hb = document.createElement('button');
+    hb.type = 'button';
+    hb.className = 'btn ghost';
+    hb.textContent = 'Stay off the table (use the card, no actions)';
+    hb.title =
+      'The card is used and the regiment counts as activated, but it does not come on yet. It can arrive with a later card.';
+    hb.onclick = () => {
+      if (!act || !act.entering || act.placed) return;
+      act.holdBack = true;
+      saveActivation();
+    };
+    const br = document.createElement('div');
+    br.className = 'row';
+    br.append(b, hb);
+    startBox.append(p, fr, br);
     $('c-cur').hidden = true;
   }
   const ICO = {

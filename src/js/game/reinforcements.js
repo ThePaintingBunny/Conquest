@@ -22,7 +22,14 @@ function reserves(side) {
 /* a regiment's name in a reserve list, numbered when several share it */
 function reinfLabel(u, pool) {
   const same = pool.filter(x => x.name === u.name);
-  return u.name + (same.length > 1 ? ' ' + (same.indexOf(u) + 1) : '') + ' (' + u.cls + ')';
+  return (
+    u.name +
+    (same.length > 1 ? ' ' + (same.indexOf(u) + 1) : '') +
+    ' (' +
+    u.cls +
+    (u.charName ? ', with the ' + u.charName + (u.warlord ? ' · Warlord' : '') : '') +
+    ')'
+  );
 }
 
 function ravenOk(side) {
@@ -110,7 +117,7 @@ async function doReinforcements(humanAuto, humanRaven, humanHunt) {
             u.type !== 'monster'))
       ) {
         u.arriving = true;
-        res.push(u.name + ' arrives (Flank: kept out of the roll)');
+        res.push(rfName(u) + ' arrives (Flank: kept out of the roll)');
         continue;
       }
       if (u.arriving) continue;
@@ -122,7 +129,7 @@ async function doReinforcements(humanAuto, humanRaven, humanHunt) {
       }
       if (u.id === autoId && rule !== 'no') {
         u.arriving = true;
-        res.push(u.name + ' arrives (chosen)');
+        res.push(rfName(u) + ' arrives (chosen)');
         {
           const t2 = supTactical(side, pool, autoId);
           if (t2) {
@@ -164,7 +171,7 @@ async function doReinforcements(humanAuto, humanRaven, humanHunt) {
       }
       if (rule === 'auto') {
         u.arriving = true;
-        res.push(u.name + ' arrives automatically');
+        res.push(rfName(u) + ' arrives automatically');
         continue;
       }
       if (rule === 'no') {
