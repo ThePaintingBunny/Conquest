@@ -9,8 +9,8 @@
  * Score = points gained now + zones won or lost + progress toward zones + threat on the enemy next time
  *         − points the enemy is expected to take from it before it acts again.
  *
- * In this file: botZoneAt(), botProgress(), botEnd(), botMelee(), botEngagedFuture(), botChargeLine(),
- *   botCharges(), botPlan(), botEnterX(), botNextStep(), botLast
+ * In this file: botZoneAt(), botProgress(), botCrowd(), botEnd(), botMelee(), botEngagedFuture(),
+ *   botChargeLine(), botCharges(), botPlan(), botEnterX(), botNextStep(), botLast
  */
 
 /* the zone picture with u in this pose */
@@ -37,13 +37,24 @@ function botProgress(ctx, u, from, to) {
     ctx.zoneTargets = zoneControl().filter(z => z.friendly !== u.side && z.holder !== u.side);
   const zc = ctx.zoneTargets;
   if (!zc.length) return 0;
-  const d = p => Math.min(...zc.map(z => Math.max(0, Math.hypot(z.x - p.x, z.y - p.y) - z.r)));
-  return BOT.progress * w * (d(from) - d(to));
+  /* spread out: a zone that friends already sit on or head for is worth less to one more regiment */
+  const claimed = z =>
+    ctx.mine.filter(f => f.id !== u.id && f.onTable && Math.hypot(z.x - f.x, z.y - f.y) <= z.r + 5).length;
+  const dz = (z, p) => Math.max(0, Math.hypot(z.x - p.x, z.y - p.y) - z.r);
+  return BOT.progress * w * Math.max(...zc.map(z => (dz(z, from) - dz(z, to)) / (1 + claimed(z))));
 }
 
 /* where a line leaves the regiment, scored */
+/* idle friendly regiments right next to where it ends: a traffic jam blocks charges and marches */
+function botCrowd(ctx, u, pose) {
+  const A = corners(Object.assign({}, u, pose));
+  return ctx.mine.filter(
+    f => f.id !== u.id && f.onTable && !engaged(f).length && polyDist(A, corners(f)) < 1.5
+  ).length;
+}
+
 function botEnd(ctx, u, from, pose, engagedEnd, skip) {
-  const ex = botExposure(ctx, u, pose, skip).risk,
+  const ex = botExposure(ctx, u, pose, skip).risk + (engagedEnd ? 0 : botCrowd(ctx, u, pose) * BOT.crowd),
     zd = botZoneAt(u, pose, ctx) - ctx.zone0,
     pot = engagedEnd ? 0 : botPotential(ctx, u, pose) * BOT.potential,
     pr = engagedEnd ? 0 : botProgress(ctx, u, from, pose);
@@ -84,14 +95,17 @@ function botChargeLine(ctx, u, from, c, withClash, failS) {
   if (withClash) {
     const n = botChargeNet(u, T, c.face);
     gain = n.gain;
-    loss = n.loss;
+    /* their answer is counted like any threat they pose: striking first is worth something */
+    loss = n.loss * BOT.returnW;
   } else {
     /* Impacts now; the target strikes back before our Clash */
     gain = botWoundPts(T, imp.tot);
     loss = botWoundPts(u, botAttack(T, u, 'clash', { face: 'front' }).tot) * BOT.returnW;
   }
   if (isMarker(T)) gain = botVal(T) * Math.min(1, imp.tot / 3 + (withClash ? 0.5 : 0));
-  const mel = isMarker(T) ? 0 : botMelee(u, T, c.face);
+  /* the fight goes on after this activation; but when the target could charge us anyway, that fight comes either
+     way, so it only counts for the part we choose ourselves */
+  const mel = isMarker(T) ? 0 : botMelee(u, T, c.face) * (1 - Math.min(1, botReach(T, u).p || 0));
   const e = botEnd(ctx, u, from, c.end, true, new Set([T.id]));
   const v = c.p * (gain - loss + mel + e.s) + (1 - c.p) * failS;
   return { v, gain, loss, mel, p: c.p, ex: e.ex, zd: e.zd, fail: failS };
@@ -204,14 +218,18 @@ function botPlan(id, ban) {
       const amt = fwdLegal(u, back, M, false),
         end = botFwd(back, amt);
       if (amt > 0.5) {
-        let cost = 0;
-        eng.forEach(E => {
-          cost +=
-            botWoundPts(
-              u,
-              botAttack(E, u, 'clash', { Apose: { x: E.x, y: E.y, facing: E.facing }, Tpose: cur }).tot
-            ) * 0.5;
-        });
+        /* the Withdraw test: a clean one costs D6 wounds, a failed one D6 for each stand in contact, then Morale */
+        const Rs = [u.stats && u.stats.R, u.charName && chStatsX(u).R, u.auxStats && u.auxStats.R]
+            .map(Number)
+            .filter(n => n > 0),
+          R = Rs.length ? Math.max(...Rs) : 0,
+          pc = Math.max(0, Math.min(1, R / 6)),
+          foes = eng.map(e => corners(e)),
+          nC = Math.max(1, standsOf(u).filter(s => foes.some(q => polyDist(s.poly, q) <= 0.35)).length),
+          mor = Math.max(1, Math.min(5, R)) / 6,
+          w = pc * 3.5 + (1 - pc) * 3.5 * nC * (1 + (1 - mor));
+        let cost = botWoundPts(u, w);
+        if (w >= botLeftW(u)) cost += botVal(u) * 0.5;
         const e2 = botEnd(ctx, u, cur, end, false);
         push([{ do: 'withdraw' }], e2.s - cost, 'withdraw');
       }

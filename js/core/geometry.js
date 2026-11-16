@@ -29,6 +29,10 @@ function inside(p, poly) {
 
 function polyDist(A, B) {
   if (A.some(p => inside(p, B)) || B.some(p => inside(p, A))) return 0;
+  /* two outlines can also cross like a plus sign with no corner inside the other */
+  for (let i = 0; i < A.length; i++)
+    for (let j = 0; j < B.length; j++)
+      if (segSegX(A[i], A[(i + 1) % A.length], B[j], B[(j + 1) % B.length])) return 0;
   let m = 1e9;
   for (const P of [
     [A, B],

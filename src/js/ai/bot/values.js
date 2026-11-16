@@ -17,6 +17,7 @@ const BOT = {
   futureRisk: 0.45 /* next round's threats, against this round's */,
   potential: 0.45 /* our own threats for next time */,
   progress: 1.2 /* points per inch closer to a zone worth taking */,
+  crowd: 3 /* points lost for each idle friendly regiment ending right next to it (traffic jams) */,
   lost: 0.3 /* chance per enemy activation that an opportunity is gone before we use it */,
   noise: { easy: 0.45, normal: 0.12, hard: 0 }
 };
