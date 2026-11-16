@@ -114,6 +114,8 @@ let gpCardKey = '';
 function huCardChoices() {
   if (!state || (state.step || 'activations') !== 'activations' || state.turn !== HU) return null;
   if (act || aiBusy || SBX() || !huStackOn()) return null;
+  /* the card was put in the Strategic Stack this turn: the turn is spent */
+  if (myTurnStrat && PS().strategicUsedRound === state.round) return null;
   const top = humanTop(),
     held = huHeldOk() ? PS().huHeld : null;
   if (!top && !held) return null;
@@ -211,6 +213,30 @@ function renderGpCard() {
     };
     ul.append(bEl('li', {}, [b]));
   });
+  /* City States (and anyone with a Strategic Stack): the top regiment card can be hidden face down instead, once a
+     round while the Strategic Stack is empty */
+  let strat = null;
+  if (
+    C.top &&
+    C.top[0] === 'u' &&
+    !SBX() &&
+    canStrat(ME) &&
+    !PS().strategicHeld &&
+    PS().strategicUsedRound !== state.round &&
+    !act &&
+    !(PVP() && (state.turn !== HU || !seatSide()))
+  ) {
+    strat = bEl('button', { type: 'button', className: 'gp-row gp-strat' });
+    strat.append(
+      bEl('span', { className: 'gp-nm', textContent: 'Place it in the Strategic Stack' }),
+      bEl('span', {
+        className: 'gp-note',
+        textContent: 'Face down, once this round; then press End turn'
+      }),
+      bEl('span', { className: 'gp-go', textContent: 'Hold ›' })
+    );
+    strat.onclick = () => $('strat-btn').onclick();
+  }
   box.append(
     card,
     C.L.length
@@ -218,7 +244,13 @@ function renderGpCard() {
           className: 'gp-ask',
           textContent: C.L.length === 1 ? 'It activates:' : 'Choose who acts with it:'
         })
-      : bEl('p', { className: 'gp-ask', textContent: 'Nothing can use this card now. Press End turn.' }),
+      : bEl('p', {
+          className: 'gp-ask',
+          textContent: strat
+            ? 'Nothing can activate with this card now.'
+            : 'Nothing can use this card now. Press End turn.'
+        }),
     ul
   );
+  if (strat) box.append(bEl('p', { className: 'gp-ask', textContent: 'Or keep it for later:' }), strat);
 }

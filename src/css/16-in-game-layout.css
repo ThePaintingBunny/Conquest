@@ -417,6 +417,10 @@ body.tb-top .top > div:last-child .btn {
   background: var(--gold-soft, #372e1e);
   outline: none;
 }
+.gp-strat {
+  border-style: dashed;
+  background: transparent;
+}
 .gp-nm {
   grid-area: nm;
   font-weight: 700;
