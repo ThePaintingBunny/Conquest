@@ -23,6 +23,21 @@ async function aiRegiment(id, source, report, card) {
         : 'Arriving this round',
     1400
   );
+  /* a Draw Event can open a fight before it acts (Aura of Death hits it as it starts its activation): resolve that
+     first, then plan from what is left */
+  await sleep(120);
+  for (let g = 0; g < 60 && (cb || cbQueue.length); g++) {
+    if (!cb) {
+      await sleep(200);
+      continue;
+    }
+    await autoResolve();
+  }
+  if (!act || !byId(id) || byId(id).destroyed) {
+    if (act) await saveActivation();
+    report.push({ title: u0.name, lines: ['destroyed by Aura of Death before it could act'], narration: '' });
+    return;
+  }
   const P = await planActivation(u, source);
   aiStatus(`${N(AI)}: ${u.short || u.name} is acting.`);
   const lines = [];
@@ -203,6 +218,13 @@ async function botRun(lines) {
       console.error(e);
     }
     if (!st) break;
+    if (k === 0 && st.do !== 'enter') {
+      const job = botObjOf(byId(act.id));
+      if (job)
+        lines.push(
+          'job this round: ' + (job.kind === 'zone' ? 'zone ' : job.kind === 'foe' ? 'fight ' : '') + job.name
+        );
+    }
     if (k === 0 && botLast && botLast.why && st.do !== 'enter') lines.push('plan: ' + botLast.why);
     const before = act.actions.length + (act.placed ? 1 : 0);
     const u = byId(act.id),

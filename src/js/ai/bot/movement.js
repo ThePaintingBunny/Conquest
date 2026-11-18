@@ -54,7 +54,9 @@ function botDests(ctx, u) {
   const job = botObjOf(u);
   if (job) {
     const T = job.kind === 'foe' ? byId(job.id) : null;
-    if (T) add(T.x, T.y, 'its job: ' + job.name);
+    const q = /flank|guard|lane/.test(job.kind) ? botObjPoint(job, u) : null;
+    if (q) add(q.x, q.y, 'its job: ' + job.name);
+    else if (T) add(T.x, T.y, 'its job: ' + job.name);
     else if (job.kind === 'zone') {
       /* the near side of the zone, so it is in it after the March */
       const d = Math.hypot(job.x - u.x, job.y - u.y);
