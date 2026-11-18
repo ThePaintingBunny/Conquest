@@ -3,8 +3,8 @@
  *
  * The bar above the board that shows the round, the step and what to do next.
  *
- * In this file: renderTurnbar(), tbInTop(), placeTurnbar(), GP_STEPS, gpChoice(), placeNetBar(),
- *   tbMoreOpen, foldTurnbar(), renderTurnbar0()
+ * In this file: reinfSkipKey, renderTurnbar(), tbInTop(), placeTurnbar(), GP_STEPS, gpChoice(),
+ *   placeNetBar(), tbMoreOpen, foldTurnbar(), renderTurnbar0()
  */
 
 let reinfSkipKey = ''; /* the round whose empty Reinforcements step was skipped automatically */

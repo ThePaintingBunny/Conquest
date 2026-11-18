@@ -17,7 +17,9 @@ const BOT = {
   futureRisk: 0.45 /* next round's threats, against this round's */,
   potential: 0.45 /* our own threats for next time */,
   progress: 1.2 /* points per inch closer to a zone worth taking */,
-  crowd: 3 /* points lost for each idle friendly regiment ending right next to it (traffic jams) */,
+  zoneLater: 0.35 /* a zone's worth in the rounds after this one, per round (two at most) */,
+  commit: 30 /* carrying on with the line chosen at the start of an activation, against switching to another */,
+  crowd: 6 /* points lost for each idle friendly regiment ending right next to it or in its way (traffic jams) */,
   lost: 0.3 /* chance per enemy activation that an opportunity is gone before we use it */,
   noise: { easy: 0.45, normal: 0.12, hard: 0 }
 };
@@ -70,11 +72,13 @@ function botWoundPts(u, w) {
   return Math.min(w, left) * per + Math.pow(f, 3) * v * BOT.killShare;
 }
 
-/* a zone's worth this round: its Victory Points, a little less before zones score */
+/* a zone's worth: its Victory Points this round (a little less before zones score) and part of the next rounds' */
 function botZoneW(z) {
   const from = scenOf().from || 2,
-    R = state.round || 1;
-  return (z.vp || 2) * BOT.vp * (R >= from ? 1 : 0.6);
+    R = state.round || 1,
+    left = (state.maxRounds || 10) - R;
+  /* a zone taken now is usually still held next round: part of that counts too */
+  return (z.vp || 2) * BOT.vp * (R >= from ? 1 : 0.6) * (1 + BOT.zoneLater * Math.min(2, Math.max(0, left)));
 }
 
 /* the zone picture for one side: + for each zone it holds, − for each the enemy holds */

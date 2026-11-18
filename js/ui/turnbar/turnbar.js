@@ -3,9 +3,11 @@
  *
  * The bar above the board that shows the round, the step and what to do next.
  *
- * In this file: renderTurnbar(), tbInTop(), placeTurnbar(), GP_STEPS, gpChoice(), placeNetBar(),
- *   tbMoreOpen, foldTurnbar(), renderTurnbar0()
+ * In this file: reinfSkipKey, renderTurnbar(), tbInTop(), placeTurnbar(), GP_STEPS, gpChoice(),
+ *   placeNetBar(), tbMoreOpen, foldTurnbar(), renderTurnbar0()
  */
+
+let reinfSkipKey = ''; /* the round whose empty Reinforcements step was skipped automatically */
 
 function renderTurnbar() {
   try {
@@ -275,11 +277,29 @@ function renderTurnbar0() {
       (state.vp?.nord || 0) +
       '.';
     add(mk(resetArm ? 'Click again to confirm' : 'Start a new game', newGame));
+    /* Leave: the finished game is cleared and you are back on the main menu */
+    const lv = mk(
+      'Leave',
+      async () => {
+        mmLeaveArm = false;
+        mmOverlay = false;
+        mmPage = null;
+        await newGameNow();
+      },
+      true
+    );
+    lv.title = 'End this game completely and return to the main menu';
+    add(lv);
     return;
   }
   const ng = mk(resetArm ? 'Click again to reset the game' : 'New game', newGame, true);
   ng.classList.add('ng');
   add(ng);
+  if (simEndOk()) {
+    const sb = mk('Simulate to the end', simToEnd);
+    sb.title = `${N(other(simEndSide()))} have no regiments left. Score the Victory Phase of this round and every round after it, with every regiment staying where it stands.`;
+    add(sb);
+  }
   if (PVP() && renderTurnbarPvp(tb, info, mk, add, step)) return;
   if (step === 'reinforce') {
     if (mmBar(add, mk, HU, info)) return;
@@ -303,25 +323,34 @@ function renderTurnbar0() {
     add(sel);
     const rsel = ravenSelect(HU, add),
       hsel = huntSelect(HU, add);
-    add(
-      mk('Roll reinforcements', async () => {
-        aiBusy = true;
+    const roll = async () => {
+      aiBusy = true;
+      render();
+      try {
+        const rep = await doReinforcements(
+          sel.value || null,
+          (rsel && rsel.value) || null,
+          (hsel && hsel.value) || null
+        );
+        aiBusy = false;
+        await startCommandPhase(rep);
+      } catch (e) {
+        aiBusy = false;
+        toast('That could not be saved. Try again.');
         render();
-        try {
-          const rep = await doReinforcements(
-            sel.value || null,
-            (rsel && rsel.value) || null,
-            (hsel && hsel.value) || null
-          );
-          aiBusy = false;
-          await startCommandPhase(rep);
-        } catch (e) {
-          aiBusy = false;
-          toast('That could not be saved. Try again.');
-          render();
-        }
-      })
-    );
+      }
+    };
+    /* nothing to choose (no reserves that may arrive, no Raven Messengers or Call the Hunt): skip the question */
+    if (sel.options.length === 1 && !rsel && !hsel) {
+      sel.remove();
+      info.textContent = `Round ${state.round} · Reinforcements: nothing to choose, carrying on…`;
+      if (reinfSkipKey !== state.round + ':' + HU) {
+        reinfSkipKey = state.round + ':' + HU;
+        setTimeout(roll, 0);
+        return;
+      }
+    }
+    add(mk('Roll reinforcements', roll));
     return;
   }
   if (step === 'supremacy') {

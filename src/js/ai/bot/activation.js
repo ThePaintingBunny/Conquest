@@ -10,7 +10,7 @@
  *         − points the enemy is expected to take from it before it acts again.
  *
  * In this file: botZoneAt(), botProgress(), botCrowd(), botEnd(), botMelee(), botEngagedFuture(),
- *   botChargeLine(), botCharges(), botPlan(), botEnterX(), botNextStep(), botLast
+ *   botChargeLine(), botCharges(), botPlan(), botEnterX(), botNextStep(), botLast, botCommit
  */
 
 /* the zone picture with u in this pose */
@@ -31,6 +31,13 @@ function botZoneAt(u, pose, ctx) {
 /* closer to a zone worth taking (one it cannot hold yet), in points */
 function botProgress(ctx, u, from, to) {
   if ((u.effects || []).includes('Broken')) return 0;
+  /* the army's plan gave it a job: closer to that (a zone, or the enemy regiment it is meant to fight) */
+  const job = botObjOf(u);
+  if (job) {
+    const g = botObjDist(job, from) - botObjDist(job, to);
+    /* a zone job: in step with what the zone is worth (a plain 2 VP zone gives the base rate) */
+    return BOT.progress * (job.kind === 'zone' ? Math.max(1, job.v / (2 * BOT.vp)) : 0.7) * g;
+  }
   const sv = seizeVal(u),
     w = sv > 0 ? 1 : 0.4;
   if (!ctx.zoneTargets)
@@ -47,10 +54,20 @@ function botProgress(ctx, u, from, to) {
 /* where a line leaves the regiment, scored */
 /* idle friendly regiments right next to where it ends: a traffic jam blocks charges and marches */
 function botCrowd(ctx, u, pose) {
-  const A = corners(Object.assign({}, u, pose));
-  return ctx.mine.filter(
-    f => f.id !== u.id && f.onTable && !engaged(f).length && polyDist(A, corners(f)) < 1.5
-  ).length;
+  const U = Object.assign({}, u, pose),
+    A = corners(U),
+    M = +u.m || 5;
+  let n = 0;
+  ctx.mine.forEach(f => {
+    if (f.id === u.id || !f.onTable || engaged(f).length) return;
+    const d = polyDist(A, corners(f));
+    if (d < 1.5) n += 1;
+    else if (d < 3) n += 0.4;
+    /* a friend just in front blocks its March and Charge lanes (and it blocks theirs) */
+    if (d < M && arcOf(U, [f.x, f.y]) === 'front') n += 0.5;
+    if (d < (+f.m || 5) && arcOf(f, [U.x, U.y]) === 'front') n += 0.5;
+  });
+  return n;
 }
 
 function botEnd(ctx, u, from, pose, engagedEnd, skip) {
@@ -169,9 +186,13 @@ function botPlan(id, ban) {
     M = +u.m || 0;
   const C = [];
   const key = st => JSON.stringify(st);
+  /* the line chosen at the start of this activation: carrying on with it is worth something, so a small change in
+     the picture does not turn a March toward one target into a March toward another and waste both actions */
+  const next = botCommit && botCommit.act === act && botCommit.rest.length ? key(botCommit.rest[0]) : null;
   const push = (steps, val, why, e, chk) => {
     if (steps.length && ban && ban.has(key(steps[0]))) return;
-    C.push({ steps, val: val + botNoise(), why, e, chk });
+    const keep = next && steps.length && key(steps[0]) === next ? BOT.commit : 0;
+    C.push({ steps, val: val + keep + botNoise(), why: keep ? why + ' (as planned)' : why, e, chk });
   };
   const eng = engaged(u);
   const here = botEnd(ctx, u, cur, cur, eng.length > 0);
@@ -427,10 +448,20 @@ function botNextStep(ban) {
   const b = L[0];
   if (!b || !b.steps.length) return null;
   botLast = b;
+  /* remember the rest of the line; a new line only when this one is done or no longer on offer */
+  if (!(
+    botCommit &&
+    botCommit.act === act &&
+    botCommit.rest.length &&
+    JSON.stringify(b.steps[0]) === JSON.stringify(botCommit.rest[0])
+  ))
+    botCommit = { act, rest: b.steps.slice(1), why: b.why };
+  else botCommit.rest = botCommit.rest.slice(1);
   if (window.__botDbg)
     window.__botDbg.push({
       id: act.id,
       r: state.round,
+      n: b.steps.length,
       top: L.slice(0, 4).map(
         c =>
           Math.round(c.val) +
@@ -442,4 +473,5 @@ function botNextStep(ban) {
   return b.steps[0];
 }
 
-let botLast = null;
+let botLast = null,
+  botCommit = null;

@@ -296,9 +296,12 @@ async function doReinforcements(humanAuto, humanRaven, humanHunt) {
       reinfRule(u.cls, R) !== 'no' &&
       reinfRule(u.cls, R) !== 'auto'
   );
+  /* the automatic arrival goes where it gains most: a regiment that would likely fail its roll (4+ rather than 2+),
+     the more valuable the better */
   const rank = u => {
-    const r = reinfRule(u.cls, R);
-    return r === 'roll2' ? 0 : 1;
+    const r = reinfRule(u.cls, R),
+      p = r === 'roll2' ? 5 / 6 : r === 'roll4' ? 0.5 : 1;
+    return -(1 - p) * (+u.points || 100);
   };
   const aiAuto = aiPool.sort((a, b) => rank(a) - rank(b))[0];
   const al = await roll(AI, aiAuto && aiAuto.id);

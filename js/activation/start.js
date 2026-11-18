@@ -51,8 +51,7 @@ function startActivation(id, source, card) {
                 : []
             )
             .concat(
-              source === 'strategic' &&
-                supOn(u.side, 'Bringing Back the Children of Fire') &&
+              supOn(u.side, 'Bringing Back the Children of Fire') &&
                 frRoles(u).includes('Titan')
                 ? ['Children of Fire (counts as 6 stands for Seizing)']
                 : []

@@ -50,6 +50,22 @@ function botDests(ctx, u) {
     out.push({ x, y, why });
   };
   zonesOf().forEach(z => add(z.x, z.y, 'zone ' + z.name));
+  /* its job from the army's plan, however far */
+  const job = botObjOf(u);
+  if (job) {
+    const T = job.kind === 'foe' ? byId(job.id) : null;
+    if (T) add(T.x, T.y, 'its job: ' + job.name);
+    else if (job.kind === 'zone') {
+      /* the near side of the zone, so it is in it after the March */
+      const d = Math.hypot(job.x - u.x, job.y - u.y);
+      if (d > job.r)
+        add(
+          job.x + ((u.x - job.x) / d) * job.r * 0.4,
+          job.y + ((u.y - job.y) / d) * job.r * 0.4,
+          'its job: zone ' + job.name
+        );
+    }
+  }
   const reach = (+u.m || 0) * 2 + 14;
   ctx.foes.concat(ctx.markers).forEach(T => {
     if (polyDist(corners(u), corners(T)) > reach + 10) return;
