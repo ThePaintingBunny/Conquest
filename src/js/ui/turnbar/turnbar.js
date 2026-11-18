@@ -13,6 +13,11 @@ function renderTurnbar() {
   try {
     turnWatch();
   } catch (e) {}
+  try {
+    glogWatch();
+  } catch (e) {
+    console.error(e);
+  }
   if (
     state &&
     state.turn === HU &&
@@ -89,6 +94,7 @@ function placeTurnbar(tb) {
     [...tb.children]
       .filter(k => k.tagName === 'DETAILS' || (k.classList && k.classList.contains('ng')))
       .forEach(k => gp.appendChild(k));
+    gp.appendChild(glogPanel());
   } else if (tb.parentNode === slot) $('mm').after(tb);
   document.body.classList.toggle('tb-top', tbInTop());
   placeNetBar();

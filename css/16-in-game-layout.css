@@ -756,3 +756,37 @@ body.tb-top #ai-report:not([hidden]) {
 .gp-choices > select {
   flex: 1 1 100%;
 }
+
+/* ---- Game log (Game tab) ---- */
+.glog-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+.glog-body {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px 0 0;
+  max-height: 50vh;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.glog-body li {
+  padding: 3px 0 3px 8px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.glog-body li[data-side='cs'] {
+  border-left-color: var(--cs);
+}
+.glog-body li[data-side='nord'] {
+  border-left-color: var(--nord);
+}
+.glog-body li.glog-h {
+  font-weight: 700;
+  color: var(--muted);
+  padding-top: 10px;
+}

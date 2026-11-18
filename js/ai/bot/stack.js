@@ -195,6 +195,21 @@ function botPlanRound() {
     chance: Math.round(it.o.chance),
     react: Math.round(it.o.react)
   }));
+  if (!PVP())
+    botTraceAdd({
+      k: 'stack',
+      first: A.tot >= B.tot - 5,
+      scoreFirst: Math.round(A.tot),
+      scoreSecond: Math.round(B.tot),
+      order: best.order.filter(Boolean).map(it => ({
+        cards: it.cards,
+        unit: it.u && (it.u.short || it.u.name),
+        saved: Math.round(it.o.saved),
+        chance: Math.round(it.o.chance),
+        react: Math.round(it.o.react),
+        why: it.o.why || undefined
+      }))
+    });
   return { stack, first: A.tot >= B.tot - 5, effects: [], intent: say, faction: [] };
 }
 

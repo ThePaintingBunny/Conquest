@@ -257,5 +257,20 @@ function botObjPlan(side) {
     if (s && cost[i][col[i]] < 0) map[u.id] = s.o;
   });
   botPlanObj = { side, key, map };
+  if (!PVP())
+    botTraceAdd({
+      k: 'plan',
+      side,
+      jobs: rows.map((u, i) => {
+        const o = map[u.id];
+        return {
+          unit: u.short || u.name,
+          id: u.id,
+          on: !!u.onTable,
+          job: o ? o.kind + ': ' + o.name : null,
+          score: o ? Math.round(-cost[i][col[i]]) : 0
+        };
+      })
+    });
   return botPlanObj;
 }

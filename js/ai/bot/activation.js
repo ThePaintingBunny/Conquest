@@ -448,6 +448,26 @@ function botNextStep(ban) {
   const b = L[0];
   if (!b || !b.steps.length) return null;
   botLast = b;
+  if (!PVP()) {
+    const u = byId(act.id),
+      job = botObjOf(u),
+      R0 = (v, k) => (typeof v === 'number' ? Math.round(v) : v);
+    botTraceAdd({
+      k: 'step',
+      id: act.id,
+      unit: u && (u.short || u.name),
+      at: u && u.onTable ? [+u.x.toFixed(1), +u.y.toFixed(1), Math.round(u.facing || 0)] : null,
+      done: act.actions.map(a => a.type),
+      job: job ? job.kind + ': ' + job.name : null,
+      chose: b.why,
+      options: L.slice(0, 6).map(c => ({
+        v: Math.round(c.val),
+        why: c.why,
+        steps: c.steps.map(s => s.do).join('+'),
+        parts: c.e ? JSON.parse(JSON.stringify(c.e, R0)) : undefined
+      }))
+    });
+  }
   /* remember the rest of the line; a new line only when this one is done or no longer on offer */
   if (!(
     botCommit &&
