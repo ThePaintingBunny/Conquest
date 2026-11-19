@@ -4,8 +4,8 @@
  * Looks up a terrain piece's type and keywords, and builds its outline: one irregular shape per piece,
  * generated from its seed, used for both drawing and rules.
  *
- * In this file: tInfo(), tHas(), tId(), terrainOf(), terrPolyCache, terrPoly(), terrR(), terrDist(),
- *   inT()
+ * In this file: tInfo(), tHas(), tId(), terrainOf(), terrPolyCache, terrPtsCache, terrPoly(), terrR(),
+ *   terrDist(), inT()
  */
 
 function tInfo(t) {
@@ -28,6 +28,7 @@ function tId(t) {
 }
 
 function terrainOf() {
+  if (mapEdit) return mapEdit.terrain;
   return state && Array.isArray(state.terrain) ? state.terrain : TERR0;
 }
 
@@ -35,7 +36,16 @@ function terrainOf() {
    drawn on the table and what every rule uses (entering, crossing, the 1″ rule, Line of Sight, garrisons). ===== */
 const terrPolyCache = new Map();
 
+const terrPtsCache = new WeakMap();
 function terrPoly(t) {
+  /* a painted piece (Map builder): its own outline, kept relative to its centre so it moves with it */
+  if (Array.isArray(t.pts) && t.pts.length > 2) {
+    const c = terrPtsCache.get(t.pts);
+    if (c && c.x === t.x && c.y === t.y) return c.P;
+    const P = t.pts.map(([dx, dy]) => [t.x + dx, t.y + dy]);
+    terrPtsCache.set(t.pts, { x: t.x, y: t.y, P });
+    return P;
+  }
   const key = [t.type, t.x, t.y, t.rx, t.ry, t.seed || 0].join('|');
   let P = terrPolyCache.get(key);
   if (P) return P;

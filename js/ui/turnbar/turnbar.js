@@ -79,7 +79,11 @@ function renderTurnbar() {
 function tbInTop() {
   const st = (state && state.step) || 'activations';
   return (
-    !!state && !SBX() && !document.body.classList.contains('mm-lobby') && !['setup', 'review'].includes(st)
+    !!state &&
+    !mapEdit &&
+    !SBX() &&
+    !document.body.classList.contains('mm-lobby') &&
+    !['setup', 'review'].includes(st)
   );
 }
 
@@ -262,6 +266,10 @@ function renderTurnbar0() {
     b.disabled = aiBusy;
     return b;
   };
+  if (mapEdit) {
+    mbPanel(tb, info, mk, add);
+    return;
+  }
   if (aiBusy) {
     info.textContent = $('ai-status').textContent || N(AI) + ' are acting…';
     return;

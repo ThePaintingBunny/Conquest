@@ -155,6 +155,15 @@ function renderMenu() {
     );
     grid.append(
       mmCard(
+        'Map builder',
+        bs('Paint terrain with a brush and save maps to play on'),
+        '🖌',
+        () => mbOpen(''),
+        bz
+      )
+    );
+    grid.append(
+      mmCard(
         'Combat calculator',
         'Pit two regiments against each other: wounds per attack and who wins the fight',
         '⚖',

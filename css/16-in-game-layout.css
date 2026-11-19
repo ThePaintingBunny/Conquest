@@ -790,3 +790,34 @@ body.tb-top #ai-report:not([hidden]) {
   color: var(--muted);
   padding-top: 10px;
 }
+
+/* ---- Map builder ---- */
+.mb-sw {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+.mb-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.mb-save {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.mb-save input[type='text'] {
+  width: 180px;
+  flex: 0 0 auto;
+  padding: 6px 8px;
+}
+.mb-save {
+  flex: 1 1 100%;
+}

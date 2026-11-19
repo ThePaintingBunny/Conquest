@@ -120,7 +120,7 @@ function render0() {
     state.strategicHeld = true;
   }
   {
-    const su = state.step === 'setup';
+    const su = state.step === 'setup' && !mapEdit;
     ['.main', '.roster', '#view-hint', '#last', '.score'].forEach(q => {
       const e = document.querySelector(q);
       if (e) e.hidden = su;
@@ -338,6 +338,13 @@ function drawBoard() {
       },
       rg
     );
+  }
+  if (mapEdit) {
+    /* the Map builder shows an empty table */
+    $('zones').innerHTML = '';
+    $('stones').innerHTML = '';
+    zoneKey = '';
+    return;
   }
   all()
     .filter(u => u.onTable)

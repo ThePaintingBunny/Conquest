@@ -26,20 +26,46 @@ function terrainPanel(add, mk) {
   [
     ['random', 'Random'],
     ['manual', 'Place it yourself']
-  ].forEach(([m, t]) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = t;
-    b.setAttribute('aria-pressed', String(terrMode === m));
-    b.onclick = () => {
-      terrMode = m;
-      renderTurnbar();
-    };
-    g.appendChild(b);
-  });
+  ]
+    .concat(Object.keys(mbMaps()).length ? [['saved', 'Saved map']] : [])
+    .forEach(([m, t]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = t;
+      b.setAttribute('aria-pressed', String(terrMode === m));
+      b.onclick = () => {
+        terrMode = m;
+        renderTurnbar();
+      };
+      g.appendChild(b);
+    });
   const row = document.createElement('div');
   row.className = 'row';
   row.appendChild(g);
+  if (terrMode === 'saved') {
+    const maps = mbMaps(),
+      sel = document.createElement('select');
+    sel.setAttribute('aria-label', 'Saved map');
+    Object.keys(maps)
+      .sort()
+      .forEach(k => {
+        const o = document.createElement('option');
+        o.value = k;
+        o.textContent = k + ' (' + maps[k].length + ' pieces)';
+        sel.appendChild(o);
+      });
+    row.appendChild(sel);
+    row.appendChild(
+      mk('Use this map', () => {
+        const T = maps[sel.value];
+        if (T) putState({ terrain: JSON.parse(JSON.stringify(T)) });
+      })
+    );
+    box.appendChild(row);
+    box.appendChild(ptext('Maps you made in the Map builder (Menu → Map builder), kept on this device.'));
+    add(box);
+    return;
+  }
   if (terrMode === 'random') {
     row.appendChild(mk('Shuffle terrain', () => putState({ terrain: genTerrain() }), true));
     box.appendChild(row);
