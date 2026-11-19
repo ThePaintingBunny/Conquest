@@ -115,7 +115,7 @@ async function onAnim(d) {
   );
   setTimeout(() => {
     rTgt = null;
-    render();
+    drawBoard();
   }, 6000);
 }
 

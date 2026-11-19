@@ -4,7 +4,8 @@
  * render() redraws the board and every panel from the current state. It is called after every change.
  *
  * In this file: fitBoard(), BOARD_VIEW, boardRoom, boardMargin(), boardView(), revealIn(), render(),
- *   render0(), remotePending, uiBusyField(), renderRemote(), lobbySeen, lobbySig()
+ *   render0(), remotePending, uiBusyField(), renderRemote(), lobbySeen, lobbySig(), renderStatus(),
+ *   drawBoard(), renderStrat(), RD_STATUS, RD_BOARD, RD_TURN, renderDiff()
  */
 
 /* Fit the board to the screen: as tall as the space below the top bars allows (on wide screens only).
@@ -125,8 +126,93 @@ function render0() {
       if (e) e.hidden = su;
     });
   }
-  drawTerrain();
-  drawZones();
+  drawBoard();
+  renderStatus();
+  renderArmies();
+  renderCard();
+  try {
+    cardStrength();
+    cbStepper();
+  } catch (e) {}
+  try {
+    renderFacBox();
+    renderFrStrip();
+    renderOdTrk();
+  } catch (err) {
+    console.error(err);
+  }
+  try {
+    renderMenu();
+    renderPresence();
+    presencePing();
+  } catch (err) {
+    console.error(err);
+  }
+  renderFormation();
+  renderCharPanel();
+  drawRuler();
+  renderTurnbar();
+  renderLegend();
+  pushLive();
+  renderStrat();
+}
+
+/* An update from the other player (or the lobby) redraws the page; a dropdown that is open at that moment would be
+   closed and rebuilt under the cursor. While a dropdown or a text field is in use, the redraw waits until the player
+   leaves it. */
+let remotePending = false;
+function uiBusyField() {
+  const a = document.activeElement;
+  return a &&
+    (a.tagName === 'SELECT' ||
+      (a.tagName === 'INPUT' && /^(text|search|number)$/.test(a.type)) ||
+      a.tagName === 'TEXTAREA')
+    ? a
+    : null;
+}
+function renderRemote(fn) {
+  fn = fn || render;
+  const a = uiBusyField();
+  if (!a) {
+    remotePending = false;
+    fn();
+    return;
+  }
+  if (remotePending) return;
+  remotePending = true;
+  const go = () => {
+    a.removeEventListener('blur', go);
+    a.removeEventListener('change', later);
+    if (!remotePending) return;
+    remotePending = false;
+    /* whatever came in meanwhile is redrawn in full */
+    setTimeout(render, 0);
+  };
+  /* a choice made in the dropdown: redraw just after its own handler ran */
+  const later = () => setTimeout(go, 50);
+  a.addEventListener('blur', go);
+  a.addEventListener('change', later);
+}
+
+/* who is in the lobby, without the ping times (online or not is what matters) */
+let lobbySeen = '';
+function lobbySig() {
+  const now = Date.now();
+  return JSON.stringify(
+    Object.keys(lobby || {})
+      .sort()
+      .map(k => {
+        const v = lobby[k] || {};
+        return [k, v.n || '', v.seat || '', now - (+v.t || 0) < 25000, !!v.left];
+      })
+  );
+}
+
+/* ---- the parts of the page, so an update from the other player redraws only what it touched ---- */
+
+/* round, score, phase and the last move above the board */
+function renderStatus() {
+  if (!state) return;
   $('phase').textContent = state.phase || '';
   {
     const r = $('vp-round');
@@ -141,6 +227,19 @@ function render0() {
   $('vp-nord').textContent = (PN('nord') ? PN('nord') + ' · ' : '') + N('nord') + ' ' + (state.vp?.nord ?? 0);
   $('h-cs').textContent = WHO('cs');
   $('h-nord').textContent = WHO('nord');
+  $('last').innerHTML = '';
+  const b = document.createElement('b');
+  b.textContent = (state.lastTitle || 'Last move') + ': ';
+  $('last').append(b, document.createTextNode(state.lastText || 'No moves yet.'));
+  /* one line above the board; a click shows the whole message */
+  if (!$('last').onclick) $('last').onclick = () => $('last').classList.toggle('open');
+}
+
+/* the table: terrain, zones, regiments and every overlay on it (no panels) */
+function drawBoard() {
+  if (!state) return;
+  drawTerrain();
+  drawZones();
   $('combat').classList.toggle('busy', aiBusy);
   const ug = $('units'),
     mg = $('moves'),
@@ -310,38 +409,10 @@ function render0() {
       console.error(e);
     }
   }
-  $('last').innerHTML = '';
-  const b = document.createElement('b');
-  b.textContent = (state.lastTitle || 'Last move') + ': ';
-  $('last').append(b, document.createTextNode(state.lastText || 'No moves yet.'));
-  /* one line above the board; a click shows the whole message */
-  if (!$('last').onclick) $('last').onclick = () => $('last').classList.toggle('open');
-  renderArmies();
-  renderCard();
-  try {
-    cardStrength();
-    cbStepper();
-  } catch (e) {}
-  try {
-    renderFacBox();
-    renderFrStrip();
-    renderOdTrk();
-  } catch (err) {
-    console.error(err);
-  }
-  try {
-    renderMenu();
-    renderPresence();
-    presencePing();
-  } catch (err) {
-    console.error(err);
-  }
-  renderFormation();
-  renderCharPanel();
-  drawRuler();
-  renderTurnbar();
-  renderLegend();
-  pushLive();
+}
+
+/* the Strategic Stack box */
+function renderStrat() {
   const held = !!PS().strategicHeld,
     used = PS().strategicUsedRound === state.round,
     notMine = PVP() && (state.turn !== HU || !seatSide());
@@ -360,53 +431,71 @@ function render0() {
         : '';
 }
 
-/* An update from the other player (or the lobby) redraws the page; a dropdown that is open at that moment would be
-   closed and rebuilt under the cursor. While a dropdown or a text field is in use, the redraw waits until the player
-   leaves it. */
-let remotePending = false;
-function uiBusyField() {
-  const a = document.activeElement;
-  return a &&
-    (a.tagName === 'SELECT' ||
-      (a.tagName === 'INPUT' && /^(text|search|number)$/.test(a.type)) ||
-      a.tagName === 'TEXTAREA')
-    ? a
-    : null;
-}
-function renderRemote(fn) {
-  fn = fn || render;
-  const a = uiBusyField();
-  if (!a) {
-    remotePending = false;
-    fn();
-    return;
+/* which parts an update from the other player touches, by the fields that changed */
+const RD_STATUS = ['lastTitle', 'lastText', 'phase', 'updatedAt', 'updatedBy', 'lastReinf'],
+  RD_BOARD = ['units', 'moves', 'terrain', 'zones'],
+  RD_TURN = [
+    'turn',
+    'step',
+    'round',
+    'vp',
+    'huStack',
+    'aiStack',
+    'ready',
+    'picks',
+    'first',
+    'chooser',
+    'reinfTurn',
+    'strategicHeld',
+    'strategicUsedRound',
+    'huHeld',
+    'huLastCard',
+    'hammerUsed'
+  ];
+function renderDiff(prev) {
+  if (!prev || !state || prev.step !== state.step || prev.mode !== state.mode) return renderRemote();
+  const keys = new Set(Object.keys(prev).concat(Object.keys(state)));
+  const K = [...keys].filter(k => JSON.stringify(prev[k]) !== JSON.stringify(state[k]));
+  if (!K.length) return;
+  if (K.some(k => !RD_STATUS.includes(k) && !RD_BOARD.includes(k) && !RD_TURN.includes(k)))
+    return renderRemote();
+  renderStatus();
+  const board = K.some(k => RD_BOARD.includes(k));
+  if (board) {
+    drawBoard();
+    try {
+      renderArmies();
+    } catch (e) {}
   }
-  if (remotePending) return;
-  remotePending = true;
-  const go = () => {
-    a.removeEventListener('blur', go);
-    a.removeEventListener('change', later);
-    if (!remotePending) return;
-    remotePending = false;
-    /* whatever came in meanwhile is redrawn in full */
-    setTimeout(render, 0);
-  };
-  /* a choice made in the dropdown: redraw just after its own handler ran */
-  const later = () => setTimeout(go, 50);
-  a.addEventListener('blur', go);
-  a.addEventListener('change', later);
-}
-
-/* who is in the lobby, without the ping times (online or not is what matters) */
-let lobbySeen = '';
-function lobbySig() {
-  const now = Date.now();
-  return JSON.stringify(
-    Object.keys(lobby || {})
-      .sort()
-      .map(k => {
-        const v = lobby[k] || {};
-        return [k, v.n || '', v.seat || '', now - (+v.t || 0) < 25000, !!v.left];
-      })
-  );
+  /* the turn bar and the regiment card only when what they show changed */
+  const flags = s =>
+    JSON.stringify(
+      (s.units || []).map(u => [
+        u.id,
+        !!u.activated,
+        !!u.charActivated,
+        !!u.onTable,
+        !!u.destroyed,
+        !!u.arriving
+      ])
+    );
+  const unitOf = (s, id) => JSON.stringify((s.units || []).find(u => u.id === id) || null);
+  const turnbar = K.some(k => RD_TURN.includes(k)) || (board && flags(prev) !== flags(state));
+  const card =
+    turnbar ||
+    (board &&
+      (selId || act) &&
+      [selId, act && act.id].some(id => id && unitOf(prev, id) !== unitOf(state, id)));
+  if (turnbar || card)
+    renderRemote(() => {
+      if (turnbar) renderTurnbar();
+      if (card) {
+        renderCard();
+        try {
+          cardStrength();
+          renderFacBox();
+        } catch (e) {}
+      }
+      renderStrat();
+    });
 }

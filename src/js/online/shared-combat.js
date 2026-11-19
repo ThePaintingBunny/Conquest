@@ -32,7 +32,8 @@ function onCombat(d) {
   if (!c && cb && cb.owner === HU) return;
   cb = c;
   renderCombat();
-  render();
+  drawBoard();
+  renderRemote(renderCard);
 }
 
 function cbWho() {

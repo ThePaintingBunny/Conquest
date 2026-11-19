@@ -47,7 +47,13 @@
         sn => {
           if (sn.exists) {
             myStk = Object.assign({}, sn.data());
-            if (state) render();
+            /* your own Command Stack: only the parts that show it */
+            if (state)
+              renderRemote(() => {
+                renderTurnbar();
+                renderCard();
+                renderStrat();
+              });
           }
         },
         () => {}
@@ -109,7 +115,7 @@
             const sig = lobbySig();
             if (sig !== lobbySeen) {
               lobbySeen = sig;
-              renderRemote(renderMenu);
+              if (mmCurrent()) renderRemote(renderMenu);
             }
             renderPresence();
           } catch (e) {}
@@ -118,7 +124,8 @@
       () => {}
     );
   } catch (e) {}
-  setInterval(() => presencePing(), 10000);
+  /* a light "still here" signal for the online dot; it never redraws the page */
+  setInterval(() => presencePing(), 20000);
   setTimeout(() => presencePing(), 1500);
   window.__presenceLeave = () => {
     try {
@@ -143,6 +150,7 @@
     sn => {
       clearTimeout(t);
       if (sn.exists) {
+        const prev = state;
         state = Object.assign({}, sn.data());
         if (!state.units) state.units = [];
         applySeat();
@@ -151,8 +159,9 @@
           cb = null;
           charAct = null;
           setTimeout(() => toast('The host moved the turn on; your activation was dropped.'), 50);
-        }
-        renderRemote();
+          render();
+        } else if (prev && PVP()) renderDiff(prev);
+        else render();
       } else {
         state = { step: 'setup', units: [], vp: { cs: 0, nord: 0 }, round: 0, phase: 'New game' };
         applySeat();

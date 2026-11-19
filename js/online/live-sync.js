@@ -58,5 +58,6 @@ function onLive(d) {
   } catch (e) {
     ract = null;
   }
-  if (!act) render();
+  /* only the table: the opponent's regiment, its ring and overlay */
+  if (!act) drawBoard();
 }
