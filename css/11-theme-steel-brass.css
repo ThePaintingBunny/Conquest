@@ -299,3 +299,83 @@
 [data-ui='steel'] .card .warn {
   color: #e38a5b;
 }
+
+/* ---- Draw Events stand out while they matter (before the first action) ---- */
+[data-ui='steel'] .actp-step.live {
+  margin-top: 4px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(231, 201, 135, 0.14), rgba(231, 201, 135, 0.04));
+  box-shadow:
+    0 0 0 1px rgba(231, 201, 135, 0.2),
+    0 0 18px rgba(231, 201, 135, 0.16);
+}
+[data-ui='steel'] .actp-step.live .actp-lbl {
+  color: var(--gold-ink, #f0d9a6);
+  font-size: 15px;
+}
+[data-ui='steel'] .actp-step.live .actp-lbl .num {
+  background: var(--brass2, #e7c987);
+  color: #1c1407;
+}
+[data-ui='steel'] .actp-step.live .actp-state {
+  color: var(--gold-ink, #f0d9a6);
+  font-style: normal;
+  font-weight: 700;
+}
+[data-ui='steel'] .actp-step.live .dn {
+  font-size: 14.5px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.28);
+  border-color: rgba(231, 201, 135, 0.45);
+  border-left: 4px solid var(--brass2, #e7c987);
+  color: var(--sx);
+}
+[data-ui='steel'] .actp-step.live .dn-i {
+  color: var(--brass2, #e7c987);
+  font-size: 16px;
+}
+[data-ui='steel'] .actp-step.live .dn.ref b,
+[data-ui='steel'] .actp-step.live .dn b {
+  color: var(--gold-ink, #f0d9a6);
+}
+[data-ui='steel'] .actp-step.live .dn-h {
+  color: var(--gold-ink, #f0d9a6);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+[data-ui='steel'] .actp-step.live .dn-btn:not(:disabled) {
+  font-size: 14.5px;
+  font-weight: 700;
+  padding: 9px 12px;
+  color: var(--gold-ink, #f0d9a6);
+  background: rgba(231, 201, 135, 0.1);
+  border: 1px solid var(--brass);
+  box-shadow: inset 4px 0 0 var(--brass2, #e7c987);
+}
+[data-ui='steel'] .actp-step.live .dn-btn:hover:not(:disabled) {
+  background: rgba(231, 201, 135, 0.2);
+}
+[data-ui='steel'] .actp-step.has-choice {
+  animation: drawPulse 1.6s ease-in-out 3;
+}
+@keyframes drawPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(231, 201, 135, 0.2),
+      0 0 18px rgba(231, 201, 135, 0.16);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(231, 201, 135, 0.6),
+      0 0 26px rgba(231, 201, 135, 0.45);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ui='steel'] .actp-step.has-choice {
+    animation: none;
+  }
+}

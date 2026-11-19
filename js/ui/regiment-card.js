@@ -4,7 +4,7 @@
  * The card of the selected regiment: profile, rules, wounds, status and the activation panel. One long
  * function, renderCard, draws all of it.
  *
- * In this file: regPane, regPaneSync(), regPaneCounts(), renderCard()
+ * In this file: regPane, regPaneSync(), regPaneCounts(), renderCard(), drawNudged, drawStepMark()
  */
 
 let regPane = (() => {
@@ -649,6 +649,7 @@ function renderCard() {
     $('c-draw-state').textContent = fresh ? 'Before your first action' : 'Done';
     $('c-draw-step').classList.toggle('done', !fresh);
     renderDrawStep(u, fresh);
+    drawStepMark(fresh);
   }
   if (act.entering && !act.placed) {
     const p = document.createElement('p');
@@ -1303,5 +1304,49 @@ function renderCard() {
   if (w.length) {
     $('c-warn').hidden = false;
     $('c-warn').textContent = w.join(' ');
+  }
+}
+
+/* Draw Events stand out while they matter: a highlighted step, the number of choices in its label, and once per
+   activation a nudge (scrolled into view, a toast) when there is a choice to make before the first action */
+let drawNudged = '';
+function drawStepMark(fresh) {
+  const step = $('c-draw-step'),
+    box = $('c-draw');
+  if (!step || !box || !act) return;
+  /* a choice is a group of buttons under one heading (pick one of four Chant Markers is one choice) */
+  let choices = 0;
+  box.querySelectorAll('.fr-opts').forEach(w => {
+    let head = null,
+      counted = false;
+    [...w.children].forEach(k => {
+      if (k.classList.contains('dn-h')) {
+        head = k;
+        counted = false;
+      } else if (k.matches('.dn-btn:not(:disabled)') && (!head || !counted)) {
+        choices++;
+        counted = !!head;
+      }
+    });
+  });
+  const notes = box.querySelectorAll('.dn').length,
+    live = fresh && !act.entering && choices + notes > 0;
+  step.classList.toggle('live', live);
+  step.classList.toggle('has-choice', live && choices > 0);
+  if (live)
+    $('c-draw-state').textContent = choices
+      ? (choices > 1 ? choices + ' choices' : 'A choice') + ' to make before your first action'
+      : 'Resolved at the start · check them';
+  const key = act.id + '|' + (state.round || 0) + '|' + (act.source || '');
+  if (live && choices && drawNudged !== key) {
+    drawNudged = key;
+    requestAnimationFrame(() => {
+      try {
+        step.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } catch (e) {}
+    });
+    toast(
+      'Draw Events: ' + choices + ' choice' + (choices > 1 ? 's' : '') + ' to make before the first action.'
+    );
   }
 }
