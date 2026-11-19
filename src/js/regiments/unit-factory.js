@@ -102,6 +102,19 @@ function buildUnits(side, list) {
       u.mods = x.mods.map(String);
       u.modProfiles = x.modProfiles;
     }
+    /* the Trebuchet starts as its crew: one Infantry stand, March 8, without the engine's special rules */
+    if (isTreb(u))
+      Object.assign(u, {
+        trebStage: 'crew',
+        trebRules: u.rules,
+        rules: [],
+        sw: 2,
+        sd: 2,
+        files: 1,
+        stands: 1,
+        m: 8,
+        stats: Object.assign({}, u.stats, { M: 8 })
+      });
     if (x.wb != null) {
       u.wb = +x.wb;
       u.wbChar = String(x.wbChar || '');

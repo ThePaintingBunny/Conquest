@@ -19,9 +19,16 @@ async function recordCombat() {
     healFriend: cb.healFriend
   };
   const before = JSON.parse(JSON.stringify(base(cb.tgt) || {}));
-  const c0 = cb;
+  const c0 = cb,
+    hits0 = (cb.groups || []).reduce((a, g) => a + (g.hits || 0), 0);
   await recordCombat0();
   if (cb === c0) return;
+  if (S.type === 'volley')
+    try {
+      await trebAfterVolley(base(S.att), base(S.tgt), hits0);
+    } catch (e) {
+      console.error(e);
+    }
   try {
     await srAfterCombat(S, before);
   } catch (e) {

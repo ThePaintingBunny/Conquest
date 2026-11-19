@@ -401,6 +401,12 @@ function finishAction() {
         (/Medium|Heavy/.test(bu.cls || '') && !ice ? ', and it loses Inspired this round.' : '.')
     );
   }
+  if (TREB_AMMO[c.type]) {
+    const [nm, d] = TREB_AMMO[c.type];
+    grant(act.id, 'Load the Next One!: ' + nm, [], null, 'Load the Next One!: ' + nm + '. ' + d + '.').then(
+      () => render()
+    );
+  }
   if (c.type === 'memory') {
     const m = memOf(byId(act.id));
     if (m) grant(act.id, 'Memories of Old', m.rules, null, 'Memories of Old: ' + m.text).then(() => render());

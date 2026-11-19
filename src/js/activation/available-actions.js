@@ -39,6 +39,7 @@ function availableActions(u) {
     if (t === 'cast' && used.some(a => a.type === 'cast')) return 'Already used this activation';
     return '';
   };
+  if (isTreb(u)) return trebActions(u, out, used, eng, blocked);
   if (u.garrison) {
     if (!eng.length && hasBarrage(u)) {
       can('volley', blocked('volley'));

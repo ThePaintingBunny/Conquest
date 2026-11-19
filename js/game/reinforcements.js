@@ -108,6 +108,12 @@ async function doReinforcements(humanAuto, humanRaven, humanHunt) {
       xId = M && M.ans === 'accept' ? (M.pick || {})[side] : null;
     let rrL = M && M.ans === 'decline' && M.by === side && M.opt === 'reroll' ? 1 : 0;
     for (const u of pool) {
+      /* the Trebuchet does not roll: its crew comes on when its Command Card is first drawn */
+      if (isTreb(u)) {
+        u.arriving = true;
+        res.push(rfName(u) + ': its crew comes on when its card is drawn (8″ March from the table edge)');
+        continue;
+      }
       const rule = reinfRule(u.cls, R);
       if (
         rule !== 'no' &&

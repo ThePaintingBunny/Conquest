@@ -218,7 +218,7 @@ function botObjPlan(side) {
   if (botPlanObj && botPlanObj.side === side && botPlanObj.key === key) return botPlanObj;
   const prev = botPlanObj && botPlanObj.side === side ? botPlanObj.map : {};
   const objs = botObjList(side);
-  const rows = mine.filter(u => !(u.effects || []).includes('Broken'));
+  const rows = mine.filter(u => !(u.effects || []).includes('Broken') && !isTreb(u));
   const slots = [];
   objs.forEach(o => {
     for (let k = 0; k < o.cap; k++) slots.push({ o, k });

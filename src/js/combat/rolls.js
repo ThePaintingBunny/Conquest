@@ -63,6 +63,17 @@ function rollHits(g, n, parry) {
 
 function rollDef(T) {
   const A = byId(cb.att) || base(cb.att);
+  /* Boulder (Trebuchet): no Defense rolls; each Hit is as many wounds as the target's unmodified Size, no Morale */
+  if (cb.type === 'volley' && isTreb(A) && trebAmmo(A) === 'Boulder') {
+    const hits = cb.groups.reduce((a, g) => a + (g.hits || 0), 0),
+      sz = baseSize(T).s;
+    cb.groups.forEach(g => {
+      g.def = defInfo(T, A, g);
+      g.drolls = [];
+    });
+    Object.assign(cb, { boulder: sz, brittle: 0, tenacious: 0, dbl: 0, anaN: 0, wounds: hits * sz });
+    return;
+  }
   let fails = 0,
     dbl = 0,
     anaN = 0; /* wounds from an Anastegma character */
@@ -153,6 +164,11 @@ function rollDef(T) {
 function rollMor(T) {
   const mi = moraleInfo(T, byId(cb.att));
   cb.mi = mi;
+  if (cb.boulder) {
+    /* Boulder wounds do not cause Morale Tests */
+    Object.assign(cb, { mrolls: [], mrrNotes: [], mrrUsed: [], indom: 0, extra: 0 });
+    return;
+  }
   cb.mrolls = [];
   let fails = 0;
   const ok = v => v === 1 || (v <= mi.R && v !== 6);

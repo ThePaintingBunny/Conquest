@@ -18,6 +18,14 @@ function frOptions0(u) {
   const f = frFac(u),
     fresh = !act.actions.length && !act.cur,
     add = (label, fn, why, cls) => out.push({ label, fn, why, cls });
+  /* the Trebuchet's crew, on its second activation: set the engine up (this is the whole activation) */
+  if (isTreb(u) && u.trebStage !== 'set' && !act.entering && !act.trebSet) {
+    const P = trebSetupPose(u);
+    out.push({
+      head: 'Trebuchet: replace the crew with the Trebuchet, rear edge on your table edge (no Actions)'
+    });
+    add('Set up the Trebuchet', () => trebSetup(u), P.pose ? '' : P.why, 'pri');
+  }
   if (
     f === 'Yoroni' &&
     act.frIdeal === 'Sui' &&

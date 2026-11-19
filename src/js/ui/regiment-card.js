@@ -750,6 +750,9 @@ function renderCard() {
     pres: '✚',
     seed: '❀',
     memory: '☠︎',
+    loadtar: '⛁',
+    loadboulder: '⛁',
+    loadpot: '⛁',
     withdraw: '↩'
   };
   availableActions(u).forEach(a => {

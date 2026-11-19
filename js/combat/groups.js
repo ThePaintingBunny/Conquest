@@ -184,13 +184,15 @@ function buildGroups(type, A, T) {
           0,
           rx(p.rules, 'Impact') -
             (fxHas(A, /^Phantom Onslaught/) ? 2 : 0) -
+            (fxHas(A, /^Tar Barrels/) ? 2 : 0) -
             (rh(RU(T), 'Pike Formation') && cArcU(T, A) === 'front' ? 3 : 0)
         ),
         p
       );
     if (type === 'volley' && (VS ? VS.some(v => v.tok === s.tok) : s.rank === 0)) {
       const bx0 = rx(p.rules, 'Barrage'),
-        bx = bx0 ? bx0 + fxBarrage(A) : 0;
+        /* Incendiary Pot (Trebuchet): Barrage (stands in the target +6) for this Volley */
+        bx = bx0 ? (isTreb(A) && trebAmmo(A) === 'Incendiary Pot' ? live(T) + 6 : bx0) + fxBarrage(A) : 0;
       if (bx) {
         const vi = VS && VS.find(v => v.tok === s.tok);
         if (VS && (!vi || !vi.inRange || (cb && cb.arcing ? !vi.arcing : !vi.clear))) return;

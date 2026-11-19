@@ -129,6 +129,7 @@ function dRules(u) {
 
 function canHeal(u) {
   if (srHas(u, /^Primal Cacophony/)) return false;
+  if (isTreb(u)) return false;
   /* core rules: a Broken regiment cannot be Healed. Rapid Blossoming (Weaver Courts Gift): its Court of Spring
      regiment can. */
   if ((u.effects || []).includes('Broken'))

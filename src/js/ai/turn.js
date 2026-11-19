@@ -55,7 +55,8 @@ async function aiRegiment(id, source, report, card) {
     )
   )
     await aiAutoFaction(byId(id), lines);
-  if (P.bot) await botRun(lines);
+  const trebDone = P.bot && isTreb(byId(id)) ? await aiTreb(lines) : false;
+  if (P.bot && !trebDone) await botRun(lines);
   else
     for (const st of steps) {
       if (!act || act.chargeFailed) break;
