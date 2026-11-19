@@ -4,8 +4,8 @@
  * Memories of Old, the Dark Power track with its tiers and gauge, and the token sources (Acolytes,
  * Divine Shard, Font of Dark Power).
  *
- * In this file: memOf(), odPts(), odTier(), odTierU(), odThr(), OD_T4, odT4ok(), ROMAN, odGauge(),
- *   renderOdTrk(), odLost(), odFontU(), odPendingBox()
+ * In this file: memOf(), odPts(), odTier(), odTierU(), odThr(), OD_T4, odT4ok(), ROMAN, suppPool,
+ *   odSuppPool(), odGauge(), renderOdTrk(), odLost(), odFontU(), odPendingBox()
  */
 
 /* Old Dominion */
@@ -59,6 +59,29 @@ function odT4ok(side) {
 }
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV'];
+
+/* Dark Supplication: the pool chosen in the spell panel (read once when the spell resolves) */
+let suppPool = null;
+
+/* where a token does most: the pool it lifts to a new Tier, else Dark Power (Fallen Pantheon when a Fallen
+   Divinity is on the table and Dark Power is at its top Tier) */
+function odSuppPool(side) {
+  const g = frG(side, 'od'),
+    th = odThr(side),
+    up = p => {
+      const n = (+g[p] || 0) + 1,
+        t = odTier(side, p),
+        max = p === 'dark' && odT4ok(side) ? 4 : 3;
+      return t < max && n >= th[t - 1];
+    };
+  if (up('dark')) return 'dark';
+  if (up('pant')) return 'pant';
+  const fd = (state.units || []).some(
+    u => u.side === side && !u.destroyed && /Fallen Divinity/.test((u.charName || '') + ' ' + u.name)
+  );
+  const darkTop = odTier(side, 'dark') >= (odT4ok(side) ? 4 : 3);
+  return fd && darkTop ? 'pant' : 'dark';
+}
 
 /* a token gauge: count, tier, and how far to the next tier */
 function odGauge(side, pool, who) {

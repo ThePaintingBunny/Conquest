@@ -319,9 +319,12 @@ async function resolveSpell0(cid, sp, tid, succ, asChar) {
       break;
     }
     case 'supplication': {
-      const g = frG(u.side, 'od');
-      extra.fr = frPatch(u.side, 'od', { dark: (+g.dark || 0) + 1 });
-      parts.push('+1 Dark Power');
+      /* the token goes to the pool the caster's player chose (the built-in opponent: where it gains a Tier) */
+      const g = frG(u.side, 'od'),
+        pool = suppPool === 'pant' || suppPool === 'dark' ? suppPool : odSuppPool(u.side);
+      suppPool = null;
+      extra.fr = frPatch(u.side, 'od', { [pool]: (+g[pool] || 0) + 1 });
+      parts.push(pool === 'pant' ? '+1 Fallen Pantheon' : '+1 Dark Power');
       break;
     }
     case 'blackflame': {

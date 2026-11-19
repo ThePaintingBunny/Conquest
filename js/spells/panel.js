@@ -136,6 +136,27 @@ function spellBox(box, u, asChar, ctx, onDone) {
   }
   const T = byId(ctx.target),
     S = sp.db || {};
+  /* Dark Supplication: the caster's player picks the pool */
+  if (S.x === 'supplication') {
+    if (!ctx.pool) ctx.pool = odSuppPool(u.side);
+    const ps = document.createElement('select');
+    ps.setAttribute('aria-label', 'Pool for the token');
+    [
+      ['dark', 'Add the token to Dark Power'],
+      ['pant', 'Add the token to Fallen Pantheon']
+    ].forEach(([v, t]) => {
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent =
+        t + ' (' + (+frG(u.side, 'od')[v] || 0) + ' now, Tier ' + ROMAN[odTier(u.side, v)] + ')';
+      ps.appendChild(o);
+    });
+    ps.value = ctx.pool;
+    ps.onchange = () => {
+      ctx.pool = ps.value;
+    };
+    box.appendChild(ps);
+  }
   const caster = t =>
     rx(t.rules, 'Priest') ||
     rx(t.rules, 'Wizard') ||
@@ -168,6 +189,7 @@ function spellBox(box, u, asChar, ctx, onDone) {
     vortex = T.side !== u.side && fx(T).some(e => /Elemental Vortex/.test(e));
   const go = succ => {
     ctx.done = true;
+    suppPool = ctx.pool || null;
     resolveSpell(u.id, sp, T.id, succ, asChar).then(line =>
       onDone({ spell: sp.name, target: T.id, line, success: true })
     );
