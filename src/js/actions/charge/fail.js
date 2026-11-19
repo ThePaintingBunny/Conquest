@@ -51,6 +51,23 @@ function failCharge(useMarch) {
   }
   Object.assign(act.pose, p);
   act.chargeFailed = true;
+  /* a flying regiment whose failed Charge leaves it over Impassable terrain or a regiment: it is placed clear by the
+     least movement possible and becomes Broken */
+  let clear = '';
+  if (endPoseWhy(byId(act.id))) {
+    const q = nearestEndPose(byId(act.id));
+    if (q) {
+      clear =
+        ' It ended over ' +
+        (/Impassable/.test(endPoseWhy(byId(act.id))) ? 'Impassable terrain' : 'another regiment') +
+        ', so it is placed ' +
+        Math.hypot(q.x - p.x, q.y - p.y).toFixed(1) +
+        '″ away, clear of it, and becomes Broken.';
+      Object.assign(act.pose, { x: q.x, y: q.y });
+      p = { x: q.x, y: q.y };
+      if (!act.extraFx.includes('Broken')) act.extraFx.push('Broken');
+    }
+  }
   act.actions.push({
     type: 'charge',
     free: false,
@@ -64,7 +81,12 @@ function failCharge(useMarch) {
     moved: k
   });
   act.cur = null;
-  toast('Charge failed. The regiment moves ' + k.toFixed(1) + '″ straight forward and its activation ends.');
+  toast(
+    'Charge failed. The regiment moves ' +
+      k.toFixed(1) +
+      '″ straight forward and its activation ends.' +
+      clear
+  );
   if (encyOpt(u, /Hurl It/i)) {
     const T = byId(c.target);
     if (T && T.onTable && !T.destroyed) {

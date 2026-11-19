@@ -72,6 +72,11 @@ async function aiRegiment(id, source, report, card) {
   }
   if (act && act.entering && !act.actions.some(a => a.type === 'march'))
     await exMarch({ mode: 'fwd', amount: 99 });
+  /* never end over Impassable terrain or a regiment (Fly): the least movement that takes it clear */
+  if (act && !act.chargeFailed && endPoseWhy(byId(act.id))) {
+    const q = nearestEndPose(byId(act.id));
+    if (q) Object.assign(act.pose, { x: q.x, y: q.y });
+  }
   if (act) {
     await saveActivation();
   }

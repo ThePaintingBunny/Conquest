@@ -348,6 +348,12 @@ function renderCard() {
   $('c-warn').hidden = true;
   const inAct = act && act.id === u.id;
   ['note', 'end', 'abort'].forEach(i => ($(i).hidden = !inAct));
+  /* a flying regiment over Impassable terrain or a regiment cannot end its activation there */
+  {
+    const why = inAct && !act.chargeFailed ? endPoseWhy(byId(act.id)) : '';
+    $('end').disabled = !!why;
+    $('end').title = why;
+  }
   $('c-foot').hidden = !inAct;
   $('c-act-sec').classList.toggle('live', !!inAct);
   $('card').classList.toggle('activating', !!inAct);
@@ -1288,8 +1294,12 @@ function renderCard() {
     const G = geom(Object.assign({}, base(act.id), act.pose));
     if (act.pose.y + G.d / 2 > 48.01) w.push('Not every stand is on the table yet; it needs another March.');
   }
-  if (overlapsAny(byId(act.id)) && !(act.cur && act.cur.type === 'charge'))
-    w.push('This regiment overlaps another one.');
+  {
+    const ew = !act.chargeFailed && !act.cur ? endPoseWhy(byId(act.id)) : '';
+    if (ew) w.push(ew + ' Move it clear before you end the activation.');
+    else if (overlapsAny(byId(act.id)) && !(act.cur && act.cur.type === 'charge'))
+      w.push('This regiment overlaps another one.');
+  }
   if (act.cur && MOVE1.includes(act.cur.type) && !act.cur.sweep && act.cur.start) {
     const e = near1(act.cur);
     if (e)

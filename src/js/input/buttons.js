@@ -98,6 +98,13 @@ $('end').onclick = async () => {
     toast('Confirm the entry point first.');
     return;
   }
+  {
+    const why = !act.chargeFailed ? endPoseWhy(byId(act.id)) : '';
+    if (why) {
+      toast(why + ' Move it clear first.');
+      return;
+    }
+  }
   if (!db) {
     toast('The board is read-only in this view, so nothing was saved.');
     return;

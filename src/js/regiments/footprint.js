@@ -4,7 +4,8 @@
  * The regiment's outline on the table, its facing arcs, which enemies it is in contact with and whether
  * a position is legal.
  *
- * In this file: corners(), occPoly(), engaged(), overlapsAny(), arcOf(), poseOk()
+ * In this file: corners(), occPoly(), engaged(), overlapsAny(), arcOf(), poseOk(), endPoseWhy(),
+ *   nearestEndPose()
  */
 
 function corners(u) {
@@ -73,4 +74,39 @@ function poseOk(u, p, opt) {
       if (tHas(t, 'Garrison') && terrDist(A, t) < 1) return false;
     }
   return true;
+}
+
+/* Fly lets a regiment March and Charge over regiments and Impassable terrain, and even stop there between Actions,
+   but not end its activation overlapping a regiment or Impassable terrain. Why this pose cannot end it, or '' */
+function endPoseWhy(u, p) {
+  if (!u) return '';
+  const v = Object.assign({}, u, p || {}, { onTable: true });
+  if (!v.onTable || v.garrison) return '';
+  const A = corners(v);
+  if (terrainOf().some(t => tHas(t, 'Impassable') && terrDist(A, t) === 0))
+    return 'It is over Impassable terrain: a flying regiment may cross it but not end its activation there.';
+  if (all().some(o => o.onTable && !o.destroyed && o.id !== u.id && polyDist(A, corners(o)) <= 0.02))
+    return 'It overlaps another regiment: it may fly over it but not end its activation there.';
+  return '';
+}
+
+/* the legal pose nearest to where it is (same facing): the least movement that takes it clear */
+function nearestEndPose(u) {
+  const ok = p => poseOk(u, p) && !endPoseWhy(u, p);
+  const base = { x: u.x, y: u.y, facing: u.facing || 0, files: geom(u).files };
+  if (ok(base)) return base;
+  for (let r = 0.1; r <= 30; r += 0.1) {
+    const n = Math.max(16, Math.ceil(r * 12));
+    let best = null;
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * Math.PI * 2,
+        p = Object.assign({}, base, { x: base.x + Math.sin(a) * r, y: base.y + Math.cos(a) * r });
+      if (ok(p)) {
+        best = p;
+        break;
+      }
+    }
+    if (best) return best;
+  }
+  return null;
 }

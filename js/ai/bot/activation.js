@@ -71,6 +71,8 @@ function botCrowd(ctx, u, pose) {
 }
 
 function botEnd(ctx, u, from, pose, engagedEnd, skip) {
+  /* flying over Impassable terrain or a regiment is fine, ending there is not */
+  if (!engagedEnd && pose && endPoseWhy(u, pose)) return { s: -5000, ex: 0, zd: 0, pot: 0, pr: 0 };
   const ex = botExposure(ctx, u, pose, skip).risk + (engagedEnd ? 0 : botCrowd(ctx, u, pose) * BOT.crowd),
     zd = botZoneAt(u, pose, ctx) - ctx.zone0,
     pot = engagedEnd ? 0 : botPotential(ctx, u, pose) * BOT.potential,
