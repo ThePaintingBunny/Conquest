@@ -227,7 +227,8 @@ function frBlock(side, f, mine) {
           (18 + s) +
           ', IV from ' +
           (23 + s) +
-          ' (Dark Power IV only with Obdurate Bone and Stone or Glimmers of a Golden Age).'
+          ' (Dark Power IV only with Obdurate Bone and Stone, Master of the Legions or Glimmers of a Golden Age' +
+          (odT4ok(side) ? ': yours has it).' : ': yours does not).')
       )
     );
     if (g.soma !== R)

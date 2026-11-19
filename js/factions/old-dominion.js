@@ -4,7 +4,7 @@
  * Memories of Old, the Dark Power track with its tiers and gauge, and the token sources (Acolytes,
  * Divine Shard, Font of Dark Power).
  *
- * In this file: memOf(), odPts(), odTier(), odTierU(), odThr(), odT4ok(), ROMAN, odGauge(),
+ * In this file: memOf(), odPts(), odTier(), odTierU(), odThr(), OD_T4, odT4ok(), ROMAN, odGauge(),
  *   renderOdTrk(), odLost(), odFontU(), odPendingBox()
  */
 
@@ -35,8 +35,7 @@ function odTier(side, pool) {
   const g = frG(side, 'od'),
     n = +g[pool] || 0,
     s = Math.trunc((odPts(side) - 2000) / 250) * 2,
-    wl = (state.units || []).find(u => u.side === side && u.warlord);
-  const t4ok = pool === 'dark' && wl && /Xhiliarch|Mounted Strategos/.test(wl.charName || '');
+    t4ok = pool === 'dark' && odT4ok(side);
   if (t4ok && n >= 23 + s) return 4;
   return n >= 18 + s ? 3 : n >= 9 + s ? 2 : 1;
 }
@@ -52,9 +51,11 @@ function odThr(side) {
   return [9 + s, 18 + s, 23 + s];
 }
 
+/* Dark Power reaches Tier IV only under a Supremacy Ability that says so (Obdurate Bone and Stone, Master of the
+   Legions, Glimmers of a Golden Age), whether the Warlord's or an allied one's */
+const OD_T4 = ['Obdurate Bone and Stone', 'Master of the Legions', 'Glimmers of a Golden Age'];
 function odT4ok(side) {
-  const wl = (state.units || []).find(u => u.side === side && u.warlord);
-  return !!(wl && /Xhiliarch|Mounted Strategos/.test(wl.charName || ''));
+  return supAll(side).some(S => OD_T4.includes(S.k));
 }
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV'];
