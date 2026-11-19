@@ -4,7 +4,7 @@
  * render() redraws the board and every panel from the current state. It is called after every change.
  *
  * In this file: fitBoard(), BOARD_VIEW, boardRoom, boardMargin(), boardView(), revealIn(), render(),
- *   render0()
+ *   render0(), remotePending, uiBusyField(), renderRemote(), lobbySeen, lobbySig()
  */
 
 /* Fit the board to the screen: as tall as the space below the top bars allows (on wide screens only).
@@ -358,4 +358,55 @@ function render0() {
       : act
         ? 'Finish the current activation first'
         : '';
+}
+
+/* An update from the other player (or the lobby) redraws the page; a dropdown that is open at that moment would be
+   closed and rebuilt under the cursor. While a dropdown or a text field is in use, the redraw waits until the player
+   leaves it. */
+let remotePending = false;
+function uiBusyField() {
+  const a = document.activeElement;
+  return a &&
+    (a.tagName === 'SELECT' ||
+      (a.tagName === 'INPUT' && /^(text|search|number)$/.test(a.type)) ||
+      a.tagName === 'TEXTAREA')
+    ? a
+    : null;
+}
+function renderRemote(fn) {
+  fn = fn || render;
+  const a = uiBusyField();
+  if (!a) {
+    remotePending = false;
+    fn();
+    return;
+  }
+  if (remotePending) return;
+  remotePending = true;
+  const go = () => {
+    a.removeEventListener('blur', go);
+    a.removeEventListener('change', later);
+    if (!remotePending) return;
+    remotePending = false;
+    /* whatever came in meanwhile is redrawn in full */
+    setTimeout(render, 0);
+  };
+  /* a choice made in the dropdown: redraw just after its own handler ran */
+  const later = () => setTimeout(go, 50);
+  a.addEventListener('blur', go);
+  a.addEventListener('change', later);
+}
+
+/* who is in the lobby, without the ping times (online or not is what matters) */
+let lobbySeen = '';
+function lobbySig() {
+  const now = Date.now();
+  return JSON.stringify(
+    Object.keys(lobby || {})
+      .sort()
+      .map(k => {
+        const v = lobby[k] || {};
+        return [k, v.n || '', v.seat || '', now - (+v.t || 0) < 25000, !!v.left];
+      })
+  );
 }

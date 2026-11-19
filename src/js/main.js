@@ -104,7 +104,13 @@
         lobby = sn.exists ? Object.assign({}, sn.data()) : {};
         if (state) {
           try {
-            renderMenu();
+            /* presence pings arrive every few seconds: rebuild the menu only when who is here (or their seat or name)
+               changed, never just for a new timestamp, so its dropdowns stay usable */
+            const sig = lobbySig();
+            if (sig !== lobbySeen) {
+              lobbySeen = sig;
+              renderRemote(renderMenu);
+            }
             renderPresence();
           } catch (e) {}
         }
@@ -146,7 +152,7 @@
           charAct = null;
           setTimeout(() => toast('The host moved the turn on; your activation was dropped.'), 50);
         }
-        render();
+        renderRemote();
       } else {
         state = { step: 'setup', units: [], vp: { cs: 0, nord: 0 }, round: 0, phase: 'New game' };
         applySeat();
