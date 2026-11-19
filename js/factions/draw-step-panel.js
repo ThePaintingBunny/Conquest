@@ -73,8 +73,12 @@ function renderDrawStep(u, fresh) {
       if (!isDrawAb(u, nm, t) && !fx(u).some(x => new RegExp('^' + base.replace(/[^A-Za-z ]/g, '.')).test(x)))
         return;
       if (
-        /^(Bloom|Elemental Conduit|Forged by the Elements|Strain Expression|Memories of Old)/i.test(base) ||
-        notes.includes(base.toLowerCase().split(' ')[0])
+        /^(Bloom|Elemental Conduit|Forged by the Elements|Strain Expression|Memories of Old|Dark Awakening)/i.test(
+          base
+        ) ||
+        notes.includes(base.toLowerCase().split(' ')[0]) ||
+        /* already healed at the start of the activation (the note above says so) */
+        (/^(Regeneration|Biotic Renewal)/i.test(base) && /\bheal/.test(notes))
       )
         return;
       const d = document.createElement('div');

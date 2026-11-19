@@ -156,6 +156,51 @@ function frOptions0(u) {
             : ''
       );
   }
+  /* Dark Awakening (Fallen Angels), Draw Event: discard Power tokens, two for each benefit until the end of the round */
+  if (
+    f === 'Old Dominion' &&
+    !act.entering &&
+    ((frEncy(u) || {}).draw || []).includes('Dark Awakening') &&
+    fresh
+  ) {
+    const g = frG(u.side, 'od'),
+      pools = [
+        ['dark', 'Dark Power'],
+        ['pant', 'Fallen Pantheon']
+      ].filter(([k]) => (+g[k] || 0) >= 2);
+    const BEN = [
+      ['+2 Clash', [], { C: 2 }],
+      ['Cleave (2)', ['Cleave (2)'], null],
+      ['Brutal Impact (2)', ['Brutal Impact (2)'], null],
+      ['Impact (+2)', ['Impact (+2)'], null]
+    ].filter(([n]) => !hasGrant(u, 'Dark Awakening: ' + n));
+    if (pools.length && BEN.length) {
+      out.push({
+        head:
+          'Dark Awakening: discard 2 Power tokens for each benefit until the end of the round (Dark Power ' +
+          (+g.dark || 0) +
+          ', Fallen Pantheon ' +
+          (+g.pant || 0) +
+          ')'
+      });
+      BEN.forEach(([n, rules, stats]) =>
+        pools.forEach(([k, pn]) =>
+          add(n + ' · 2 ' + pn, () => {
+            const g2 = frG(u.side, 'od');
+            if ((+g2[k] || 0) < 2) return toast('Not enough ' + pn + ' tokens.');
+            return grant(
+              u.id,
+              'Dark Awakening: ' + n,
+              rules,
+              stats,
+              'Dark Awakening: discards 2 ' + pn + ' tokens for ' + n + ' until the end of the round.',
+              { fr: frPatch(u.side, 'od', { [k]: (+g2[k] || 0) - 2 }) }
+            );
+          })
+        )
+      );
+    }
+  }
   if (f === "W'adrhŭn" && !act.entering) {
     const g = frG(u.side, 'wa'),
       seq = (g.seq || []).slice(),
