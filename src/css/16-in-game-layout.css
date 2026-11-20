@@ -919,8 +919,16 @@ body.mb-on #turnbar,
 body.mb-on .rcol > :not(#mb-side) {
   display: none !important;
 }
-body.mb-on #board {
+/* the Map builder draws its brush on the pointer itself; the Scenario builder shows a pointer for placing (a cross)
+   or for picking and moving (a hand) */
+body.mb-paint #board {
   cursor: none;
+}
+body.sb-place #board {
+  cursor: crosshair;
+}
+body.sb-pick #board {
+  cursor: grab;
 }
 .mb-side {
   background: var(--panel);

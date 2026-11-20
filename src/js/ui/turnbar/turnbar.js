@@ -270,6 +270,9 @@ function renderTurnbar0() {
   };
   /* the Map builder: its tools go in the side column, in place of the Regiment, Armies and Game tabs */
   document.body.classList.toggle('mb-on', !!(mapEdit || scenEdit));
+  document.body.classList.toggle('mb-paint', !!mapEdit);
+  document.body.classList.toggle('sb-place', !!(scenEdit && scenEdit.tool !== 'select'));
+  document.body.classList.toggle('sb-pick', !!(scenEdit && scenEdit.tool === 'select'));
   {
     const side = $('mb-side');
     if (side && !mapEdit && !scenEdit) side.remove();
