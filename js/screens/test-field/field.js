@@ -59,6 +59,7 @@ async function tfLeave() {
   selId = null;
   charAct = null;
   await putState({
+    _epoch: true,
     mode: 'ai',
     sbSide: null,
     step: 'setup',

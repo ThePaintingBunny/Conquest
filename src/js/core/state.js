@@ -37,12 +37,20 @@ function view(u) {
   return u;
 }
 
-async function putState(patch) {
+/* change the board: shown at once, and an entry in the game log (meta: what the action was, see net-state.js).
+   A patch with _epoch starts a new game: a fresh log from this board */
+async function putState(patch, meta) {
+  if (LOG.replay) {
+    toast('Leave the replay first.');
+    return;
+  }
+  const fresh = !!(patch && patch._epoch);
   const next = sanitize(Object.assign({}, state, patch, { updatedAt: Date.now() }));
-  /* shown at once; the save goes out in the background (only what changed) */
+  delete next._epoch;
   state = next;
   render();
-  await stateSave(next);
+  if (fresh) await logNewEpoch(next);
+  else await stateSave(next, meta);
 }
 
 function N(side) {

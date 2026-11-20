@@ -439,6 +439,7 @@ function renderStrat() {
 }
 
 /* which parts an update from the other player touches, by the fields that changed */
+const RD_NET = ['cbj', 'cbBy', 'cbPose'];
 const RD_STATUS = ['lastTitle', 'lastText', 'phase', 'updatedAt', 'updatedBy', 'lastReinf'],
   RD_BOARD = ['units', 'moves', 'terrain', 'zones'],
   RD_TURN = [
@@ -462,7 +463,10 @@ const RD_STATUS = ['lastTitle', 'lastText', 'phase', 'updatedAt', 'updatedBy', '
 function renderDiff(prev) {
   if (!prev || !state || prev.step !== state.step || prev.mode !== state.mode) return renderRemote();
   const keys = new Set(Object.keys(prev).concat(Object.keys(state)));
-  const K = [...keys].filter(k => JSON.stringify(prev[k]) !== JSON.stringify(state[k]));
+  /* the combat steps travel in the log too; the combat panel draws them, not this */
+  const K = [...keys].filter(
+    k => !RD_NET.includes(k) && JSON.stringify(prev[k]) !== JSON.stringify(state[k])
+  );
   if (!K.length) return;
   if (K.some(k => !RD_STATUS.includes(k) && !RD_BOARD.includes(k) && !RD_TURN.includes(k)))
     return renderRemote();

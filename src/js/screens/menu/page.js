@@ -352,9 +352,7 @@ function renderMenu() {
         } catch (e) {}
         const sd = seatSide();
         if (sd && PVP() && v !== PN(sd))
-          db.doc('game/state')
-            .update({ players: { [sd]: v }, updatedAt: Date.now() })
-            .catch(() => {});
+          stateUpdate({ players: { [sd]: v }, updatedAt: Date.now() }).catch(() => {});
         presencePing(true);
         renderMenu();
         renderTurnbar();

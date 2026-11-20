@@ -144,40 +144,26 @@
     } catch (e) {}
   };
   window.addEventListener('pagehide', () => window.__presenceLeave());
-  db.doc('game/combat').onSnapshot(
-    sn => {
-      if (sn.exists && state && PVP()) onCombat(sn.data());
-    },
-    () => {}
-  );
   const t = setTimeout(() => {
     $('phase').textContent = 'The game state is slow to load.';
   }, 10000);
-  db.doc('game/state').onSnapshot(
-    sn => {
-      clearTimeout(t);
-      if (sn.exists) {
-        const prev = state;
-        state = netIn(sn.data());
-        applySeat();
-        if (PVP() && act && state.turn !== HU) {
-          act = null;
-          cb = null;
-          charAct = null;
-          setTimeout(() => toast('The host moved the turn on; your activation was dropped.'), 50);
-          render();
-        } else if (prev && PVP()) renderDiff(prev);
-        else render();
-      } else {
-        netGone();
-        state = { step: 'setup', units: [], vp: { cs: 0, nord: 0 }, round: 0, phase: 'New game' };
-        applySeat();
-        render();
-      }
-    },
-    () => {
-      clearTimeout(t);
-      $('phase').textContent = 'The map stopped updating. Reload to reconnect.';
-    }
-  );
+  /* the game log: every screen works the board out from the same ordered entries (online/net-state.js) */
+  logStart(st => {
+    clearTimeout(t);
+    const prev = state;
+    state = st;
+    if (!state.units) state.units = [];
+    applySeat();
+    if (PVP() && act && state.turn !== HU && !(state.ovr && state.ovr.side === HU)) {
+      act = null;
+      cb = null;
+      charAct = null;
+      setTimeout(() => toast('The host moved the turn on; your activation was dropped.'), 50);
+      render();
+    } else if (prev && PVP()) renderDiff(prev);
+    else render();
+    /* online combat: the other side's step (its dice, its choice) arrived in the log */
+    if (PVP() && state.cbBy && state.cbBy !== HU && (state.cbj || 'null') !== lastCbJson)
+      onCombat({ by: state.cbBy, cb: state.cbj || 'null', pose: state.cbPose || 'null' });
+  });
 })();

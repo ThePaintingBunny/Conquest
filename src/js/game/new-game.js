@@ -27,6 +27,7 @@ async function newGame() {
   selId = null;
   charAct = null;
   await putState({
+    _epoch: true,
     step: 'setup',
     fr: null,
     sup: null,

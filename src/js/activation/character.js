@@ -99,17 +99,19 @@ async function charCommit(id, extra) {
   );
   try {
     state = sanitize(next);
-    stateSave(state);
-    netEvent({
-      at: Date.now(),
-      side: u.side,
-      character: u.charName,
-      unit: id,
-      kind: 'character',
-      spell: extra.spell || null,
-      target: extra.target || null,
-      rolls: extra.rolls || null,
-      success: extra.success ?? null
+    stateSave(state, {
+      k: 'character',
+      a: {
+        at: Date.now(),
+        side: u.side,
+        character: u.charName,
+        unit: id,
+        kind: 'character',
+        spell: extra.spell || null,
+        target: extra.target || null,
+        rolls: extra.rolls || null,
+        success: extra.success ?? null
+      }
     });
     if (u.side === ME)
       toast(

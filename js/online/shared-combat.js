@@ -1,7 +1,7 @@
 /*
  * Shared combat
  *
- * Online combat where each side rolls its own dice.
+ * Online combat where each side rolls its own dice. Each step travels as an entry in the game log.
  *
  * In this file: cbSync(), onCombat(), cbWho(), cbGate()
  */
@@ -13,9 +13,14 @@ function cbSync() {
   if (v === lastCbJson) return;
   lastCbJson = v;
   const pose = act && cb ? { id: act.id, pose: act.pose } : null;
-  db.doc('game/combat')
-    .set({ by: HU, cb: v, pose: JSON.stringify(pose), at: Date.now() })
-    .catch(() => {});
+  /* a step of the combat is an entry in the game log, so both screens see the steps in the same order as
+     everything else; the board keeps it too, so a page opened mid-combat picks it up */
+  const f = { cbj: v, cbBy: HU, cbPose: JSON.stringify(pose) };
+  if (state) Object.assign(state, f);
+  logAppend(f, {
+    k: 'combat-step',
+    l: cb ? 'Combat: ' + (cb.type || '') + ' · ' + (cb.step || '') : 'Combat closed'
+  });
 }
 
 function onCombat(d) {

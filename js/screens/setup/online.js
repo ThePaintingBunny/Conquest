@@ -55,15 +55,12 @@ function renderSetupPvp(tb, info, mk, add) {
               toast('Fill in your name first.');
               return;
             }
-            return db
-              .doc('game/state')
-              .update(
-                Object.assign(
-                  { seats: { [side]: myId }, updatedAt: Date.now() },
-                  savedName() ? { players: { [side]: savedName() } } : {}
-                )
+            return stateUpdate(
+              Object.assign(
+                { seats: { [side]: myId }, updatedAt: Date.now() },
+                savedName() ? { players: { [side]: savedName() } } : {}
               )
-              .catch(() => toast('That seat could not be taken. Try again.'));
+            ).catch(() => toast('That seat could not be taken. Try again.'));
           })
         )
       );
@@ -75,11 +72,7 @@ function renderSetupPvp(tb, info, mk, add) {
       row.appendChild(
         mk(
           'Leave this seat',
-          () =>
-            db
-              .doc('game/state')
-              .update({ seats: { [side]: null }, updatedAt: Date.now() })
-              .catch(() => {}),
+          () => stateUpdate({ seats: { [side]: null }, updatedAt: Date.now() }).catch(() => {}),
           true
         )
       );
@@ -88,11 +81,7 @@ function renderSetupPvp(tb, info, mk, add) {
       row.appendChild(
         mk(
           'Free this seat',
-          () =>
-            db
-              .doc('game/state')
-              .update({ seats: { [side]: null }, updatedAt: Date.now() })
-              .catch(() => {}),
+          () => stateUpdate({ seats: { [side]: null }, updatedAt: Date.now() }).catch(() => {}),
           true
         )
       );
@@ -110,10 +99,8 @@ function renderSetupPvp(tb, info, mk, add) {
       add,
       mk,
       async L => {
-        await db.doc('game/state').update({ setup: { [me]: null }, updatedAt: Date.now() });
-        await db
-          .doc('game/state')
-          .update({ setup: { [me]: L }, names: { [me]: String(L.faction) }, updatedAt: Date.now() });
+        await stateUpdate({ setup: { [me]: null }, updatedAt: Date.now() });
+        await stateUpdate({ setup: { [me]: L }, names: { [me]: String(L.faction) }, updatedAt: Date.now() });
         toast('Your army is ready.');
       },
       S0[me] ? 'Use this army instead' : 'Use this army'
@@ -177,8 +164,8 @@ function renderSetupPvp(tb, info, mk, add) {
           const L = await convertList(setupDraft.list, setupDraft.faction, setupDraft.pts);
           aiBusy = false;
           aiStatus('');
-          await db.doc('game/state').update({ setup: { [me]: null }, updatedAt: Date.now() });
-          await db.doc('game/state').update({
+          await stateUpdate({ setup: { [me]: null }, updatedAt: Date.now() });
+          await stateUpdate({
             setup: { [me]: L },
             names: { [me]: String(L.faction || setupDraft.faction || (me === 'cs' ? 'South' : 'North')) },
             updatedAt: Date.now()

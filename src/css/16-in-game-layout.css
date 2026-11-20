@@ -800,6 +800,50 @@ body.tb-top #ai-report:not([hidden]) {
   overflow-wrap: anywhere;
 }
 
+/* ---- Replay (Game tab) ---- */
+.rp-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: transparent;
+  cursor: default;
+}
+.rp-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 901;
+  width: min(760px, calc(100vw - 32px));
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  padding: 8px 10px;
+}
+.rp-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.rp-row input[type='range'] {
+  flex: 1 1 160px;
+  min-width: 120px;
+}
+.rp-lab {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+.ovr-undo-h {
+  display: block;
+  margin-top: 10px;
+  font-weight: 700;
+}
+
 /* ---- Map builder ---- */
 .mb-sw {
   display: inline-block;

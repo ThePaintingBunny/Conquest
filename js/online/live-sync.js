@@ -4,7 +4,7 @@
  * Sends the active player's moves and dice rolls to the opponent's screen.
  *
  * In this file: netRoom, liveN, liveSeenN, liveDbAt, liveGlide, liveRoomJoin(), pushLive(), onLive(),
- *   onLiveObj(), liveGlideStep(), rollSince, rollSeen, rollHideT, pubRoll(), onRoll()
+ *   onLiveObj(), liveRaf, liveGlideStep(), rollSince, rollSeen, rollHideT, pubRoll(), onRoll()
  */
 
 /* live view of the opponent's activation. The moving regiment's pose goes out through the room (presence: many

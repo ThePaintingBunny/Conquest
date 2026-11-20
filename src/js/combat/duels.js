@@ -409,17 +409,22 @@ async function recordDuel() {
         : '') +
       overTxt;
   }
-  await putState({ units, lastTitle: N(A.side) + ' · Duel', lastText: text });
+  await putState(
+    { units, lastTitle: N(A.side) + ' · Duel', lastText: text },
+    {
+      k: 'duel',
+      a: {
+        at: Date.now(),
+        kind: 'duel',
+        side: A.side,
+        attacker: A.id,
+        target: T.id,
+        refused: !!c0.refused,
+        duel: c0.duel || null
+      }
+    }
+  );
   lastDuelLine = text;
-  netEvent({
-    at: Date.now(),
-    kind: 'duel',
-    side: A.side,
-    attacker: A.id,
-    target: T.id,
-    refused: !!c0.refused,
-    duel: c0.duel || null
-  }).catch(() => {});
   const inA = c0.inAct,
     charDuel = c0.charDuel;
   cb = null;

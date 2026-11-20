@@ -202,6 +202,28 @@ function ovrPanel() {
       }
     )
   );
+  /* undo through the game log: an entry that puts the board back as it was before a recent change (and can itself
+     be undone) */
+  const rec = logRecent(10).filter(r => r.e && r.e.k !== 'combat-step');
+  if (rec.length) {
+    d.append(
+      bEl('div', { className: 'tf-l ovr-undo-h', textContent: 'Undo a recent change (newest first):' })
+    );
+    rec.slice(0, 6).forEach(r =>
+      row(
+        String(r.e.l || r.e.k || 'Change').slice(0, 90),
+        b('Go back to before this', async () => {
+          act = null;
+          cb = null;
+          charAct = null;
+          aiBusy = false;
+          await logUndo(r.key, r.e.l || r.e.k);
+          toast('Undone.');
+          render();
+        })
+      )
+    );
+  }
   return d;
 }
 

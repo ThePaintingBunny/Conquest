@@ -38,9 +38,8 @@ $('strat-btn').onclick = async () => {
   );
   try {
     state = sanitize(next);
-    stateSave(state);
+    stateSave(state, { k: 'strategic', a: { side: HU } });
     render();
-    netEvent({ at: Date.now(), side: HU, kind: 'strategic-store' });
     toast('Card placed in the Strategic Stack. Press End turn to pass the turn.');
   } catch (e) {
     toast('That could not be saved. Try again in a moment.');

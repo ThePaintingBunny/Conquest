@@ -159,16 +159,18 @@ async function saveActivation() {
     }
   );
   state = sanitize(next);
-  stateSave(state);
-  netEvent({
-    at: Date.now(),
-    side,
-    unit: act.id,
-    source: act.source,
-    entering: act.entering,
-    actions: act.actions,
-    note,
-    final: { x: u.x, y: u.y, facing: u.facing, files: G.files }
+  stateSave(state, {
+    k: 'activation',
+    a: {
+      at: Date.now(),
+      side,
+      unit: act.id,
+      source: act.source,
+      entering: act.entering,
+      actions: act.actions,
+      note,
+      final: { x: u.x, y: u.y, facing: u.facing, files: G.files }
+    }
   });
   act = null;
   render();

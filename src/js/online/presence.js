@@ -154,9 +154,9 @@ function nameInput(side, label, editable) {
       localStorage.setItem('conquest-player-name', v);
     } catch (e) {}
     if (PVP())
-      db.doc('game/state')
-        .update({ players: { [side]: v }, updatedAt: Date.now() })
-        .catch(() => toast('The name could not be saved.'));
+      stateUpdate({ players: { [side]: v }, updatedAt: Date.now() }).catch(() =>
+        toast('The name could not be saved.')
+      );
     else putState({ players: Object.assign({}, state.players || {}, { [side]: v }) });
   };
   i.oninput = () => {

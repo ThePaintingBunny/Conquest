@@ -151,7 +151,7 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
             hammerUsed: false
           });
           huDraft = null;
-          await db.doc('game/state').update({ ready: { [HU]: true }, updatedAt: Date.now() });
+          await stateUpdate({ ready: { [HU]: true }, updatedAt: Date.now() });
         } catch (e) {
           toast('That could not be saved. Try again.');
         }
