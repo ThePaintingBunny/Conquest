@@ -11,11 +11,16 @@ function scenId() {
 }
 
 function scenOf() {
-  return SCEN[scenId()] || SCEN[7];
+  const id = scenId();
+  /* a scenario made in the Scenario builder travels with the game */
+  if (typeof id === 'string' && id.startsWith('c:')) return scenCustom() || SCEN[7];
+  return SCEN[id] || SCEN[7];
 }
 
 function markerUnits(id) {
-  return (SCEN[id].markers || []).map((m, i) => ({
+  const sc = typeof id === 'string' ? scenCustom() || { markers: [] } : SCEN[id] || { markers: [] };
+  return (sc.markers || []).map((m, i) => ({
+    mvp: m.vp != null ? +m.vp : undefined,
     id: 'm-' + (i + 1),
     side: m.side,
     name: 'Objective Marker ' + m.name,
@@ -47,5 +52,6 @@ function isMarker(u) {
 }
 
 function zonesOf() {
+  if (scenEdit) return sbZonesOf();
   return (state && state.zones) || scenOf().zones;
 }

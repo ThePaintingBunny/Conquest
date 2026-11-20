@@ -800,6 +800,75 @@ body.tb-top #ai-report:not([hidden]) {
   overflow-wrap: anywhere;
 }
 
+/* ---- Scenario builder (side column) ---- */
+.mb-side .sb-lab {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.mb-side .sb-field {
+  display: block;
+}
+.mb-side .sb-name,
+.mb-side .sb-notes {
+  width: 100%;
+  box-sizing: border-box;
+}
+.mb-side .sb-step {
+  display: grid;
+  grid-template-columns: 1fr auto 3.2em auto;
+  align-items: center;
+  gap: 6px;
+}
+.mb-side .sb-step .sb-lab {
+  margin: 0;
+}
+.mb-side .sb-pm {
+  min-width: 36px;
+  min-height: 32px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+.mb-side .sb-val {
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mb-side .sb-seg {
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+}
+.mb-side .sb-chips {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+}
+.mb-side .sb-chip {
+  min-height: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.mb-side .sb-chip[aria-pressed='true'] {
+  background: #e8c65a;
+  border-color: #e8c65a;
+  color: #1f1a14;
+  font-weight: 700;
+}
+.mb-side .sb-sum {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid #e8c65a;
+  background: rgba(232, 198, 90, 0.07);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ---- Replay (Game tab) ---- */
 .rp-veil {
   position: fixed;

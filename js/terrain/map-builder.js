@@ -12,7 +12,7 @@
  *
  * In this file: mapEdit, MB_R, MB_W, MB_H, mbMaps(), mbSaveMaps(), mbOpen(), mbClose(), mbGrid(),
  *   mbRaster(), mbStamp(), mbTrace(), mbSmooth(), mbRebuild(), mbStroke, mbPointer(), mbDab(),
- *   mbCursor(), mbArm, mbSure(), mbPanel()
+ *   mbCursor(), mbKey(), mbArm, mbSure(), mbPanel()
  */
 
 let mapEdit = null;

@@ -34,7 +34,7 @@ function mmSetupStep() {
 
 /* which page shows: lobbies while armies are set up, the home menu otherwise (or as an overlay during a game) */
 function mmCurrent() {
-  if (!state || mapEdit) return null;
+  if (!state || mapEdit || scenEdit) return null;
   if (mmOverlay) return mmPage && mmPage !== 'single' && mmPage !== 'multi' ? mmPage : 'home';
   if (mmSetupStep()) {
     if (mmPage) return mmPage;

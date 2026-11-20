@@ -164,6 +164,15 @@ function renderMenu() {
     );
     grid.append(
       mmCard(
+        'Scenario builder',
+        bs('Place objectives, set their points, owners and rounds, and save scenarios to play'),
+        '⚑',
+        () => sbOpen(''),
+        bz
+      )
+    );
+    grid.append(
+      mmCard(
         'Combat calculator',
         'Pit two regiments against each other: wounds per attack and who wins the fight',
         '⚖',

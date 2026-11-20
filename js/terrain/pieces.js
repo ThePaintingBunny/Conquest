@@ -29,6 +29,7 @@ function tId(t) {
 
 function terrainOf() {
   if (mapEdit) return mapEdit.terrain;
+  if (scenEdit) return (scenEdit.sc.map && mbMaps()[scenEdit.sc.map]) || [];
   return state && Array.isArray(state.terrain) ? state.terrain : TERR0;
 }
 

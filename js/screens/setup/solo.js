@@ -341,7 +341,7 @@ function renderSetup(tb, info, mk, add) {
           zones: scenOf().zones,
           lastTitle: 'The armies take the field',
           lastText: `${N('cs')} against ${N('nord')} in ${scenOf().name}. Round 1 begins.`,
-          maxRounds: 10
+          maxRounds: +scenOf().rounds || 10
         });
         act = null;
         cb = null;

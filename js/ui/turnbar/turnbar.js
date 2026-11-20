@@ -81,6 +81,7 @@ function tbInTop() {
   return (
     !!state &&
     !mapEdit &&
+    !scenEdit &&
     !SBX() &&
     !document.body.classList.contains('mm-lobby') &&
     !['setup', 'review'].includes(st)
@@ -268,12 +269,12 @@ function renderTurnbar0() {
     return b;
   };
   /* the Map builder: its tools go in the side column, in place of the Regiment, Armies and Game tabs */
-  document.body.classList.toggle('mb-on', !!mapEdit);
+  document.body.classList.toggle('mb-on', !!(mapEdit || scenEdit));
   {
     const side = $('mb-side');
-    if (side && !mapEdit) side.remove();
+    if (side && !mapEdit && !scenEdit) side.remove();
   }
-  if (mapEdit) {
+  if (mapEdit || scenEdit) {
     let side = $('mb-side');
     if (!side) {
       side = bEl('section', { id: 'mb-side', className: 'mb-side' });
@@ -282,10 +283,11 @@ function renderTurnbar0() {
       if (rc) rc.prepend(side);
     }
     side.innerHTML = '';
-    side.append(bEl('h2', { textContent: 'Map builder' }));
+    side.append(bEl('h2', { textContent: scenEdit ? 'Scenario builder' : 'Map builder' }));
     const addS = e => side.appendChild(e);
     addS(info);
-    mbPanel(side, info, mk, addS);
+    if (scenEdit) sbPanel(side, info, mk, addS);
+    else mbPanel(side, info, mk, addS);
     return;
   }
   if (aiBusy) {

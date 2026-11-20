@@ -120,7 +120,7 @@ function render0() {
     state.strategicHeld = true;
   }
   {
-    const su = state.step === 'setup' && !mapEdit;
+    const su = state.step === 'setup' && !mapEdit && !scenEdit;
     ['.main', '.roster', '#view-hint', '#last', '.score'].forEach(q => {
       const e = document.querySelector(q);
       if (e) e.hidden = su;
@@ -338,6 +338,11 @@ function drawBoard() {
       },
       rg
     );
+  }
+  if (scenEdit) {
+    /* the Scenario builder: its zones, markers and their points, no regiments */
+    sbDraw(ug);
+    return;
   }
   if (mapEdit) {
     /* the Map builder shows an empty table */

@@ -85,7 +85,7 @@ function zoneControl() {
           const o = s === 'cs' ? 'nord' : 'cs';
           return z.friendly !== s && !contested[s] && tot[s] > tot[o] && sz[s] > sz[o];
         }) || null;
-    return Object.assign({}, z, { tot, sz, holder, vp: z.size === 9 ? 3 : 2 });
+    return Object.assign({}, z, { tot, sz, holder, vp: z.vp != null ? +z.vp : z.size === 9 ? 3 : 2 });
   });
 }
 
@@ -113,6 +113,24 @@ function scoreRound(R) {
   ['cs', 'nord'].forEach(s => {
     const H = held(s),
       hn = H.map(z => z.name);
+    /* a scenario from the Scenario builder: everything comes from its settings */
+    if (sc.custom) {
+      const X = sc.extra || {};
+      H.forEach(z => {
+        if (Array.isArray(z.rounds) && z.rounds.length && !z.rounds.includes(R)) return;
+        let v = +z.vp || 0;
+        if (+z.bonusVp && (z.bonusRounds || []).includes(R)) v += +z.bonusVp;
+        P(s, v, z.name);
+      });
+      mk(s)
+        .filter(u => u.side !== s)
+        .forEach(u => P(s, u.mvp != null ? +u.mvp : 3, u.short || 'marker'));
+      if (+X.zonesN && +X.zonesVp && H.length >= +X.zonesN) P(s, +X.zonesVp, X.zonesN + ' or more zones');
+      if (+X.more && H.length > held(opp(s)).length) P(s, +X.more, 'more zones than the enemy');
+      P(s, (+X.regs || 0) * regs(s).length, 'enemy regiments');
+      P(s, (+X.chars || 0) * chars(s).length, 'enemy characters');
+      if (wl(s)) P(s, +X.warlord || 0, 'enemy Warlord slain');
+    }
     if (id === 1) {
       P(s, 3 * enemyMk(s).length, 'enemy markers');
       P(s, 2 * H.length, 'zones');

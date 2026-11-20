@@ -62,9 +62,7 @@ function rosterTable(units, onBanner) {
     );
     const st = bEl('div', { className: 'rc-stats' });
     K.forEach(k =>
-      st.append(
-        bEl('div', {}, [bEl('span', { textContent: k }), bEl('b', { textContent: val(S0[k]) })])
-      )
+      st.append(bEl('div', {}, [bEl('span', { textContent: k }), bEl('b', { textContent: val(S0[k]) })]))
     );
     c.append(st);
     if ((u.rules || []).length)
@@ -153,10 +151,32 @@ function scenarioPanel(add, mk) {
     o.textContent = k + '. ' + SCEN[k].name;
     sel.appendChild(o);
   });
+  /* scenarios made in the Scenario builder on this device */
+  const mine = scenCustomList(),
+    cur = state.customScen;
+  if (mine.length || cur) {
+    const og = bEl('optgroup', { label: 'Your scenarios' });
+    const names = mine.map(([k]) => k);
+    if (cur && cur.name && !names.includes(cur.name)) names.push(cur.name);
+    names.forEach(k => og.append(bEl('option', { value: 'c:' + k, textContent: k })));
+    sel.appendChild(og);
+  }
   sel.value = String(scenId());
   sel.onchange = async () => {
-    const id = +sel.value;
-    const patch = { scenario: id, zones: SCEN[id].zones };
+    let patch;
+    if (sel.value.startsWith('c:')) {
+      const nm = sel.value.slice(2),
+        c = sbScens()[nm] || (state.customScen && state.customScen.name === nm ? state.customScen : null);
+      if (!c) return toast('That scenario is not on this device.');
+      patch = {
+        scenario: sel.value,
+        customScen: JSON.parse(JSON.stringify(c)),
+        zones: (c.zones || []).map(sbZone)
+      };
+    } else {
+      const id = +sel.value;
+      patch = { scenario: id, customScen: null, zones: SCEN[id].zones };
+    }
     await putState(patch);
     if (terrMode === 'random') await putState({ terrain: genTerrain() });
     else {
