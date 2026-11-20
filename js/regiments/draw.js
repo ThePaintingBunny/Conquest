@@ -7,7 +7,7 @@
  */
 
 /* the stand-type symbol inside one stand (x, y, w, d: the stand on the board): X infantry, slash cavalry, one long slash
-   for cavalry on a double Stand, boxed X brute, slash and wheel chariot */
+   for cavalry on a double Stand, bold X with a solid block brute, slash and wheel chariot */
 function standMark(type, x, y, w, d, g) {
   const i = Math.min(w, d) * 0.22,
     st = {
@@ -25,8 +25,23 @@ function standMark(type, x, y, w, d, g) {
     /* a model on a double Stand: one long slash, top right to bottom left */
     path(`M${x + i} ${y + d - i}L${x + w - i} ${y + i}`);
   } else if (type === 'brute') {
-    el('rect', Object.assign({ x: x + i, y: y + i, width: w - 2 * i, height: d - 2 * i, rx: 1 }, st), g);
-    X(x + i, y + i, x + w - i, y + d - i);
+    /* a bold X with a solid block where the strokes cross */
+    const cx = x + w / 2,
+      cy = y + d / 2,
+      r = Math.min(w, d) * 0.25;
+    path(`M${x + i} ${y + i}L${x + w - i} ${y + d - i}M${x + w - i} ${y + i}L${x + i} ${y + d - i}`).setAttribute(
+      'stroke-width',
+      1.6
+    );
+    el(
+      'polygon',
+      {
+        points: `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`,
+        fill: 'rgba(255,243,224,0.82)',
+        'pointer-events': 'none'
+      },
+      g
+    );
   } else if (type === 'chariot') {
     /* the slash of cavalry in front, a wheel behind */
     const cx = x + w / 2,
