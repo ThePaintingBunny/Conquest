@@ -99,6 +99,7 @@ function placeTurnbar(tb) {
       .filter(k => k.tagName === 'DETAILS' || (k.classList && k.classList.contains('ng')))
       .forEach(k => gp.appendChild(k));
     gp.appendChild(glogPanel());
+    if (PVP()) gp.appendChild(netPanel());
   } else if (tb.parentNode === slot) $('mm').after(tb);
   document.body.classList.toggle('tb-top', tbInTop());
   placeNetBar();

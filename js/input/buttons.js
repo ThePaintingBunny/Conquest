@@ -37,13 +37,10 @@ $('strat-btn').onclick = async () => {
     srGodflesh(HU, held.huHeld)
   );
   try {
-    await db.doc('game/state').set(sanitize(next));
-    state = next;
+    state = sanitize(next);
+    stateSave(state);
     render();
-    await db
-      .collection('events')
-      .doc('e' + Date.now())
-      .set({ at: Date.now(), side: HU, kind: 'strategic-store' });
+    netEvent({ at: Date.now(), side: HU, kind: 'strategic-store' });
     toast('Card placed in the Strategic Stack. Press End turn to pass the turn.');
   } catch (e) {
     toast('That could not be saved. Try again in a moment.');

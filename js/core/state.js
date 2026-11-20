@@ -38,10 +38,11 @@ function view(u) {
 }
 
 async function putState(patch) {
-  const next = Object.assign({}, state, patch, { updatedAt: Date.now() });
-  await db.doc('game/state').set(sanitize(next));
+  const next = sanitize(Object.assign({}, state, patch, { updatedAt: Date.now() }));
+  /* shown at once; the save goes out in the background (only what changed) */
   state = next;
   render();
+  await stateSave(next);
 }
 
 function N(side) {

@@ -8,6 +8,13 @@
   try {
     db = await window.claude?.use?.('db');
   } catch (e) {}
+  /* the room carries live moves (never stored); a page that cannot join it uses game/live alone */
+  try {
+    window.claude
+      ?.use?.('room')
+      .then(r => liveRoomJoin(r))
+      .catch(() => {});
+  } catch (e) {}
   try {
     window.claude
       ?.use?.('sample')
@@ -151,8 +158,7 @@
       clearTimeout(t);
       if (sn.exists) {
         const prev = state;
-        state = Object.assign({}, sn.data());
-        if (!state.units) state.units = [];
+        state = netIn(sn.data());
         applySeat();
         if (PVP() && act && state.turn !== HU) {
           act = null;
@@ -163,6 +169,7 @@
         } else if (prev && PVP()) renderDiff(prev);
         else render();
       } else {
+        netGone();
         state = { step: 'setup', units: [], vp: { cs: 0, nord: 0 }, round: 0, phase: 'New game' };
         applySeat();
         render();

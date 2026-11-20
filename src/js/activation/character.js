@@ -98,22 +98,19 @@ async function charCommit(id, extra) {
     }
   );
   try {
-    await db.doc('game/state').set(sanitize(next));
-    state = next;
-    await db
-      .collection('events')
-      .doc('e' + Date.now())
-      .set({
-        at: Date.now(),
-        side: u.side,
-        character: u.charName,
-        unit: id,
-        kind: 'character',
-        spell: extra.spell || null,
-        target: extra.target || null,
-        rolls: extra.rolls || null,
-        success: extra.success ?? null
-      });
+    state = sanitize(next);
+    stateSave(state);
+    netEvent({
+      at: Date.now(),
+      side: u.side,
+      character: u.charName,
+      unit: id,
+      kind: 'character',
+      spell: extra.spell || null,
+      target: extra.target || null,
+      rolls: extra.rolls || null,
+      success: extra.success ?? null
+    });
     if (u.side === ME)
       toast(
         'The ' +

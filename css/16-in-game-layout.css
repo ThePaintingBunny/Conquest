@@ -791,6 +791,15 @@ body.tb-top #ai-report:not([hidden]) {
   padding-top: 10px;
 }
 
+/* ---- Connection (Game tab, online games) ---- */
+.netp-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  padding: 6px 0 2px;
+  overflow-wrap: anywhere;
+}
+
 /* ---- Map builder ---- */
 .mb-sw {
   display: inline-block;

@@ -120,12 +120,9 @@ async function recordCombat0() {
         lastText: textM,
         updatedAt: Date.now()
       });
-      await db.doc('game/state').set(sanitize(nextM));
-      state = nextM;
-      await db
-        .collection('events')
-        .doc('e' + Date.now())
-        .set(Object.assign({ at: Date.now(), kind: 'combat', side: A.side }, sum));
+      state = sanitize(nextM);
+      stateSave(state);
+      netEvent(Object.assign({ at: Date.now(), kind: 'combat', side: A.side }, sum));
       const inA = cb.inAct,
         resume = cb.resumeAct;
       cb = null;
@@ -294,12 +291,9 @@ async function recordCombat0() {
       lastText: text,
       updatedAt: Date.now()
     });
-    await db.doc('game/state').set(sanitize(nextS));
-    state = nextS;
-    await db
-      .collection('events')
-      .doc('e' + Date.now())
-      .set(Object.assign({ at: Date.now(), kind: 'combat', side: A.side, dieFight: !!cb.dieFight }, sum));
+    state = sanitize(nextS);
+    stateSave(state);
+    netEvent(Object.assign({ at: Date.now(), kind: 'combat', side: A.side, dieFight: !!cb.dieFight }, sum));
     if (sum.type === 'freform' && act && act.cur && act.cur.type === 'withdraw') {
       cb = null;
       renderCombat();

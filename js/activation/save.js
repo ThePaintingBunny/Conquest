@@ -158,21 +158,18 @@ async function saveActivation() {
       updatedAt: Date.now()
     }
   );
-  await db.doc('game/state').set(sanitize(next));
-  state = next;
-  await db
-    .collection('events')
-    .doc('e' + Date.now())
-    .set({
-      at: Date.now(),
-      side,
-      unit: act.id,
-      source: act.source,
-      entering: act.entering,
-      actions: act.actions,
-      note,
-      final: { x: u.x, y: u.y, facing: u.facing, files: G.files }
-    });
+  state = sanitize(next);
+  stateSave(state);
+  netEvent({
+    at: Date.now(),
+    side,
+    unit: act.id,
+    source: act.source,
+    entering: act.entering,
+    actions: act.actions,
+    note,
+    final: { x: u.x, y: u.y, facing: u.facing, files: G.files }
+  });
   act = null;
   render();
 }
