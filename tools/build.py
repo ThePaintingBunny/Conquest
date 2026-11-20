@@ -58,7 +58,8 @@ footer = ('<footer class="fan-note"><p>Version ' + STAMP + '. Unofficial, fan-ma
           '<a href="https://www.para-bellum.com/" rel="noopener">Para Bellum Wargames</a>; this project is not affiliated with or endorsed by them. '
           'Unit data and rule summaries are paraphrased from their free army lists; always check the '
           '<a href="https://www.para-bellum.com/rules-and-faq/" rel="noopener">official rules and army lists</a>.</p></footer>\n')
-body = swap_page(body, '<!-- runtime -->', footer + '<script src="firebase-config.js"></script>\n<script src="shim.js"></script>')
+body = swap_page(body, '<!-- runtime -->', footer + '<script>window.CONQUEST_VERSION = "' + VER + '";</script>\n'
+                '<script src="firebase-config.js?v=' + VER + '"></script>\n<script src="shim.js?v=' + VER + '"></script>')
 
 # Cache busting: every css/js link gets the build version.
 versioned = lambda s: re.sub(r'((?:href|src)="(?:css|js)/[^"?]+)"', r'\1?v=' + VER + '"', s)

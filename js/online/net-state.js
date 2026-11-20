@@ -781,10 +781,19 @@ function netPanelFill() {
       : 'Saves: none yet in this session.',
     `Log: entry ${Math.max(0, logMaxN() + 1)} · ${LOG.ent.size} since the last checkpoint · waiting to be saved: ${LOG.q.length + LOG.mine.size}`,
     `Live moves: ${s.liveVia || 'saved updates, about 5 a second'}` + (s.live ? ` · ${s.live} received` : ''),
+    (() => {
+      const net = window.__conquestNet,
+        r = net && typeof net.rejected === 'function' ? net.rejected() : [];
+      return net && net.mode === 'host'
+        ? r.length
+          ? `As host: refused ${r.length} change${r.length > 1 ? 's' : ''} from other players (latest: ${r[r.length - 1].p})`
+          : 'As host: every change from the other players was accepted.'
+        : '';
+    })(),
     LOG.issues.length
       ? `Checks: ${LOG.issues.length} note${LOG.issues.length > 1 ? 's' : ''} (latest: ${LOG.issues[LOG.issues.length - 1]})`
       : 'Checks: every entry matches on both screens.'
   ];
   b.textContent = '';
-  lines.forEach(t => b.appendChild(bEl('div', { textContent: t })));
+  lines.filter(Boolean).forEach(t => b.appendChild(bEl('div', { textContent: t })));
 }

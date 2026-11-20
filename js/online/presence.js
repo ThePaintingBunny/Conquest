@@ -20,6 +20,8 @@ function presencePing(force) {
   if (!force && now - presLast < 8000) return;
   presLast = now;
   const me = { n: savedName() || '', t: now, seat: seatSide() || null };
+  /* the build this page runs (outside Claude), so two players on different versions are told to reload */
+  if (window.CONQUEST_VERSION) me.v = String(window.CONQUEST_VERSION);
   const d = db.doc('game/lobby'),
     full = () => {
       try {
@@ -116,12 +118,21 @@ function renderPresence() {
   const watch = lobbyPeople().filter(p => !p.seat && p.online).length;
   el0.hidden = false;
   el0.innerHTML = '';
+  const vOld = !!(v && v.v && window.CONQUEST_VERSION && v.v !== String(window.CONQUEST_VERSION));
+  if (vOld && renderPresence.warned !== v.v) {
+    renderPresence.warned = v.v;
+    toast(
+      (PN(opp) || 'Your opponent') +
+        ' is on a different version of the game. Both of you reload the page, or moves may not get through.'
+    );
+  }
   el0.append(
     bEl('span', { className: 'nb-dot ' + (on ? 'on' : 'off') }),
     document.createTextNode(
       (PN(opp) || 'Opponent') +
         (id ? (on ? ' connected' : v && v.left ? ' has left' : ' not connected') : ' — seat open') +
-        (watch ? ' · ' + watch + ' watching' : '')
+        (watch ? ' · ' + watch + ' watching' : '') +
+        (vOld ? ' · different version: both reload' : '')
     )
   );
 }
