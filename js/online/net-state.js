@@ -25,11 +25,12 @@
  * Undo: an entry that puts the board back as it was after an earlier entry. Replays: the first board and every entry
  * since, stepped through in the Game tab.
  *
- * In this file: netW, LOG, LOG_CHUNK, netKey(), netIsObj(), stEncode(), netNoNull(), stDecode(), stPatch(),
- *   stMerge(), netHash(), logKeyN(), logChunkOf(), logStart(), logOpen(), logSubChunks(), logRebuild(),
- *   logApply(), logCheck(), logEmit(), logAppend(), stateSave(), stateUpdate(), logPump(), logEnsureChunk(),
- *   logCheckpoint(), logNewEpoch(), logMigrate(), logUndo(), logRecent(), netEvent(), netStat(), netPanel(),
- *   netPanelFill()
+ * In this file: netW, LOG_CHUNK, LOG, netKey(), netIsObj(), stEncode(), netNoNull(), stDecode(),
+ *   stPatch(), stMerge(), netHash(), logKeyN(), logChunkOf(), logPath, logStart(), logOpen(),
+ *   logSetCk(), logSubChunks(), logRebuild(), logApply(), logChecked, logCheck(), logEmit(), logMaxN(),
+ *   logAppend(), stateSave(), stateUpdate(), logPump(), logVerify(), logEnsureChunk(), logCheckpoint(),
+ *   logNewEpoch(), logFlushEarly(), logMigrating, logMigrate(), logRecent(), logUndo(), netEvent(),
+ *   netStat(), netPanel(), netPanelFill()
  */
 
 const netW = {
@@ -44,6 +45,7 @@ const LOG = {
   ck: null /* {s, inc: Set, top, floor} */,
   ent: new Map() /* key → entry, every entry known that is not folded into the checkpoint */,
   mine: new Set() /* keys of our own entries not yet written */,
+  sent: new Map() /* key → when our entry was written (to notice one the host refused) */,
   subs: new Map() /* chunk number → unsubscribe */,
   have: new Set() /* chunk documents known to exist */,
   cache: [] /* [{key, enc}]: the board after each entry, in order */,
@@ -296,6 +298,18 @@ function logSubChunks() {
         netW.st.snaps++;
         const e = (sn.data() || {}).e || {};
         let ch = false;
+        /* our own entry, written a while ago but not in the document: the game's host refused it */
+        const now = Date.now();
+        [...LOG.ent.keys()].forEach(k => {
+          if (logChunkOf(logKeyN(k)) !== c || e[k] || LOG.mine.has(k)) return;
+          const at = LOG.sent.get(k);
+          if (at && now - at > 2500) {
+            LOG.ent.delete(k);
+            LOG.sent.delete(k);
+            ch = true;
+            toast('A change was not accepted by the game’s host.');
+          }
+        });
         Object.keys(e).forEach(k => {
           if (!e[k] || LOG.ent.get(k) === e[k]) return;
           if (LOG.ck && (LOG.ck.inc.has(k) || logKeyN(k) < LOG.ck.floor)) return;
@@ -535,12 +549,41 @@ async function logPump() {
     }
     js.forEach(j => {
       LOG.mine.delete(j.key);
+      if (LOG.ent.has(j.key)) LOG.sent.set(j.key, Date.now());
       j.res();
     });
+    if (LOG.sent.size > 200) [...LOG.sent.keys()].slice(0, 100).forEach(k => LOG.sent.delete(k));
+    /* a few seconds on, check the entries really are in the log (outside Claude the game's host can refuse them) */
+    {
+      const keys = js.map(j => j.key),
+        ep = js[0].epoch;
+      setTimeout(() => logVerify(ep, c, keys), 3000);
+    }
   }
   LOG.busy = false;
   logCheckpoint();
   if (LOG.q.length) logPump();
+}
+
+/* our entries that the stored log does not have: taken back out */
+async function logVerify(ep, c, keys) {
+  if (ep !== LOG.epoch) return;
+  let sn = null;
+  try {
+    sn = await db.doc(logPath.lg(ep, c)).get();
+  } catch (e) {
+    return;
+  }
+  if (!sn || !sn.exists || ep !== LOG.epoch) return;
+  const e = (sn.data() || {}).e || {},
+    gone = keys.filter(k => !e[k] && LOG.ent.has(k) && !LOG.mine.has(k));
+  if (!gone.length) return;
+  gone.forEach(k => {
+    LOG.ent.delete(k);
+    LOG.sent.delete(k);
+  });
+  logRebuild();
+  toast('A change was not accepted by the game’s host.');
 }
 
 /* make sure an entry document exists before writing to it; created empty, under a short lease so two screens never
@@ -594,7 +637,8 @@ async function logNewEpoch(st) {
   const ep = Date.now().toString(36) + LOG.tab,
     enc = stEncode(st),
     ck = { s: enc, inc: [], top: -1, floor: 0, h: netHash(enc), at: Date.now(), by: myId || '' };
-  const old = LOG.epoch;
+  const old = LOG.epoch,
+    oldTop = logMaxN();
   logOpen(ep, ck);
   LOG.enc = null;
   logRebuild();
@@ -603,6 +647,18 @@ async function logNewEpoch(st) {
     await db.doc(logPath.ck(ep)).set(ck);
     await logEnsureChunk(0, ep);
     await db.doc(logPath.head()).set({ epoch: ep, at: Date.now(), prev: old || '' });
+    /* the previous game's log is no longer needed (a browser that keeps the game, as the host does outside
+       Claude, has limited room) */
+    if (old)
+      [logPath.c0(old), logPath.ck(old)]
+        .concat(Array.from({ length: logChunkOf(Math.max(0, oldTop)) + 2 }, (_, c) => logPath.lg(old, c)))
+        .forEach(path => {
+          try {
+            db.doc(path)
+              .delete()
+              .catch(() => {});
+          } catch (e) {}
+        });
   } catch (e) {
     console.error(e);
     toast('The new game could not be saved. Check your connection.');

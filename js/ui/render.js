@@ -5,7 +5,7 @@
  *
  * In this file: fitBoard(), BOARD_VIEW, boardRoom, boardMargin(), boardView(), revealIn(), render(),
  *   render0(), remotePending, uiBusyField(), renderRemote(), lobbySeen, lobbySig(), renderStatus(),
- *   drawBoard(), renderStrat(), RD_STATUS, RD_BOARD, RD_TURN, renderDiff()
+ *   drawBoard(), renderStrat(), RD_NET, RD_STATUS, RD_BOARD, RD_TURN, renderDiff()
  */
 
 /* Fit the board to the screen: as tall as the space below the top bars allows (on wide screens only).

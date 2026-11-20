@@ -132,9 +132,71 @@
     });
     return out;
   }
+  /* the game's board as the host has it now (the game keeps it in its own global) */
+  function hostBoard() {
+    try { if (typeof state !== 'undefined' && state) return state; } catch (e) { }
+    return docs['game/state'] || {};
+  }
+  /* a change inside a game log entry: the same rules as a direct write to the board. Returns the change to keep,
+     or null to refuse the entry */
+  function vetChange(from, d, seated) {
+    if (d == null) return d;
+    if (typeof d !== 'object' || Array.isArray(d)) return null;
+    const st = hostBoard(), cur = st.seats || {};
+    d = Object.assign({}, d);
+    if ('seats' in d) {
+      const want = d.seats && typeof d.seats === 'object' ? d.seats : {};
+      const ok = allowedSeats(from, cur, want), out = {};
+      ['cs', 'nord'].forEach(side => { if (side in want && (ok[side] || null) !== (cur[side] || null)) out[side] = ok[side]; });
+      if (Object.keys(out).length) d.seats = out; else delete d.seats;
+    }
+    if ('hostId' in d) delete d.hostId;
+    if (seated) return d;
+    /* not seated: only taking an open seat, with your name on it */
+    const side = d.seats ? Object.keys(d.seats).find(k => d.seats[k] === from) : null;
+    if (!side) return null;
+    if (Object.keys(d).some(k => !['seats', 'players', 'updatedAt'].includes(k))) return null;
+    if (d.players) {
+      if (d.players[side] == null) delete d.players;
+      else d.players = { [side]: String(d.players[side]).slice(0, 24) };
+    }
+    return d;
+  }
+  /* a write to the game log (game/lg-…, game/ck-…, game/c0-…, game/head): entries are checked one by one */
+  function vetLog(from, p, v, u) {
+    const st = hostBoard(), seated = !!seatOf(from, st.seats || {});
+    if (!v || typeof v !== 'object') return null;
+    if (/^game\/lg-/.test(p)) {
+      /* creating an empty entry document */
+      if (!u) return docs[p] == null && v.e && typeof v.e === 'object' && !Object.keys(v.e).length ? { e: {} } : null;
+      const E = v.e && typeof v.e === 'object' ? v.e : null;
+      if (!E) return null;
+      const out = {};
+      Object.keys(E).forEach(k => {
+        const e = E[k];
+        if (!e || typeof e !== 'object' || e.u !== from) return;
+        if (docs[p] && docs[p].e && docs[p].e[k]) return; /* entries are never rewritten */
+        if (!seated && e.k !== 'setup') return;
+        if (e.k === 'undo' && !seated) return;
+        const d = vetChange(from, e.d, seated);
+        if (d === null) return;
+        out[k] = Object.assign({}, e, { d });
+      });
+      return Object.keys(out).length ? { e: out } : null;
+    }
+    /* the board as a whole (a checkpoint, a new game, which game is current): seated players only, never the host */
+    if (!seated) return null;
+    if (/^game\/(ck|c0)-/.test(p) && v.s && typeof v.s === 'object') {
+      const hid = st.hostId;
+      v = Object.assign({}, v, { s: Object.assign({}, v.s) });
+      if (hid !== undefined) v.s.hostId = hid; else delete v.s.hostId;
+    }
+    return v;
+  }
   /* returns the write to apply, or null to refuse it */
   function vet(from, p, v, u) {
-    if (isPrivate(p) || p.startsWith('events/') || !/^game\/[a-z]+$/.test(p)) return null;
+    if (isPrivate(p) || p.startsWith('events/') || !/^game\/[A-Za-z0-9-]+$/.test(p)) return null;
+    if (/^game\/(lg|ck|c0)-[A-Za-z0-9-]+$/.test(p) || p === 'game/head') return vetLog(from, p, v, u);
     if (p === 'game/lobby') {
       /* the lobby: everyone may update their own line, nothing else */
       return u && v && typeof v === 'object' && Object.keys(v).length === 1 && Object.keys(v)[0] === from ? v : null;
@@ -196,7 +258,7 @@
     if (v === null) {
       /* refused: the writer already shows its own change, so send everyone the real document again */
       rejected.push({ from: w.from, p: w.p, at: Date.now() }); if (rejected.length > 20) rejected.shift();
-      if (w.p === 'game/state' && docs[w.p] !== undefined) return hostPublish(w.p);
+      if (docs[w.p] !== undefined) return hostPublish(w.p);
       return;
     }
     hostWrite(w.p, v, !!w.u);
