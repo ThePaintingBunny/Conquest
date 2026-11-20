@@ -253,7 +253,7 @@ function netPanelFill() {
         ` · about ${Math.round(s.bytes / s.n)} bytes each`
       : 'Saves: none yet in this session.',
     `Waiting to be saved: ${netW.pending.length + (netW.q ? 1 : 0)} · updates received: ${s.snaps}`,
-    `Live moves: ${s.liveVia || 'not connected yet'}` + (s.live ? ` · ${s.live} received` : '')
+    `Live moves: ${s.liveVia || 'saved updates, about 5 a second'}` + (s.live ? ` · ${s.live} received` : '')
   ];
   b.textContent = '';
   lines.forEach(t => b.appendChild(bEl('div', { textContent: t })));
