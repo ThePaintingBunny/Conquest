@@ -49,8 +49,12 @@ function buildUnits(side, list) {
       hold = !!(ch0 && /Mimetic Assassin/.test(ch0.name)),
       ch = hold ? null : ch0,
       tot = stands + (hasAux ? 1 : 0) + (ch ? 1 : 0);
+    /* a regiment on double Stands (Yoroni Oni Kishin: "2 double Stands with 1 Model on each"): each model is one
+       Stand, two stands deep (2″ wide, 4″ deep), and counts as one Stand for every rule */
+    const dbl =
+      typ !== 'monster' && /\bdouble stands?\b/i.test((encyLookup(list.faction, x.name) || {}).stands || '');
     const sw = typ === 'monster' ? 4 : 2,
-      sd = typ === 'monster' ? 4 : typ === 'chariot' ? 4 : 2,
+      sd = typ === 'monster' ? 4 : typ === 'chariot' || dbl ? 4 : 2,
       files = typ === 'monster' || typ === 'chariot' ? 1 : Math.min(tot, tot >= 4 ? (tot >= 8 ? 4 : 3) : tot);
     const rules = (x.rules || []).map(String);
     const vg = +((rules.join(', ').match(/Vanguard\s*\((\d+)\)/) || [])[1] || 0);
@@ -66,6 +70,7 @@ function buildUnits(side, list) {
       vanguard: vg,
       sw,
       sd,
+      dbl: dbl || undefined,
       stands: tot,
       files,
       cmd: files >= 3 ? 1 : 0,
