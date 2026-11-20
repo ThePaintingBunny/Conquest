@@ -42,12 +42,6 @@ function drawTerrain() {
     k = JSON.stringify(T) + '|' + (typeof terrSel === 'number' ? terrSel : '');
   if (k === terrKey) return;
   terrKey = k;
-  /* the decorative road turns with the table for the player on the far side */
-  const road = $('road');
-  if (road) {
-    if (FLIP) road.removeAttribute('transform');
-    else road.setAttribute('transform', 'rotate(180 422 208)');
-  }
   ['forests', 'hills', 'rocks', 'terr-low'].forEach(i => ($(i).innerHTML = ''));
   T.forEach((t, i) => {
     const g = el('g', { 'data-tid': String(i), class: 'tpiece' }, $(TLAYER[t.type] || 'rocks'));
