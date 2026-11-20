@@ -12,7 +12,7 @@
  *
  * In this file: mapEdit, MB_R, MB_W, MB_H, mbMaps(), mbSaveMaps(), mbOpen(), mbClose(), mbGrid(),
  *   mbRaster(), mbStamp(), mbTrace(), mbSmooth(), mbRebuild(), mbStroke, mbPointer(), mbDab(),
- *   mbCursor(), mbArm, mbSure(), mbPanel()
+ *   mbCursor(), mbKey(), mbArm, mbSure(), mbPanel()
  */
 
 let mapEdit = null;
@@ -47,6 +47,8 @@ function mbOpen(name) {
     name: name || '',
     type: 'forest',
     tool: 'paint',
+    bv: 'house',
+    brot: 0,
     size: 1.5,
     grids: {},
     placed: [],
@@ -54,7 +56,7 @@ function mbOpen(name) {
     dirty: false
   };
   T.forEach(t => {
-    if (t.pts) mbRaster(t);
+    if (t.pts && t.type !== 'building') mbRaster(t);
     else mapEdit.placed.push(JSON.parse(JSON.stringify(t)));
   });
   mbRebuild();
@@ -259,14 +261,7 @@ function mbPointer(ev, kind) {
   if (kind === 'down') {
     if (mapEdit.tool === 'building') {
       if (p[0] < 0 || p[0] > 72 || p[1] < 0 || p[1] > 48) return;
-      mapEdit.placed.push({
-        type: 'building',
-        x: +p[0].toFixed(2),
-        y: +p[1].toFixed(2),
-        rx: 2.5,
-        ry: 1.8,
-        seed: (Date.now() % 997) + 1
-      });
+      mapEdit.placed.push(bvPiece(mapEdit.bv || 'house', p[0], p[1], mapEdit.brot || 0));
       mapEdit.dirty = true;
       mbRebuild();
       drawBoard();
@@ -331,13 +326,13 @@ function mbCursor(ev) {
   const p0 = svgPt(ev),
     M = mapEdit;
   if (M.tool === 'building') {
+    const q = [ix(p0.x), iy(p0.y)];
     el(
-      'rect',
+      'polygon',
       {
-        x: p0.x - 2.5 * S,
-        y: p0.y - 1.8 * S,
-        width: 5 * S,
-        height: 3.6 * S,
+        points: bvPts(M.bv || 'house', M.brot || 0)
+          .map(([dx, dy]) => px(q[0] + dx).toFixed(1) + ',' + py(q[1] + dy).toFixed(1))
+          .join(' '),
         fill: TBASE.building,
         'fill-opacity': 0.35,
         stroke: '#F3E6C4',
@@ -366,6 +361,22 @@ function mbCursor(ev) {
   );
   el('circle', { cx: p0.x, cy: p0.y, r: 1.6, fill: erase ? '#E57373' : '#F3E6C4' }, g);
 }
+
+/* Q and E turn the building about to be placed */
+function mbKey(ev) {
+  if (!mapEdit || mapEdit.tool !== 'building') return;
+  const a = document.activeElement;
+  if (a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return;
+  const k = ev.key.toLowerCase();
+  if (k !== 'q' && k !== 'e') return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  mapEdit.brot = ((((mapEdit.brot || 0) + (k === 'e' ? 15 : -15)) % 360) + 360) % 360;
+  renderTurnbar();
+  if (mbKey.last) mbCursor(mbKey.last);
+}
+document.addEventListener('keydown', mbKey, true);
+document.addEventListener('pointermove', ev => (mbKey.last = ev), true);
 
 document.addEventListener('pointerleave', () => {
   const g = document.getElementById('mbcur');
@@ -455,6 +466,40 @@ function mbPanel(tb, info, mk, add) {
       }
     )
   );
+  if (M.tool === 'building') {
+    head('Building');
+    add(
+      grp(
+        'Kind of building',
+        Object.entries(BVAR).map(([k, B]) => [k, B.name + ' · ' + B.w + '×' + B.d + '″']),
+        M.bv || 'house',
+        v => {
+          M.bv = v;
+          renderTurnbar();
+        }
+      )
+    );
+    {
+      const B = BVAR[M.bv || 'house'];
+      add(
+        ptext(`${B.name}: ${B.note}. Holds ${B.cap} stand${B.cap > 1 ? 's' : ''}, Defense +${B.def}.`, 'hint')
+      );
+      const row = bEl('div', { className: 'row mb-rot' });
+      const turn = d => {
+        M.brot = ((((M.brot || 0) + d) % 360) + 360) % 360;
+        renderTurnbar();
+      };
+      row.append(
+        mk('↺ 15°', () => turn(-15), true),
+        bEl('span', {
+          className: 'read',
+          textContent: 'Turned ' + (M.brot || 0) + '° (Q and E turn it too)'
+        }),
+        mk('↻ 15°', () => turn(15), true)
+      );
+      add(row);
+    }
+  }
   head('Terrain');
   add(
     grp(

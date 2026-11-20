@@ -69,7 +69,8 @@ function drawTerrain() {
     el('polygon', { points: outline }, el('clipPath', { id: cid }, g));
     el('polygon', { points: outline, fill: TBASE[t.type] || '#5E6B45', 'fill-opacity': 0.55 }, g);
     if (t.type === 'building')
-      buildingRoof(
+      buildingDraw(
+        t,
         terrPoly(t).map(q => [px(q[0]), py(q[1])]),
         g
       );

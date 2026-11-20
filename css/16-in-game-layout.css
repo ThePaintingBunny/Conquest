@@ -895,6 +895,16 @@ body.mb-on #board {
   width: 100%;
   flex: 1 1 100%;
 }
+.mb-side .mb-rot {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+.mb-side .mb-rot .read {
+  flex: 1;
+  text-align: center;
+}
 .mb-side .mb-end {
   display: flex;
   gap: 8px;
