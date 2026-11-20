@@ -183,7 +183,10 @@ function renderSetupPvp(tb, info, mk, add) {
       })
     );
   }
-  if (S0.cs && S0.nord && me)
+  /* the host decides: only the host moves the game on to the review */
+  if (S0.cs && S0.nord && me && !ovrHost())
+    add(ptext('Both armies are ready. Waiting for the host to open the review.', 'hint'));
+  if (S0.cs && S0.nord && me && ovrHost())
     add(
       mk('Review both armies', async () => {
         await putState({ scenario: scenId(), zones: scenOf().zones });

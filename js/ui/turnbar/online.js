@@ -81,18 +81,30 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
   if (step === 'supremacy') {
     const rd = state.ready || {};
     if (rd.cs && rd.nord) {
-      info.textContent = `Round ${state.round} · Both Command Stacks are locked. Roll off for Supremacy: lowest wins, and the side with fewer Command Cards subtracts 1.`;
+      /* each player rolls their own die; the host settles it once both are in */
+      const R = state.supRoll || {},
+        mine = R[HU],
+        theirs = R[AI],
+        again = +R.n ? ' (tie: roll again)' : '';
+      if (mine && theirs) {
+        info.textContent = `Supremacy: ${N(HU)} ${mine}, ${N(AI)} ${theirs}. ${ovrHost() ? 'Settling…' : 'Waiting for the host to settle it.'}`;
+        setTimeout(() => supSettlePvp().catch(() => {}), 0);
+        return true;
+      }
+      if (mine) {
+        info.textContent = `You rolled ${mine} for Supremacy${again}. Waiting for ${WHO(AI)} to roll.`;
+        return true;
+      }
+      info.textContent =
+        `Round ${state.round} · Both Command Stacks are locked. Roll for Supremacy${again}: lowest wins, and the side with fewer Command Cards subtracts 1.` +
+        (theirs ? ` ${N(AI)} rolled ${theirs}.` : '');
       add(
-        mk('Roll off for Supremacy', async () => {
-          aiBusy = true;
-          render();
+        mk('Roll for Supremacy', async () => {
           try {
-            aiBusy = false;
             await rollSupremacy();
           } catch (e) {
-            aiBusy = false;
-            render();
             toast('That could not be saved. Try again.');
+            render();
           }
         })
       );

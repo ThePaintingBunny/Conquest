@@ -3,7 +3,8 @@
  *
  * Starts the Command Phase and rolls off for Supremacy.
  *
- * In this file: startCommandPhase(), rollSupremacyPvp(), rollSupremacy(), chooseFirst()
+ * In this file: startCommandPhase(), rollSupremacyPvp(), supSettling, supSettlePvp(), rollSupremacy(),
+ *   chooseFirst()
  */
 
 async function startCommandPhase(rep) {
@@ -61,39 +62,54 @@ async function startCommandPhase(rep) {
   $('air-title').textContent = 'Round ' + state.round;
 }
 
+/* online: each player rolls their own die, then waits for the other. When both have rolled, the host's page settles
+   it (lowest wins, the side with fewer Command Cards subtracts 1; a tie means both roll again) */
 async function rollSupremacyPvp() {
+  const R = state.supRoll || {};
+  if (R[HU]) return;
+  const v = d6();
+  banner('Supremacy roll · ' + N(HU), [{ v, cls: 'hit' }], 'Lowest wins. Waiting for the other player…');
+  pubRoll('Supremacy roll', [{ v, cls: 'hit' }], N(HU) + ' rolled ' + v + '.');
+  setTimeout(bannerHide, 2600);
+  await putState({
+    supRoll: Object.assign({}, R, { [HU]: v }),
+    lastTitle: 'Supremacy',
+    lastText: N(HU) + ' rolled ' + v + ' for Supremacy.'
+  });
+}
+
+/* the host settles the roll-off once both dice are in */
+let supSettling = '';
+async function supSettlePvp() {
+  const R = state.supRoll || {};
+  if (!PVP() || state.step !== 'supremacy' || !R.cs || !R.nord || !ovrHost()) return;
+  const key = state.round + ':' + (R.n || 0) + ':' + R.cs + ':' + R.nord;
+  if (supSettling === key) return;
+  supSettling = key;
   const cc = cardsTotal('cs'),
-    cn = cardsTotal('nord');
-  let a,
-    b,
-    ma,
-    mb,
-    n = 0;
-  do {
-    a = d6();
-    b = d6();
-    ma = Math.max(0, a - (cc < cn ? 1 : 0));
-    mb = Math.max(0, b - (cn < cc ? 1 : 0));
-    banner(
-      'Supremacy roll-off',
-      [
-        { v: a, cls: ma <= mb ? 'hit' : 'miss' },
-        { v: b, cls: mb <= ma ? 'hit' : 'miss' }
-      ],
-      `${N('cs')} ${a}${cc < cn ? ' − 1' : ''} · ${N('nord')} ${b}${cn < cc ? ' − 1' : ''} (fewer Command Cards subtracts 1; lowest wins)`
-    );
-    await sleep(2400);
-    n++;
-  } while (ma === mb && n < 10);
-  bannerHide();
-  let win = ma < mb ? 'cs' : 'nord';
+    cn = cardsTotal('nord'),
+    a = R.cs,
+    b = R.nord,
+    ma = Math.max(0, a - (cc < cn ? 1 : 0)),
+    mb = Math.max(0, b - (cn < cc ? 1 : 0)),
+    txt = `${N('cs')} rolled ${a}${cc < cn ? ' (−1)' : ''}, ${N('nord')} rolled ${b}${cn < cc ? ' (−1)' : ''}`;
+  if (ma === mb) {
+    await putState({
+      supRoll: { cs: null, nord: null, n: (+R.n || 0) + 1 },
+      lastTitle: 'Supremacy',
+      lastText: txt + ': a tie, both roll again.'
+    });
+    return;
+  }
+  const win = ma < mb ? 'cs' : 'nord';
   totAdd({ cs: a, nord: b });
   await putState({
     step: 'choose',
     chooser: win,
+    supRoll: null,
     phase: 'Round ' + state.round + ' · ' + N(win) + ' won Supremacy',
     lastTitle: 'Supremacy',
-    lastText: `${N('cs')} rolled ${a}${cc < cn ? ' (−1)' : ''}, ${N('nord')} rolled ${b}${cn < cc ? ' (−1)' : ''}. Lowest wins: ${N(win)} choose who goes first.`
+    lastText: `${txt}. Lowest wins: ${N(win)} choose who goes first.`
   });
 }
 

@@ -223,8 +223,12 @@ function renderSetup(tb, info, mk, add) {
   }
   if (state.step === 'review') {
     const S = state.setup || {};
-    info.textContent =
-      'Check both armies. Fix any profile in the JSON boxes if something is off, then start the game.';
+    /* online, the host decides the scenario, the terrain and when the game starts; each player may still fix
+       their own army */
+    const guest = PVP() && !ovrHost();
+    info.textContent = guest
+      ? 'Check both armies; fix your own in its JSON box if something is off. The host chooses the scenario and terrain and starts the game.'
+      : 'Check both armies. Fix any profile in the JSON boxes if something is off, then start the game.';
     ['cs', 'nord'].forEach(side => {
       const L = S[side] || { units: [] };
       const box = document.createElement('div');
@@ -247,12 +251,21 @@ function renderSetup(tb, info, mk, add) {
       sc.className = 'rost-wrap';
       sc.appendChild(
         rosterTable(units, (i, v) => {
+          if (guest && side !== seatSide()) {
+            toast('Only that player (or the host) changes this army.');
+            render();
+            return;
+          }
           const L2 = JSON.parse(JSON.stringify(L));
           if (L2.units[i]) L2.units[i].standardBearer = v;
           putState({ setup: Object.assign({}, state.setup, { [side]: L2 }) });
         })
       );
       box.appendChild(sc);
+      if (guest && side !== seatSide()) {
+        add(box);
+        return;
+      }
       const det = document.createElement('details');
       const sm = document.createElement('summary');
       sm.textContent = 'Edit as JSON';
@@ -279,6 +292,19 @@ function renderSetup(tb, info, mk, add) {
       box.appendChild(det);
       add(box);
     });
+    if (guest) {
+      add(
+        ptext(
+          'Scenario: ' +
+            scenOf().name +
+            ' · ' +
+            (state.terrain || []).length +
+            ' terrain pieces. Waiting for the host to start the game.',
+          'hint'
+        )
+      );
+      return true;
+    }
     scenarioPanel(add, mk);
     terrainPanel(add, mk);
     add(

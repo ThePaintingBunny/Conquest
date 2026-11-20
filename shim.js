@@ -151,6 +151,16 @@
       if (Object.keys(out).length) d.seats = out; else delete d.seats;
     }
     if ('hostId' in d) delete d.hostId;
+    /* before the game starts the host decides: the scenario, the terrain, opening the review and starting the
+       game; a player only sends their own army */
+    if (seated && ['setup', 'review', undefined].includes(st.step)) {
+      const me = seatOf(from, cur);
+      if (['step', 'scenario', 'terrain', 'zones', 'units', 'round', 'gid', 'mode', 'turn'].some(k => k in d)) return null;
+      if (d.setup && typeof d.setup === 'object') {
+        if (Object.keys(d.setup).some(k => k !== me)) return null;
+      }
+      if (d.names && typeof d.names === 'object' && Object.keys(d.names).some(k => k !== me)) return null;
+    }
     if (seated) return d;
     /* not seated: only taking an open seat, with your name on it */
     const side = d.seats ? Object.keys(d.seats).find(k => d.seats[k] === from) : null;
