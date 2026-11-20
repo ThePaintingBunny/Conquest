@@ -6,8 +6,8 @@
  * In this file: standMark(), drawUnit(), chipFac, chip()
  */
 
-/* the stand-type symbol inside one stand (x, y, w, d: the stand on the board): X infantry, slash cavalry, two slashes
-   cavalry on a double Stand, boxed X brute, slash and wheel chariot */
+/* the stand-type symbol inside one stand (x, y, w, d: the stand on the board): X infantry, slash cavalry, one long slash
+   for cavalry on a double Stand, boxed X brute, slash and wheel chariot */
 function standMark(type, x, y, w, d, g) {
   const i = Math.min(w, d) * 0.22,
     st = {
@@ -22,9 +22,8 @@ function standMark(type, x, y, w, d, g) {
   if (type === 'inf') X(x + i, y + i, x + w - i, y + d - i);
   else if (type === 'cav') path(`M${x + i} ${y + d - i}L${x + w - i} ${y + i}`);
   else if (type === 'dbl') {
-    /* a model on a double Stand: the cavalry slash on each half */
-    path(`M${x + i} ${y + d / 2 - i}L${x + w - i} ${y + i}`);
-    path(`M${x + i} ${y + d - i}L${x + w - i} ${y + d / 2 + i}`);
+    /* a model on a double Stand: one long slash, top right to bottom left */
+    path(`M${x + i} ${y + d - i}L${x + w - i} ${y + i}`);
   } else if (type === 'brute') {
     el('rect', Object.assign({ x: x + i, y: y + i, width: w - 2 * i, height: d - 2 * i, rx: 1 }, st), g);
     X(x + i, y + i, x + w - i, y + d - i);
