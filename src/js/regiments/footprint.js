@@ -81,11 +81,22 @@ function poseOk(u, p, opt) {
 function endPoseWhy(u, p) {
   if (!u) return '';
   const v = Object.assign({}, u, p || {}, { onTable: true });
-  if (!v.onTable || v.garrison) return '';
+  /* only a flying regiment can get there by its own movement; anything else is where the game put it (a Charge's
+     contact, a pile-in, a reform) and never blocks the end of an activation */
+  if (!v.onTable || v.garrison || !rh(RU(v), 'Fly')) return '';
   const A = corners(v);
   if (terrainOf().some(t => tHas(t, 'Impassable') && terrDist(A, t) === 0))
     return 'It is over Impassable terrain: a flying regiment may cross it but not end its activation there.';
-  if (all().some(o => o.onTable && !o.destroyed && o.id !== u.id && polyDist(A, corners(o)) <= 0.02))
+  /* a real overlap, not touching; regiments it is fighting get more leeway, since contact after a Charge is
+     often a little inside the other base */
+  const eng = new Set(engaged(v).map(e => e.id));
+  if (
+    all().some(o => {
+      if (!o.onTable || o.destroyed || o.id === u.id) return false;
+      const e = eng.has(o.id) ? 0.6 : 0.25;
+      return polyDist(shrinkPoly(A, e), shrinkPoly(corners(o), e)) === 0;
+    })
+  )
     return 'It overlaps another regiment: it may fly over it but not end its activation there.';
   return '';
 }
