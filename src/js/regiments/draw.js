@@ -3,8 +3,46 @@
  *
  * Draws a regiment on the board: stands, labels, wound markers and status chips.
  *
- * In this file: drawUnit(), chipFac, chip()
+ * In this file: standMark(), drawUnit(), chipFac, chip()
  */
+
+/* the stand-type symbol inside one stand (x, y, w, d: the stand on the board) */
+function standMark(type, x, y, w, d, g) {
+  const i = Math.min(w, d) * 0.22,
+    st = {
+      stroke: 'rgba(255,243,224,0.72)',
+      'stroke-width': 1.1,
+      fill: 'none',
+      'stroke-linecap': 'round',
+      'pointer-events': 'none'
+    },
+    path = dd => el('path', Object.assign({ d: dd }, st), g),
+    X = (x0, y0, x1, y1) => path(`M${x0} ${y0}L${x1} ${y1}M${x1} ${y0}L${x0} ${y1}`);
+  if (type === 'inf') X(x + i, y + i, x + w - i, y + d - i);
+  else if (type === 'cav') path(`M${x + i} ${y + d - i}L${x + w - i} ${y + i}`);
+  else if (type === 'brute') {
+    el('rect', Object.assign({ x: x + i, y: y + i, width: w - 2 * i, height: d - 2 * i, rx: 1 }, st), g);
+    X(x + i, y + i, x + w - i, y + d - i);
+  } else if (type === 'chariot') {
+    /* the slash of cavalry in front, a wheel behind */
+    const cx = x + w / 2,
+      cy = y + d * 0.64,
+      r = w * 0.27;
+    path(`M${x + i} ${y + d * 0.3}L${x + w - i} ${y + d * 0.1}`);
+    el('circle', Object.assign({ cx, cy, r }, st), g);
+    for (let a = 0; a < 4; a++) {
+      const t = (a * Math.PI) / 4;
+      el(
+        'path',
+        Object.assign({}, st, {
+          d: `M${cx - Math.cos(t) * r} ${cy - Math.sin(t) * r}L${cx + Math.cos(t) * r} ${cy + Math.sin(t) * r}`,
+          'stroke-width': 0.7
+        }),
+        g
+      );
+    }
+  }
+}
 
 function drawUnit(u, g) {
   if (u.type === 'marker') {
@@ -52,6 +90,9 @@ function drawUnit(u, g) {
         },
         grp
       );
+    /* what kind of stand it is, as a map symbol: X infantry, a slash cavalry, a boxed X brute, a wheel chariot */
+    if (!L.rider && !aux && u.type !== 'monster')
+      standMark(u.type, -w / 2 + f * sw + 0.6, -d / 2 + rr * sd + 0.6, sw - 1.2, sd - 1.2, grp);
     if (L.mod && MODSTYLE[L.mod]) {
       const M = MODSTYLE[L.mod],
         bg = el(
