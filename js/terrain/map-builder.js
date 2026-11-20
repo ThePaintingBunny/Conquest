@@ -343,10 +343,9 @@ function mbSure(k, msg) {
 function mbPanel(tb, info, mk, add) {
   const M = mapEdit,
     n = M.terrain.length;
+  const head = t => add(bEl('h3', { className: 'mb-h', textContent: t }));
   info.textContent =
-    'Map builder' +
-    (M.name ? ' · ' + M.name : '') +
-    ' · ' +
+    (M.name ? M.name + ' · ' : '') +
     n +
     ' piece' +
     (n === 1 ? '' : 's') +
@@ -375,6 +374,7 @@ function mbPanel(tb, info, mk, add) {
     });
     return g;
   };
+  head('Tool');
   add(
     grp(
       'Tool',
@@ -390,6 +390,7 @@ function mbPanel(tb, info, mk, add) {
       }
     )
   );
+  head('Terrain');
   add(
     grp(
       'Terrain to paint',
@@ -404,6 +405,7 @@ function mbPanel(tb, info, mk, add) {
       }
     )
   );
+  head('Brush');
   {
     const lab = bEl('label', { className: 'mb-size' });
     const r = bEl('input', { type: 'range', min: '0.5', max: '4', step: '0.25', value: String(M.size) });
@@ -416,6 +418,7 @@ function mbPanel(tb, info, mk, add) {
     lab.append(r, v);
     add(lab);
   }
+  head('Map');
   {
     const row = bEl('div', { className: 'row mb-save' });
     const nm = bEl('input', { type: 'text', id: 'mb-name', value: M.name, placeholder: 'Map name' });
@@ -467,7 +470,9 @@ function mbPanel(tb, info, mk, add) {
     }
     add(row);
   }
-  add(
+  const end = bEl('div', { className: 'row mb-end' });
+  add(end);
+  end.append(
     mk(
       'Clear the table',
       () => {
@@ -481,7 +486,7 @@ function mbPanel(tb, info, mk, add) {
       true
     )
   );
-  add(
+  end.append(
     mk('Done', () => {
       if (M.dirty && !mbSure('done', 'This map is not saved. Click Done again to leave without saving.'))
         return;

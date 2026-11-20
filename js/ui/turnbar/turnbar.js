@@ -267,8 +267,25 @@ function renderTurnbar0() {
     b.disabled = aiBusy;
     return b;
   };
+  /* the Map builder: its tools go in the side column, in place of the Regiment, Armies and Game tabs */
+  document.body.classList.toggle('mb-on', !!mapEdit);
+  {
+    const side = $('mb-side');
+    if (side && !mapEdit) side.remove();
+  }
   if (mapEdit) {
-    mbPanel(tb, info, mk, add);
+    let side = $('mb-side');
+    if (!side) {
+      side = bEl('section', { id: 'mb-side', className: 'mb-side' });
+      side.setAttribute('aria-label', 'Map builder tools');
+      const rc = document.querySelector('.rcol');
+      if (rc) rc.prepend(side);
+    }
+    side.innerHTML = '';
+    side.append(bEl('h2', { textContent: 'Map builder' }));
+    const addS = e => side.appendChild(e);
+    addS(info);
+    mbPanel(side, info, mk, addS);
     return;
   }
   if (aiBusy) {

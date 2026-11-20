@@ -845,6 +845,59 @@ body.tb-top #ai-report:not([hidden]) {
 }
 
 /* ---- Map builder ---- */
+/* its tools take the side column; the gameplay tabs and the turn bar step aside */
+body.mb-on #turnbar,
+body.mb-on .rcol > :not(#mb-side) {
+  display: none !important;
+}
+.mb-side {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mb-side h2 {
+  margin: 0;
+}
+.mb-side .mb-h {
+  margin: 8px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mb-side .read {
+  font-size: 13px;
+  color: var(--muted);
+}
+.mb-side .grp {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 4px;
+}
+.mb-side .grp button {
+  text-align: left;
+}
+.mb-side .mb-size {
+  display: flex;
+}
+.mb-side .mb-size input {
+  flex: 1;
+}
+.mb-side .mb-save input[type='text'],
+.mb-side .mb-save select {
+  width: 100%;
+  flex: 1 1 100%;
+}
+.mb-side .mb-end {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
 .mb-sw {
   display: inline-block;
   width: 10px;
