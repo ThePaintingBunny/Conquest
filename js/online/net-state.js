@@ -591,6 +591,9 @@ async function logVerify(ep, c, keys) {
 async function logEnsureChunk(c, ep, force) {
   ep = ep || LOG.epoch;
   if (!force && LOG.have.has(c) && ep === LOG.epoch) return;
+  /* outside Claude a guest's writes go through the host, who creates a document on the first entry written to it;
+     a guest creating it too could race the host's copy */
+  if (window.__conquestNet && window.__conquestNet.mode === 'guest') return;
   const ref = db.doc(logPath.lg(ep, c));
   try {
     const sn = await ref.get();
@@ -678,6 +681,8 @@ function logFlushEarly() {
 let logMigrating = false;
 async function logMigrate() {
   if (logMigrating) return;
+  /* outside Claude a guest waits for the host's game; only the host starts one */
+  if (window.__conquestNet && window.__conquestNet.mode === 'guest') return;
   logMigrating = true;
   try {
     const head = db.doc(logPath.head());

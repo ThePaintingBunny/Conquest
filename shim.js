@@ -211,7 +211,8 @@
       /* the lobby: everyone may update their own line, nothing else */
       return u && v && typeof v === 'object' && Object.keys(v).length === 1 && Object.keys(v)[0] === from ? v : null;
     }
-    const st = docs['game/state'] || {}, cur = st.seats || {}, mine = seatOf(from, cur);
+    /* who sits where: the board as the game has it now (the old game/state document is no longer kept up to date) */
+    const st = hostBoard(), cur = st.seats || {}, mine = seatOf(from, cur);
     if (p !== 'game/state') return mine ? v : null;
     if (!v || typeof v !== 'object') return null;
     v = Object.assign({}, v);
@@ -268,7 +269,7 @@
     if (v === null) {
       /* refused: the writer already shows its own change, so send everyone the real document again */
       rejected.push({ from: w.from, p: w.p, at: Date.now() }); if (rejected.length > 20) rejected.shift();
-      if (docs[w.p] !== undefined) return hostPublish(w.p);
+      if (docs[w.p] !== undefined && /^game\/(state|lg-|ck-|c0-|head)/.test(w.p)) return hostPublish(w.p);
       return;
     }
     hostWrite(w.p, v, !!w.u);
@@ -340,7 +341,10 @@
           try { const d = JSON.parse(v.b); if (d.room === room && d.p === p && d.v != null) { docs[p] = d.v; lastPub[p] = v.b; persist(); fire(p); } } catch (e) { }
           return;
         }
-        /* anything else on the host's topic replaces the host's copy for newcomers: publish the real one again */
+        /* our own messages come back from the relay, sometimes an older one after a newer one: never answer
+           them, or two copies in flight keep setting each other off. Only a message someone else put on the host's
+           topic is answered, by publishing the real document again */
+        if (keysP && (await checks((await keysP).pub, v))) return;
         if (!restoring && docs[p] !== undefined) return hostPublish(p);
       });
     }

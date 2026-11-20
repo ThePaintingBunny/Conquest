@@ -3,7 +3,8 @@
  *
  * Starts the Command Phase and rolls off for Supremacy.
  *
- * In this file: startCommandPhase(), rollSupremacyPvp(), rollSupremacy(), chooseFirst()
+ * In this file: startCommandPhase(), rollSupremacyPvp(), supSettling, supSettlePvp(), rollSupremacy(),
+ *   chooseFirst()
  */
 
 async function startCommandPhase(rep) {
