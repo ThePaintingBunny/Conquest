@@ -440,7 +440,7 @@ ENCY.push({
       stats: { M: 7, V: 0, C: 2, A: 5, W: 4, R: '-', D: 3, E: 0 },
       rules: ['Wedge!', 'Brutal Impact (2)', 'Impact (3)', 'Shield', 'Animate Vessel', 'Terrifying (1)'],
       draw: [],
-      options: 'Officer: Hetairos 15; Memory of Old: Shock, Impact +1',
+      options: 'Officer: Hetairos 10; Memory of Old: Shock, Impact +1',
       warband: '',
       cmd: { leader: true, bearer: true }
     },
