@@ -850,6 +850,9 @@ body.mb-on #turnbar,
 body.mb-on .rcol > :not(#mb-side) {
   display: none !important;
 }
+body.mb-on #board {
+  cursor: none;
+}
 .mb-side {
   background: var(--panel);
   border: 1px solid var(--line);

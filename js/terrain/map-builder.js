@@ -12,7 +12,7 @@
  *
  * In this file: mapEdit, MB_R, MB_W, MB_H, mbMaps(), mbSaveMaps(), mbOpen(), mbClose(), mbGrid(),
  *   mbRaster(), mbStamp(), mbTrace(), mbSmooth(), mbRebuild(), mbStroke, mbPointer(), mbDab(), mbArm,
- *   mbSure(), mbPanel()
+ *   mbSure(), mbCursor(), mbPanel()
  */
 
 let mapEdit = null;
@@ -312,11 +312,76 @@ function mbDab(p) {
   );
 }
 
+/* the brush on the pointer: a circle the size of the brush (or the eraser), in the colour of the terrain being
+   painted, or the outline of a building, so you see what a stroke will cover before you make it */
+function mbCursor(ev) {
+  const sv = $('board');
+  if (!sv) return;
+  let g = document.getElementById('mbcur');
+  const over = mapEdit && ev && ev.target && ev.target.closest && ev.target.closest('#board');
+  if (!over && !(mapEdit && mbStroke)) {
+    if (g) g.remove();
+    return;
+  }
+  if (!g) {
+    g = el('g', { id: 'mbcur', 'pointer-events': 'none' }, sv);
+  }
+  if (g.parentNode.lastChild !== g) g.parentNode.appendChild(g);
+  g.innerHTML = '';
+  const p0 = svgPt(ev),
+    M = mapEdit;
+  if (M.tool === 'building') {
+    el(
+      'rect',
+      {
+        x: p0.x - 2.5 * S,
+        y: p0.y - 1.8 * S,
+        width: 5 * S,
+        height: 3.6 * S,
+        fill: TBASE.building,
+        'fill-opacity': 0.35,
+        stroke: '#F3E6C4',
+        'stroke-width': 1.5,
+        'stroke-dasharray': '4 3'
+      },
+      g
+    );
+    return;
+  }
+  const erase = M.tool === 'erase',
+    r = M.size * S;
+  el(
+    'circle',
+    {
+      cx: p0.x,
+      cy: p0.y,
+      r,
+      fill: erase ? '#2B2620' : TBASE[M.type] || '#5E6B45',
+      'fill-opacity': erase ? 0.18 : 0.28,
+      stroke: erase ? '#E57373' : '#F3E6C4',
+      'stroke-width': 1.5,
+      'stroke-dasharray': erase ? '4 3' : ''
+    },
+    g
+  );
+  el('circle', { cx: p0.x, cy: p0.y, r: 1.6, fill: erase ? '#E57373' : '#F3E6C4' }, g);
+}
+
+document.addEventListener('pointerleave', () => {
+  const g = document.getElementById('mbcur');
+  if (g) g.remove();
+});
+
 ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(t =>
   document.addEventListener(
     t,
     ev => {
-      if (!mapEdit) return;
+      if (!mapEdit) {
+        const g = document.getElementById('mbcur');
+        if (g) g.remove();
+        return;
+      }
+      if (t === 'pointermove') mbCursor(ev);
       if (t === 'pointerdown' && !(ev.target.closest && ev.target.closest('#board'))) return;
       if (t !== 'pointerdown' && !mbStroke) return;
       ev.stopPropagation();
