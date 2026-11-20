@@ -193,6 +193,14 @@ function renderCombat0() {
       )
     );
   }
+  /* Masters of the Sword (Draw Event): its gains are chosen before the hit rolls */
+  {
+    const mb = mosBox(A, T);
+    if (mb) {
+      body.appendChild(mb);
+      return;
+    }
+  }
   if (cb.type !== 'lethal' && cb.type !== 'freform') {
     const s1 = stepBox('1 · ' + sA + ' rolls to hit');
     if (cb.type === 'volley') {

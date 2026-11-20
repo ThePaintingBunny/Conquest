@@ -93,11 +93,13 @@ function renderDrawStep(u, fresh) {
       s2.append(
         b,
         document.createTextNode(
-          auto && /Regeneration|Biotic/i.test(base) && !(u.wounds > 0)
-            ? 'nothing to heal right now.'
-            : auto
-              ? String(t).replace(/^Draw Event:\s*/i, '')
-              : 'resolve it yourself. ' + String(t).replace(/^Draw Event:\s*/i, '')
+          /^Masters of the Sword/i.test(base)
+            ? 'when it makes a Clash Action, you choose its gains in the combat panel before the hit rolls.'
+            : auto && /Regeneration|Biotic/i.test(base) && !(u.wounds > 0)
+              ? 'nothing to heal right now.'
+              : auto
+                ? String(t).replace(/^Draw Event:\s*/i, '')
+                : 'resolve it yourself. ' + String(t).replace(/^Draw Event:\s*/i, '')
         )
       );
       d.append(i, s2);
