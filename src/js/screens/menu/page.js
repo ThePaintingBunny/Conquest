@@ -81,7 +81,7 @@ function renderMenu() {
   };
   if (page === 'home') {
     const hero = bEl('div', { className: 'mm-hero' }, [
-      bEl('h1', { textContent: 'Vale of Banners' }),
+      bEl('h1', { textContent: 'Command Stack' }),
       bEl('p', { textContent: 'A battle table for Conquest: The Last Argument of Kings' })
     ]);
     inner.append(hero);
