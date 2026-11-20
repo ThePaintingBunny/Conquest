@@ -73,7 +73,7 @@ function renderDrawStep(u, fresh) {
       if (!isDrawAb(u, nm, t) && !fx(u).some(x => new RegExp('^' + base.replace(/[^A-Za-z ]/g, '.')).test(x)))
         return;
       if (
-        /^(Bloom|Elemental Conduit|Forged by the Elements|Strain Expression|Memories of Old|Dark Awakening)/i.test(
+        /^(Bloom|Elemental Conduit|Forged by the Elements|Strain Expression|Memories of Old|Dark Awakening|Heaven.s Descent)/i.test(
           base
         ) ||
         notes.includes(base.toLowerCase().split(' ')[0]) ||

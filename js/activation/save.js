@@ -52,7 +52,9 @@ async function saveActivation() {
                   )
               )
               .concat(
-                act.extraFx.filter(f => !(x.effects || []).includes(f) && !/charged|Inspire action/.test(f))
+                act.extraFx.filter(
+                  f => !(x.effects || []).includes(f) && !/charged|Inspire action|Heaven's Descent/.test(f)
+                )
               )
           })
   );

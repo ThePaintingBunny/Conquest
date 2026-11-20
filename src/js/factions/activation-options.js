@@ -209,6 +209,67 @@ function frOptions0(u) {
       );
     }
   }
+  /* Heaven's Descent (Tainted Heralds), Draw Event while engaged: discard 2 Power tokens for Impact Attacks on an
+     engaged enemy, or for Inspired and Cleave (+1) */
+  if (
+    f === 'Old Dominion' &&
+    !act.entering &&
+    fresh &&
+    ((frEncy(u) || {}).draw || []).includes("Heaven's Descent") &&
+    !act.hdUsed &&
+    engaged(u).length
+  ) {
+    const g = frG(u.side, 'od'),
+      pools = [
+        ['dark', 'Dark Power'],
+        ['pant', 'Fallen Pantheon']
+      ].filter(([k]) => (+g[k] || 0) >= 2);
+    if (pools.length) {
+      out.push({
+        head:
+          "Heaven's Descent: discard 2 Power tokens (Dark Power " +
+          (+g.dark || 0) +
+          ', Fallen Pantheon ' +
+          (+g.pant || 0) +
+          ')'
+      });
+      const pay = k => frPatch(u.side, 'od', { [k]: (+frG(u.side, 'od')[k] || 0) - 2 });
+      engaged(u).forEach(E =>
+        pools.forEach(([k, pn]) =>
+          add('Impact Attacks on ' + (E.short || E.name) + ' · 2 ' + pn, async () => {
+            act.hdUsed = true;
+            await putState({
+              fr: pay(k),
+              lastTitle: N(u.side) + " · Heaven's Descent",
+              lastText:
+                (u.short || u.name) +
+                ' discards 2 ' +
+                pn +
+                ' tokens for Impact Attacks on ' +
+                (E.short || E.name) +
+                '.'
+            });
+            openCombat({ type: 'impact', att: u.id, tgt: E.id, inAct: false });
+          })
+        )
+      );
+      pools.forEach(([k, pn]) =>
+        add('Inspired and Cleave (+1) · 2 ' + pn, async () => {
+          act.hdUsed = true;
+          await grant(
+            u.id,
+            "Heaven's Descent",
+            ['Cleave (+1)'],
+            null,
+            "Heaven's Descent: discards 2 " + pn + ' tokens; Inspired and Cleave (+1).',
+            { fr: pay(k) }
+          );
+          if (!act.extraFx.includes("Inspired (Heaven's Descent)"))
+            act.extraFx.push("Inspired (Heaven's Descent)");
+        })
+      );
+    }
+  }
   if (f === "W'adrhŭn" && !act.entering) {
     const g = frG(u.side, 'wa'),
       seq = (g.seq || []).slice(),
