@@ -1107,9 +1107,8 @@ body > .roll-ask {
 .dock {
   display: flex;
   align-items: stretch;
-  min-height: 132px;
   background: var(--panel);
-  border: 1px solid var(--gold);
+  border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--line));
   border-radius: 10px;
   box-shadow: 0 -6px 26px rgba(0, 0, 0, 0.35);
   overflow: hidden;
@@ -1118,245 +1117,312 @@ body > .roll-ask {
   display: none;
 }
 .dock .dock-who {
-  flex: 0 0 160px;
-  padding: 12px 14px;
+  flex: 0 0 190px;
+  padding: 14px 16px;
   border-right: 1px solid var(--line);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 14%, transparent), transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cs) 18%, transparent), transparent);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
 }
 .dock .dk-k {
   font-family: var(--display);
   font-size: 11px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--gold);
 }
 .dock .dk-n {
   font-family: var(--display);
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.15;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.dock .dk-h {
-  margin-top: auto;
-  font-size: 11.5px;
+.dock .dk-c {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dock .dk-a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
   color: var(--muted);
 }
-.dock .dk-idle {
-  align-self: center;
-  padding: 0 18px;
-  color: var(--muted);
-  font-size: 15px;
+.dock .dk-pips {
+  display: inline-flex;
+  gap: 5px;
+}
+.dock .dk-pips i {
+  width: 11px;
+  height: 11px;
+  transform: rotate(45deg);
+  border: 2px solid var(--gold);
+  display: inline-block;
+}
+.dock .dk-pips i.on {
+  background: var(--gold);
 }
 .dock .dock-main {
   flex: 1;
   min-width: 0;
-  display: flex;
-}
-/* the activation panel, laid out sideways: its steps in the middle, the end buttons in their own column */
-.dock #c-act-sec:not([hidden]) {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
   padding: 10px 14px;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  max-height: 30vh;
-  overflow: auto;
-}
-.dock #c-act-sec > .actp-head {
-  display: none;
-}
-.dock > #c-foot {
-  flex: 0 0 172px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 8px;
-  border-top: 0;
-  border-left: 1px solid var(--line);
-  margin: 0;
-  padding: 12px 14px;
-}
-.dock #c-foot .row {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-}
-.dock #c-foot .btn {
-  justify-content: center;
-}
-/* while an action runs, Finish action and Cancel action take the place of End activation and Undo */
-body.dk-cur .dock #c-foot > .row:not(.dk-curbtns),
-body.dk-cur .dock #c-foot > #note {
-  display: none;
-}
-.dock #c-foot > #c-ctl {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin: 0;
-}
-.dock #c-foot > #c-ctl .grp {
-  display: flex;
-  width: 100%;
-}
-.dock #c-foot > #c-ctl .grp button {
-  flex: 1;
-  padding: 4px 2px;
-  font-size: 12px;
-}
-body.dk-cur .dock > #c-foot {
-  justify-content: flex-start;
   overflow: auto;
 }
-.dock #c-foot #done-act {
-  background: linear-gradient(#e6bb62, #c8963c);
-  color: #2a1d08;
-  border-color: #f0d08a;
+/* the action tiles */
+.dock .dk-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 10px;
 }
-.dock #c-foot #end {
-  background: linear-gradient(#e6bb62, #c8963c);
-  color: #2a1d08;
-  border-color: #f0d08a;
-}
-.dock #c-foot #note {
-  font-size: 12.5px;
-  padding: 5px 8px;
-}
-.dock .dk-last {
-  margin-top: auto;
-  font-size: 12px;
-  line-height: 1.35;
-  color: var(--muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.dock .dk-last + .dk-h,
-.dock .dk-h + .dk-last {
-  margin-top: 4px;
-}
-.dock .actp-step.done .actp-body {
-  display: none;
-}
-/* in the dock the steps speak through the heading on the left: a finished Draw Events step folds away, and the
-   actions show as tiles straight away */
-.dock #c-draw-step.done,
-.dock #c-act-step > .actp-lbl {
-  display: none;
-}
-.dock .actp-step.done .actp-lbl {
-  margin-bottom: 0;
-  opacity: 0.75;
-}
-.dock .actp-step {
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-.dock .actp-lbl {
-  margin-bottom: 6px;
-}
-/* the actions as a row of tiles, each with its number key */
-.dock .acts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.dock .act {
-  flex: 1 1 140px;
-  max-width: 230px;
-  min-height: 58px;
+.dock .dk-t {
   position: relative;
-  padding: 9px 34px 9px 11px;
-  background: var(--panel2, var(--bg));
-  border-color: color-mix(in srgb, var(--line) 50%, var(--muted));
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 4px;
+  align-items: center;
+  text-align: left;
+  min-height: 58px;
+  padding: 9px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--panel) 80%, var(--line));
+  border: 1px solid color-mix(in srgb, var(--line) 60%, var(--muted));
+  border-radius: 8px;
+  cursor: pointer;
 }
-.dock .act::before {
-  content: attr(data-ico);
+.dock .dk-t:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+.dock .dk-t:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.dock .dk-ti {
   color: var(--gold-ink);
-  font-size: 15px;
-  margin-bottom: 2px;
+  display: inline-flex;
 }
-.dock .act[data-key]::after {
-  content: attr(data-key);
-  position: absolute;
-  top: 8px;
-  right: 8px;
+.dock .dk-tn {
+  font-family: var(--display);
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.dock .dk-t kbd,
+.dock .btn kbd {
+  font: 700 11px var(--body);
   min-width: 18px;
   padding: 1px 5px;
   border: 1px solid color-mix(in srgb, var(--muted) 60%, transparent);
   border-bottom-width: 2px;
   border-radius: 4px;
-  font-size: 11px;
-  font-weight: 700;
   color: var(--muted);
   text-align: center;
+  background: none;
 }
-.dock .act span {
-  font-family: var(--display);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-size: 13.5px;
+.dock .dk-t kbd {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
 }
-/* the action in progress: what it does and its controls on the left, wheel and formation on the right */
-.dock #c-cur:not([hidden]) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px 14px;
-  align-items: start;
-  padding: 8px 10px;
+.dock .dk-ts {
+  grid-column: 1 / -1;
+  padding-right: 24px;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.dock #c-cur > * {
-  grid-column: 1;
-  margin: 0;
-}
-.dock #c-cur > #c-cur-read {
-  font-size: 13.5px;
-  line-height: 1.35;
-}
-.dock #c-cur > #c-ctl {
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-}
-.dock #c-cur > #c-chg {
+/* a note above the tiles, a message in place of them */
+.dock .dk-note {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
   align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--gold-ink);
 }
-.dock #c-cur > #c-chg > * {
+.dock .dk-note .btn {
+  padding: 4px 10px;
+  font-size: 12.5px;
+}
+.dock .dk-msg {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.dock .dk-msg strong {
+  font-size: 16px;
+}
+.dock .dk-msg span {
+  color: var(--muted);
+}
+.dock .dk-idle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.dock .dk-last {
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* an action in progress: its name, how far, and its own controls */
+.dock .dk-run {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+body.dk-cur .dock .dock-main {
+  justify-content: flex-start;
+  gap: 7px;
+}
+.dock .dk-rh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dock .dk-rh strong {
+  font-family: var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 15px;
+}
+.dock .dk-rm {
+  margin-left: auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.dock .dk-meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.dock .dk-meter i {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+.dock .dk-rt {
+  font-size: 13px;
+  color: var(--muted);
+}
+.dock #c-chg {
+  display: contents;
+}
+.dock #c-chg > div:not(.row) {
+  display: contents;
+}
+.dock #c-chg .row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
 }
-.dock #c-cur > #c-chg .grp {
+.dock .dk-ctl > #c-ctl button:disabled {
+  display: none;
+}
+.dock #c-chg input {
+  width: 58px;
+  padding: 4px 6px;
+}
+.dock #c-chg > * {
+  margin: 0;
+}
+.dock #c-chg .grp {
   flex-wrap: wrap;
 }
-.dock #c-cur > #c-chg .grp button {
+.dock #c-chg .grp button,
+.dock #c-chg .btn {
   padding: 5px 10px;
   font-size: 13px;
 }
-.dock #c-cur > #c-cur-read {
-  font-size: 13px;
+.dock #c-chg .hint {
+  display: none;
 }
-.dock .actp-done {
+/* right: the buttons that finish things */
+.dock .dk-foot {
+  flex: 0 0 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-left: 1px solid var(--line);
+}
+.dock .dk-foot > .btn {
+  justify-content: center;
+  gap: 8px;
+}
+.dock .dk-foot > .btn.gold {
+  background: linear-gradient(#e6bb62, #c8963c);
+  color: #2a1d08;
+  border-color: #f0d08a;
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 12px 8px;
+}
+.dock .dk-foot > .btn.gold kbd {
+  color: #5a3f10;
+  border-color: #8a6420;
+}
+.dock .dk-ctl {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
-  margin: 0 0 6px;
+  align-items: center;
+  gap: 6px 14px;
 }
-.dock .actp-done li {
+.dock .dk-ctl > #c-ctl {
+  display: flex;
+  gap: 6px;
   margin: 0;
+}
+.dock .dk-ctl > #c-ctl button {
+  padding: 5px 8px;
+  font-size: 12.5px;
+}
+/* while the dock carries them, the side column does not repeat the activation (only its Draw Events, while they
+   can still be used) */
+body.has-dock:not(.dk-panel) #card #c-act-sec,
+body.has-dock #card #c-act-step,
+body.has-dock #card #c-foot,
+body.has-dock #card #c-actions,
+body.has-dock #card #c-acts-done,
+body.has-dock #card #c-cur,
+body.has-dock #card #c-foot .row,
+body.has-dock #actbar {
+  display: none !important;
 }
 
 /* wide screens in a game: the tools stand in a column beside the table, the dock sits under it */
@@ -1375,18 +1441,10 @@ body.dk-cur .dock > #c-foot {
   body.tb-top .leftcol > .dock {
     grid-column: 2;
     grid-row: 2;
-    height: 178px;
-    min-height: 0;
-  }
-  body.tb-top .dock #c-act-sec:not([hidden]) {
-    max-height: none;
+    height: 146px;
   }
   body.tb-top .leftcol > .tools {
     display: none;
-  }
-  body.tb-top .toolstrip .leg-btn {
-    position: static;
-    box-shadow: none;
   }
   body.tb-top .leftcol > .toolstrip {
     grid-column: 1;
@@ -1412,12 +1470,17 @@ body.dk-cur .dock > #c-foot {
   body.tb-top .toolstrip .tool .tl {
     display: none;
   }
+  /* the connection status keeps to its dot in the top row, so the score chips never get covered */
+  body.tb-top .top #net-bar .nb-l > span:not(.nb-dot) {
+    display: none;
+  }
+  body.tb-top .top-turn {
+    min-width: 0;
+    overflow: hidden;
+  }
 }
 /* phones: the dock stacks its parts */
 @media (max-width: 900px) {
-  .dock .dk-h {
-    display: none;
-  }
   .dock {
     flex-direction: column;
   }
@@ -1426,12 +1489,17 @@ body.dk-cur .dock > #c-foot {
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
-  .dock #c-act-sec:not([hidden]) {
-    max-height: none;
-  }
-  .dock > #c-foot {
+  .dock .dk-foot {
     flex: none;
     border-left: 0;
     border-top: 1px solid var(--line);
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .dock .dk-foot > .btn {
+    flex: 1;
+  }
+  .dock .dk-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   }
 }

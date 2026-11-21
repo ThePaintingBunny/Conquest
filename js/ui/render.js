@@ -39,29 +39,40 @@ function fitBoard() {
   const w = Math.max(Math.min(W, dock && !dock.hidden ? 560 : 760), H * ar),
     extra = Math.floor(W - w);
   b.style.maxHeight = Math.floor(w / ar) + 'px';
-  if (extra > 2) wrap.style.maxWidth = Math.floor(wrap.getBoundingClientRect().width - extra) + 'px';
+  /* with the command dock under the table the column keeps its width (the dock needs it); the table sits centred */
+  if (extra > 2 && !(dock && !dock.hidden))
+    wrap.style.maxWidth = Math.floor(wrap.getBoundingClientRect().width - extra) + 'px';
 }
 
 addEventListener('resize', () => requestAnimationFrame(fitBoard));
 
 /* the table with a thin frame, and room beyond the top and bottom edges for a regiment coming on, so the whole
-   regiment and its name show where it enters. The room is sized once per game for its deepest regiment, so the
-   board never rescales while a regiment enters. */
+   regiment and its name show where it enters. The room is sized for the deepest regiment still to come on, and
+   only changes between activations, so the board never rescales while a regiment enters; once every regiment is on
+   the table the table gets the whole space. */
 const BOARD_VIEW = [160, 30, 524, 352];
 let boardRoom = { key: '', m: 0 };
 
 function boardMargin() {
-  const key = state && state.step !== 'setup' && state.step !== 'review' ? state.gid || 'g' : '';
+  const waiting = (state && state.units ? state.units : []).filter(
+    u => u.type !== 'marker' && !u.destroyed && !u.onTable
+  );
+  const key =
+    state && state.step !== 'setup' && state.step !== 'review'
+      ? (state.gid || 'g') + '|' + waiting.map(u => u.id).join(',')
+      : '';
   if (!key) return 0;
-  if (boardRoom.key !== key) {
+  if (boardRoom.key !== key && !(act && act.entering)) {
     let d = 0;
-    (state.units || []).forEach(u => {
-      if (u.type === 'marker' || u.destroyed) return;
+    waiting.forEach(u => {
       try {
         d = Math.max(d, geom(u).d);
       } catch (e) {}
     });
-    if (!d) return 0;
+    if (!d) {
+      boardRoom = { key, m: 0 };
+      return 0;
+    }
     /* the regiment's depth beyond the edge, plus its name; the frame already gives about 1.4 inches */
     boardRoom = { key, m: Math.max(0, Math.min(9, d) + 2.8 - 1.4) * S };
   }

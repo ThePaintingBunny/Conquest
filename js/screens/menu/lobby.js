@@ -6,7 +6,7 @@
  * shows how far the two of you are: opponent joined, seated, your army, their army, review. Building an army opens
  * under the lobby.
  *
- * In this file: mpEdit, mpLog(), mpSay(), mpArmyLines(), mpCard(), mpLobby()
+ * In this file: mpEdit, MP_SAY, mpLog(), mpSay(), mpArmyLines(), mpCard(), mpLobby()
  */
 
 let mpEdit = false; /* your army builder is open, though you already have an army */

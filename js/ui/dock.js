@@ -1,16 +1,48 @@
 /*
  * Command dock
  *
- * While a regiment is activating, its activation panel (Draw Events, the actions it may take, the action in
- * progress and the buttons that end it) moves out of the side column into a dock under the table, so the table and
- * the controls stay in view together. The side column keeps the regiment's profile and rules. The panel's own
- * elements move, so every button keeps its wiring. Number keys 1–9 start the action on that tile; Enter finishes
- * the current action, or ends the activation when none is running.
+ * A bar under the table while a regiment activates: on the left the regiment and how many actions it has left, in
+ * the middle the actions it may take as tiles (or, while an action runs, that action's own controls), on the right
+ * End activation and Undo (or Finish and Cancel). The side column keeps the regiment's profile, its Draw Events and
+ * the actions done so far. The dock's buttons press the regiment card's own buttons, so each is wired in one place.
+ * Number keys 1–9 start the action on that tile; Enter finishes the action, or ends the activation.
  *
- * In this file: dockOn(), renderDock(), dockKeys()
+ * In this file: DOCK_ICO, dockOn(), dockTiles(), dockBtn(), renderDock(), dockKeys()
  */
 
-/* is the dock showing (a regiment of ours is activating and is the one looked at)? */
+/* an icon for each kind of action */
+const DOCK_ICO = {
+  march: 'arrowR',
+  fadv: 'arrowR',
+  dtmarch: 'arrowR',
+  soar: 'arrowR',
+  sweep: 'arrowR',
+  tloc: 'arrowR',
+  charge: 'charge',
+  clash: 'swords',
+  xclash: 'swords',
+  duel: 'swords',
+  assassin: 'swords',
+  reform: 'turn',
+  creform: 'turn',
+  xreform: 'turn',
+  fluid: 'turn',
+  hammer: 'turn',
+  volley: 'target',
+  xvolley: 'target',
+  flame: 'target',
+  aim: 'target',
+  withdraw: 'back',
+  leave: 'back',
+  rally: 'banner',
+  crally: 'banner',
+  inspire: 'star',
+  memory: 'spark',
+  cast: 'spark',
+  trample: 'spark'
+};
+
+/* is the dock showing an activation (a regiment of ours is activating and is the one looked at)? */
 function dockOn() {
   const u = act && byId(act.id);
   return (
@@ -23,40 +55,57 @@ function dockOn() {
   );
 }
 
+/* the actions as tiles, numbered for the keys */
+function dockTiles(u) {
+  const box = bEl('div', { className: 'dk-tiles' });
+  availableActions(u)
+    .slice(0, 9)
+    .forEach((a, i) => {
+      const m = ACT[a.type] || { n: a.type, d: '' };
+      let det = m.d;
+      if (a.type === 'march') {
+        const first = act.entering && !act.actions.some(x => x.type === 'march');
+        det = `${(u.m || 0) + (first ? u.vanguard || 0 : 0)}″ · sideways and back at half`;
+      }
+      if (a.type === 'charge') det = `D6 + ${u.m}″`;
+      const b = bEl('button', { type: 'button', className: 'dk-t' });
+      b.disabled = !!a.why;
+      b.title = a.why || m.d || '';
+      b.dataset.key = String(i + 1);
+      b.append(
+        bEl('span', { className: 'dk-ti' }, [icon(DOCK_ICO[a.type] || 'spark', 18) || '']),
+        bEl('span', { className: 'dk-tn', textContent: m.n + (a.free && !/^Free/i.test(m.n) ? ' (free)' : '') }),
+        bEl('kbd', { textContent: String(i + 1) }),
+        bEl('span', { className: 'dk-ts', textContent: a.why || det })
+      );
+      b.onclick = () => startAction(a.type);
+      box.append(b);
+    });
+  return box;
+}
+
+/* a dock button that presses one of the regiment card's own buttons */
+function dockBtn(id, text, cls, key) {
+  const src = $(id),
+    b = bEl('button', { type: 'button', className: 'btn ' + (cls || '') });
+  b.append(document.createTextNode(text));
+  if (key) b.append(bEl('kbd', { textContent: key }));
+  b.disabled = !src || src.disabled;
+  b.title = (src && src.title) || '';
+  b.onclick = () => src && src.click();
+  return b;
+}
+
 function renderDock() {
   const dock = $('dock'),
     main = $('dock-main'),
-    who = $('dock-who'),
-    sec = $('c-act-sec');
-  if (!dock || !main || !sec) return;
+    who = $('dock-who');
+  if (!dock || !main || !who) return;
   const on = dockOn(),
-    foot = $('c-foot');
-  if (on && sec.parentNode !== main) main.append(sec);
-  /* End activation and Undo stand in their own column at the right of the dock */
-  if (on && foot && foot.parentNode !== dock) dock.append(foot);
-  if (!on && foot && foot.parentNode === dock) sec.append(foot);
-  /* Finish action / Cancel action: into the dock's right column while an action runs */
-  const cur = $('c-cur'),
-    fin = $('done-act') && $('done-act').parentNode,
-    running = on && !!act.cur && cur && !cur.hidden;
-  const ctl = $('c-ctl'),
-    chg = $('c-chg');
-  if (fin && foot && cur) {
-    fin.classList.add('dk-curbtns');
-    if (running && fin.parentNode !== foot) foot.prepend(fin);
-    if (!running && fin.parentNode === foot) cur.append(fin);
-  }
-  /* the wheel and formation buttons go under them, so the middle keeps its width for the action's own controls */
-  if (ctl && foot && cur && chg) {
-    if (running && ctl.parentNode !== foot) fin.after(ctl);
-    if (!running && ctl.parentNode === foot) chg.after(ctl);
-  }
-  document.body.classList.toggle('dk-cur', !!running);
-  if (!on && sec.parentNode === main) {
-    const fx = $('c-fx-sec');
-    if (fx) fx.after(sec);
-    else $('card').append(sec);
-  }
+    chg = $('c-chg'),
+    ctl = $('c-ctl'),
+    cur = $('c-cur'),
+    running = on && !!act.cur;
   /* in a game the dock keeps its place under the table, so the table does not change size between activations */
   const game =
     on ||
@@ -70,20 +119,40 @@ function renderDock() {
   const was = !dock.hidden;
   dock.hidden = !game;
   document.body.classList.toggle('has-dock', on);
-  [...main.children].forEach(k => {
-    if (k !== sec) k.remove();
-  });
-  if (game && !on) {
-    who.innerHTML = '';
+  document.body.classList.toggle('dk-cur', running);
+  if (!on) document.body.classList.remove('dk-draw', 'dk-panel');
+  /* the running action's own controls come into the dock, and go back to the card afterwards */
+  if (!running && cur && chg && chg.parentNode !== cur) {
+    const read = $('c-meter') || $('c-cur-read');
+    read.after(chg);
+  }
+  if (!running && cur && ctl && chg && ctl.parentNode !== cur) chg.after(ctl);
+  let foot = dock.querySelector('.dk-foot');
+  if (!foot) {
+    foot = bEl('div', { className: 'dk-foot' });
+    dock.append(foot);
+  }
+  who.innerHTML = '';
+  [...main.children].forEach(k => !k.classList.contains('dk-ctl') && k !== chg && k.remove());
+  if (!running) {
+    const row = main.querySelector('.dk-ctl');
+    if (row) row.remove();
+  }
+  foot.innerHTML = '';
+  if (!game) return;
+  if (!on) {
     const mine = state.turn === HU || SBX(),
       a = act && byId(act.id);
     who.append(
       bEl('div', { className: 'dk-k', textContent: 'Round ' + (state.round || 1) }),
-      bEl('div', { className: 'dk-n', textContent: a ? 'Activating' : mine ? 'Your turn' : N(state.turn || AI) + "' turn" })
+      bEl('div', {
+        className: 'dk-n',
+        textContent: a ? 'Activating' : mine ? 'Your turn' : N(state.turn || AI) + '’ turn'
+      })
     );
     const idle = bEl('div', { className: 'dk-idle' });
     if (a) {
-      idle.append(document.createTextNode((a.short || a.name) + ' is activating. '));
+      idle.append(bEl('span', { textContent: (a.short || a.name) + ' is activating.' }));
       const bk = bEl('button', { type: 'button', className: 'btn', textContent: 'Back to ' + (a.short || a.name) });
       bk.onclick = () => {
         selId = act.id;
@@ -92,42 +161,134 @@ function renderDock() {
       };
       idle.append(bk);
     } else
-      idle.textContent = mine
-        ? 'Click the regiment whose card is up, on the table or in the Armies tab, to start its activation.'
-        : 'Waiting for ' + N(state.turn || AI) + ' to act.';
+      idle.append(
+        bEl('span', {
+          textContent: mine
+            ? 'Click the regiment whose card is up to start its activation.'
+            : 'Waiting for ' + N(state.turn || AI) + ' to act.'
+        })
+      );
     main.append(idle);
-  }
-  /* the last move, under the dock's heading (the status row under the table makes way for the dock) */
-  if (game) {
     const lm = ($('last') && $('last').textContent) || '';
-    if (lm && !/No moves yet/.test(lm)) who.append(bEl('div', { className: 'dk-last', textContent: lm, title: lm }));
+    if (lm && !/No moves yet/.test(lm))
+      main.append(bEl('div', { className: 'dk-last', textContent: lm.replace(/^Last move:\s*/, ''), title: lm }));
+    if (was !== game) requestAnimationFrame(fitBoard);
+    return;
   }
-  if (on) {
-    const u = byId(act.id),
-      pips = $('c-pips'),
-      h = $('c-act-h');
-    who.innerHTML = '';
-    who.append(
-      bEl('div', { className: 'dk-k', textContent: (h && h.textContent) || 'Activating' }),
-      bEl('div', {
-        className: 'dk-n',
-        textContent: (u.short || u.name) + (u.charName ? ' + ' + u.charName : '')
-      })
+  const u = byId(act.id),
+    used = act.actions.filter(a => !a.free).length,
+    left = Math.max(0, 2 - used);
+  /* left: the regiment and its actions left */
+  const pips = bEl('span', { className: 'dk-pips' });
+  for (let i = 0; i < 2; i++) pips.append(bEl('i', { className: i < used ? 'on' : '' }));
+  who.append(
+    bEl('div', { className: 'dk-k', textContent: 'Activating' }),
+    bEl('div', { className: 'dk-n', textContent: u.short || u.name }),
+    u.charName ? bEl('div', { className: 'dk-c', textContent: '+ ' + u.charName }) : '',
+    bEl('div', { className: 'dk-a' }, [
+      pips,
+      bEl('span', { textContent: left ? 'Action ' + (used + 1) + ' of 2' : 'Both actions used' })
+    ])
+  );
+  /* middle: what to do now */
+  const fight = cb && cb.type !== 'duel' && (cb.att === act.id || cb.tgt === act.id);
+  const drawStep = $('c-draw-step'),
+    drawOpen =
+      !used &&
+      drawStep &&
+      !drawStep.hidden &&
+      !drawStep.classList.contains('done') &&
+      [...drawStep.querySelectorAll('button')].some(b => !b.disabled);
+  document.body.classList.toggle('dk-draw', !!drawOpen);
+  /* the side column still shows the activation panel when it holds something to do there: Draw Events, coming on
+     to the table, a faction or formation choice, a warning, or a fight in progress */
+  {
+    const has = id => {
+      const e = $(id);
+      return !!e && !e.hidden && !!e.textContent.trim();
+    };
+    const panel = drawOpen || has('c-start') || has('c-form') || has('c-fac') || has('c-warn') || !!$('c-cbstep');
+    document.body.classList.toggle('dk-panel', !!panel);
+  }
+  if (fight && running) {
+    const go = bEl('button', { type: 'button', className: 'btn', textContent: 'Go to the dice' });
+    go.onclick = () => {
+      try {
+        revealIn($('combat'), 'start');
+      } catch (e) {}
+    };
+    main.append(bEl('div', { className: 'dk-note' }, [bEl('span', { textContent: 'Resolve the dice in the combat panel first.' }), go]));
+  }
+  if (fight && !running) {
+    const go = bEl('button', { type: 'button', className: 'btn', textContent: 'Go to the dice' });
+    go.onclick = () => {
+      try {
+        revealIn($('combat'), 'start');
+      } catch (e) {}
+    };
+    main.append(
+      bEl('div', { className: 'dk-msg' }, [
+        bEl('strong', { textContent: 'Resolve the dice first' }),
+        bEl('span', { textContent: 'The combat panel on the right is waiting for a roll.' }),
+        go
+      ])
     );
-    if (pips && !pips.hidden) {
-      const p = pips.cloneNode(true);
-      p.removeAttribute('id');
-      p.className = 'actp-pips dk-pips';
-      who.append(p);
+  } else if (running) {
+    const c = act.cur,
+      read = ($('c-cur-read') && $('c-cur-read').textContent) || '',
+      k = c.moving ? curCost(act.pose) : null,
+      pct = k && c.budget ? Math.min(100, (k.cost / c.budget) * 100) : 0;
+    const head = bEl('div', { className: 'dk-run' }, [
+      bEl('div', { className: 'dk-rh' }, [
+        bEl('span', { className: 'dk-ti' }, [icon(DOCK_ICO[c.type] || 'spark', 18) || '']),
+        bEl('strong', { textContent: (ACT[c.type] || { n: c.type }).n }),
+        c.moving
+          ? bEl('span', {
+              className: 'dk-rm',
+              textContent: k.cost.toFixed(1) + '″ of ' + c.budget + '″' + (c.roll != null ? ' · rolled ' + c.roll : '')
+            })
+          : ''
+      ]),
+      c.moving ? bEl('div', { className: 'dk-meter' }, [bEl('i', { style: 'width:' + pct + '%' })]) : '',
+      !c.moving ? bEl('div', { className: 'dk-rt', textContent: read.replace(/^[^:]*:\s*/, '') }) : ''
+    ]);
+    main.prepend(head);
+    /* the action's own controls, then turning and formation, in one row under its name */
+    let row = main.querySelector('.dk-ctl');
+    if (!row) {
+      row = bEl('div', { className: 'dk-ctl' });
+      main.append(row);
     }
-    who.append(bEl('div', { className: 'dk-h', textContent: 'Keys 1–9 pick an action · Enter finishes' }));
-    /* number the action tiles for the keys */
-    [...$('c-actions').querySelectorAll('button.act')].forEach((b, i) => {
-      if (i < 9) b.dataset.key = String(i + 1);
-      else delete b.dataset.key;
-    });
-  }
-  if (was !== on) requestAnimationFrame(fitBoard);
+    if (chg && chg.parentNode !== row) row.append(chg);
+    if (ctl && ctl.parentNode !== row) row.append(ctl);
+  } else if (drawOpen) {
+    const show = bEl('button', { type: 'button', className: 'btn', textContent: 'Show Draw Events' });
+    show.onclick = () => {
+      setTab('reg');
+      try {
+        drawStep.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (e) {}
+    };
+    main.append(
+      bEl('div', { className: 'dk-note' }, [
+        bEl('span', { textContent: 'Draw Events can be used before the first action, in the panel on the right.' }),
+        show
+      ]),
+      dockTiles(u)
+    );
+  } else if (!left && !availableActions(u).some(a => !a.why)) {
+    main.append(
+      bEl('div', { className: 'dk-msg' }, [
+        bEl('strong', { textContent: 'Both actions are used' }),
+        bEl('span', { textContent: 'Press End activation to finish.' })
+      ])
+    );
+  } else main.append(dockTiles(u));
+  /* right: finish the action, or the activation */
+  if (running) {
+    foot.append(dockBtn('done-act', 'Finish action', 'gold', '↵'), dockBtn('cancel-act', 'Cancel action', 'ghost'));
+  } else foot.append(dockBtn('end', 'End activation', 'gold', '↵'), dockBtn('abort', 'Undo activation', 'ghost'));
+  if (was !== game) requestAnimationFrame(fitBoard);
 }
 
 /* number keys pick the action on that tile; Enter finishes the action, or ends the activation */
@@ -137,8 +298,8 @@ function dockKeys(ev) {
   if (/INPUT|TEXTAREA|SELECT/.test(tg.tagName) || tg.isContentEditable) return;
   if (mmCurrent() || document.querySelector('dialog[open]') || $('roll-ask')) return;
   if (/^[1-9]$/.test(ev.key) && !act.cur) {
-    const b = [...$('c-actions').querySelectorAll('button.act')][+ev.key - 1];
-    if (b && !b.disabled && !$('c-actions').hidden) {
+    const b = document.querySelector('#dock .dk-t[data-key="' + ev.key + '"]');
+    if (b && !b.disabled) {
       ev.preventDefault();
       b.click();
     }
@@ -147,45 +308,13 @@ function dockKeys(ev) {
   if (ev.key === 'Enter' && (!tg || tg === document.body || !/BUTTON|A/.test(tg.tagName))) {
     const fin = $('done-act'),
       end = $('end');
-    const vis = b => b && !b.disabled && !b.closest('[hidden]') && b.offsetParent !== null;
-    if (act.cur && vis(fin)) {
+    if (act.cur && fin && !fin.disabled) {
       ev.preventDefault();
       fin.click();
-    } else if (!act.cur && !cb && vis(end)) {
+    } else if (!act.cur && !cb && end && !end.disabled && !end.hidden) {
       ev.preventDefault();
       end.click();
     }
   }
 }
 document.addEventListener('keydown', dockKeys);
-
-/* the panel changes outside render() too (dice, steps): keep the dock's heading in step */
-{
-  const main = $('dock-main');
-  let queued = false;
-  if (main && typeof MutationObserver === 'function')
-    new MutationObserver(() => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => {
-        queued = false;
-        try {
-          if (dockOn()) {
-            const pips = $('c-pips'),
-              old = document.querySelector('#dock-who .dk-pips');
-            if (pips && old && old.innerHTML !== pips.innerHTML) old.innerHTML = pips.innerHTML;
-            const k = document.querySelector('#dock-who .dk-k'),
-              h = $('c-act-h');
-            if (k && h && k.textContent !== h.textContent) k.textContent = h.textContent;
-            [...$('c-actions').querySelectorAll('button.act')].forEach((b, i) => {
-              const v = i < 9 ? String(i + 1) : '';
-              if ((b.dataset.key || '') !== v) {
-                if (v) b.dataset.key = v;
-                else delete b.dataset.key;
-              }
-            });
-          }
-        } catch (e) {}
-      });
-    }).observe(main, { subtree: true, childList: true, characterData: true });
-}
