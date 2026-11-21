@@ -7,7 +7,8 @@
  * the actions done so far. The dock's buttons press the regiment card's own buttons, so each is wired in one place.
  * Number keys 1–9 start the action on that tile; Enter finishes the action, or ends the activation.
  *
- * In this file: DOCK_ICO, dockOn(), dockTiles(), dockBtn(), renderDock(), dockKeys()
+ * In this file: DOCK_ICO, dockOn(), dockTiles(), dockDraw(), dockDrawTiles(), dockBtn(), renderDock(),
+ *   dockKeys()
  */
 
 /* an icon for each kind of action */
@@ -81,6 +82,53 @@ function dockTiles(u) {
       b.onclick = () => startAction(a.type);
       box.append(b);
     });
+  return box;
+}
+
+/* step 1 of an activation: its Draw Events and the like (faction choices before the first action). Returns the
+   choices as tiles' data, the notes of what resolved on its own, and the reminders to resolve by hand. */
+function dockDraw(u) {
+  const out = { items: [], notes: [], refs: [] };
+  if (!act || act.entering || act.actions.length || act.cur || act.drawPast) return out;
+  let items = [];
+  try {
+    items = frOptions(u).filter(it => it.kind !== 'any');
+  } catch (e) {}
+  let head = '';
+  items.forEach(it => {
+    if (it.head) head = it.head;
+    else out.items.push(Object.assign({ group: head }, it));
+  });
+  const groups = [...new Set(out.items.map(it => it.group))];
+  out.oneGroup = groups.length === 1 && groups[0] ? groups[0] : '';
+  out.notes = (act.drawNotes || []).slice();
+  const box = $('c-draw');
+  if (box) box.querySelectorAll('.dn.ref').forEach(d => out.refs.push(d.textContent.replace(/^•\s*/, '')));
+  return out;
+}
+
+/* the Draw Event choices as tiles */
+function dockDrawTiles(D) {
+  const box = bEl('div', { className: 'dk-tiles dk-draw' });
+  D.items.slice(0, 9).forEach((it, i) => {
+    const b = bEl('button', { type: 'button', className: 'dk-t' + (it.cls === 'pri' ? ' pri' : '') });
+    b.disabled = !!it.why;
+    b.title = it.why || it.label;
+    b.dataset.key = String(i + 1);
+    b.append(
+      bEl('span', { className: 'dk-ti' }, [icon('spark', 18) || '']),
+      bEl('span', { className: 'dk-tn', textContent: it.label }),
+      bEl('kbd', { textContent: String(i + 1) }),
+      bEl('span', { className: 'dk-ts', textContent: it.why || (D.oneGroup ? 'Use it now' : it.group || 'Draw Event') })
+    );
+    b.onclick = () => {
+      if (b.disabled) return;
+      Promise.resolve(it.fn())
+        .then(() => render())
+        .catch(() => toast('That could not be saved. Try again.'));
+    };
+    box.append(b);
+  });
   return box;
 }
 
@@ -184,22 +232,27 @@ function renderDock() {
   who.append(
     bEl('div', { className: 'dk-k', textContent: 'Activating' }),
     bEl('div', { className: 'dk-n', textContent: u.short || u.name }),
-    u.charName ? bEl('div', { className: 'dk-c', textContent: '+ ' + u.charName }) : '',
-    bEl('div', { className: 'dk-a' }, [
-      pips,
-      bEl('span', { textContent: left ? 'Action ' + (used + 1) + ' of 2' : 'Both actions used' })
+    u.charName ? bEl('div', { className: 'dk-c', textContent: '+ ' + u.charName }) : ''
+  );
+  const D = dockDraw(u),
+    drawing = !running && (D.items.some(it => !it.why) || D.refs.length > 0);
+  /* the steps of the activation: Draw Events, Actions, End */
+  const stp = (n, t, st, extra) =>
+    bEl('div', { className: 'dk-step ' + st }, [
+      bEl('b', { textContent: st === 'ok' ? '✓' : String(n) }),
+      bEl('span', { textContent: t }),
+      extra || ''
+    ]);
+  who.append(
+    bEl('div', { className: 'dk-steps' }, [
+      stp(1, 'Draw Events', drawing ? 'now' : 'ok'),
+      stp(2, 'Actions', drawing ? '' : left ? 'now' : 'ok', drawing ? '' : pips),
+      stp(3, 'End', !drawing && !left ? 'now' : '')
     ])
   );
   /* middle: what to do now */
   const fight = cb && cb.type !== 'duel' && (cb.att === act.id || cb.tgt === act.id);
-  const drawStep = $('c-draw-step'),
-    drawOpen =
-      !used &&
-      drawStep &&
-      !drawStep.hidden &&
-      !drawStep.classList.contains('done') &&
-      [...drawStep.querySelectorAll('button')].some(b => !b.disabled);
-  document.body.classList.toggle('dk-draw', !!drawOpen);
+  document.body.classList.toggle('dk-draw', drawing);
   /* the side column still shows the activation panel when it holds something to do there: Draw Events, coming on
      to the table, a faction or formation choice, a warning, or a fight in progress */
   {
@@ -207,7 +260,7 @@ function renderDock() {
       const e = $(id);
       return !!e && !e.hidden && !!e.textContent.trim();
     };
-    const panel = drawOpen || has('c-start') || has('c-form') || has('c-fac') || has('c-warn') || !!$('c-cbstep');
+    const panel = has('c-start') || has('c-form') || has('c-fac') || has('c-warn') || !!$('c-cbstep');
     document.body.classList.toggle('dk-panel', !!panel);
   }
   if (fight && running) {
@@ -261,21 +314,24 @@ function renderDock() {
     }
     if (chg && chg.parentNode !== row) row.append(chg);
     if (ctl && ctl.parentNode !== row) row.append(ctl);
-  } else if (drawOpen) {
-    const show = bEl('button', { type: 'button', className: 'btn', textContent: 'Show Draw Events' });
-    show.onclick = () => {
-      setTab('reg');
-      try {
-        drawStep.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } catch (e) {}
-    };
+  } else if (drawing) {
+    /* step 1: use a Draw Event, or carry on to the actions */
+    const lines = D.notes.map(t => '✓ ' + t).concat(D.refs.map(t => '• ' + t));
     main.append(
-      bEl('div', { className: 'dk-note' }, [
-        bEl('span', { textContent: 'Draw Events can be used before the first action, in the panel on the right.' }),
-        show
-      ]),
-      dockTiles(u)
+      bEl('div', { className: 'dk-sh' }, [
+        bEl('strong', { textContent: 'Draw Events' }),
+        bEl('span', {
+          textContent:
+            (D.oneGroup ? D.oneGroup + ' · ' : '') +
+            (D.items.some(it => !it.why)
+              ? 'pick one, or continue to the actions.'
+              : 'check these, then continue to the actions.')
+        })
+      ])
     );
+    if (lines.length)
+      main.append(bEl('div', { className: 'dk-dn', textContent: lines.join('   '), title: lines.join('\n') }));
+    if (D.items.length) main.append(dockDrawTiles(D));
   } else if (!left && !availableActions(u).some(a => !a.why)) {
     main.append(
       bEl('div', { className: 'dk-msg' }, [
@@ -283,10 +339,24 @@ function renderDock() {
         bEl('span', { textContent: 'Press End activation to finish.' })
       ])
     );
-  } else main.append(dockTiles(u));
+  } else {
+    if (!used && (act.drawNotes || []).length)
+      main.append(
+        bEl('div', { className: 'dk-dn', textContent: act.drawNotes.map(t => '✓ ' + t).join('   ') })
+      );
+    main.append(dockTiles(u));
+  }
   /* right: finish the action, or the activation */
   if (running) {
     foot.append(dockBtn('done-act', 'Finish action', 'gold', '↵'), dockBtn('cancel-act', 'Cancel action', 'ghost'));
+  } else if (drawing && !fight) {
+    const go = bEl('button', { type: 'button', className: 'btn gold dk-go' });
+    go.append(document.createTextNode('Continue to actions'), bEl('kbd', { textContent: '↵' }));
+    go.onclick = () => {
+      act.drawPast = true;
+      render();
+    };
+    foot.append(go, dockBtn('abort', 'Undo activation', 'ghost'));
   } else foot.append(dockBtn('end', 'End activation', 'gold', '↵'), dockBtn('abort', 'Undo activation', 'ghost'));
   if (was !== game) requestAnimationFrame(fitBoard);
 }
@@ -308,6 +378,12 @@ function dockKeys(ev) {
   if (ev.key === 'Enter' && (!tg || tg === document.body || !/BUTTON|A/.test(tg.tagName))) {
     const fin = $('done-act'),
       end = $('end');
+    const go = document.querySelector('#dock .dk-go');
+    if (go && !act.cur) {
+      ev.preventDefault();
+      go.click();
+      return;
+    }
     if (act.cur && fin && !fin.disabled) {
       ev.preventDefault();
       fin.click();

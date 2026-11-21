@@ -1117,14 +1117,14 @@ body > .roll-ask {
   display: none;
 }
 .dock .dock-who {
-  flex: 0 0 190px;
-  padding: 14px 16px;
+  flex: 0 0 200px;
+  padding: 12px 16px;
   border-right: 1px solid var(--line);
   background: linear-gradient(90deg, color-mix(in srgb, var(--cs) 18%, transparent), transparent);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 4px;
+  justify-content: flex-start;
+  gap: 2px;
   min-width: 0;
 }
 .dock .dk-k {
@@ -1136,18 +1136,19 @@ body > .roll-ask {
 }
 .dock .dk-n {
   font-family: var(--display);
-  font-size: 17px;
-  line-height: 1.15;
-  letter-spacing: 0.05em;
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  flex: none;
 }
 .dock .dk-c {
-  font-size: 13px;
+  flex: none;
+  font-size: 12.5px;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -1184,6 +1185,102 @@ body > .roll-ask {
   justify-content: center;
   gap: 8px;
   overflow: auto;
+}
+/* the steps of an activation, under the regiment's name */
+.dock .dk-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.dock .dk-step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dock .dk-step b {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--muted) 60%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+.dock .dk-step.ok {
+  color: var(--ok);
+}
+.dock .dk-step.ok b {
+  border-color: var(--ok);
+}
+.dock .dk-step.now {
+  color: var(--gold-ink);
+  font-weight: 700;
+}
+.dock .dk-step.now b {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #2a1d08;
+}
+.dock .dk-step .dk-pips {
+  margin-left: 2px;
+}
+.dock .dk-step .dk-pips i {
+  width: 8px;
+  height: 8px;
+  border-width: 1.5px;
+}
+/* step 1: Draw Events */
+.dock .dk-sh {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.dock .dk-sh strong {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.dock .dk-sh span {
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dock .dk-sh strong {
+  flex: none;
+  white-space: nowrap;
+}
+.dock .dk-dn {
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dock .dk-draw .dk-t {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--line));
+}
+.dock .dk-draw .dk-tn {
+  text-transform: none;
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dock .dk-tiles.dk-draw {
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
 }
 /* the action tiles */
 .dock .dk-tiles {
@@ -1416,6 +1513,8 @@ body.dk-cur .dock .dock-main {
    can still be used) */
 body.has-dock:not(.dk-panel) #card #c-act-sec,
 body.has-dock #card #c-act-step,
+body.has-dock #card #c-draw-step,
+body.has-dock #card #c-act-sec > .actp-head,
 body.has-dock #card #c-foot,
 body.has-dock #card #c-actions,
 body.has-dock #card #c-acts-done,
