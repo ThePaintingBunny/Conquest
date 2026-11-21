@@ -341,7 +341,7 @@ function finishAction() {
     }
   }
   let TM = null;
-  if (['march', 'charge', 'withdraw'].includes(c.type) && entry.from && entry.to) {
+  if (['march', 'charge', 'withdraw'].includes(c.type) && !c.tloc && entry.from && entry.to) {
     TM = tAfterMove(base(act.id), entry);
     if (TM.notes.length || TM.hindered)
       entry.terrain = TM.notes.concat(TM.hindered ? ['Charged through ' + TM.hindered + ' (Hindering)'] : []);

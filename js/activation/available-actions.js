@@ -16,7 +16,7 @@ function availableActions(u) {
   const used = act.actions.filter(a => !a.free),
     last = used[used.length - 1],
     n = act.actions.filter(
-      a => a.type !== 'xreform'
+      a => a.type !== 'xreform' && a.type !== 'tloc'
     ).length /* out-of-sequence actions do not count towards the 3 */,
     eng = engaged(u);
   const broken = (u.effects || []).includes('Broken'),

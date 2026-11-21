@@ -18,6 +18,7 @@ const ACT = {
   flame: { n: 'Flamethrower', d: 'A Volley at the enemy touching its front' },
   xvolley: { n: 'Free Volley', d: 'A Volley that costs no action' },
   soar: { n: 'On Soaring Winds', d: 'March any way, through regiments and terrain' },
+  tloc: { n: 'Translocation', d: 'Free 8″ March any way, through regiments and terrain' },
   sweep: { n: 'Sweeping Step', d: 'Two Marches through regiments, then a free Clash' },
   rooted: { n: 'Rooted Might', d: 'Seed Markers to friends within 8″' },
   duel: { n: 'Duel', d: 'Challenge an enemy character in contact' },

@@ -866,7 +866,14 @@ function renderCard() {
     spellBox(chg, byId(act.id), false, c, res => {
       c.res = res;
       toast(res.line);
+      const tloc = res.success && res.spell === 'Translocation' && res.target === act.id;
       finishAction();
+      /* Translocation: the free 8″ March follows straight away */
+      if (tloc && act && !act.cur) {
+        act.tlocReady = true;
+        if (engaged(byId(act.id)).length) toast('Translocation: the regiment is engaged, so it cannot make the March.');
+        else startAction('tloc');
+      }
     });
   }
   if (c && (c.type === 'march' || c.withdraw) && c.segs) renderMarchUI(c, chg);

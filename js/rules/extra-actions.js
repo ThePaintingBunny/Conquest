@@ -75,6 +75,9 @@ function srActions(u, out, used, eng, blocked) {
   if (rh(R, 'Sweeping Step'))
     out.push({ type: 'sweep', why: used.length ? 'Only as the first action' : blocked('march') });
   if (rh(R, 'Rooted Might')) out.push({ type: 'rooted', why: blocked('rooted') });
+  /* Translocation (Moroi spell): the free 8″ March it grants, straight after the cast */
+  if (act.tlocReady && !act.actions.some(a => a.type === 'tloc'))
+    out.push({ type: 'tloc', why: eng.length ? 'Not while engaged' : '', free: true });
   if (act.freeReform && !act.actions.some(a => a.type === 'xreform'))
     out.push({ type: 'xreform', why: eng.length ? 'Not while engaged' : '', free: true });
   if (assassinOk(u)) out.push({ type: 'assassin', why: blocked('clash') });
@@ -181,6 +184,27 @@ function srStartAction(type) {
     toast('Free Volley: click the enemy regiment you are shooting at.');
     return true;
   }
+  if (type === 'tloc') {
+    act.cur = {
+      type: 'march',
+      soar: true,
+      tloc: true,
+      free: true,
+      start: st,
+      budget: 8,
+      moving: true,
+      reshape: false,
+      segs: [],
+      segStart: Object.assign({}, st),
+      mode: 'fwd',
+      pending: null
+    };
+    render();
+    toast(
+      'Translocation: drag the regiment up to 8″ in any direction, through regiments and terrain, then press Done. It must end in a legal spot.'
+    );
+    return true;
+  }
   if (type === 'soar' || type === 'sweep') {
     act.cur = {
       type: 'march',
@@ -211,7 +235,8 @@ function srFinishAction(u, c, entry) {
   if (c.xclash) entry.type = 'xclash';
   if (c.xreform) entry.type = 'xreform';
   if (c.xvolley) entry.type = 'xvolley';
-  if (c.soar && !c.sweep) entry.type = 'soar';
+  if (c.soar && !c.sweep) entry.type = c.tloc ? 'tloc' : 'soar';
+  if (c.tloc) entry.free = true;
   if (c.sweep) {
     entry.type = 'sweep';
     act.sweepDone = true;
