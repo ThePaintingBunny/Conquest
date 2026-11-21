@@ -29,7 +29,7 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
     o0.textContent = 'No automatic arrival';
     sel.appendChild(o0);
     pool
-      .filter(u => reinfRule(u.cls, state.round) !== 'auto')
+      .filter(u => reinfRule(u.cls, state.round) !== 'auto' && !flankOf(u))
       .forEach(u => {
         const o = document.createElement('option');
         o.value = u.id;
@@ -38,7 +38,8 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
       });
     add(sel);
     const rsel = ravenSelect(HU, add),
-      hsel = huntSelect(HU, add);
+      hsel = huntSelect(HU, add),
+      fsel = flankSelect(HU, add);
     const roll = async () => {
       aiBusy = true;
       render();
@@ -46,7 +47,8 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
         const rep = await doReinforcements(
           sel.value || null,
           (rsel && rsel.value) || null,
-          (hsel && hsel.value) || null
+          (hsel && hsel.value) || null,
+          fsel.filter(s => s.value === 'hold').map(s => s.dataset.id)
         );
         aiBusy = false;
         if (HU === 'nord') {
@@ -66,7 +68,7 @@ function renderTurnbarPvp(tb, info, mk, add, step) {
       }
     };
     /* nothing to choose (no reserves that may arrive, no Raven Messengers or Call the Hunt): skip the question */
-    if (sel.options.length === 1 && !rsel && !hsel) {
+    if (sel.options.length === 1 && !rsel && !hsel && !fsel.length) {
       sel.remove();
       info.textContent = `Round ${state.round} · Reinforcements: nothing to choose, carrying on…`;
       if (reinfSkipKey !== state.round + ':' + HU) {

@@ -5,7 +5,7 @@
  * Call the Hunt).
  *
  * In this file: reinfRule(), reserves(), reinfLabel(), ravenOk(), ravenSelect(), huntOk(),
- *   huntSelect(), doReinforcements()
+ *   huntSelect(), flankOf(), flankSelect(), doReinforcements()
  */
 
 function reinfRule(cls, R) {
@@ -91,7 +91,38 @@ function huntSelect(side, add) {
   return sel;
 }
 
-async function doReinforcements(humanAuto, humanRaven, humanHunt) {
+/* a regiment with Flank (or Forward Force), and whether it is still free to stay in Reinforcements this round (its
+   class may arrive but is not yet required to) */
+function flankOf(u) {
+  return (
+    hasRule(u, /^Flank/) ||
+    (u.char != null && (rh(chRulesX(u), 'Forward Force') || supForwardForce(u)) && u.type !== 'monster')
+  );
+}
+
+/* Flank: before the roll, its player says whether each such regiment arrives or stays in Reinforcements */
+function flankSelect(side, add) {
+  const pool = reserves(side).filter(u => flankOf(u) && /^roll/.test(reinfRule(u.cls, state.round)));
+  return pool.map(u => {
+    const sel = document.createElement('select');
+    sel.className = 'tb-flank';
+    sel.dataset.id = u.id;
+    sel.setAttribute('aria-label', 'Flank: ' + u.name);
+    [
+      ['', 'Flank: ' + reinfLabel(u, pool) + ' arrives'],
+      ['hold', 'Flank: ' + reinfLabel(u, pool) + ' stays in Reinforcements']
+    ].forEach(([v, t]) => {
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = t;
+      sel.appendChild(o);
+    });
+    add(sel);
+    return sel;
+  });
+}
+
+async function doReinforcements(humanAuto, humanRaven, humanHunt, humanHold) {
   const R = state.round,
     out = [];
   const units = (state.units || []).map(u => Object.assign({}, u));
@@ -99,7 +130,7 @@ async function doReinforcements(humanAuto, humanRaven, humanHunt) {
     units.forEach(u => {
       if (u.side === AI && privOk(u)) u.cls = u.cls.replace(/Light/, 'Medium');
     });
-  const roll = async (side, autoId, ravenId, huntId) => {
+  const roll = async (side, autoId, ravenId, huntId, hold) => {
     const res = [],
       rollers = [],
       noL = [];
@@ -115,13 +146,12 @@ async function doReinforcements(humanAuto, humanRaven, humanHunt) {
         continue;
       }
       const rule = reinfRule(u.cls, R);
-      if (
-        rule !== 'no' &&
-        (hasRule(u, /^Flank/) ||
-          (u.char != null &&
-            (rh(chRulesX(u), 'Forward Force') || supForwardForce(u)) &&
-            u.type !== 'monster'))
-      ) {
+      if (rule !== 'no' && flankOf(u)) {
+        /* Flank: no die in the roll; its player chose to keep it back (possible until its class must arrive) */
+        if (rule !== 'auto' && (hold || []).includes(u.id)) {
+          res.push(rfName(u) + ' stays in Reinforcements (Flank)');
+          continue;
+        }
         u.arriving = true;
         res.push(rfName(u) + ' arrives (Flank: kept out of the roll)');
         continue;
@@ -298,7 +328,8 @@ async function doReinforcements(humanAuto, humanRaven, humanHunt) {
     HU,
     humanAuto,
     humanRaven && humanRaven !== humanAuto ? humanRaven : null,
-    humanHunt && humanHunt !== humanAuto ? humanHunt : null
+    humanHunt && humanHunt !== humanAuto ? humanHunt : null,
+    humanHold || []
   );
   if (PVP()) {
     bannerHide();

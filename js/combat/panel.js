@@ -3,7 +3,7 @@
  *
  * Draws the combat panel step by step. One long function, renderCombat0, draws every step.
  *
- * In this file: stepBox(), cbMorale(), aiDefAuto(), renderCombat(), renderCombat0()
+ * In this file: cbMorale(), stepBox(), aiDefAuto(), renderCombat(), renderCombat0()
  */
 
 /* does this fight end with Morale Tests? Volleys and automatic hits do not, unless the rule (a spell) says so */

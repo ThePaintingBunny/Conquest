@@ -5,7 +5,8 @@
  * rules, Terrain chapter).
  *
  * In this file: tBlocks(), baseSize(), uSize(), tIgnore(), segHits(), tCrossed(), stC(),
- *   standCenters(), tAfterMove(), terrRolls(), tCover(), tLos(), stIn(), tWater(), tGarrisonNear(), tGarrisonOf()
+ *   standCenters(), tAfterMove(), terrRolls(), tCover(), tLos(), stIn(), tWater(), tGarrisonNear(),
+ *   tGarrisonOf()
  */
 
 function tBlocks(t, occ) {
