@@ -219,7 +219,7 @@ function buildGroups(type, A, T) {
 
 function defInfo(T, A, g) {
   const s = T.stats || {},
-    front = cb && cb.type === 'lethal' ? !cb.flank : g && g.arc ? g.arc === 'front' : cArcU(T, A) === 'front';
+    front = cb && cb.type === 'lethal' ? !(cb.flank || cb.spellHit) : g && g.arc ? g.arc === 'front' : cArcU(T, A) === 'front';
   let D = +s.D || 0;
   if (front && rh(RU(T), 'Shield') && !g.linebreaker && !T.garrison) D += 1;
   if (front && phalanx(T)) D += 1;

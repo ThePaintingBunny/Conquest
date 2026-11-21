@@ -5,7 +5,8 @@
  * rules, Terrain chapter).
  *
  * In this file: tBlocks(), baseSize(), uSize(), tIgnore(), segHits(), tCrossed(), stC(),
- *   standCenters(), tAfterMove(), tCover(), tLos(), stIn(), tWater(), tGarrisonNear(), tGarrisonOf()
+ *   standCenters(), tAfterMove(), terrRolls(), tCover(), tLos(), stIn(), tWater(), tGarrisonNear(),
+ *   tGarrisonOf()
  */
 
 function tBlocks(t, occ) {
@@ -88,9 +89,10 @@ function standCenters(u) {
   return standsOf(u).map(stC);
 }
 
-/* after a move: Dangerous / Perilous rolls; charges through Hindering */
+/* after a move: the Dangerous / Perilous rolls it owes (rolled by its player afterwards, see terrRolls); charges
+   through Hindering */
 function tAfterMove(u, entry) {
-  const res = { notes: [], wounds: 0, hindered: false };
+  const res = { notes: [], wounds: 0, hindered: false, rolls: [] };
   if (!entry.from || !entry.to) return res;
   const C = tCrossed(u, entry.from, entry.to),
     big = /Cavalry|Chariot/i.test(u.cls || '');
@@ -98,16 +100,7 @@ function tAfterMove(u, entry) {
     const I = tInfo(t);
     ['Dangerous', 'Perilous'].forEach(k => {
       if (!I.kw.includes(k) || tIgnore(u, k)) return;
-      const need = k === 'Dangerous' ? 6 : 4,
-        rolls = [];
-      let w = 0;
-      for (let i = 0; i < n; i++) {
-        const d = d6();
-        rolls.push(d);
-        if (d >= need) w += big ? 2 : 1;
-      }
-      res.wounds += w;
-      res.notes.push(`${I.name} (${k}): rolled ${rolls.join(', ')} → ${w} wound${w === 1 ? '' : 's'}`);
+      res.rolls.push({ name: I.name, k, n, need: k === 'Dangerous' ? 6 : 4, per: big ? 2 : 1 });
     });
     if (
       entry.type === 'charge' &&
@@ -118,6 +111,29 @@ function tAfterMove(u, entry) {
       res.hindered = I.name;
   });
   return res;
+}
+
+/* the Dangerous / Perilous rolls after a move: its player rolls them; returns the wounds and the notes */
+async function terrRolls(u, R) {
+  let wounds = 0;
+  const notes = [];
+  for (const q of R || []) {
+    const r = await askRoll({
+      title: q.name + ' (' + q.k + ')',
+      text: `${u.short || u.name} rolls one die per stand that crossed it: each ${q.need}${q.need < 6 ? '+' : ''} is ${q.per} wound${q.per > 1 ? 's' : ''}.`,
+      n: q.n,
+      side: u.side,
+      ok: v => v < q.need,
+      sum: r => {
+        const w = r.filter(v => v >= q.need).length * q.per;
+        return w + ' wound' + (w === 1 ? '' : 's');
+      }
+    });
+    const w = r.filter(v => v >= q.need).length * q.per;
+    wounds += w;
+    notes.push(`${q.name} (${q.k}): rolled ${r.join(', ')} → ${w} wound${w === 1 ? '' : 's'}`);
+  }
+  return { wounds, notes };
 }
 
 /* Volley Cover and Line of Sight */

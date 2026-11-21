@@ -360,6 +360,34 @@ function finishAction() {
   }
   act.cur = null;
   render();
+  if (TM && TM.rolls.length) {
+    const rid = act.id;
+    terrRolls(base(rid), TM.rolls).then(R => {
+      const bu = base(rid);
+      if (!bu || !R.wounds) {
+        if (R.notes.length) toast(R.notes.join(' · ') + '.');
+        return;
+      }
+      const AL = allocate(bu, R.wounds);
+      putState({
+        units: state.units.map(x =>
+          x.id === bu.id
+            ? Object.assign(
+                {},
+                x,
+                { wounds: AL.w, auxWounds: AL.aw },
+                AL.dead
+                  ? { onTable: false, destroyed: true, status: 'Destroyed', destroyedRound: state.round }
+                  : {}
+              )
+            : x
+        ),
+        lastTitle: N(bu.side) + ' · ' + (bu.short || bu.name),
+        lastText: R.notes.join('; ') + '. No Morale Tests.'
+      }).catch(() => {});
+      toast(R.notes.join(' · ') + '. No Morale Tests.');
+    });
+  }
   if (TM && TM.wounds) {
     const bu = base(act.id),
       AL = allocate(bu, TM.wounds);

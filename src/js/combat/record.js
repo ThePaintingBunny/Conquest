@@ -232,6 +232,14 @@ async function recordCombat0() {
             : {}
         )
   );
+  /* Thaumaturge (Dweghom Mastery): the character's spell destroyed an enemy regiment: Wizard (+1), at most +2 */
+  if (dead && cb.thaumBy && !isMarker(T)) {
+    const c0 = base(cb.thaumBy);
+    if (c0 && c0.side !== T.side && (+c0.thaum || 0) < 2) {
+      units = units.map(x => (x.id === c0.id ? Object.assign({}, x, { thaum: (+x.thaum || 0) + 1 }) : x));
+      setTimeout(() => toast('Thaumaturge: the ' + c0.charName + ' gains Wizard (+1) for the rest of the battle.'), 50);
+    }
+  }
   /* Abundant Harvest (Weaver Courts Gift): its Court of Autumn regiment destroys an enemy regiment, and every friendly
      regiment within 12″ gains a Seed Marker */
   let harvest = 0;

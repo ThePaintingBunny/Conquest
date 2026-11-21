@@ -134,6 +134,8 @@ async function resolveSpell(cid, sp, tid, succ, asChar) {
   const t00 = base(tid),
     alive0 = !!(t00 && !t00.destroyed);
   const r = await resolveSpell0(cid, sp, tid, succ, asChar);
+  /* the built-in opponent's turn: its spell's hits are rolled (the defending player still rolls their own Defense) */
+  if (aiBusy) await cbDrain();
   try {
     const c0 = base(cid),
       t1 = base(tid);
@@ -244,11 +246,12 @@ async function resolveSpell0(cid, sp, tid, succ, asChar) {
   let units = state.units.slice(),
     parts = [],
     extra = {};
+  /* hits are not rolled here: the defending player rolls Defense (and Morale) for them in the combat panel */
+  const pend = [];
   const doHits = (t, n, ap, noM) => {
     if (n <= 0) return;
-    const R = spellHitRes(byId(t.id) || t, n, ap, noM || S.nm);
-    units = hurt(units, t.id, R.w);
-    parts.push(nm(t) + ': ' + R.txt);
+    pend.push({ id: t.id, n, ap: ap || 0, morale: !(noM || S.nm) });
+    parts.push(nm(t) + ': ' + n + ' Hit' + (n === 1 ? '' : 's') + (ap ? ' (Armor Piercing ' + ap + ')' : '') + ', to roll Defense against');
   };
   if (!sp.db) {
     units = units.map(x =>
@@ -451,6 +454,20 @@ async function resolveSpell0(cid, sp, tid, succ, asChar) {
     units = units.map(x => (x.id === T.id ? grantU(x, src, [], null) : x));
   await putState(
     Object.assign({ units, lastTitle: N(u.side) + ' · ' + sp.name, lastText: parts.join('; ') + '.' }, extra)
+  );
+  const thaum = asChar && upgOf(u, /Thaumaturge/) ? u.id : null;
+  pend.forEach(p =>
+    queueHits({
+      att: u.id,
+      tgt: p.id,
+      n: p.n,
+      ap: p.ap,
+      morale: p.morale,
+      loose: true,
+      label: sp.name,
+      thaumBy: thaum,
+      text: (asChar ? 'The ' + u.charName : nm(u)) + ' casts ' + sp.name + '.'
+    })
   );
   return parts.join('; ');
 }

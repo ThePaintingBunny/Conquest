@@ -4,8 +4,8 @@
  * Short questions asked all over the code: does this regiment have a Draw Event, an upgrade, Trample,
  * Phalanx; is it Animate; does its army have a rule.
  *
- * In this file: isDrawAb(), isUpgAb(), hasDraw(), drawVal(), trampleX(), tramplePending(), frontFoes(), animate(),
- *   phalanx(), armyHas(), upgOf()
+ * In this file: isDrawAb(), isUpgAb(), hasDraw(), drawVal(), trampleX(), tramplePending(), frontFoes(),
+ *   animate(), phalanx(), armyHas(), upgOf()
  */
 
 function isDrawAb(u, n, t) {

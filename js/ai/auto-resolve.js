@@ -3,7 +3,7 @@
  *
  * Resolves combat dice and spellcasting for Claude.
  *
- * In this file: huRolls(), autoResolve(), aiCast(), aiCastSpell()
+ * In this file: huRolls(), cbDrain(), autoResolve(), aiCast(), aiCastSpell()
  */
 
 /* single player: when the computer attacks, the defender rolls its own Defense and Morale (unless switched off) */
@@ -21,6 +21,17 @@ async function huRolls(step) {
   while (cb === c0 && cb.step === step) await sleep(150);
   box.classList.remove('hu-roll');
   return true;
+}
+
+/* resolve every fight that is open or waiting (the defender's own rolls still wait for the player) */
+async function cbDrain() {
+  for (let g = 0; g < 80 && (cb || cbQueue.length); g++) {
+    if (!cb) {
+      await sleep(200);
+      continue;
+    }
+    await autoResolve();
+  }
 }
 
 async function autoResolve() {
@@ -100,7 +111,7 @@ async function autoResolve() {
       }
       if (await huRolls('def')) continue;
       rollDef(T);
-      cb.step = cb.type !== 'volley' && cb.type !== 'lethal' && cb.wounds ? 'mor' : 'done';
+      cb.step = cbMorale() && cb.wounds ? 'mor' : 'done';
     } else if (cb.step === 'mor') {
       const mi = moraleInfo(T, byId(cb.att) || base(cb.att));
       if (mi.auto) {

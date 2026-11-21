@@ -113,6 +113,9 @@ async function useAbil(cid, name, tid) {
   let units = state.units.slice(),
     line = '',
     extra = {};
+  /* hits from the ability: the defending player rolls Defense for them in the combat panel */
+  const hitsQ = [];
+  const ask = (n, text, ok, sum) => askRoll({ title: a.n, text, n, side: u.side, ok, sum });
   if (a.prac && (T.temp || []).some(g => /^Practitioner/.test(g.src)))
     return a.n + ': ' + nm(T) + ' was already the target of a Practitioner action this round';
   const src = (a.prac ? 'Practitioner: ' : '') + (a.label || a.n);
@@ -154,8 +157,7 @@ async function useAbil(cid, name, tid) {
     line = 'Pheromantic Drive around ' + nm(u);
   }
   if (a.fn === 'essence') {
-    const r1 = d6(),
-      r2 = d6(),
+    const [r1, r2] = await ask(2, nm(T) + ' takes the lower of two dice in wounds.', null, r => 'Lower: ' + Math.min(...r)),
       lo = Math.min(r1, r2);
     units = hurt(units, T.id, lo);
     const cp = corners(u),
@@ -180,7 +182,7 @@ async function useAbil(cid, name, tid) {
       (H ? `, ${nm(H)} heals 4` : ', nobody needed healing');
   }
   if (a.fn === 'elixir') {
-    const r = d6(),
+    const [r] = await ask(1, nm(T) + ' heals as many wounds as the die shows.', null, r => 'Heals up to ' + r[0]),
       h = Math.min(r, +T.wounds || 0);
     units = units.map(x =>
       x.id === T.id
@@ -194,7 +196,9 @@ async function useAbil(cid, name, tid) {
     line = `Grotesque Elixir on ${nm(T)}: rolled ${r}, heals ${h}`;
   }
   if (a.fn === 'unstable') {
-    const r = d6(),
+    const [r] = await ask(1, '1–2: +1 March · 3–4: +1 Clash · 5–6: +1 Volley', null, r =>
+        r[0] <= 2 ? '+1 March' : r[0] <= 4 ? '+1 Clash' : '+1 Volley'
+      ),
       k = r <= 2 ? 'M' : r <= 4 ? 'C' : 'V',
       st = k === 'M' ? { M: 1 } : { [k]: 1 };
     units = units.map(x => {
@@ -206,25 +210,25 @@ async function useAbil(cid, name, tid) {
     line = `Unstable Enhancement on ${nm(T)}: rolled ${r}, +1 ${k === 'M' ? 'March' : k === 'C' ? 'Clash' : 'Volley'}`;
   }
   if (a.fn === 'rupture') {
-    const r1 = d6(),
-      r2 = d6(),
+    const [r1, r2] = await ask(
+        2,
+        'Every enemy engaged with ' + nm(T) + ' takes Hits equal to the higher die, Armor Piercing (1).',
+        null,
+        r => Math.max(...r) + ' Hits'
+      ),
       hi = Math.max(r1, r2),
-      E = engaged(T).map(byId).filter(Boolean),
-      parts = [];
-    E.forEach(e => {
-      const R = autoDefend(e, hi, 1);
-      units = hurt(units, e.id, R.w);
-      parts.push(`${nm(e)} ${R.w} wound${R.w === 1 ? '' : 's'}`);
-    });
+      E = engaged(T).map(byId).filter(Boolean);
+    E.forEach(e => hitsQ.push({ tgt: e.id, n: hi, ap: 1 }));
     line =
       `Catalytic Rupture at ${nm(T)}: ${hi} Hits (rolled ${r1}, ${r2})` +
-      (parts.length ? ' → ' + parts.join(', ') : ', nobody in contact');
+      (E.length ? ' on ' + E.map(nm).join(', ') + ', to roll Defense against' : ', nobody in contact');
   }
   if (a.fn === 'virulence') {
-    const r = d6(),
-      R = autoDefend(T, r, 6 - r);
-    units = hurt(units, T.id, R.w);
-    line = `Grant Virulence on ${nm(T)}: ${r} Hits, Armor Piercing ${6 - r} → ${R.w} wound${R.w === 1 ? '' : 's'}`;
+    const [r] = await ask(1, nm(T) + ' takes Hits equal to the die, with Armor Piercing of 6 minus the die.', null, q =>
+      q[0] + ' Hits, Armor Piercing ' + (6 - q[0])
+    );
+    hitsQ.push({ tgt: T.id, n: r, ap: 6 - r });
+    line = `Grant Virulence on ${nm(T)}: ${r} Hits, Armor Piercing ${6 - r}, to roll Defense against`;
   }
   if (a.fn === 'shepherd') {
     const W = +(T.stats && T.stats.W) || 4,
@@ -254,7 +258,11 @@ async function useAbil(cid, name, tid) {
       extra
     )
   );
+  hitsQ.forEach(h =>
+    queueHits({ att: u.id, tgt: h.tgt, n: h.n, ap: h.ap, morale: false, label: a.n, text: 'The ' + u.charName + ': ' + a.n + '.' })
+  );
   toast(line + '.');
+  if (hitsQ.length && aiBusy) await cbDrain();
   return line;
 }
 

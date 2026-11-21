@@ -148,6 +148,24 @@ function srOptions(u) {
       T.forEach(([e, d]) =>
         add((e.short || e.name) + ' (' + d.toFixed(1) + '″)', async () => {
           act.scimUsed = true;
+          /* a regiment: its player rolls Defense in the combat panel */
+          if (!isMarker(base(e.id))) {
+            queueHits({
+              att: u.id,
+              tgt: e.id,
+              n: 3,
+              ap: 2,
+              morale: false,
+              loose: true,
+              label: 'Dancing Scimitar',
+              text: 'Dancing Scimitar (Draw Event).'
+            });
+            await putState({
+              lastTitle: N(u.side) + ' · Dancing Scimitar',
+              lastText: (e.short || e.name) + ': 3 Hits with Armor Piercing (2), to roll Defense against.'
+            });
+            return;
+          }
           const x0 = base(e.id),
             H = spellHitRes(x0, 3, 2, true),
             AL = allocate(x0, H.w);

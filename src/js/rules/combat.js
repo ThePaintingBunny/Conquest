@@ -5,7 +5,7 @@
  * everything that triggers after combat.
  *
  * In this file: contactArc(), cArcU(), cArc(), mostlyHindering(), srClashWater(), srWaterAura(),
- *   srAirNow(), cbQueue, srQueue(), srFearsome(), decayN(), srAfterCombat()
+ *   srAirNow(), cbQueue, queueHits(), srQueue(), srFearsome(), decayN(), srAfterCombat()
  */
 
 /* combat helpers */
@@ -82,6 +82,39 @@ function srAirNow(side) {
 
 let cbQueue = [];
 
+/* Hits from a spell or an ability: the defending player rolls Defense (and Morale, if the rule causes it) in the
+   combat panel. o: { att, tgt, n, ap, label, morale, loose (Loose Formation halves them), text, thaumBy } */
+function queueHits(o) {
+  const T = byId(o.tgt) || base(o.tgt);
+  if (!T || T.destroyed || !(o.n > 0)) return 0;
+  const lf = o.loose && rh(RU(T), 'Loose Formation'),
+    n = lf ? Math.ceil(o.n / 2) : o.n,
+    nm = T.short || T.name;
+  srQueue({
+    type: 'lethal',
+    att: o.att,
+    tgt: o.tgt,
+    inAct: false,
+    lethalHits: n,
+    lethalX: 0,
+    lethalLost: 0,
+    lethalRed: o.ap || 0,
+    lethalLabel: o.label,
+    spellHit: true,
+    hitMorale: !!o.morale,
+    thaumBy: o.thaumBy || null,
+    selfTitle: o.label,
+    selfText:
+      (o.text ? o.text + ' ' : '') +
+      `${nm} takes ${n} Hit${n === 1 ? '' : 's'}` +
+      (o.ap ? ` with Armor Piercing (${o.ap})` : '') +
+      (lf ? ' (halved: Loose Formation)' : '') +
+      `. Roll its Defense` +
+      (o.morale ? ', then test Morale for the wounds.' : '; no Morale Tests.')
+  });
+  return n;
+}
+
 function srQueue(o) {
   cbQueue.push(o);
   if (!cb)
@@ -98,8 +131,37 @@ function srFearsome(u, type) {
   const f = engaged(u).find(e => rh(RU(e), 'Fearsome'));
   if (!f) return true;
   const best = Math.max(+(u.stats && u.stats.R) || 0, +(u.charName && chStatsX(u).R) || 0),
-    v = d6(),
-    ok = (v <= best && v !== 6) || v === 1;
+    pass = v => (v <= best && v !== 6) || v === 1,
+    what = type === 'crally' ? 'Combat Rally' : 'Combat Reform';
+  /* a player rolls the test themselves; once it is passed the action starts again with the test done */
+  if (act.fearOk === type) {
+    act.fearOk = null;
+    return true;
+  }
+  if (rollAskWho(u.side)) {
+    askRoll({
+      title: 'Fearsome: ' + (f.short || f.name),
+      text: `${u.short || u.name} needs ${best} or less to ${what}.`,
+      n: 1,
+      side: u.side,
+      ok: pass,
+      sum: r => (pass(r[0]) ? 'Passed' : 'Failed: the action is lost')
+    }).then(r => {
+      if (!act || act.id !== u.id) return;
+      if (pass(r[0])) {
+        act.fearOk = type;
+        startAction(type);
+      } else {
+        const st = { x: u.x, y: u.y, facing: u.facing || 0, files: geom(u).files };
+        act.actions.push({ type, failed: true, fearsome: true, from: st, to: st });
+        toast('Fearsome: the test failed, so the action is lost.');
+        render();
+      }
+    });
+    return false;
+  }
+  const v = d6(),
+    ok = pass(v);
   banner(
     'Fearsome: ' + (f.short || f.name),
     [{ v, cls: ok ? 'hit' : 'miss' }],

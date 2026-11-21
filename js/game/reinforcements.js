@@ -210,7 +210,21 @@ async function doReinforcements(humanAuto, humanRaven, humanHunt) {
     });
     const G = Object.values(groups);
     for (const g of G) {
-      g.dice = g.units.map(() => d6());
+      g.dice = await askRoll({
+        title: 'Reinforcements · ' + N(side) + ' · ' + g.cls,
+        text:
+          'One die for each ' +
+          g.cls +
+          ' regiment waiting: ' +
+          g.units.map(x => x.short || x.name).join(', ') +
+          '. Each ' +
+          g.need +
+          ' or less lets one arrive.',
+        n: g.units.length,
+        side: SBX() ? HU : side,
+        ok: v => v <= g.need,
+        sum: r => r.filter(v => v <= g.need).length + ' of ' + g.units.length + ' arrive'
+      });
       g.first = g.dice.slice();
       g.notes = [];
     }

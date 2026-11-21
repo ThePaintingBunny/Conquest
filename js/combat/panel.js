@@ -3,8 +3,14 @@
  *
  * Draws the combat panel step by step. One long function, renderCombat0, draws every step.
  *
- * In this file: stepBox(), aiDefAuto(), renderCombat(), renderCombat0()
+ * In this file: stepBox(), cbMorale(), aiDefAuto(), renderCombat(), renderCombat0()
  */
+
+/* does this fight end with Morale Tests? Volleys and automatic hits do not, unless the rule (a spell) says so */
+function cbMorale() {
+  if (!cb) return false;
+  return cb.type === 'lethal' ? !!cb.hitMorale : cb.type !== 'volley';
+}
 
 function stepBox(t) {
   const s = document.createElement('div');
@@ -34,7 +40,7 @@ function aiDefAuto() {
         cb.blessUsedT = true;
       }
       rollDef(T2);
-      cb.step = cb.type !== 'volley' && cb.type !== 'lethal' && cb.wounds ? 'mor' : 'done';
+      cb.step = cbMorale() && cb.wounds ? 'mor' : 'done';
     } else {
       const mi = moraleInfo(T2, byId(cb.att) || base(cb.att));
       cb.mi = mi;
@@ -432,7 +438,7 @@ function renderCombat0() {
           () => {
             if (cb.blessT) cb.blessUsedT = true;
             rollDef(T);
-            cb.step = cb.type !== 'volley' && cb.type !== 'lethal' && cb.wounds ? 'mor' : 'done';
+            cb.step = cbMorale() && cb.wounds ? 'mor' : 'done';
             renderCombat();
           },
           'T'
@@ -452,7 +458,7 @@ function renderCombat0() {
     body.appendChild(s2);
   }
   if (cb.step === 'def') return;
-  if (cb.type !== 'volley' && cb.type !== 'lethal' && cb.wounds) {
+  if (cbMorale() && cb.wounds) {
     const mi = cb.mi || moraleInfo(T, A),
       s3 = stepBox('3 · ' + sT + ' tests Morale');
     if (mi.auto) {
