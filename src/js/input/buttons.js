@@ -67,6 +67,15 @@ $('hk-btn').onclick = () => openSettings('controls');
 $('set-open').onclick = () => openSettings();
 
 $('mm-open').onclick = () => {
+  /* in the map or scenario builder: Menu leaves the builder for the menu (asking first when there is unsaved work) */
+  const B = mapEdit || scenEdit;
+  if (B) {
+    const what = mapEdit ? 'map' : 'scenario';
+    if (B.dirty && !mbSure('menu', 'This ' + what + ' is not saved. Click Menu again to leave without saving.')) return;
+    if (mapEdit) mbClose();
+    else sbClose();
+    return;
+  }
   if (mmCurrent() && !mmOverlay) {
     mmGo('home');
     return;
