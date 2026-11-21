@@ -42,8 +42,6 @@ def swap_page(text, old, new):
 KEY_HINT = 'Add your Anthropic API key under Claude settings at the top of the page to use Claude.'
 swap("'Claude was not allowed to run, so the army was not read.'", repr(KEY_HINT))
 swap("'Claude was not allowed to run, so the armies were not built.'", repr(KEY_HINT))
-swap('Share this page with them from the Share menu, with permission to interact.',
-     'Press Host an online game above (or open the invite link your opponent sent), then each of you takes a seat.')
 
 STAMP = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
 VER = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M')

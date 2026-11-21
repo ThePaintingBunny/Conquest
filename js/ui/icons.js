@@ -75,7 +75,10 @@ function iconButton(id, name) {
   if (!b || b.querySelector('svg.ico')) return;
   const label = b.textContent.replace(/^[^A-Za-z0-9]+/, '').trim();
   b.textContent = '';
-  b.append(icon(name, 18), document.createTextNode(label));
+  const t = document.createElement('span');
+  t.className = 'tl';
+  t.textContent = label;
+  b.append(icon(name, 18), t);
 }
 
 [

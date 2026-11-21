@@ -27,13 +27,16 @@ function fitBoard() {
   if (innerWidth <= 900 || box.offsetParent === null || !document.body.classList.contains('tb-top')) return;
   const vb = b.viewBox && b.viewBox.baseVal,
     ar = vb && vb.height ? vb.width / vb.height : 1.49;
-  const below = tools && tools.offsetParent !== null ? tools.offsetHeight + 12 : 0,
+  const dock = $('dock'),
+    below =
+      (tools && tools.offsetParent !== null ? tools.offsetHeight + 12 : 0) +
+      (dock && !dock.hidden && dock.offsetParent !== null ? dock.offsetHeight + 12 : 0),
     top = box.getBoundingClientRect().top + scrollY,
     H = Math.max(300, Math.floor(innerHeight - top - below - 20)),
     W = box.getBoundingClientRect().width;
   b.style.maxHeight = H + 'px';
   /* never squeeze the map below a usable size: then the page scrolls instead */
-  const w = Math.max(Math.min(W, 760), H * ar),
+  const w = Math.max(Math.min(W, dock && !dock.hidden ? 560 : 760), H * ar),
     extra = Math.floor(W - w);
   b.style.maxHeight = Math.floor(w / ar) + 'px';
   if (extra > 2) wrap.style.maxWidth = Math.floor(wrap.getBoundingClientRect().width - extra) + 'px';

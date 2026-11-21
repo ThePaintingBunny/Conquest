@@ -8,89 +8,15 @@
 
 function renderSetupPvp(tb, info, mk, add) {
   const me = seatSide(),
-    S0 = state.setup || {},
-    seats = state.seats || {};
-  info.textContent =
-    'Play against a friend. Press Host an online game above (or open the invite link your opponent sent), then each of you takes a seat. Each of you takes an edge and builds or pastes your own army.';
-  /* once connected, the lobby above already says how to invite and join */
-  if (window.__conquestNet && window.__conquestNet.mode && window.__conquestNet.mode !== 'local')
-    info.textContent = 'Each of you takes an edge, then builds or pastes your own army.';
-  const box = document.createElement('div');
-  box.className = 'rev seats';
-  const h = document.createElement('h3');
-  h.textContent = 'Seats';
-  box.appendChild(h);
-  ['cs', 'nord'].forEach(side => {
-    const row = document.createElement('div');
-    const who = seats[side];
-    row.className = 'row seat ' + side + (who ? (who === myId ? ' mine' : ' taken') : ' open');
-    const L = S0[side];
-    const t = document.createElement('span');
-    t.className = 'read';
-    t.textContent =
-      SEATNAME[side] +
-      ': ' +
-      (who
-        ? who === myId
-          ? 'you' + (PN(side) ? ' (' + PN(side) + ')' : '')
-          : PN(side) || 'taken'
-        : 'open') +
-      (L
-        ? ' · army ready: ' + (L.faction || 'army') + ' (' + (L.units || []).length + ' regiments)'
-        : who
-          ? ' · no army yet'
-          : '');
-    row.appendChild(t);
-    if (!who && !me)
-      row.appendChild(
-        (b => {
-          if (!savedName()) {
-            b.disabled = true;
-            b.title = 'Fill in your name above first';
-          }
-          return b;
-        })(
-          mk('Sit here', () => {
-            if (!savedName()) {
-              toast('Fill in your name first.');
-              return;
-            }
-            return stateUpdate(
-              Object.assign(
-                { seats: { [side]: myId }, updatedAt: Date.now() },
-                savedName() ? { players: { [side]: savedName() } } : {}
-              )
-            ).catch(() => toast('That seat could not be taken. Try again.'));
-          })
-        )
-      );
-    /* on the Multiplayer page your name is set once at the top, and the seat line shows both names */
-    if (who && !(typeof mmCurrent === 'function' && mmCurrent() === 'multi'))
-      row.appendChild(nameInput(side, 'Name', who === myId));
-    row.appendChild(colorPicker(side, 'Colour', who === myId));
-    if (who === myId)
-      row.appendChild(
-        mk(
-          'Leave this seat',
-          () => stateUpdate({ seats: { [side]: null }, updatedAt: Date.now() }).catch(() => {}),
-          true
-        )
-      );
-    /* the host can free a seat, for a player who comes back on another device */
-    if (who && who !== myId && window.__conquestNet && window.__conquestNet.mode === 'host')
-      row.appendChild(
-        mk(
-          'Free this seat',
-          () => stateUpdate({ seats: { [side]: null }, updatedAt: Date.now() }).catch(() => {}),
-          true
-        )
-      );
-    box.appendChild(row);
-  });
-  add(box);
-  if (!myId) {
-    add(ptext('Your identity is not available in this view, so you cannot take a seat here.', 'warn'));
+    S0 = state.setup || {};
+  /* the seats, both players and the next step are on the lobby page above; here only your army builder, while you
+     have no army yet or chose to change it */
+  if (!me || (S0[me] && !mpEdit)) {
+    info.textContent = '';
+    tb.classList.add('tb-empty');
+    return true;
   }
+  info.textContent = S0[me] ? 'Change your army: build it here or paste a list.' : 'Your army: build it here or paste a list.';
   if (me) {
     armyModePicker(add);
   }
@@ -101,6 +27,8 @@ function renderSetupPvp(tb, info, mk, add) {
       async L => {
         await stateUpdate({ setup: { [me]: null }, updatedAt: Date.now() });
         await stateUpdate({ setup: { [me]: L }, names: { [me]: String(L.faction) }, updatedAt: Date.now() });
+        mpEdit = false;
+        mpLog((PN(me) || 'A player') + ': army ready (' + (L.faction || 'army') + ')');
         toast('Your army is ready.');
       },
       S0[me] ? 'Use this army instead' : 'Use this army'
@@ -170,6 +98,8 @@ function renderSetupPvp(tb, info, mk, add) {
             names: { [me]: String(L.faction || setupDraft.faction || (me === 'cs' ? 'South' : 'North')) },
             updatedAt: Date.now()
           });
+          mpEdit = false;
+          mpLog((PN(me) || 'A player') + ': army ready (' + (L.faction || setupDraft.faction || 'army') + ')');
         } catch (e) {
           aiBusy = false;
           aiStatus('');
@@ -183,15 +113,5 @@ function renderSetupPvp(tb, info, mk, add) {
       })
     );
   }
-  /* the host decides: only the host moves the game on to the review */
-  if (S0.cs && S0.nord && me && !ovrHost())
-    add(ptext('Both armies are ready. Waiting for the host to open the review.', 'hint'));
-  if (S0.cs && S0.nord && me && ovrHost())
-    add(
-      mk('Review both armies', async () => {
-        await putState({ scenario: scenId(), zones: scenOf().zones });
-        await putState({ step: 'review', terrain: genTerrain(), phase: 'New game · Check both armies' });
-      })
-    );
   return true;
 }

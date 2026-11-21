@@ -376,3 +376,231 @@ body.mm-ov .mm-in {
 .tools .score .vp-r:empty {
   display: none;
 }
+
+/* ---- multiplayer lobby: both players side by side ---- */
+.mp3-prog {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 14px;
+}
+.mp3-st {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+}
+.mp3-st i {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+}
+.mp3-st.ok {
+  color: var(--ok);
+}
+.mp3-st.ok i {
+  background: var(--ok);
+}
+.mp3-st.now {
+  color: var(--gold-ink);
+  font-weight: 700;
+}
+.mp3-st.now i {
+  background: var(--gold);
+}
+.mp3-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.mp3-p {
+  --pc: var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 380px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--pc);
+  border-radius: 10px;
+}
+.mp3-ph {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mp3-av {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pc);
+  color: #fff;
+  font-weight: 800;
+  font-size: 18px;
+}
+.mp3-pn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mp3-pn strong {
+  font-size: 17px;
+}
+.mp3-pn span {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.mp3-chip {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--line);
+  color: var(--muted);
+}
+.mp3-chip.ok {
+  background: color-mix(in srgb, var(--ok) 20%, transparent);
+  color: var(--ok);
+}
+.mp3-sits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mp3-sits .btn {
+  border-left: 5px solid var(--pc);
+}
+.mp3-fac {
+  font-size: 15px;
+}
+.mp3-fac span {
+  color: var(--muted);
+}
+.mp3-list {
+  margin-top: 8px;
+  font-size: 13.5px;
+}
+.mp3-list > div {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mp3-list span {
+  color: var(--muted);
+  text-align: right;
+}
+.mp3-pf {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mp3-pf .row {
+  justify-content: space-between;
+}
+.mp3-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mp3-box {
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.mp3-box h3 {
+  margin: 0 0 6px;
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.mp3-box .hint {
+  margin: 0;
+}
+.mp3-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.mp3-k {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.mp3-cd {
+  font-size: 22px;
+  letter-spacing: 0.12em;
+}
+.mp3-feed {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+}
+.mp3-log {
+  flex: 1;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.mp3-log time {
+  color: var(--muted);
+  font-size: 11.5px;
+  margin-right: 6px;
+}
+.mp3-log .say b {
+  color: var(--gold-ink);
+}
+.mp3-say {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.mp3-say .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.mp3-why {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.mp3-go {
+  justify-content: center;
+  padding: 13px;
+}
+@media (max-width: 900px) {
+  .mp3-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mp3-p {
+    min-height: 0;
+  }
+  .mp3-prog span {
+    font-size: 11px;
+  }
+}
+
+.turnbar.tb-empty {
+  display: none;
+}

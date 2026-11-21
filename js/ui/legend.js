@@ -198,8 +198,9 @@ function renderLegend() {
   btn.textContent = '';
   btn.append(
     (typeof icon === 'function' && icon('map', 18)) || '',
-    document.createTextNode(legOpen ? 'Hide legend' : 'Legend')
+    bEl('span', { className: 'tl', textContent: legOpen ? 'Hide legend' : 'Legend' })
   );
+  btn.title = legOpen ? 'Hide the legend' : 'Legend: objective zones, terrain types and what each terrain rule does.';
   pan.hidden = !legOpen;
   if (!legOpen || !state) return;
   pan.innerHTML = '';

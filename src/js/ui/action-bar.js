@@ -11,8 +11,14 @@
 function renderActionBar() {
   const bar = $('actbar');
   if (!bar) return;
+  try {
+    renderDock();
+  } catch (e) {
+    console.error(e);
+  }
   const u = act && byId(act.id);
-  const on = !!u && !document.body.classList.contains('mm-on');
+  /* the command dock under the table carries these buttons while it shows */
+  const on = !!u && !document.body.classList.contains('mm-on') && !dockOn();
   bar.hidden = !on;
   fitSide();
   document.body.classList.toggle('has-actbar', on);

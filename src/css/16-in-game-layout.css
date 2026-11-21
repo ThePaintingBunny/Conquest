@@ -1061,3 +1061,377 @@ body > .roll-ask {
   width: 40px;
   height: 40px;
 }
+
+/* ---- tool strip: the board tools (ruler, arcs, threat, legend, hotkeys) ---- */
+.toolstrip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+}
+.toolstrip .tool {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 2px;
+  border: 1px solid var(--edge, #555);
+  background: var(--plate, #222);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.toolstrip .leg-btn {
+  position: static;
+  box-shadow: none;
+}
+.toolstrip .tool:hover {
+  border-color: var(--brass, #c9a24a);
+}
+.toolstrip .tool[aria-pressed='true'],
+.toolstrip .leg-btn[aria-expanded='true'] {
+  border-color: var(--brass, #c9a24a);
+  background: var(--gold-soft, #372e1e);
+  color: var(--gold-ink, #f0d9a6);
+  box-shadow: inset 0 0 0 1px var(--brass, #c9a24a);
+}
+
+/* ---- the command dock under the table ---- */
+.dock {
+  display: flex;
+  align-items: stretch;
+  min-height: 132px;
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  box-shadow: 0 -6px 26px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.dock[hidden] {
+  display: none;
+}
+.dock .dock-who {
+  flex: 0 0 160px;
+  padding: 12px 14px;
+  border-right: 1px solid var(--line);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 14%, transparent), transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dock .dk-k {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.dock .dk-n {
+  font-family: var(--display);
+  font-size: 18px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.dock .dk-h {
+  margin-top: auto;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.dock .dk-idle {
+  align-self: center;
+  padding: 0 18px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.dock .dock-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+/* the activation panel, laid out sideways: its steps in the middle, the end buttons in their own column */
+.dock #c-act-sec:not([hidden]) {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  max-height: 30vh;
+  overflow: auto;
+}
+.dock #c-act-sec > .actp-head {
+  display: none;
+}
+.dock > #c-foot {
+  flex: 0 0 172px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  border-top: 0;
+  border-left: 1px solid var(--line);
+  margin: 0;
+  padding: 12px 14px;
+}
+.dock #c-foot .row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.dock #c-foot .btn {
+  justify-content: center;
+}
+/* while an action runs, Finish action and Cancel action take the place of End activation and Undo */
+body.dk-cur .dock #c-foot > .row:not(.dk-curbtns),
+body.dk-cur .dock #c-foot > #note {
+  display: none;
+}
+.dock #c-foot > #c-ctl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+.dock #c-foot > #c-ctl .grp {
+  display: flex;
+  width: 100%;
+}
+.dock #c-foot > #c-ctl .grp button {
+  flex: 1;
+  padding: 4px 2px;
+  font-size: 12px;
+}
+body.dk-cur .dock > #c-foot {
+  justify-content: flex-start;
+  overflow: auto;
+}
+.dock #c-foot #done-act {
+  background: linear-gradient(#e6bb62, #c8963c);
+  color: #2a1d08;
+  border-color: #f0d08a;
+}
+.dock #c-foot #end {
+  background: linear-gradient(#e6bb62, #c8963c);
+  color: #2a1d08;
+  border-color: #f0d08a;
+}
+.dock #c-foot #note {
+  font-size: 12.5px;
+  padding: 5px 8px;
+}
+.dock .dk-last {
+  margin-top: auto;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dock .dk-last + .dk-h,
+.dock .dk-h + .dk-last {
+  margin-top: 4px;
+}
+.dock .actp-step.done .actp-body {
+  display: none;
+}
+/* in the dock the steps speak through the heading on the left: a finished Draw Events step folds away, and the
+   actions show as tiles straight away */
+.dock #c-draw-step.done,
+.dock #c-act-step > .actp-lbl {
+  display: none;
+}
+.dock .actp-step.done .actp-lbl {
+  margin-bottom: 0;
+  opacity: 0.75;
+}
+.dock .actp-step {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.dock .actp-lbl {
+  margin-bottom: 6px;
+}
+/* the actions as a row of tiles, each with its number key */
+.dock .acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dock .act {
+  flex: 1 1 140px;
+  max-width: 230px;
+  min-height: 58px;
+  position: relative;
+  padding: 9px 34px 9px 11px;
+  background: var(--panel2, var(--bg));
+  border-color: color-mix(in srgb, var(--line) 50%, var(--muted));
+}
+.dock .act::before {
+  content: attr(data-ico);
+  color: var(--gold-ink);
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+.dock .act[data-key]::after {
+  content: attr(data-key);
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 18px;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--muted) 60%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+.dock .act span {
+  font-family: var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 13.5px;
+}
+/* the action in progress: what it does and its controls on the left, wheel and formation on the right */
+.dock #c-cur:not([hidden]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px 14px;
+  align-items: start;
+  padding: 8px 10px;
+}
+.dock #c-cur > * {
+  grid-column: 1;
+  margin: 0;
+}
+.dock #c-cur > #c-cur-read {
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.dock #c-cur > #c-ctl {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.dock #c-cur > #c-chg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+.dock #c-cur > #c-chg > * {
+  margin: 0;
+}
+.dock #c-cur > #c-chg .grp {
+  flex-wrap: wrap;
+}
+.dock #c-cur > #c-chg .grp button {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+.dock #c-cur > #c-cur-read {
+  font-size: 13px;
+}
+.dock .actp-done {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0 0 6px;
+}
+.dock .actp-done li {
+  margin: 0;
+}
+
+/* wide screens in a game: the tools stand in a column beside the table, the dock sits under it */
+@media (min-width: 901px) {
+  body.tb-top .leftcol {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    column-gap: 10px;
+    row-gap: 10px;
+    align-content: start;
+  }
+  body.tb-top .leftcol > .mapbox {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  body.tb-top .leftcol > .dock {
+    grid-column: 2;
+    grid-row: 2;
+    height: 178px;
+    min-height: 0;
+  }
+  body.tb-top .dock #c-act-sec:not([hidden]) {
+    max-height: none;
+  }
+  body.tb-top .leftcol > .tools {
+    display: none;
+  }
+  body.tb-top .toolstrip .leg-btn {
+    position: static;
+    box-shadow: none;
+  }
+  body.tb-top .leftcol > .toolstrip {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    align-self: start;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    padding: 0;
+    border: 0;
+    background: none;
+    gap: 6px;
+  }
+  body.tb-top .toolstrip .tool {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 8px;
+    border-color: var(--line);
+    background: var(--panel);
+    color: var(--muted);
+  }
+  body.tb-top .toolstrip .tool .tl {
+    display: none;
+  }
+}
+/* phones: the dock stacks its parts */
+@media (max-width: 900px) {
+  .dock .dk-h {
+    display: none;
+  }
+  .dock {
+    flex-direction: column;
+  }
+  .dock .dock-who {
+    flex: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .dock #c-act-sec:not([hidden]) {
+    max-height: none;
+  }
+  .dock > #c-foot {
+    flex: none;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}

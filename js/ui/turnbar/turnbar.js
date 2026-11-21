@@ -253,6 +253,7 @@ function renderTurnbar0() {
   const tb = $('turnbar');
   if (!tb || !state) return;
   tb.innerHTML = '';
+  tb.classList.remove('tb-empty');
   const step = state.step || 'activations';
   const add = e => tb.appendChild(e);
   const info = document.createElement('span');

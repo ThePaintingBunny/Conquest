@@ -52,7 +52,9 @@
       <g id="rings"></g><g id="moves"></g><g id="units"></g><g id="rulerg"></g>
     </svg>
     </div>
-    <div class="tools" id="tools" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false" title="Ruler (R): Measure between two points, or tap two regiments for the closest distance." aria-keyshortcuts="R">📏 Ruler</button><button type="button" id="arcs-btn" class="tool" aria-pressed="false" title="Arcs (A): point at a regiment to see its front, flank and rear arcs; select one to keep them shown." aria-keyshortcuts="A">◩ Arcs</button><button type="button" id="threat-btn" class="tool" aria-pressed="false" title="Threat ranges (T): Charge threat, then Volley threat, then off. Point at a regiment or select one." aria-keyshortcuts="T">⚔ Threat</button><button type="button" class="tool leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel" title="Legend: objective zones, terrain types and what each terrain rule does.">☰ Legend</button><button type="button" id="hk-btn" class="tool" title="Hotkeys (?): every keyboard shortcut." aria-keyshortcuts="?">⌨ Hotkeys</button><div class="last" id="last" title="Click to show the whole message">No moves yet.</div><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div><div class="od-trk" id="od-trk" hidden aria-label="Old Dominion Power tokens"></div></div>
+    <section class="dock" id="dock" hidden aria-label="Activation"><div class="dock-who" id="dock-who"></div><div class="dock-main" id="dock-main"></div></section>
+    <div class="toolstrip" id="toolstrip" role="toolbar" aria-label="Tools"><button type="button" id="ruler" class="tool" aria-pressed="false" title="Ruler (R): Measure between two points, or tap two regiments for the closest distance." aria-keyshortcuts="R">📏 Ruler</button><button type="button" id="arcs-btn" class="tool" aria-pressed="false" title="Arcs (A): point at a regiment to see its front, flank and rear arcs; select one to keep them shown." aria-keyshortcuts="A">◩ Arcs</button><button type="button" id="threat-btn" class="tool" aria-pressed="false" title="Threat ranges (T): Charge threat, then Volley threat, then off. Point at a regiment or select one." aria-keyshortcuts="T">⚔ Threat</button><button type="button" class="tool leg-btn" id="leg-btn" aria-expanded="false" aria-controls="leg-panel" title="Legend: objective zones, terrain types and what each terrain rule does.">☰ Legend</button><button type="button" id="hk-btn" class="tool" title="Hotkeys (?): every keyboard shortcut." aria-keyshortcuts="?">⌨ Hotkeys</button></div>
+    <div class="tools" id="tools" aria-label="Last move and score"><div class="last" id="last" title="Click to show the whole message">No moves yet.</div><div class="score" aria-label="Victory points"><span class="vp-r" id="vp-round"></span><span class="cs" id="vp-cs">City States 0</span><span class="nord" id="vp-nord">Nords 0</span></div><div class="od-trk" id="od-trk" hidden aria-label="Old Dominion Power tokens"></div></div>
     </div>
 
     <div class="rcol">
@@ -349,6 +351,7 @@
 <script src="js/ui/turnbar/turnbar.js"></script>
 <script src="js/ui/turnbar/status.js"></script>
 <script src="js/ui/board-markers.js"></script>
+<script src="js/ui/dock.js"></script>
 <script src="js/ui/action-bar.js"></script>
 <script src="js/ui/panel-extras.js"></script>
 <!-- screens -->
@@ -379,6 +382,7 @@
 <script src="js/screens/calculator/simulate.js"></script>
 <script src="js/screens/calculator/page.js"></script>
 <script src="js/screens/menu/state.js"></script>
+<script src="js/screens/menu/lobby.js"></script>
 <script src="js/screens/menu/page.js"></script>
 <script src="js/screens/menu/layout.js"></script>
 <!-- start-up -->

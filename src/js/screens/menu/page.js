@@ -341,6 +341,11 @@ function renderMenu() {
         }
       }
     );
+    /* the multiplayer lobby: both players side by side (the army builder opens under it) */
+    if (page === 'multi' && !rev) {
+      mpLobby(inner);
+      return;
+    }
     inner.append(mmSteps(rev ? 'field' : 'armies'));
     if (page === 'multi') {
       const nm = bEl('div', { className: 'mm-net mm-name' });
