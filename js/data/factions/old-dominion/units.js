@@ -235,7 +235,7 @@ ENCY.push({
       stats: { M: 5, V: 0, C: 2, A: 4, W: 4, R: '-', D: 1, E: 1 },
       rules: ['Forced March', 'Shield', 'Support (2)', 'Animate Vessel', 'Terrifying (1)'],
       draw: [],
-      options: 'Officers: Profane Reliquary 15, Dark Cenotaph 15, Optio 15',
+      options: 'Officers: Profane Reliquary 15, Dark Cenotaph 15, Optio 15; Memory of Old: Command Stand Seizes +1',
       warband: '',
       cmd: { leader: true, bearer: true }
     },
@@ -280,7 +280,7 @@ ENCY.push({
       stats: { M: 5, V: 0, C: 3, A: 5, W: 5, R: '-', D: 3, E: 1 },
       rules: ['Cleave (2)', 'Hardened (1)', 'Animate Vessel', 'Terrifying (1)'],
       draw: [],
-      options: 'Officer: Dark Cenotaph 15',
+      options: 'Officer: Dark Cenotaph 15; Memory of Old: Linebreaker, Cleave +1',
       warband: '',
       cmd: { leader: true, bearer: true }
     },

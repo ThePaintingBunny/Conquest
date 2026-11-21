@@ -52,6 +52,10 @@ FGLOSS['Old Dominion'] = {
     'Memories of Old',
     'An action that grants the regiment the rules listed in its entry until the end of the round.'
   ],
+  'command stand seizes': [
+    'Command Stand Seizes (+1) (Memory of Old)',
+    'Legionnaires: until the end of the round, the Command Stand counts as one more Stand for Seizing Objective Zones.'
+  ],
   spellcasting: [
     'Spellcasting (Memory of Old)',
     'Kheres and Moroi: while their Memory of Old is active, the regiment (not an attached Character) may make one free Spellcasting Action each activation, using one Stand as if it were a Character, at Priest (twice its current Stands, at most 12).'

@@ -46,6 +46,13 @@ function srSeizeStands(u, z, k) {
     );
     if (xs && standsOf(u).some(st => st.kind === 'char' && inZone(st.poly, z))) s += xs;
   }
+  /* Legionnaires' Memory of Old: its Command Stand counts as one more Stand for Seizing this round */
+  if (
+    v > 0 &&
+    rh(RU(u), 'Command Stand Seizes') &&
+    standsOf(u).some(st => st.cmd && st.kind === 'reg' && inZone(st.poly, z))
+  )
+    s += 1;
   return s;
 }
 
