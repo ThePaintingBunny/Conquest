@@ -197,7 +197,7 @@ ENCY.push({
         'Sureshot'
       ],
       draw: [],
-      options: 'Spells: Drain Will, Insanity',
+      options: 'Spells: Drain Will, Insanity; Memory of Old: Spellcasting',
       warband: '',
       cmd: { leader: true, bearer: false }
     },
@@ -220,7 +220,7 @@ ENCY.push({
         'Irregular'
       ],
       draw: [],
-      options: 'Spells: Immolation, Translocation',
+      options: 'Spells: Immolation, Translocation; Memory of Old: Spellcasting',
       warband: '',
       cmd: { leader: true, bearer: false }
     },

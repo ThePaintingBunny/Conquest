@@ -74,7 +74,10 @@ function magicLevel(u, asChar) {
 
 function regCaster(u) {
   const k = casterKey(u, false);
-  return k && CASTERS[k].reg ? CASTERS[k] : null;
+  if (!k || !CASTERS[k].reg) return null;
+  /* Kheres and Moroi cast only while their Memory of Old is active */
+  if (CASTERS[k].mem && !hasGrant(base(u.id) || u, 'Memories of Old')) return null;
+  return CASTERS[k];
 }
 
 function hasSpell(t, name) {

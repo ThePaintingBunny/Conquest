@@ -52,6 +52,10 @@ FGLOSS['Old Dominion'] = {
     'Memories of Old',
     'An action that grants the regiment the rules listed in its entry until the end of the round.'
   ],
+  spellcasting: [
+    'Spellcasting (Memory of Old)',
+    'Kheres and Moroi: while their Memory of Old is active, the regiment (not an attached Character) may make one free Spellcasting Action each activation, using one Stand as if it were a Character, at Priest (twice its current Stands, at most 12).'
+  ],
   'blasphemous soma': [
     'Blasphemous Soma',
     'Before each Supremacy Phase, add a Power token to a pool of your choice.'
