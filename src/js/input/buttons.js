@@ -110,6 +110,12 @@ $('end').onclick = async () => {
       return;
     }
   }
+  /* Trample happens at the end of the activation: resolve it first, then End activation again */
+  if (!cb && tramplePending(byId(act.id))) {
+    startAction('trample');
+    toast('Trample: the enemy in front takes its automatic Hits first. Roll its Defense, record it, then press End activation again.');
+    return;
+  }
   if (!db) {
     toast('The board is read-only in this view, so nothing was saved.');
     return;

@@ -78,6 +78,7 @@ function startAction(type) {
       inAct: false,
       lethalHits: n,
       lethalX: trampleX(u),
+      lethalLabel: 'Trample',
       lethalLost: 0,
       selfTitle: 'Trample',
       selfText: `${u.short || u.name} tramples ${t.short || t.name}: ${n} automatic Hits. No Morale Tests.`

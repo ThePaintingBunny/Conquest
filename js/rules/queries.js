@@ -4,7 +4,7 @@
  * Short questions asked all over the code: does this regiment have a Draw Event, an upgrade, Trample,
  * Phalanx; is it Animate; does its army have a rule.
  *
- * In this file: isDrawAb(), isUpgAb(), hasDraw(), drawVal(), trampleX(), frontFoes(), animate(),
+ * In this file: isDrawAb(), isUpgAb(), hasDraw(), drawVal(), trampleX(), tramplePending(), frontFoes(), animate(),
  *   phalanx(), armyHas(), upgOf()
  */
 
@@ -64,6 +64,19 @@ function drawVal(u, re) {
 
 function trampleX(u) {
   return Math.max(rx(RU(u), 'Trample'), u.char != null ? rx(u.charRules, 'Trample') : 0);
+}
+
+/* Trample still owed: the active regiment has it, has not used it and an enemy touches its front */
+function tramplePending(u) {
+  return (
+    !!act &&
+    !!u &&
+    act.id === u.id &&
+    !act.chargeFailed &&
+    trampleX(u) > 0 &&
+    !act.actions.some(a => a.type === 'trample') &&
+    frontFoes(u).length > 0
+  );
 }
 
 function frontFoes(u) {

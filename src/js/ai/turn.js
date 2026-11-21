@@ -78,6 +78,19 @@ async function aiRegiment(id, source, report, card) {
     const q = nearestEndPose(byId(act.id));
     if (q) Object.assign(act.pose, { x: q.x, y: q.y });
   }
+  /* Trample: automatic Hits on the enemy touching its front, at the end of the activation */
+  if (act && tramplePending(byId(act.id))) {
+    const t = frontFoes(byId(act.id))[0];
+    startAction('trample');
+    for (let g = 0; g < 60 && (cb || cbQueue.length); g++) {
+      if (!cb) {
+        await sleep(200);
+        continue;
+      }
+      await autoResolve();
+    }
+    lines.push('Trample: automatic Hits on ' + (t.short || t.name));
+  }
   if (act) {
     await saveActivation();
   }
