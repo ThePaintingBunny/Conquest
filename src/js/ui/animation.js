@@ -3,7 +3,7 @@
  *
  * Timing helpers and the tweens that slide and wheel a regiment across the table.
  *
- * In this file: RM, sleep, drawUnitsFast(), ease(), animFrames(), tweenPose(), tweenWheel()
+ * In this file: RM, noMotion(), sleep, drawUnitsFast(), ease(), animFrames(), tweenPose(), tweenWheel()
  */
 
 const RM = (() => {
@@ -14,7 +14,12 @@ const RM = (() => {
   }
 })();
 
-const sleep = ms => new Promise(r => setTimeout(r, RM ? Math.min(ms, 120) : ms));
+/* no movement animation: the device asks for less motion, or the player turned it off in Settings */
+function noMotion() {
+  return RM || (typeof SET !== 'undefined' && SET.moveAnim === false);
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, noMotion() ? Math.min(ms, 120) : ms));
 
 function drawUnitsFast() {
   const ug = $('units');
@@ -29,7 +34,7 @@ function ease(k) {
 }
 
 function animFrames(ms, fn) {
-  if (RM || ms <= 0) {
+  if (noMotion() || ms <= 0) {
     fn(1);
     return Promise.resolve();
   }

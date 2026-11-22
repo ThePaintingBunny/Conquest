@@ -119,7 +119,7 @@ async function previewChargeFail() {
     );
     t.textContent = chargeFailText(fl);
   };
-  const ms = RM ? 0 : 1600,
+  const ms = noMotion() ? 0 : 1600,
     t0 = performance.now();
   await new Promise(res => {
     const step = now => {

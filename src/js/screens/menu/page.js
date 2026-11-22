@@ -43,6 +43,9 @@ function mmSteps(cur) {
 function renderMenu() {
   const box = $('mm');
   if (!box || !state) return;
+  try {
+    battleRecord();
+  } catch (e) {}
   const page = mmCurrent();
   document.body.classList.toggle('mm-on', !!page && !mmOverlay);
   document.body.classList.toggle('mm-lobby', page === 'single' || page === 'multi');
@@ -80,152 +83,7 @@ function renderMenu() {
     mmGo(null);
   };
   if (page === 'home') {
-    const hero = bEl('div', { className: 'mm-hero' }, [
-      bEl('h1', { textContent: 'Command Stack' }),
-      bEl('p', { textContent: 'A battle table for Conquest: The Last Argument of Kings' })
-    ]);
-    inner.append(hero);
-    const grid = bEl('div', { className: 'mm-grid' });
-    if (mmGameOn())
-      grid.append(
-        mmCard(
-          'Continue',
-          (state.phase || 'Round ' + (state.round || 1)) +
-            ' · ' +
-            N('cs') +
-            ' ' +
-            (state.vp?.cs || 0) +
-            ' – ' +
-            (state.vp?.nord || 0) +
-            ' ' +
-            N('nord'),
-          '▶',
-          () => {
-            mmOverlay = false;
-            mmPage = null;
-            render();
-          },
-          { primary: true }
-        )
-      );
-    else if (mmSetupStep() && state.setup && (state.setup.cs || state.setup.nord))
-      grid.append(
-        mmCard(
-          'Continue setting up',
-          PVP() ? 'Multiplayer lobby' : 'Single player lobby',
-          '▶',
-          () => mmGo(PVP() ? 'multi' : 'single'),
-          { primary: true }
-        )
-      );
-    const busy = mmOverlay && (mmGameOn() || SBX()),
-      bz = busy ? { disabled: true } : {},
-      bs = t => (busy ? (SBX() ? 'Leave the test field first' : 'Leave this game first') : t);
-    grid.append(
-      mmCard(
-        'Single player',
-        bs('Play against the built-in opponent (free) or Claude: bring your army, it brings its own'),
-        '⚔',
-        () => mmStart('single'),
-        bz
-      )
-    );
-    grid.append(
-      mmCard(
-        'Multiplayer',
-        bs('Play a friend online: take a seat, bring your army, ready up'),
-        '⚑',
-        () => mmStart('multi'),
-        bz
-      )
-    );
-    grid.append(
-      mmCard(
-        'Test field',
-        bs('Drop single regiments for either side and try out rules freely'),
-        '⚗',
-        () => mmStart('test'),
-        bz
-      )
-    );
-    grid.append(
-      mmCard('Army builder', 'Build, check and save your armies', '✎', () => {
-        mmGo('army');
-      })
-    );
-    grid.append(
-      mmCard(
-        'Map builder',
-        bs('Paint terrain with a brush and save maps to play on'),
-        '🖌',
-        () => mbOpen(''),
-        bz
-      )
-    );
-    grid.append(
-      mmCard(
-        'Scenario builder',
-        bs('Place objectives, set their points, owners and rounds, and save scenarios to play'),
-        '⚑',
-        () => sbOpen(''),
-        bz
-      )
-    );
-    grid.append(
-      mmCard(
-        'Combat calculator',
-        'Pit two regiments against each other: wounds per attack and who wins the fight',
-        '⚖',
-        () => {
-          mmGo('calc');
-        }
-      )
-    );
-    grid.append(
-      mmCard(
-        'Encyclopedia',
-        'Every faction, unit and special rule',
-        '📖',
-        () => {
-          if (mmOverlay) {
-            mmOverlay = false;
-            mmPage = null;
-            render();
-          }
-          $('en-open').click();
-          setTimeout(() => {
-            try {
-              $('ency').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } catch (e) {}
-          }, 60);
-        },
-        { small: true }
-      )
-    );
-    grid.append(
-      mmCard(
-        'Settings',
-        'Dice speed, animations and display',
-        '⚙',
-        () => {
-          $('set-open').click();
-        },
-        { small: true }
-      )
-    );
-    const n = mmNet();
-    if (n && n.openSettings)
-      grid.append(
-        mmCard('Claude settings', 'API key and models for playing Claude here', '✦', () => n.openSettings(), {
-          small: true
-        })
-      );
-    inner.append(grid);
-    try {
-      mmLayout(grid);
-    } catch (e) {
-      console.error(e);
-    }
+    mmHome(inner);
     if (mmOverlay && SBX()) {
       const row = bEl('div', { className: 'mm-foot' });
       row.append(

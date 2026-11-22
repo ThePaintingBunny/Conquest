@@ -103,6 +103,32 @@ function hotkeyList() {
   return wrap;
 }
 
+/* a switch for a setting: On / Off, saved at once */
+function setSwitch(get, put) {
+  const sw = bEl('button', { type: 'button', className: 'set-sw' });
+  sw.setAttribute('role', 'switch');
+  const upd = () => {
+    sw.setAttribute('aria-checked', String(!!get()));
+    sw.textContent = get() ? 'On' : 'Off';
+  };
+  upd();
+  sw.onclick = () => {
+    put(!get());
+    saveSet();
+    upd();
+  };
+  return sw;
+}
+
+/* the sections of the Settings window: [key, title, icon, heading] */
+const SET_SECTIONS = [
+  ['general', 'Dice', 'die', 'How rolls look and who rolls them'],
+  ['controls', 'Controls', 'keys', 'Every keyboard shortcut'],
+  ['table', 'Table and display', 'map', 'How the table moves and what it shows'],
+  ['player', 'Player', 'person', 'How others see you'],
+  ['claude', 'Claude', 'spark', 'Playing against Claude']
+];
+
 function openSettings(tab) {
   let dg = $('set-dlg');
   if (!dg) {
@@ -116,154 +142,208 @@ function openSettings(tab) {
     });
   }
   dg.innerHTML = '';
-  const head = document.createElement('div');
-  head.className = 'en-head';
-  const h = document.createElement('h2');
-  h.id = 'set-h';
-  h.textContent = 'Settings';
-  const x = document.createElement('button');
-  x.type = 'button';
-  x.className = 'btn ghost';
-  x.textContent = 'Close';
-  x.onclick = () => dg.close();
-  head.append(h, x);
-  dg.appendChild(head);
-  /* tabs: General (dice) and Controls (hotkeys) */
-  const tabs = document.createElement('div');
-  tabs.className = 'set-tabs';
+  /* left: the sections; right: the one that is open */
+  const nav = bEl('nav', { className: 'set-nav' });
+  nav.append(bEl('h2', { id: 'set-h', textContent: 'Settings' }));
+  const tabs = bEl('div', { className: 'set-tabs' });
   tabs.setAttribute('role', 'tablist');
-  const body = document.createElement('div');
-  body.className = 'set-body';
-  body.id = 'set-p-gen';
-  body.setAttribute('role', 'tabpanel');
-  const keysP = document.createElement('div');
-  keysP.className = 'set-body';
-  keysP.id = 'set-p-keys';
-  keysP.setAttribute('role', 'tabpanel');
-  keysP.appendChild(hotkeyList());
+  tabs.setAttribute('aria-orientation', 'vertical');
+  nav.append(tabs);
+  const main = bEl('div', { className: 'set-main' });
+  const head = bEl('div', { className: 'set-head' });
+  const hk = bEl('div', { className: 'mh-k' }),
+    ht = bEl('div', { className: 'set-ht' });
+  const x = bEl('button', { type: 'button', className: 'btn ghost', textContent: 'Close' });
+  x.onclick = () => dg.close();
+  head.append(bEl('div', {}, [hk, ht]), x);
+  main.append(head);
+  const panes = {};
+  const pane = k => {
+    const b = bEl('div', { className: 'set-body', id: k === 'general' ? 'set-p-gen' : k === 'controls' ? 'set-p-keys' : 'set-p-' + k });
+    b.setAttribute('role', 'tabpanel');
+    panes[k] = b;
+    main.append(b);
+    return b;
+  };
+  const row = (body, label, hint, ctl) => {
+    const r = bEl('div', { className: 'set-row' });
+    r.append(bEl('div', {}, [bEl('b', { textContent: label }), bEl('p', { className: 'hint', textContent: hint })]), ctl);
+    body.appendChild(r);
+    return r;
+  };
   const show = which => {
-    body.hidden = which !== 'general';
-    keysP.hidden = which !== 'controls';
+    SET_SECTIONS.forEach(([k, t, ic, h]) => {
+      panes[k].hidden = k !== which;
+      if (k === which) {
+        hk.textContent = t;
+        ht.textContent = h;
+      }
+    });
     tabs.querySelectorAll('[role=tab]').forEach(b => {
       const on = b.dataset.tab === which;
       b.setAttribute('aria-selected', String(on));
       b.tabIndex = on ? 0 : -1;
     });
   };
-  [
-    ['general', 'General', 'set-p-gen'],
-    ['controls', 'Controls', 'set-p-keys']
-  ].forEach(([k, t, pid]) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'set-tab';
+  SET_SECTIONS.forEach(([k, t, ic], i) => {
+    const b = bEl('button', { type: 'button', className: 'set-tab' });
     b.setAttribute('role', 'tab');
-    b.setAttribute('aria-controls', pid);
+    b.setAttribute('aria-controls', k === 'general' ? 'set-p-gen' : k === 'controls' ? 'set-p-keys' : 'set-p-' + k);
     b.dataset.tab = k;
-    b.textContent = t;
+    b.append(icon(ic, 17) || '', bEl('span', { textContent: t }));
     b.onclick = () => show(k);
     b.onkeydown = e => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-        e.preventDefault();
-        const n = k === 'general' ? 'controls' : 'general';
-        show(n);
-        tabs.querySelector('[data-tab=' + n + ']').focus();
-      }
+      const d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      const n = SET_SECTIONS[(i + d + SET_SECTIONS.length) % SET_SECTIONS.length][0];
+      show(n);
+      tabs.querySelector('[data-tab=' + n + ']').focus();
     };
     tabs.appendChild(b);
   });
-  dg.appendChild(tabs);
-  const row = (label, hint, ctl) => {
-    const r = document.createElement('div');
-    r.className = 'set-row';
-    const t = document.createElement('div');
-    const b = document.createElement('b');
-    b.textContent = label;
-    const p = document.createElement('p');
-    p.className = 'hint';
-    p.textContent = hint;
-    t.append(b, p);
-    r.append(t, ctl);
-    body.appendChild(r);
-  };
-  const sw = document.createElement('button');
-  sw.type = 'button';
-  sw.className = 'set-sw';
-  sw.setAttribute('role', 'switch');
-  const upd = () => {
-    sw.setAttribute('aria-checked', String(!!SET.diceAnim));
-    sw.textContent = SET.diceAnim ? 'On' : 'Off';
-  };
-  upd();
-  sw.onclick = () => {
-    SET.diceAnim = !SET.diceAnim;
-    saveSet();
-    upd();
-    sp.querySelectorAll('button').forEach(b => (b.disabled = !SET.diceAnim));
-  };
-  row('Dice roll animation', 'Dice tumble before showing their result. Turn it off for instant results.', sw);
-  const sp = document.createElement('div');
-  sp.className = 'grp';
-  sp.setAttribute('role', 'group');
-  sp.setAttribute('aria-label', 'Animation speed');
-  [
-    ['fast', 'Fast'],
-    ['normal', 'Normal'],
-    ['slow', 'Slow']
-  ].forEach(([k, t]) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = t;
-    b.setAttribute('aria-pressed', String(SET.diceSpeed === k));
-    b.disabled = !SET.diceAnim;
-    b.onclick = () => {
-      SET.diceSpeed = k;
-      saveSet();
-      sp.querySelectorAll('button').forEach(q => q.setAttribute('aria-pressed', String(q === b)));
-    };
-    sp.appendChild(b);
-  });
-  row('Animation speed', 'How long the dice tumble.', sp);
+  /* Dice */
   {
-    const os = document.createElement('button');
-    os.type = 'button';
-    os.className = 'set-sw';
-    os.setAttribute('role', 'switch');
-    const u2 = () => {
-      os.setAttribute('aria-checked', String(SET.ownSaves !== false));
-      os.textContent = SET.ownSaves !== false ? 'On' : 'Off';
-    };
-    u2();
-    os.onclick = () => {
-      SET.ownSaves = SET.ownSaves === false;
-      saveSet();
-      u2();
-    };
+    const body = pane('general');
+    const sp = bEl('div', { className: 'grp' });
+    sp.setAttribute('role', 'group');
+    sp.setAttribute('aria-label', 'Animation speed');
+    const sw = setSwitch(
+      () => SET.diceAnim,
+      v => {
+        SET.diceAnim = v;
+        sp.querySelectorAll('button').forEach(b => (b.disabled = !v));
+      }
+    );
+    row(body, 'Dice roll animation', 'Dice tumble before showing their result. Off: results show at once.', sw);
+    [
+      ['fast', 'Fast'],
+      ['normal', 'Normal'],
+      ['slow', 'Slow']
+    ].forEach(([k, t]) => {
+      const b = bEl('button', { type: 'button', textContent: t });
+      b.setAttribute('aria-pressed', String(SET.diceSpeed === k));
+      b.disabled = !SET.diceAnim;
+      b.onclick = () => {
+        SET.diceSpeed = k;
+        saveSet();
+        sp.querySelectorAll('button').forEach(q => q.setAttribute('aria-pressed', String(q === b)));
+      };
+      sp.appendChild(b);
+    });
+    row(body, 'Animation speed', 'How long the dice tumble.', sp);
     row(
+      body,
       'Roll your own saves',
-      'When the computer attacks you, you press the Defense and Morale rolls yourself. Off: they are rolled for you.',
-      os
+      'When the opponent attacks you, you press Roll for your Defense and Morale yourself. Off: they are rolled for you.',
+      setSwitch(
+        () => SET.ownSaves !== false,
+        v => (SET.ownSaves = v)
+      )
+    );
+    row(
+      body,
+      'Show every die',
+      'Show each die on roll cards and the roll banner. Off: they show only what the dice did, such as “3 hits”.',
+      setSwitch(
+        () => SET.diceEach !== false,
+        v => (SET.diceEach = v)
+      )
+    );
+    const tr = bEl('button', { type: 'button', className: 'btn ghost', textContent: 'Roll test dice' });
+    const tbox = bEl('div', { className: 'drow set-test' });
+    tr.onclick = () => {
+      tbox.innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        const v = d6();
+        tbox.appendChild(dieMini(v, v <= 3 ? 'hit' : 'miss'));
+      }
+    };
+    const t = row(body, 'Try it', 'Roll four dice with these settings.', bEl('div', { className: 'row' }, [tr, tbox]));
+    t.classList.add('set-try');
+  }
+  /* Controls */
+  pane('controls').appendChild(hotkeyList());
+  /* Table and display */
+  {
+    const body = pane('table');
+    row(
+      body,
+      'Movement animation',
+      'Regiments slide and wheel across the table as they move. Off: they jump to where they end.' +
+        (RM ? ' This device asks for less motion, so movement is short either way.' : ''),
+      setSwitch(
+        () => SET.moveAnim !== false,
+        v => (SET.moveAnim = v)
+      )
+    );
+    const lg = setSwitch(
+      () => legOpen,
+      v => {
+        legOpen = v;
+        try {
+          localStorage.setItem('conquest-legend', v ? '1' : '0');
+        } catch (e) {}
+        try {
+          renderLegend();
+        } catch (e) {}
+      }
+    );
+    row(body, 'Legend on the table', 'Keep the legend of objective zones and terrain open beside the table.', lg);
+  }
+  /* Player */
+  {
+    const body = pane('player');
+    const inp = bEl('input', { type: 'text', maxLength: 24, value: savedName(), placeholder: 'The name others see' });
+    inp.setAttribute('aria-label', 'Your name');
+    inp.setAttribute('autocomplete', 'nickname');
+    inp.onchange = () => {
+      const v = inp.value.trim().slice(0, 24);
+      try {
+        localStorage.setItem('conquest-player-name', v);
+      } catch (e) {}
+      try {
+        const sd = seatSide();
+        if (sd && PVP() && v !== PN(sd)) stateUpdate({ players: { [sd]: v }, updatedAt: Date.now() }).catch(() => {});
+        presencePing(true);
+      } catch (e) {}
+      toast(v ? 'Your name is now ' + v + '.' : 'Your name was cleared.');
+      render();
+    };
+    row(body, 'Your name', 'Your opponent sees it in the lobby and in the game. Kept on this device.', inp);
+    row(
+      body,
+      'Saved on this device',
+      armyList().length +
+        ' saved arm' +
+        (armyList().length === 1 ? 'y' : 'ies') +
+        (typeof battleList === 'function' ? ' and ' + battleList().length + ' finished battle' + (battleList().length === 1 ? '' : 's') : '') +
+        '. They stay in this browser only.',
+      bEl('span')
     );
   }
-  const tr = document.createElement('button');
-  tr.type = 'button';
-  tr.className = 'btn ghost';
-  tr.textContent = 'Roll test dice';
-  tr.onclick = () => {
-    const box = dg.querySelector('.set-test');
-    box.innerHTML = '';
-    for (let i = 0; i < 4; i++) {
-      const v = d6();
-      box.appendChild(dieMini(v, v <= 3 ? 'hit' : 'miss'));
-    }
-  };
-  const tb = document.createElement('div');
-  tb.className = 'row';
-  const tbox = document.createElement('div');
-  tbox.className = 'drow set-test';
-  tb.append(tr, tbox);
-  row('Try it', 'Roll four dice with the current settings.', tb);
-  dg.append(body, keysP);
-  show(tab === 'controls' ? 'controls' : 'general');
+  /* Claude */
+  {
+    const body = pane('claude');
+    const n = mmNet();
+    if (n && n.openSettings) {
+      const b = bEl('button', { type: 'button', className: 'btn', textContent: 'Open Claude settings' });
+      b.onclick = () => {
+        dg.close();
+        n.openSettings();
+      };
+      row(body, 'API key and models', 'Claude needs an API key on this site. Set it, and choose the models it plays with.', b);
+    } else
+      row(
+        body,
+        'Nothing to set up',
+        sample
+          ? 'Claude plays through your Claude account on this page. Pick Claude as the opponent in Single player.'
+          : 'Claude is not available in this view. The built-in opponent is free and always available.',
+        bEl('span')
+      );
+  }
+  dg.append(nav, main);
+  show(['controls', 'table', 'player', 'claude'].includes(tab) ? tab : 'general');
   dg.showModal();
 }

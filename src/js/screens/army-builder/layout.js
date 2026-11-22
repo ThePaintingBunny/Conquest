@@ -4,9 +4,12 @@
  * Reshapes the finished army builder page so it is easier to read and use: a pinned summary bar (points
  * against a limit, a jump chip per warband, the list of problems, Check and Save), faction tiles and saved
  * armies on the start screen, regiments folded to one line until opened, and Undo after a Remove.
+ * On a wide page the warbands sit on the left and a column on the right holds what you can add (the regiment or
+ * character picker) and the rules check.
  * armyBuilder() builds the page; abEnhance() runs on it afterwards and changes no army data.
  *
- * In this file: abOpen, abSeen, abLimit(), abSetLimit(), abUndoTimer, abUndoOffer(), abEnhance()
+ * In this file: abOpen, abSeen, abLimit(), abSetLimit(), abUndoTimer, abUndoOffer(), abEnhance(),
+ *   abFacPick(), abRail()
  */
 
 /* which regiments are unfolded ("warband:regiment"), and how many regiments each warband had last time */
@@ -235,14 +238,26 @@ function abEnhance(box) {
     abSetLimit(Math.max(0, +lim.value || 0));
     abRe();
   };
-  bar.append(
-    bEl('div', { className: 'ab-bar-pts' + (limit && total > limit ? ' over' : '') }, [
-      bEl('strong', { textContent: String(total) }),
-      bEl('span', { className: 'ab-of', textContent: 'of' }),
-      lim,
-      limit && total > limit ? bEl('em', { textContent: total - limit + ' over' }) : ''
-    ])
-  );
+  {
+    const meter = bEl('div', { className: 'ab-meter' }),
+      fill = bEl('i');
+    fill.style.width = (limit ? Math.min(100, (total / limit) * 100) : 0) + '%';
+    meter.append(fill);
+    bar.append(
+      bEl('div', { className: 'ab-bar-pts' + (limit && total > limit ? ' over' : '') }, [
+        bEl('div', { className: 'ab-ptsl' }, [
+          bEl('strong', { textContent: total.toLocaleString('en') }),
+          bEl('span', { className: 'ab-of', textContent: '/' }),
+          lim,
+          bEl('span', { className: 'ab-of', textContent: 'pts' }),
+          bEl('em', {
+            textContent: !limit ? '' : total > limit ? total - limit + ' over' : limit - total + ' left'
+          })
+        ]),
+        meter
+      ])
+    );
+  }
   /* the army's name sits in the banner (the name box moves up from the foot); the faction under it */
   const foot0 = box.querySelector('.ab-foot'),
     nameIn = foot0 && foot0.querySelector('#ab-army-name');
@@ -250,13 +265,8 @@ function abEnhance(box) {
     nameIn.classList.remove('tf-in');
     nameIn.classList.add('ab-bar-name');
     nameIn.placeholder = 'Name this army';
-    bar.append(
-      bEl('div', { className: 'ab-bar-fac has-name' }, [
-        nameIn,
-        bEl('span', { className: 'ab-bar-sub', textContent: bld.fac })
-      ])
-    );
-  } else bar.append(bEl('div', { className: 'ab-bar-fac', textContent: bld.fac }));
+    bar.append(bEl('div', { className: 'ab-bar-fac has-name' }, [nameIn, abFacPick(box)]));
+  } else bar.append(bEl('div', { className: 'ab-bar-fac' }, [abFacPick(box)]));
   const jump = bEl('div', { className: 'ab-bar-wbs' });
   jump.setAttribute('aria-label', 'Warbands');
   wbs.forEach(({ w, wi }) => {
@@ -319,6 +329,13 @@ function abEnhance(box) {
   const top = box.querySelector('.ab-top');
   if (top) top.after(bar);
   else box.prepend(bar);
+  /* the title row only stays for what is left in it (the Spires' Sect) */
+  if (top && !top.querySelector('.ab-sect')) top.hidden = true;
+  try {
+    abRail(box, probs, total, limit);
+  } catch (e) {
+    console.error(e);
+  }
   /* what the last import could not match, until the player dismisses it */
   if (abImportNote) {
     const n = bEl('div', { className: 'pb-note' + (abImportNote.notes.length ? ' warn' : '') }, [
@@ -342,4 +359,87 @@ function abEnhance(box) {
     ]);
     bar.after(n);
   }
+}
+
+/* the faction, chosen in the summary bar (the page's own faction picker, moved there) */
+function abFacPick(box) {
+  const fs = box.querySelector('.ab-top .ab-fac');
+  if (!fs) return bEl('span', { className: 'ab-bar-sub', textContent: bld.fac });
+  return bEl('label', { className: 'ab-bar-facsel' }, [bEl('span', { className: 'mh-k', textContent: 'Faction' }), fs]);
+}
+
+/* wide pages: the warbands on the left, a column on the right with the picker and the rules check */
+function abRail(box, probs, total, limit) {
+  if (box.getBoundingClientRect().width < 1000) return;
+  const first = box.querySelector(':scope > .ab-wb');
+  const foot = box.querySelector(':scope > .ab-foot');
+  if (!first && !box.querySelector(':scope > .ab-pick')) return;
+  const cols = bEl('div', { className: 'ab-cols' }),
+    main = bEl('div', { className: 'ab-main' }),
+    rail = bEl('aside', { className: 'ab-rail' });
+  rail.setAttribute('aria-label', 'Add and check');
+  box.insertBefore(cols, first || foot);
+  [...box.children]
+    .filter(k => k !== cols && (k.matches('.ab-wb, .ab-pick') || (k.matches('.ab-row') && k.querySelector('.ab-wide'))))
+    .forEach(k => main.append(k));
+  cols.append(main, rail);
+  box.classList.add('ab-has-rail');
+  /* what you are adding: the open regiment picker, or the character for a new warband */
+  const pick = main.querySelector(':scope > .ab-wb > .ab-pick, :scope > .ab-pick');
+  const addBox = bEl('section', { className: 'ab-railbox ab-railpick' });
+  if (pick && !(abPick && (abPick.chr || abPick.upg))) {
+    const card = pick.parentNode.matches('.ab-wb') ? pick.parentNode : null;
+    const w = card ? bld.wbs[+card.dataset.wb] : null;
+    addBox.append(bEl('h3', { className: 'mh-k', textContent: w ? 'Add to the ' + w.char + '’s warband' : 'New warband' }));
+    addBox.append(pick);
+    if (card) {
+      card.classList.add('ab-picking');
+      card.append(
+        bEl('div', { className: 'ab-row ab-pickhere' }, [
+          bEl('span', { className: 'ab-note', textContent: 'Choose a regiment in the column on the right.' }),
+          abBtn(
+            'Cancel',
+            () => {
+              abPick = null;
+              renderTurnbar();
+            },
+            'ab-ghost ab-small'
+          )
+        ])
+      );
+    }
+  } else {
+    addBox.append(
+      bEl('h3', { className: 'mh-k', textContent: 'Add' }),
+      bEl('p', {
+        className: 'hint',
+        textContent: 'Press + Add regiment on a warband, or + Add a warband, and the choices show here with their points.'
+      })
+    );
+  }
+  rail.append(addBox);
+  /* the rules check: what passes and what still needs fixing */
+  const chk = bEl('section', { className: 'ab-railbox ab-check' });
+  chk.append(bEl('h3', { className: 'mh-k', textContent: 'Rules check' }));
+  const line = (ok, t, wi) => {
+    const el = bEl(wi != null ? 'button' : 'div', { className: 'ab-ck ' + (ok ? 'ok' : 'no'), textContent: (ok ? '✓ ' : '○ ') + t });
+    if (wi != null) {
+      el.type = 'button';
+      el.onclick = () => {
+        const t2 = box.querySelector('[data-wb="' + wi + '"]');
+        if (t2) t2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+    }
+    chk.append(el);
+  };
+  const wl = bld.wbs[bld.warlord];
+  line(!!wl, wl ? 'Warlord: the ' + wl.char : 'Choose a Warlord');
+  if (limit) line(total <= limit, total <= limit ? 'Within ' + limit.toLocaleString('en') + ' points' : total - limit + ' points over the limit');
+  const other = probs;
+  other.forEach(t => {
+    const m = String(t).match(/^Warband (\d+)/);
+    line(false, t, m ? +m[1] - 1 : null);
+  });
+  if (!other.length && bld.wbs.length) line(true, 'Every warband is legal');
+  rail.append(chk);
 }

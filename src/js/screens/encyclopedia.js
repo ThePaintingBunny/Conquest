@@ -3,13 +3,23 @@
  *
  * Browsing every faction, regiment and character.
  *
- * In this file: enFac, enKind, enQ, enNorm(), enStats(), enCard(), enSec(), enRuleList(), enWarband(),
- *   enDetail(), renderEncy()
+ * On a wide screen the page has three columns: the factions on the left, the cards in the middle and the open
+ * entry on the right. Two entries can be put side by side to compare them. On a narrow screen an entry opens as a
+ * window over the page.
+ *
+ * In this file: enFac, enKind, enQ, enCmp, enSideOn(), enNorm(), enStats(), enCard(), enSec(),
+ *   enRuleList(), enWarband(), enDetail(), enSideClear(), enCompare(), renderEncy()
  */
 
 let enFac = 0,
   enKind = 'all',
-  enQ = '';
+  enQ = '',
+  enCmp = []; /* entries to compare: [unit, faction] */
+
+/* the open entry shows in the right column (wide screens) instead of a window */
+function enSideOn() {
+  return !$('ency').hidden && innerWidth >= 1100;
+}
 
 function enNorm(t) {
   return String(t || '')
@@ -56,6 +66,9 @@ function enStats(u, big) {
 function enCard(u, fac, ff) {
   const c = document.createElement('article');
   c.className = 'en-card';
+  c._u = u;
+  const sd = $('en-side');
+  if (sd && sd._cur && sd._cur[0] === u) c.classList.add('sel');
   /* each card carries its own faction's colour, also in search results across factions */
   if (ff || fac) c.style.setProperty('--fac', facColor(ff || fac));
   c.tabIndex = 0;
@@ -159,8 +172,12 @@ function enWarband(t) {
 
 function enDetail(u, ff, nav) {
   tipHide();
-  let dg = $('en-dlg');
-  if (!dg) {
+  const side = enSideOn();
+  let dg = side ? $('en-side') : $('en-dlg');
+  if (side) {
+    dg.hidden = false;
+    document.querySelectorAll('#en-grid .en-card').forEach(c => c.classList.toggle('sel', c._u === u));
+  } else if (!dg) {
     dg = document.createElement('dialog');
     dg.id = 'en-dlg';
     dg.className = 'en-dlg';
@@ -176,7 +193,7 @@ function enDetail(u, ff, nav) {
         } catch (x) {}
     });
   }
-  if (!dg.open || !nav) {
+  if (!(side ? dg._cur : dg.open) || !nav) {
     dg._from = document.activeElement;
     dg._hist = [];
   } else if (nav === 'push') dg._hist.push(dg._cur);
@@ -201,7 +218,7 @@ function enDetail(u, ff, nav) {
   x.type = 'button';
   x.className = 'btn ghost';
   x.textContent = 'Close';
-  x.onclick = () => dg.close();
+  x.onclick = () => (side ? enSideClear() : dg.close());
   const acts = document.createElement('div');
   acts.className = 'en-dacts';
   if (dg._hist.length) {
@@ -333,10 +350,102 @@ function enDetail(u, ff, nav) {
     p.append(a, document.createTextNode(' for exact wording.'));
     body.appendChild(p);
   }
+  /* compare it with another entry */
+  {
+    const row = bEl('div', { className: 'en-dfoot' });
+    const inCmp = enCmp.some(c => c[0] === u);
+    const cb = bEl('button', {
+      type: 'button',
+      className: 'btn ghost',
+      textContent: inCmp ? 'Remove from compare' : enCmp.length ? 'Compare with ' + enCmp[enCmp.length - 1][0].name : 'Compare'
+    });
+    cb.onclick = () => {
+      if (inCmp) enCmp = enCmp.filter(c => c[0] !== u);
+      else enCmp = enCmp.slice(-1).concat([[u, ff]]);
+      renderEncy();
+      enDetail(u, ff, 'back');
+      if (!inCmp && enCmp.length === 2)
+        try {
+          $('en-cmp').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (e) {}
+    };
+    row.append(cb);
+    if (enCmp.length < 2 && (!enCmp.length || inCmp))
+      row.append(bEl('span', { className: 'hint', textContent: inCmp ? 'Open another entry to compare them.' : 'Pick two entries to see them side by side.' }));
+    body.appendChild(row);
+  }
+  if (side) {
+    dg.scrollTop = 0;
+    if (nav) (dg.querySelector('.en-back') || x).focus();
+    return;
+  }
   if (!dg.open) dg.showModal();
   dg.scrollTop = 0;
   body.scrollTop = 0;
   (dg.querySelector('.en-back') || x).focus();
+}
+
+/* the right column with nothing open */
+function enSideClear() {
+  const sd = $('en-side');
+  if (!sd) return;
+  sd._cur = null;
+  sd._hist = [];
+  sd.innerHTML = '';
+  sd.append(
+    bEl('div', { className: 'en-empty' }, [
+      bEl('div', { className: 'mh-k', textContent: 'Entry' }),
+      bEl('p', { className: 'hint', textContent: 'Click a card to read its full entry here: every special rule, its options and its warband.' })
+    ])
+  );
+  document.querySelectorAll('#en-grid .en-card.sel').forEach(c => c.classList.remove('sel'));
+}
+
+/* two entries side by side: their profiles, with the better number marked */
+function enCompare() {
+  const box = $('en-cmp');
+  if (!box) return;
+  box.innerHTML = '';
+  box.hidden = !enCmp.length;
+  if (!enCmp.length) return;
+  const head = bEl('div', { className: 'en-cmph' }, [
+    bEl('span', { className: 'mh-k', textContent: 'Compare' }),
+    bEl('span', { className: 'hint', textContent: enCmp.length < 2 ? 'Open another entry and press Compare.' : '' })
+  ]);
+  const clr = bEl('button', { type: 'button', className: 'btn ghost', textContent: 'Clear' });
+  clr.onclick = () => {
+    enCmp = [];
+    renderEncy();
+    const sd = $('en-side');
+    if (sd && sd._cur) enDetail(sd._cur[0], sd._cur[1], 'back');
+  };
+  head.append(clr);
+  box.append(head);
+  const K = ['M', 'V', 'C', 'A', 'W', 'R', 'D', 'E'],
+    lowGood = { R: 0 };
+  const t = bEl('table', { className: 'en-cmpt' });
+  const tr0 = bEl('tr', {}, [bEl('th', { textContent: '' })]);
+  K.forEach(k => tr0.append(bEl('th', { textContent: k })));
+  tr0.append(bEl('th', { textContent: 'Points' }), bEl('th', { textContent: 'Special rules' }));
+  t.append(tr0);
+  const num = v => (v === '-' || v == null || isNaN(+v) ? null : +v);
+  enCmp.forEach(([u, ff], i) => {
+    const o = enCmp[1 - i] && enCmp[1 - i][0];
+    const tr = bEl('tr');
+    const nm = bEl('th', { scope: 'row' }, [bEl('b', { textContent: u.name }), bEl('small', { textContent: ff })]);
+    nm.style.setProperty('--fac', facColor(ff));
+    tr.append(nm);
+    K.forEach(k => {
+      const a = num(u.stats[k]),
+        b = o ? num(o.stats[k]) : null;
+      const td = bEl('td', { textContent: a == null ? '–' : a });
+      if (a != null && b != null && a !== b) td.className = (k in lowGood ? a < b : a > b) ? 'up' : 'down';
+      tr.append(td);
+    });
+    tr.append(bEl('td', { textContent: u.pts != null ? u.pts : '—' }), bEl('td', { className: 'en-cmpr', textContent: u.rules.join(', ') || '—' }));
+    t.append(tr);
+  });
+  box.append(t);
 }
 
 function renderEncy() {
@@ -381,11 +490,10 @@ function renderEncy() {
   } else {
     const f = ENCY[enFac];
     list = f.units.map(u => [u, '', f.name]);
+    info.append(bEl('h2', { className: 'en-fname', textContent: f.name }));
     const p = document.createElement('p');
     p.className = 'en-src';
     p.textContent =
-      f.name +
-      ' · ' +
       f.version +
       ' · ' +
       f.units.filter(u => u.kind === 'char').length +
@@ -419,9 +527,16 @@ function renderEncy() {
     p.className = 'hint';
     p.textContent = 'Nothing matches that search.';
     grid.appendChild(p);
+    enCompare();
     return;
   }
   list.forEach(([u, fn, ff]) => grid.appendChild(enCard(u, fn, ff)));
+  enCompare();
+  const sd = $('en-side');
+  if (sd) {
+    sd.hidden = innerWidth < 1100;
+    if (!sd._cur && !sd.children.length) enSideClear();
+  }
 }
 
 $('en-open').onclick = () => {

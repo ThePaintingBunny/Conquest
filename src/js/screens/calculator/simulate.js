@@ -13,6 +13,7 @@ let calc = {
   charge: 'A',
   arc: 'front',
   range: 12,
+  rounds: 6 /* fight rounds: 1, 2, 3, or 6 (to the end) */,
   fx: { A: {}, B: {} },
   res: null,
   busy: false,
@@ -355,7 +356,7 @@ function calcRun() {
       R.impB = calc.charge === 'B' ? calcExchange('impact', 'B', N) : null;
       R.volA = calcExchange('volley', 'A', N);
       R.volB = calcExchange('volley', 'B', N);
-      R.fight = calcFight(300, 6);
+      R.fight = calcFight(300, calc.rounds || 6);
       calc.res = R;
     } catch (e) {
       console.error(e);

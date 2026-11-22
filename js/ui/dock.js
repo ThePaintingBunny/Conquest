@@ -8,7 +8,7 @@
  * Number keys 1–9 start the action on that tile; Enter finishes the action, or ends the activation.
  *
  * In this file: DOCK_ICO, dockOn(), dockTiles(), dockDraw(), dockDrawTiles(), dockBtn(), renderDock(),
- *   dockKeys()
+ *   dockKeys(), dockBuilder()
  */
 
 /* an icon for each kind of action */

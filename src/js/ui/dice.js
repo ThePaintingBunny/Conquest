@@ -79,7 +79,8 @@ function banner(title, dice, text, cls) {
   $('aib-t').textContent = title;
   const d = $('aib-d');
   d.innerHTML = '';
-  (dice || []).forEach(x => {
+  /* Settings: Show every die off shows only what the dice did */
+  (SET.diceEach === false && text ? [] : dice || []).forEach(x => {
     const v = typeof x === 'object' ? x.v : x,
       c = typeof x === 'object' ? x.cls : '';
     d.appendChild(dieMini(v, c || ''));

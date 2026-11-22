@@ -59,8 +59,10 @@ function askRoll(o) {
       if (!r) {
         r = roll();
         lastRollAt = performance.now();
-        dice(r).forEach(x => dr.appendChild(dieMini(x.v, x.cls, 'ra' + Date.now() + Math.random())));
         line.textContent = o.sum ? o.sum(r) : '';
+        /* Settings: Show every die off shows only what the dice did */
+        if (!(SET.diceEach === false && line.textContent))
+          dice(r).forEach(x => dr.appendChild(dieMini(x.v, x.cls, 'ra' + Date.now() + Math.random())));
         try {
           pubRoll(o.title, dice(r), line.textContent);
         } catch (e) {}
