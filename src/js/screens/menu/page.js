@@ -172,14 +172,7 @@ function renderMenu() {
       b.onclick = fn;
       return b;
     };
-    armyBuilder(
-      e => body.append(e),
-      mk,
-      L => {
-        toast('Army checked and ready. Open Single player or Multiplayer to field it.');
-      },
-      'Check this army'
-    );
+    armyBuilder(e => body.append(e), mk, null, null);
     return;
   }
   if (page === 'single' || page === 'multi') {

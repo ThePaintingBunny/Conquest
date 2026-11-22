@@ -530,7 +530,8 @@ function armyBuilder(add, mk, onUse, useLabel) {
     foot.append(
       abIssues(probs.slice(0, 6).concat(probs.length > 6 ? ['…and ' + (probs.length - 6) + ' more'] : []), '')
     );
-  if (bld.wbs.length) {
+  /* the main menu's page has nothing to field the army into, so it has no Use button */
+  if (bld.wbs.length && useLabel) {
     const sandbox = state && state.mode === 'test';
     const ub = mk(probs.length && sandbox ? useLabel + ' anyway' : useLabel, () => {
       if (probs.length && !sandbox) {
