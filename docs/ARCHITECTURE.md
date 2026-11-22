@@ -31,7 +31,7 @@ Everything below is under `src/js/`. Each file starts with a header that says wh
 | `game/` | The flow of the game: scenarios and scoring, Command Cards, the Command Phase, reinforcements, ending a turn and a round. |
 | `input/` | Pointer, button and keyboard wiring. |
 | `online/` | Online play: seats, private data, live updates, shared combat, presence. |
-| `ai/` | The computer opponent: carrying out a plan step by step (`executors.js`, `turn.js`), Claude's prompts and planning (`prompt.js`, `planning.js`). |
+| `ai/` | The built-in opponent: its planners (`bot/`), carrying out each step on the table (`executors.js`, `turn.js`), and reading pasted Para Bellum lists (`army-lists.js`). |
 | `ai/bot/` | The built-in opponent: values in points (`values.js`), expected damage without dice (`damage.js`), who can reach whom (`threats.js`), March prediction and destinations (`movement.js`), scoring every line of an activation (`activation.js`), characters and spells (`character.js`), the Command Stack (`stack.js`), its own army (`army.js`). |
 | `overlays/` | Things drawn over the board on request: ruler, facing arcs, threat ranges. |
 | `ui/` | The in-game interface: regiment card, tabs, turn bar, legend, tooltips, settings, dice, messages. |
@@ -104,7 +104,7 @@ Many names are short. The prefix tells you the area:
 | `ai`, `ex`, `plan` | the computer's turn (`ex` = carry out one step) | `ai/` |
 | `bot` | the built-in opponent | `ai/bot/` |
 | `bld`, `ab`, `wb`, `upg` | army builder (`wb` = warband, `upg` = upgrade) | `screens/army-builder/` |
-| `pb` | lists copied from the Para Bellum app (read without Claude) | `screens/army-builder/import-pb.js` |
+| `pb` | lists copied from the Para Bellum app | `screens/army-builder/import-pb.js` |
 | `en` | encyclopedia | `screens/encyclopedia.js` |
 | `mm` | main menu (and Master Manipulator in `factions/spires/`) | `screens/menu/` |
 | `tf`, `qa` | test field, its quick-add form | `screens/test-field/` |

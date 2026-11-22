@@ -1,13 +1,12 @@
 /*
  * Conquest Table: standalone runtime.
- * Provides the small API the game expects (db, user, sample) outside Claude:
+ * Provides the small API the game expects (db, user) outside Claude:
  *  - db: a document store. Offline it lives in this browser (localStorage).
  *        Online, the host's browser holds the game and guests sync with it through a
  *        public MQTT broker over secure WebSockets. Paths under data/users/ never leave
  *        the device, so Command Stacks stay hidden. Every message is signed: only the
  *        host can publish the game, and only seated players can make moves.
  *  - user: a random id kept in this browser.
- *  - sample: Claude through the player's own Anthropic API key (optional), used only to read pasted army lists.
  */
 (function () {
   'use strict';
@@ -460,43 +459,9 @@
   /* ---------- user API ---------- */
   const user = { async id() { return myId; }, async me() { return { id: myId, name: '', email: null }; }, async isOwner() { return mode !== 'guest'; }, async canEdit() { return true; } };
 
-  /* ---------- Claude through the player's own API key ---------- */
-  const settings = () => LS.get(PREFIX + 'claude', { key: '', model: 'claude-sonnet-5-5', strong: 'claude-opus-5-5' });
-  function extractJson(t) {
-    t = String(t || '').trim();
-    const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (fence) t = fence[1];
-    const i = t.search(/[\[{]/); if (i < 0) throw new Error('no JSON');
-    const open = t[i], close = open === '{' ? '}' : ']'; let depth = 0, inStr = false, esc = false;
-    for (let j = i; j < t.length; j++) {
-      const ch = t[j];
-      if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue; }
-      if (ch === '"') inStr = true; else if (ch === open) depth++; else if (ch === close && --depth === 0) return JSON.parse(t.slice(i, j + 1));
-    }
-    throw new Error('incomplete JSON');
-  }
-  async function callClaude(prompt, opts) {
-    const s = settings();
-    if (!s.key) throw Object.assign(new Error('No Anthropic API key set'), { code: 'not_granted' });
-    const model = opts && opts.modelTier === 'complex' ? (s.strong || s.model) : s.model;
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': s.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model, max_tokens: 8000, messages: [{ role: 'user', content: prompt }] })
-    });
-    if (!r.ok) { let m = ''; try { m = (await r.json()).error.message; } catch (e) { } throw Object.assign(new Error(m || ('HTTP ' + r.status)), { code: r.status === 401 ? 'not_granted' : r.status === 429 ? 'rate_limited' : 'unavailable' }); }
-    const j = await r.json();
-    return (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-  }
-  const sample = Object.assign(async (prompt, opts) => ({ text: await callClaude(prompt, opts) }), {
-    async json(prompt, opts) {
-      const text = await callClaude(prompt + '\n\nAnswer with the JSON only, no other text.', opts);
-      try { return extractJson(text); } catch (e) { throw Object.assign(new Error('Claude did not return valid JSON'), { code: 'bad_output' }); }
-    }
-  });
+  window.claude = { use: async name => name === 'db' ? db : name === 'user' ? user : null };
 
-  window.claude = { use: async name => name === 'db' ? db : name === 'user' ? user : name === 'sample' ? sample : null };
-
-  /* ---------- connection bar and settings ---------- */
+  /* ---------- connection bar ---------- */
   let bar = null;
   function newCode() { const a = CODE_CHARS; let s = ''; for (let i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
   /* a new game: make the host's key first, its hash is the game code */
@@ -525,33 +490,9 @@
       }, true);
       btn('Leave', () => { try { window.__presenceLeave && window.__presenceLeave(); } catch (e) { } setTimeout(() => { location.href = urlWith(''); }, 400); });
     }
-    btn('Claude settings', openSettings);
     bar.appendChild(right);
   }
   function flash(t) { const n = document.createElement('div'); n.className = 'nb-flash'; n.textContent = t; document.body.appendChild(n); setTimeout(() => n.remove(), 6000); }
-  function openSettings() {
-    let d = document.getElementById('claude-settings');
-    if (!d) { d = document.createElement('dialog'); d.id = 'claude-settings'; d.className = 'en-dlg'; document.body.appendChild(d); }
-    const s = settings(); d.innerHTML = '';
-    const wrap = document.createElement('div'); wrap.className = 'en-dbody';
-    const h = document.createElement('h2'); h.textContent = 'Reading army lists with Claude'; h.style.cssText = 'margin:0;font-family:var(--display)';
-    const p = document.createElement('p'); p.className = 'hint'; p.style.margin = '0';
-    p.textContent = 'Lists copied from the Para Bellum app are read directly. Claude reads any other pasted list; outside claude.ai that needs your own Anthropic API key, billed to your Anthropic account. The key is stored only in this browser and is sent only to api.anthropic.com. Nothing else in the game needs a key.';
-    const lab = (t, el) => { const l = document.createElement('label'); l.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:14px'; const sp = document.createElement('span'); sp.textContent = t; l.append(sp, el); return l; };
-    const key = Object.assign(document.createElement('input'), { type: 'password', value: s.key, placeholder: 'sk-ant-…', autocomplete: 'off' });
-    const model = Object.assign(document.createElement('input'), { type: 'text', value: s.model });
-    const strong = Object.assign(document.createElement('input'), { type: 'text', value: s.strong });
-    [key, model, strong].forEach(i => i.style.cssText = 'font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)');
-    const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap';
-    const save = document.createElement('button'); save.type = 'button'; save.className = 'btn'; save.textContent = 'Save';
-    save.onclick = () => { LS.set(PREFIX + 'claude', { key: key.value.trim(), model: model.value.trim() || 'claude-sonnet-5-5', strong: strong.value.trim() || 'claude-opus-5-5' }); d.close(); flash('Claude settings saved in this browser.'); };
-    const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'btn ghost'; clear.textContent = 'Remove key';
-    clear.onclick = () => { LS.set(PREFIX + 'claude', Object.assign(settings(), { key: '' })); key.value = ''; flash('API key removed from this browser.'); };
-    const close = document.createElement('button'); close.type = 'button'; close.className = 'btn ghost'; close.textContent = 'Close'; close.onclick = () => d.close();
-    row.append(clear, close, save);
-    wrap.append(h, p, lab('Anthropic API key', key), lab('Model', strong), row);
-    d.appendChild(wrap); d.showModal();
-  }
   const css = document.createElement('style');
   css.textContent = '#net-bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;max-width:1240px;margin:8px auto 0;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:14px}' +
     '#net-bar .nb-l{display:flex;align-items:center;gap:8px;min-width:0}#net-bar .nb-r{display:flex;flex-wrap:wrap;gap:6px}' +
@@ -565,6 +506,5 @@
     host: () => { hostNew(); },
     join: c => { c = clean(c || ''); if (c.length >= 4) location.href = urlWith('join=' + c); else flash('Type the game code your host sent you.'); },
     invite: async () => { const link = urlWith('join=' + room + (brokerIx > 0 ? '&b=' + brokerIx : '')); try { await navigator.clipboard.writeText(link); flash('Invite link copied: ' + link); } catch (e) { flash('Send this link to your opponent: ' + link); } },
-    leave: () => { try { window.__presenceLeave && window.__presenceLeave(); } catch (e) { } setTimeout(() => { location.href = urlWith(''); }, 400); },
-    openSettings };
+    leave: () => { try { window.__presenceLeave && window.__presenceLeave(); } catch (e) { } setTimeout(() => { location.href = urlWith(''); }, 400); } };
 })();

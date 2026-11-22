@@ -125,8 +125,7 @@ const SET_SECTIONS = [
   ['general', 'Dice', 'die', 'How rolls look and who rolls them'],
   ['controls', 'Controls', 'keys', 'Every keyboard shortcut'],
   ['table', 'Table and display', 'map', 'How the table moves and what it shows'],
-  ['player', 'Player', 'person', 'How others see you'],
-  ['claude', 'Army lists', 'spark', 'Reading pasted army lists']
+  ['player', 'Player', 'person', 'How others see you']
 ];
 
 function openSettings(tab) {
@@ -322,33 +321,7 @@ function openSettings(tab) {
       bEl('span')
     );
   }
-  /* Claude */
-  {
-    const body = pane('claude');
-    const n = mmNet();
-    if (n && n.openSettings) {
-      const b = bEl('button', { type: 'button', className: 'btn', textContent: 'Open Claude settings' });
-      b.onclick = () => {
-        dg.close();
-        n.openSettings();
-      };
-      row(
-        body,
-        'API key for reading lists',
-        'A list copied from the Para Bellum app is read directly. Any other pasted list is read by Claude, which needs an API key on this site.',
-        b
-      );
-    } else
-      row(
-        body,
-        'Nothing to set up',
-        sample
-          ? 'A list copied from the Para Bellum app is read directly. Any other pasted list is read by Claude, through your Claude account on this page.'
-          : 'Lists copied from the Para Bellum app are read directly. Other lists cannot be read in this view: build the army in the army builder instead.',
-        bEl('span')
-      );
-  }
   dg.append(nav, main);
-  show(['controls', 'table', 'player', 'claude'].includes(tab) ? tab : 'general');
+  show(['controls', 'table', 'player'].includes(tab) ? tab : 'general');
   dg.showModal();
 }

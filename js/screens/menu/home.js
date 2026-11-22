@@ -144,9 +144,6 @@ function mhSide(busy) {
     }
   }
   const sets = [mmCard('Settings', 'Dice, animations, controls and display', '⚙', () => $('set-open').click(), { small: true })];
-  const n = mmNet();
-  if (n && n.openSettings)
-    sets.push(mmCard('Claude settings', 'API key for reading pasted army lists', '✦', () => n.openSettings(), { small: true }));
   side.append(bEl('div', { className: 'mh-sets' }, sets));
   return side;
 }

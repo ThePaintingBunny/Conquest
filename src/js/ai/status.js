@@ -1,14 +1,12 @@
 /*
  * Opponent status
  *
- * Whether the opponent is busy, its status line and its log; and Claude (sample), used only to read pasted army
- * lists.
+ * Whether the opponent is busy, its status line and its log.
  *
- * In this file: sample, aiBusy, aiLog, logAI(), aiStatus()
+ * In this file: aiBusy, aiLog, logAI(), aiStatus()
  */
 
-let sample = null,
-  aiBusy = false,
+let aiBusy = false,
   aiLog = null;
 
 function logAI(t) {

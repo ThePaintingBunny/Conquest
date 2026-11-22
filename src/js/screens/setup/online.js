@@ -65,11 +65,14 @@ function renderSetupPvp(tb, info, mk, add) {
       })
     );
     pts.oninput = () => (setupDraft.pts = +pts.value || 2000);
+    /* a Para Bellum list names its own faction and points */
+    fac.parentNode.hidden = true;
+    pts.parentNode.hidden = true;
     const ta = document.createElement('textarea');
     ta.rows = 9;
     ta.value = setupDraft.list;
     ta.placeholder =
-      'Paste your list here. A list copied from the Para Bellum app is read directly; any other list is read by Claude.';
+      'Paste a list copied from the Para Bellum app (its share or export text).';
     ta.oninput = () => (setupDraft.list = ta.value);
     lab('Your army list', ta).parentNode.classList.add('wide');
     add(f);
@@ -79,17 +82,15 @@ function renderSetupPvp(tb, info, mk, add) {
           toast('Paste your army list first.');
           return;
         }
-        if (!sample && !pbLooks(setupDraft.list)) {
-          toast('Claude is not available in this view, so the army cannot be read here.');
+        if (!pbLooks(setupDraft.list)) {
+          toast(PB_ONLY);
           return;
         }
         aiBusy = true;
-        aiStatus(
-          pbLooks(setupDraft.list) ? 'Reading your Para Bellum list…' : 'Claude is reading your list…'
-        );
+        aiStatus('Reading your Para Bellum list…');
         render();
         try {
-          const L = await convertList(setupDraft.list, setupDraft.faction, setupDraft.pts);
+          const L = convertList(setupDraft.list);
           aiBusy = false;
           aiStatus('');
           await stateUpdate({ setup: { [me]: null }, updatedAt: Date.now() });
@@ -105,9 +106,9 @@ function renderSetupPvp(tb, info, mk, add) {
           aiStatus('');
           render();
           toast(
-            e && e.code === 'not_granted'
-              ? 'Claude was not allowed to run, so the army was not read.'
-              : 'Claude could not read the army (' + ((e && e.code) || 'error') + '). Try again.'
+            e && e.code === 'not_pb'
+              ? PB_ONLY
+              : 'The army could not be read (' + ((e && e.code) || 'error') + '). Try again.'
           );
         }
       })

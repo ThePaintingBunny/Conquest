@@ -53,13 +53,13 @@ function renderSetup(tb, info, mk, add) {
       ta.rows = 9;
       ta.value = setupDraft.list;
       ta.placeholder =
-        'Paste your list here. A list copied from the Para Bellum app is read directly; any other list is read by Claude.';
+        'Paste a list copied from the Para Bellum app (its share or export text).';
       ta.oninput = () => (setupDraft.list = ta.value);
       lab('Your army list', ta).parentNode.classList.add('wide');
-    } else {
-      fac.parentNode.hidden = true;
-      pts.parentNode.hidden = true;
     }
+    /* a Para Bellum list names its own faction and points */
+    fac.parentNode.hidden = true;
+    pts.parentNode.hidden = true;
     {
       if (!PN('cs') && savedName() && !state._pnTried) {
         state._pnTried = 1;
@@ -99,21 +99,15 @@ function renderSetup(tb, info, mk, add) {
         toast('Paste your army list first.');
         return;
       }
-      if (armyMode === 'paste' && !pbLooks(setupDraft.list) && !sample) {
-        toast(
-          'Without Claude only lists copied from the Para Bellum app can be read. Build your army here instead, or import it in the army builder.'
-        );
+      if (armyMode === 'paste' && !pbLooks(setupDraft.list)) {
+        toast(PB_ONLY);
         return;
       }
       aiBusy = true;
-      aiStatus(
-        armyMode === 'paste' && pbLooks(setupDraft.list)
-          ? 'Reading your Para Bellum list…'
-          : 'Claude is reading your list…'
-      );
+      aiStatus(armyMode === 'paste' ? 'Reading your Para Bellum list…' : 'Building the armies…');
       render();
       try {
-        const mine = built || (await convertList(setupDraft.list, setupDraft.faction, setupDraft.pts));
+        const mine = built || convertList(setupDraft.list);
         const P =
           built || mine.points ? Math.max(500, Math.round((built || mine).points / 50) * 50) : setupDraft.pts;
         aiStatus('Building the opponent’s army…');
@@ -142,8 +136,8 @@ function renderSetup(tb, info, mk, add) {
         aiStatus('');
         render();
         toast(
-          e && e.code === 'not_granted'
-            ? 'Add your Anthropic API key under Claude settings at the top of the page to read pasted lists.'
+          e && e.code === 'not_pb'
+            ? PB_ONLY
             : 'The armies could not be built (' + ((e && e.code) || 'error') + '). Try again.'
         );
       }

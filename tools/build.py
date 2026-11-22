@@ -9,7 +9,7 @@ src/ holds the same page that runs as a Claude artifact:
 
 This script copies them to the site root and:
   - loads firebase-config.js and shim.js (which replace Claude's runtime with local
-    storage, online play and an optional Anthropic API key) before the game scripts,
+    storage and online play) before the game scripts,
   - adjusts the wording that only makes sense inside Claude,
   - adds the fan-made footer and a version stamp,
   - appends ?v=<stamp> to every css/js link so browsers never mix old and new files.
@@ -38,10 +38,6 @@ def swap_page(text, old, new):
         sys.exit(f'build: expected text not found in src/index.html: {old[:70]!r}')
     return text.replace(old, new)
 
-
-KEY_HINT = 'Add your Anthropic API key under Claude settings at the top of the page to read pasted lists.'
-swap("'Claude was not allowed to run, so the army was not read.'", repr(KEY_HINT))
-swap("'Claude was not allowed to run, so your list was not read.'", repr(KEY_HINT))
 
 STAMP = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
 VER = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M')

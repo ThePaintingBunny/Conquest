@@ -15,14 +15,6 @@
       .then(r => liveRoomJoin(r))
       .catch(() => {});
   } catch (e) {}
-  try {
-    window.claude
-      ?.use?.('sample')
-      .then(x => {
-        sample = x;
-      })
-      .catch(() => {});
-  } catch (e) {}
   if (!db) {
     $('phase').textContent = 'Live game state unavailable in this view.';
     return;

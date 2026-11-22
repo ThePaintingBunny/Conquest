@@ -1,6 +1,6 @@
 # Conquest Table
 
-A browser battle map for **Conquest: The Last Argument of Kings**: build your army, set up terrain and one of 12 scenarios, then play a friend online or face Claude.
+A browser battle map for **Conquest: The Last Argument of Kings**: build your army, set up terrain and one of 12 scenarios, then play a friend online or face the built-in opponent.
 
 **Play:** https://thepaintingbunny.github.io/Conquest/
 
@@ -14,8 +14,7 @@ A browser battle map for **Conquest: The Last Argument of Kings**: build your ar
 - **Encyclopedia:** all 10 factions, with every character and regiment, its stat line, special rules, options and warband choices. Hover a rule to see what it does.
 - **Online play:** the host starts a game and sends the invite link or code. Each player sees the table from their own edge, Command Stacks stay hidden, and the defender rolls their own saves.
 - **Single player, free:** the built-in opponent (Easy, Normal or Hard) builds a legal army for any faction and plays its turns itself: it weighs every Charge, March and Volley in points (damage, zones, how exposed it ends up), orders its Command Stack by what acting early is worth, and sacrifices cheap regiments when that saves something more valuable. No API key, works offline.
-- **Army import:** paste a list copied from the Para Bellum app and it is read directly, no AI involved.
-- **Play against Claude (optional):** add your own Anthropic API key under *Claude settings* and choose Claude as the opponent instead.
+- **Army import:** paste a list copied from the Para Bellum app and it is read directly. Other lists are built in the army builder.
 
 ## How to play online
 
@@ -24,14 +23,6 @@ A browser battle map for **Conquest: The Last Argument of Kings**: build your ar
 3. In the lobby each player takes a seat (an edge), builds or loads an army, and either of you starts the game.
 
 With Firebase set up (see below), the game is saved in the cloud: either player can close the tab and come back later through the same link. Without Firebase, the host's tab holds the game, so it must stay open. Either way, players keep their seats after a reload, and you can join from a second tab in the same browser, which is handy for testing.
-
-## Playing against Claude
-
-Claude needs an [Anthropic API key](https://console.anthropic.com/):
-
-- **Cost:** each game costs a little on your own Anthropic account.
-- **Privacy:** the key is stored only in your browser and is sent only to `api.anthropic.com`.
-- **Models:** you can change which models are used under *Claude settings*.
 
 ## How it's built
 
@@ -42,7 +33,7 @@ Claude needs an [Anthropic API key](https://console.anthropic.com/):
   - `src/js/`: the game, in one folder per area (`core`, `terrain`, `regiments`, `rules`, `spells`, `factions`, `supremacy`, `actions`, `activation`, `combat`, `game`, `online`, `ai`, `overlays`, `ui`, `screens`). Every file opens with a header that says what it holds and lists its contents.
   - `src/js/data/`: rules data from the army lists. Each faction has its own folder under `data/factions/` with its units, upgrades and rule text.
 - **Finding your way:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains the folders, how the game runs and where to make common changes. [docs/CODE_INDEX.md](docs/CODE_INDEX.md) lists every file and every function with the file it lives in.
-- **Standalone runtime:** `shim.js` replaces Claude's runtime. It keeps game data in local storage, syncs online games through Firebase Cloud Firestore (or, if Firebase isn't configured, relays moves through a free public MQTT broker with the host's browser as referee), and calls Claude with the player's own API key.
+- **Standalone runtime:** `shim.js` replaces Claude's runtime. It keeps game data in local storage, syncs online games through Firebase Cloud Firestore (or, if Firebase isn't configured, relays moves through a free public MQTT broker with the host's browser as referee).
 - **Online safety (MQTT relay):** every message on the public relay is signed in the browser (ECDSA P-256). The game code is made from a hash of the host's key, so guests only accept the game from the real host. Each player's moves are signed with a key kept in their browser and tied to their seat; the host only accepts moves from seated players, and watchers can do nothing but appear in the lobby and take an open seat. Nobody but the host can move another player out of a seat; the host can free a seat for a player who comes back on another device. Dice and rules are still run in the host's browser, so this stops outsiders, not a host who tampers with their own copy.
 - **Building the site:** `tools/build.py` copies `src/` to the site root (`index.html`, `css/`, `js/`), adds `shim.js` and the footer, and stamps every file link with the build version so browsers never mix old and new files. After editing the game, run `python3 tools/build.py` and commit `src/` and the built files together.
 - **Developer tools (optional):** run `npm install` once, then `npm run check` (every script is loaded, no name is declared twice, the load order is safe), `npm run index` (refresh the code index and the file headers), `npm run format` (Prettier) and `npm run build`.
