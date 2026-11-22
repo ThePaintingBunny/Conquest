@@ -9,7 +9,7 @@
  * armyBuilder() builds the page; abEnhance() runs on it afterwards and changes no army data.
  *
  * In this file: abOpen, abSeen, abLimit(), abSetLimit(), abUndoTimer, abUndoOffer(), abEnhance(),
- *   abFacPick(), abRail()
+ *   abFacPick(), abRailWb, abRail()
  */
 
 /* which regiments are unfolded ("warband:regiment"), and how many regiments each warband had last time */
@@ -368,6 +368,9 @@ function abFacPick(box) {
   return bEl('label', { className: 'ab-bar-facsel' }, [bEl('span', { className: 'mh-k', textContent: 'Faction' }), fs]);
 }
 
+/* the warband the right column adds to, kept between redraws */
+let abRailWb = null;
+
 /* wide pages: the warbands on the left, a column on the right with the picker and the rules check */
 function abRail(box, probs, total, limit) {
   if (box.getBoundingClientRect().width < 1000) return;
@@ -384,40 +387,71 @@ function abRail(box, probs, total, limit) {
     .forEach(k => main.append(k));
   cols.append(main, rail);
   box.classList.add('ab-has-rail');
-  /* what you are adding: the open regiment picker, or the character for a new warband */
-  const pick = main.querySelector(':scope > .ab-wb > .ab-pick, :scope > .ab-pick');
+  /* adding happens here, always open: pick the warband, then the regiment */
+  main.querySelectorAll('.ab-wb > .ab-regpick, .ab-addreg').forEach(k => k.remove());
+  const adders = box._abAdd || [];
   const addBox = bEl('section', { className: 'ab-railbox ab-railpick' });
-  if (pick && !(abPick && (abPick.chr || abPick.upg))) {
-    const card = pick.parentNode.matches('.ab-wb') ? pick.parentNode : null;
-    const w = card ? bld.wbs[+card.dataset.wb] : null;
-    addBox.append(bEl('h3', { className: 'mh-k', textContent: w ? 'Add to the ' + w.char + '’s warband' : 'New warband' }));
-    addBox.append(pick);
-    if (card) {
-      card.classList.add('ab-picking');
-      card.append(
-        bEl('div', { className: 'ab-row ab-pickhere' }, [
-          bEl('span', { className: 'ab-note', textContent: 'Choose a regiment in the column on the right.' }),
-          abBtn(
-            'Cancel',
-            () => {
-              abPick = null;
-              renderTurnbar();
-            },
-            'ab-ghost ab-small'
-          )
-        ])
-      );
-    }
-  } else {
+  const newPick = abPick && abPick.wb === 'new' ? main.querySelector(':scope > .ab-pick') : null;
+  let target = null;
+  if (!newPick) {
+    if (abPick && typeof abPick.wb === 'number' && adders[abPick.wb]) target = abPick.wb;
+    else if (abRailWb != null && adders[abRailWb]) target = abRailWb;
+    else for (let i = adders.length - 1; i >= 0; i--) if (adders[i]) { target = i; break; }
+  }
+  addBox.append(bEl('h3', { className: 'mh-k', textContent: newPick ? 'New warband' : 'Add a regiment' }));
+  /* which warband the regiment goes to */
+  if (bld.wbs.length) {
+    const chips = bEl('div', { className: 'ab-railwbs', role: 'group' });
+    chips.setAttribute('aria-label', 'Add to warband');
+    bld.wbs.forEach((w, i) => {
+      const n = w.regs.length;
+      const c = bEl('button', {
+        type: 'button',
+        className: 'ab-railwb' + (i === target ? ' on' : ''),
+        disabled: !adders[i],
+        title: adders[i] ? 'Add to this warband' : 'This warband is full'
+      }, [bEl('span', { className: 'ab-railwb-n', textContent: String(i + 1) }), bEl('span', { textContent: w.char })]);
+      c.setAttribute('aria-pressed', i === target ? 'true' : 'false');
+      c.onclick = () => {
+        abRailWb = i;
+        abPick = null;
+        abDraw();
+      };
+      chips.append(c);
+    });
+    const nw = bEl('button', { type: 'button', className: 'ab-railwb ab-railwb-new' + (newPick ? ' on' : ''), textContent: '+ New warband' });
+    nw.onclick = () => {
+      abPick = { wb: 'new' };
+      abDraw();
+    };
+    chips.append(nw);
+    addBox.append(chips);
+  }
+  if (newPick) addBox.append(newPick);
+  else if (target != null) {
+    const card = main.querySelector('.ab-wb[data-wb="' + target + '"]');
+    if (card) card.classList.add('ab-picking');
+    addBox.append(adders[target]());
+  } else
     addBox.append(
-      bEl('h3', { className: 'mh-k', textContent: 'Add' }),
       bEl('p', {
         className: 'hint',
-        textContent: 'Press + Add regiment on a warband, or + Add a warband, and the choices show here with their points.'
+        textContent: bld.wbs.length ? 'Every warband is full. Add a new warband to keep going.' : 'Add a warband to start.'
       })
     );
-  }
   rail.append(addBox);
+  /* a click on a warband's free space also makes it the one to add to */
+  main.querySelectorAll('.ab-wb[data-wb]').forEach(c => {
+    const i = +c.dataset.wb;
+    if (!adders[i] || i === target) return;
+    c.classList.add('ab-pickable');
+    c.addEventListener('click', e => {
+      if (e.target.closest('button, select, input, textarea, a, label, details, summary')) return;
+      abRailWb = i;
+      abPick = null;
+      abDraw();
+    });
+  });
   /* the rules check: what passes and what still needs fixing */
   const chk = bEl('section', { className: 'ab-railbox ab-check' });
   chk.append(bEl('h3', { className: 'mh-k', textContent: 'Rules check' }));

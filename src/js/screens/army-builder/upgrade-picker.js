@@ -17,7 +17,7 @@ function abUpgPicker(f, w, wi) {
         'Done',
         () => {
           abPick = null;
-          renderTurnbar();
+          abDraw();
         },
         'ab-pri ab-small ab-keep'
       )
@@ -117,7 +117,7 @@ function abUpgrades(list, key, label) {
       'Cancel',
       () => {
         abUpg = null;
-        renderTurnbar();
+        abDraw();
       },
       'ab-ghost'
     );
@@ -139,7 +139,7 @@ function abUpgrades(list, key, label) {
         '+ ' + label,
         () => {
           abUpg = key;
-          renderTurnbar();
+          abDraw();
         },
         'ab-ghost ab-small'
       )

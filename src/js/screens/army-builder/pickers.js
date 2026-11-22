@@ -8,7 +8,7 @@
 
 function abPicker(f, w, wi, choices) {
   const R = wbRules(bldUnit(w.char), w),
-    box = bEl('div', { className: 'ab-pick' });
+    box = bEl('div', { className: 'ab-pick ab-regpick' });
   box.append(
     bEl('div', { className: 'ab-pickh' }, [
       bEl('strong', { textContent: 'Choose a regiment for this warband' }),
@@ -16,7 +16,7 @@ function abPicker(f, w, wi, choices) {
         'Cancel',
         () => {
           abPick = null;
-          renderTurnbar();
+          abDraw();
         },
         'ab-ghost ab-small'
       )
@@ -70,6 +70,7 @@ function abPicker(f, w, wi, choices) {
         }
         if (w.joins == null && joinable(w, w.regs[w.regs.length - 1])) w.joins = w.regs.length - 1;
         abPick = null;
+        abRailWb = wi;
         abRe();
       };
       grid.append(b);
@@ -88,7 +89,7 @@ function abCharPicker(f, chars, onPick, title) {
         'Cancel',
         () => {
           abPick = null;
-          renderTurnbar();
+          abDraw();
         },
         'ab-ghost ab-small'
       )

@@ -3,8 +3,8 @@
  *
  * Buttons, steppers, chips and the list of problems.
  *
- * In this file: abPick, abUpg, abArm, abArmed(), abBtn(), abRe(), abStepper(), abMini(), abChip(),
- *   abIssues()
+ * In this file: abPick, abUpg, abArm, abArmed(), abBtn(), abRe(), abDraw(), abStepper(), abMini(),
+ *   abChip(), abIssues()
  */
 
 let abPick = null,
@@ -18,11 +18,11 @@ function abArmed(k, fn) {
     return;
   }
   abArm = k;
-  renderTurnbar();
+  abDraw();
   setTimeout(() => {
     if (abArm === k) {
       abArm = null;
-      renderTurnbar();
+      abDraw();
     }
   }, 4000);
 } // open pickers: {wb:index|'new'}; open upgrade form key
@@ -38,8 +38,12 @@ function abBtn(t, fn, cls, label) {
 function abRe() {
   wlFix();
   bldSave();
+  abDraw();
+}
+
+/* redraw every copy of the builder: the side panel's, and the Army builder page of the main menu */
+function abDraw() {
   renderTurnbar();
-  /* the Army builder page of the main menu holds its own copy of the builder: redraw that too */
   try {
     if (mmCurrent() === 'army') renderMenu();
   } catch (e) {}

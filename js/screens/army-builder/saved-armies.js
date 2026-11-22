@@ -67,7 +67,7 @@ function armyStore() {
           bld.name = n;
           bldSave();
           toast('Saved “' + n + '” on this device.');
-          renderTurnbar();
+          abDraw();
         }
       },
       'ab-ghost'
@@ -77,10 +77,10 @@ function armyStore() {
       () => {
         if (!abClearArm) {
           abClearArm = true;
-          renderTurnbar();
+          abDraw();
           setTimeout(() => {
             abClearArm = false;
-            renderTurnbar();
+            abDraw();
           }, 4000);
           return;
         }
@@ -119,7 +119,7 @@ function armyStore() {
             const A = armyList();
             A.splice(i, 1);
             armySaveAll(A);
-            renderTurnbar();
+            abDraw();
           },
           'ab-ghost'
         )

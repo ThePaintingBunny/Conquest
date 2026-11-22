@@ -334,7 +334,7 @@ function armyBuilder(add, mk, onUse, useLabel) {
         'Change character',
         () => {
           abPick = { wb: wi, chr: true };
-          renderTurnbar();
+          abDraw();
         },
         'ab-ghost ab-small'
       ),
@@ -464,7 +464,7 @@ function armyBuilder(add, mk, onUse, useLabel) {
           (w.upg || []).length || (w.custom || []).length ? 'Change upgrades' : '+ Choose upgrades',
           () => {
             abPick = { wb: wi, upg: true };
-            renderTurnbar();
+            abDraw();
           },
           'ab-ghost ab-small'
         )
@@ -475,25 +475,25 @@ function armyBuilder(add, mk, onUse, useLabel) {
     w.regs.forEach((r, ri) => regs.append(abRegCard(f, w, wi, r, ri, choices)));
     card.append(regs);
     const full = w.regs.length >= R.allow || R.none;
-    if (abPick && abPick.wb === wi && !abPick.chr && !abPick.upg && !full)
-      card.append(abPicker(f, w, wi, choices));
-    else {
-      const row = bEl('div', { className: 'ab-row' });
+    /* the wide page adds from the column on the right (abRail); this is how it makes the picker */
+    (box._abAdd = box._abAdd || [])[wi] = full ? null : () => abPicker(f, w, wi, choices);
+    const open = abPick && abPick.wb === wi && !abPick.chr && !abPick.upg && !full;
+    if (open) card.append(abPicker(f, w, wi, choices));
+    const row = bEl('div', { className: 'ab-row ab-addrow' });
+    if (!open) {
       const b = abBtn(
         full ? (R.none ? 'No warband' : 'Warband full') : '+ Add regiment',
         () => {
           abPick = { wb: wi };
-          renderTurnbar();
+          abDraw();
         },
-        'ab-ghost'
+        'ab-ghost ab-addreg'
       );
       b.disabled = full;
-      row.append(
-        b,
-        bEl('span', { className: 'ab-note', textContent: `${w.regs.length} of ${R.allow} regiments` })
-      );
-      card.append(row);
+      row.append(b);
     }
+    row.append(bEl('span', { className: 'ab-note', textContent: `${w.regs.length} of ${R.allow} regiments` }));
+    card.append(row);
     card.append(abIssues(wbProblems(w).concat(upgProblems(w, wi)), 'This warband is legal'));
     box.append(card);
   });
@@ -518,7 +518,7 @@ function armyBuilder(add, mk, onUse, useLabel) {
           '+ Add a warband',
           () => {
             abPick = { wb: 'new' };
-            renderTurnbar();
+            abDraw();
           },
           'ab-ghost ab-wide'
         )
