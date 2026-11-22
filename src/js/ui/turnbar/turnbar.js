@@ -106,6 +106,7 @@ function placeTurnbar(tb) {
       .forEach(k => gp.appendChild(k));
     gp.appendChild(glogPanel());
     gp.appendChild(netPanel());
+    gpList(gp);
   } else if (tfInPanel()) {
     /* the test field: its tools sit in the side column (the Field tab) instead of above the table */
     if (tb.parentNode !== gp) gp.appendChild(tb);
@@ -146,6 +147,8 @@ function placeTurnbar(tb) {
     }
   }
   gpChoice(tb);
+  gpScore();
+  gpNext();
   /* the bar is one line unless a step needs a choice in it (a menu, a note) */
   tb.classList.toggle(
     'tb-line',

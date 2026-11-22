@@ -195,7 +195,19 @@ function renderFacBox() {
   }
   box.hidden = false;
   box.style.setProperty('--fac', facColor(f));
-  box.append(bEl('h3', { textContent: 'Faction rules · ' + f }));
+  box.append(bEl('h3', { textContent: f }));
+  /* plain lines first, then the Warlord's Supremacy Ability folded below them */
+  info.forEach(([a, b, btns]) => {
+    const r = bEl('div', { className: 'tf-row fr-kv' });
+    r.append(bEl('span', { className: 'tf-l', textContent: a }), bEl('b', { textContent: b }));
+    (btns || []).forEach(([t, fn, dis]) => {
+      const x = abBtn(t, fn, 'ab-sq');
+      x.disabled = !!dis;
+      x.setAttribute('aria-label', (t === '+' ? 'More ' : 'Fewer ') + a);
+      r.append(x);
+    });
+    box.append(r);
+  });
   if (SB) {
     /* reference text: folded away unless it holds something to press */
     const d = document.createElement('details');
@@ -205,17 +217,6 @@ function renderFacBox() {
     d.addEventListener('toggle', () => (facSupOpen = d.open));
     box.append(d);
   }
-  info.forEach(([a, b, btns]) => {
-    const r = bEl('div', { className: 'tf-row' });
-    r.append(bEl('span', { className: 'tf-l', textContent: a + ':' }), bEl('span', { textContent: b }));
-    (btns || []).forEach(([t, fn, dis]) => {
-      const x = abBtn(t, fn, 'ab-sq');
-      x.disabled = !!dis;
-      x.setAttribute('aria-label', (t === '+' ? 'More ' : 'Fewer ') + a);
-      r.append(x);
-    });
-    box.append(r);
-  });
   const wrap = bEl('div', { className: 'fr-opts' });
   items.forEach(it => {
     if (it.head) {

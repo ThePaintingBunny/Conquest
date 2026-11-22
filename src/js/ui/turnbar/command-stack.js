@@ -213,7 +213,7 @@ function renderGpCard() {
   const card = bEl('div', { className: 'gp-cardface' });
   card.style.setProperty('--fac', facColor((cardOf(C.top || C.held) || {}).fac || ''));
   card.append(
-    bEl('span', { className: 'gp-k', textContent: C.top ? 'Your card' : 'Your Strategic Stack' }),
+    bEl('span', { className: 'gp-k', textContent: (C.top ? 'Your card' : 'Your Strategic Stack') + ' · round ' + (state.round || 1) }),
     bEl('strong', { textContent: cardName(C.top || C.held) }),
     bEl('span', {
       className: 'gp-left',
@@ -234,7 +234,7 @@ function renderGpCard() {
       o.tag ? bEl('span', { className: 'gp-tag', textContent: o.tag }) : '',
       o.note ? bEl('span', { className: 'gp-note', textContent: o.note }) : '',
       regBrief(o.u) ? bEl('span', { className: 'gp-info', textContent: regBrief(o.u) }) : '',
-      bEl('span', { className: 'gp-go', textContent: 'Activate ›' })
+      bEl('span', { className: 'gp-go', textContent: 'Activate' })
     );
     b.onmouseenter = () => hiUnit(o.u.id, true);
     b.onmouseleave = () => hiUnit(o.u.id, false);
@@ -267,7 +267,7 @@ function renderGpCard() {
         className: 'gp-note',
         textContent: 'Face down, once this round; then press End turn'
       }),
-      bEl('span', { className: 'gp-go', textContent: 'Hold ›' })
+      bEl('span', { className: 'gp-go', textContent: 'Hold' })
     );
     strat.onclick = () => $('strat-btn').onclick();
   }

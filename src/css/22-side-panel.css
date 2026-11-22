@@ -1,0 +1,761 @@
+/*
+ * Side panel in the new style
+ *
+ * The Regiment, Armies and Game tabs beside the table: a clear header with the regiment's stands as blocks, status
+ * chips with one meaning per colour, problems at the top, effects as tags, one profile table for the regiment and
+ * its character, flat faction rules; the Armies list as one row per regiment; the Game tab led by your card.
+ *
+ * Stylesheets load in numbered order and later rules override earlier ones, so the order of the files and
+ * of the rules inside them matters.
+ */
+
+/* ===== Regiment tab ===== */
+.card .rh {
+  gap: 2px;
+  margin: -2px -2px 0;
+  padding: 4px 4px 12px 14px;
+  border-bottom: 1px solid var(--line);
+  border-left: 4px solid var(--side, var(--line));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--side, transparent) 14%, transparent), transparent 70%);
+}
+.card .rh h2#c-name {
+  font-family: var(--body);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.2;
+}
+.rsubn {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--gold-ink);
+}
+.rsubn[hidden] {
+  display: none;
+}
+.card .rh .meta {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.card .c-str {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.c-str .c-str-n {
+  font-weight: 800;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+.c-blocks {
+  flex: 1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+  max-width: 240px;
+}
+.c-blocks i {
+  height: 10px;
+  border-radius: 2px;
+  background: var(--ok);
+}
+.c-blocks i.low {
+  background: var(--warn);
+}
+.c-blocks i.gone {
+  background: #3a4440;
+}
+.c-blocks i.hit {
+  background: linear-gradient(90deg, var(--ok) var(--hp, 50%), #59645f var(--hp, 50%));
+}
+.c-blocks i.low.hit {
+  background: linear-gradient(90deg, var(--warn) var(--hp, 50%), #59645f var(--hp, 50%));
+}
+.card .c-str .c-str-w {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* status chips: one meaning per colour */
+.card .rbadges {
+  gap: 6px;
+  margin-top: 10px;
+}
+.card .rbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: #26302c;
+  color: var(--muted);
+}
+.card .rbadge .icon {
+  width: 13px;
+  height: 13px;
+}
+.card .rbadge.ok {
+  background: #1f3324;
+  color: #a9d8b0;
+}
+.card .rbadge.act {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+.card .rbadge.bad {
+  background: #3a1d1a;
+  color: #f0a090;
+}
+.card .rbadge.info {
+  background: #1c2736;
+  color: #afc8ea;
+}
+.card .rbadge.done {
+  background: #26302c;
+  color: var(--muted);
+}
+/* problems: right under the header */
+.card .ralert {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 0;
+  background: #3a241a;
+  color: #f3b38f;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.card .ralert::before {
+  content: '⚠';
+  font-weight: 700;
+}
+.card .ralert[hidden] {
+  display: none;
+}
+/* this round: tags, not buttons */
+.card .rfx {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.card .rfx h3,
+.card .rrules h3,
+.card #c-fac h3 {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.card #c-fx .chip.fx {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #5a4416;
+  background: rgba(212, 162, 74, 0.08);
+  color: var(--gold-ink);
+  font-weight: 600;
+  box-shadow: none;
+  text-shadow: none;
+}
+.card #c-fx .chip.fx em {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+/* one profile table */
+.ptab-wrap[hidden] {
+  display: none;
+}
+.ptab {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.ptab th[scope='col'] {
+  padding: 0 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: center;
+}
+.ptab th[scope='col']:first-child {
+  width: 34%;
+}
+.ptab th[scope='row'] {
+  text-align: left;
+  padding: 8px 6px 8px 0;
+  border-top: 1px solid var(--line);
+  font-weight: 400;
+}
+.ptab th[scope='row'] b {
+  display: block;
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ptab th[scope='row'] small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.ptab td {
+  text-align: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 16px;
+  font-weight: 800;
+}
+.ptab td.up {
+  color: var(--ok);
+}
+.ptab td.down {
+  color: #f0a090;
+}
+.ptab td sup {
+  font-size: 9.5px;
+  margin-left: 1px;
+}
+.ptab tr.ch th,
+.ptab tr.ch td {
+  background: rgba(212, 162, 74, 0.05);
+}
+.ptab tr.ch th b {
+  color: var(--gold-ink);
+}
+.ptab-wrap .hint {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+}
+/* special rules on the profile */
+.rrules {
+  margin-top: 14px;
+}
+.rrules .chips {
+  gap: 6px;
+}
+.card .rrules .chip.ch {
+  background: rgba(212, 162, 74, 0.1);
+  color: var(--gold-ink);
+  border-color: #5a4416;
+}
+.card .rrules .chip.mod {
+  color: var(--ok);
+  border-color: #3e6b45;
+}
+.rrules .hint {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+}
+/* the Rules tab: each rule read out */
+.rtext {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rtext .rt-i {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.rtext .rt-i b {
+  display: block;
+  font-size: 13.5px;
+}
+.rtext .rt-i span {
+  color: var(--muted);
+}
+/* faction rules: plain lines, no nested boxes */
+.card #c-fac:not([hidden]) {
+  border-left: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+  background: none;
+}
+.card #c-fac .fr-kv {
+  display: grid;
+  grid-template-columns: 130px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 6px;
+}
+.card #c-fac .fr-kv .tf-l {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+.card #c-fac .fr-kv b {
+  font-size: 13.5px;
+}
+.card #c-fac .fr-sup {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: none;
+}
+.card .rbadge {
+  flex-direction: row;
+  white-space: nowrap;
+}
+.card .rbadge svg.icon {
+  display: inline-block;
+  flex: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+}
+.card .c-str {
+  flex-wrap: nowrap;
+}
+.card .c-blocks {
+  min-width: 60px;
+}
+.card .c-str .c-blocks {
+  flex: 1 1 120px;
+  max-width: 220px;
+}
+.card .c-str .c-str-w {
+  flex: none;
+}
+
+/* ===== Armies tab ===== */
+.armies:not([hidden]) {
+  gap: 10px;
+  padding: 10px;
+}
+.ar-filter {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+}
+.ar-filter button {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ar-filter button[aria-pressed='true'] {
+  background: #2a3430;
+  color: var(--ink);
+  font-weight: 700;
+}
+.ar-filter button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.armies .ar-h {
+  border-bottom: 0;
+  margin: 0;
+  padding: 4px 2px 0;
+  align-items: center;
+}
+.armies .ar-h h2::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.armies .ar-sum {
+  font-size: 12.5px;
+}
+.ar-prog {
+  height: 5px;
+  margin: 6px 2px 6px;
+  border-radius: 3px;
+  background: #2e3934;
+  overflow: hidden;
+}
+.ar-prog[hidden] {
+  display: none;
+}
+.ar-prog i {
+  display: block;
+  height: 100%;
+  background: currentColor;
+}
+.armies .side.cs .ar-prog {
+  color: var(--cs);
+}
+.armies .side.nord .ar-prog {
+  color: var(--nord);
+}
+.armies .u {
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 10px;
+  margin: 0 0 6px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.025);
+  min-height: 46px;
+}
+.armies .u.sel {
+  box-shadow: none;
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 9%, transparent);
+}
+.armies .u.done {
+  opacity: 0.7;
+}
+.armies .u-ic {
+  display: flex;
+  justify-content: center;
+  color: var(--ok);
+}
+.u-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.armies .u-c {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold-ink);
+}
+.armies .u-c em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--muted);
+}
+.armies .tg {
+  margin-top: 3px;
+  padding: 1px 7px;
+  border: 0;
+  border-radius: 5px;
+  font-weight: 700;
+  background: #26302c;
+  color: var(--muted);
+}
+.armies .tg.bad {
+  background: #3a1d1a;
+  color: #f0a090;
+}
+.armies .tg.good {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  flex: none;
+}
+.armies .u .s {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.u-blk {
+  display: flex;
+  gap: 2px;
+}
+.u-blk i {
+  width: 9px;
+  height: 7px;
+  border-radius: 1px;
+  background: var(--ok);
+}
+.u-blk i.low {
+  background: var(--warn);
+}
+.u-blk i.gone {
+  background: #3a4440;
+}
+.ar-dead > summary {
+  cursor: pointer;
+  padding: 6px 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.ar-dead[open] > summary {
+  margin-bottom: 4px;
+}
+.ar-none {
+  margin: 4px 2px 8px;
+}
+
+/* ===== Game tab ===== */
+.gamepanel:not([hidden]) {
+  gap: 12px;
+}
+.gamepanel h3,
+#gp-body > .gp-lh {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+/* your card first, in a gold box */
+.gp-card:not([hidden]) {
+  padding: 14px;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  border-bottom: 1px solid var(--gold);
+  background: linear-gradient(180deg, rgba(212, 162, 74, 0.12), rgba(212, 162, 74, 0.02));
+}
+.gp-card .gp-cardface {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.gp-card .gp-cardface .gp-k {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+}
+.gp-card .gp-cardface strong {
+  font-family: var(--body);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+.gp-card .gp-cardface .gp-left {
+  position: static;
+  margin-top: 2px;
+}
+.gp-card .gp-ask {
+  margin: 2px 0 0;
+}
+.gp-card .gp-row {
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+}
+.gp-card .gp-go {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: linear-gradient(#e6bb62, #c8963c);
+  color: #2a1d08;
+  font-weight: 800;
+  font-size: 12.5px;
+}
+.gp-card .gp-strat .gp-go {
+  background: none;
+  border: 1px solid var(--gold);
+  color: var(--gold-ink);
+}
+/* the score */
+.gp-score[hidden],
+.gp-next[hidden] {
+  display: none;
+}
+.gs-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.gs-v {
+  text-align: center;
+}
+.gs-v b {
+  display: block;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.gs-v.cs b {
+  color: var(--cs);
+}
+.gs-v.nord b {
+  color: var(--nord);
+}
+.gs-v small,
+.gs-z small {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.gs-z {
+  text-align: center;
+}
+.gs-z b {
+  font-size: 14px;
+}
+/* stacks and faction resources as tiles */
+.gamepanel .fr-strip:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.gamepanel .fr-strip button,
+[data-ui='steel'] .gamepanel .fr-strip button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-left: 3px solid var(--cs);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+  text-align: left;
+  font-size: 13.5px;
+}
+.gamepanel .fr-strip button.nord {
+  border-left-color: var(--nord);
+}
+.gamepanel .fr-strip button::after {
+  content: none;
+}
+.gamepanel .fr-strip .frs-k {
+  font-family: var(--display);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.gamepanel .fr-strip button b {
+  font-weight: 800;
+}
+/* the next cards */
+.gn-row {
+  display: flex;
+  gap: 6px;
+}
+.gn-row span {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 12px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gn-row span.first {
+  border-color: #5a4416;
+  color: var(--gold-ink);
+}
+.gn-row span.more {
+  flex: none;
+  padding: 7px 10px;
+  color: var(--muted);
+}
+/* everything else: one list */
+.gp-list {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+#gp-body .gp-list > details {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  padding: 0;
+}
+#gp-body .gp-list > details:first-child {
+  border-top: 0;
+}
+#gp-body .gp-list > details > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  font-family: var(--body);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  list-style: none;
+  cursor: pointer;
+}
+#gp-body .gp-list > details > summary::-webkit-details-marker {
+  display: none;
+}
+#gp-body .gp-list > details > summary::after {
+  content: '›';
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 16px;
+  transition: transform 0.15s;
+}
+#gp-body .gp-list > details[open] > summary::after {
+  transform: rotate(90deg);
+}
+#gp-body .gp-list > details > summary::before {
+  content: none;
+}
+#gp-body .gp-list > details[open] {
+  padding: 0 12px 12px;
+}
+#gp-body .gp-list > details[open] > summary {
+  margin: 0 -12px;
+}
+.gp-ic {
+  display: inline-flex;
+  color: var(--gold);
+}
+.gp-ng {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.gp-ng .btn.ng {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 400;
+  text-decoration: underline;
+  clip-path: none;
+}
+.gp-ng .btn.ng:hover {
+  color: var(--ink);
+}
+#gp-body .gp-list > details,
+#gp-body .gp-list > details.ovr {
+  margin: 0 !important;
+  border-radius: 0;
+}
+.gamepanel .gp-ng .ng,
+[data-ui='steel'] .gamepanel .gp-ng .ng {
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}

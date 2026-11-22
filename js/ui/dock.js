@@ -269,7 +269,7 @@ function renderDock() {
       const e = $(id);
       return !!e && !e.hidden && !!e.textContent.trim();
     };
-    const panel = has('c-start') || has('c-form') || has('c-fac') || has('c-warn') || !!$('c-cbstep');
+    const panel = has('c-start') || has('c-form') || has('c-fac') || !!$('c-cbstep');
     document.body.classList.toggle('dk-panel', !!panel);
   }
   if (fight && running) {

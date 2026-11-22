@@ -66,28 +66,44 @@ function renderCard() {
     i => ($(i).hidden = !u)
   );
   $('c-subs').innerHTML = '';
+  $('c-warn').hidden = true;
   regPaneSync(u);
   if (!u) {
+    $('c-subn').hidden = true;
     $('c-name').textContent = 'Choose a regiment';
     $('c-meta').textContent = 'Click a regiment on the table or in the rosters below.';
     return;
   }
-  $('c-name').textContent = u.name + (u.charName ? ' + ' + u.charName : '');
-  $('c-meta').textContent = [
-    N(u.side),
-    u.cls,
-    u.type !== 'marker' ? 'Size ' + uSize(u) + (baseSize(u).why ? ' (' + baseSize(u).why + ')' : '') : '',
-    u.stands + (u.stands === 1 ? ' stand' : ' stands')
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  $('c-name').textContent = u.name;
   {
+    /* the character under the regiment's name, in gold */
+    const sn = $('c-subn');
+    sn.hidden = !u.charName;
+    sn.textContent = u.charName ? (u.warlord ? '★ Warlord · ' : '') + u.charName : '';
+  }
+  {
+    let roles = [];
+    try {
+      roles = frRoles(u).filter(r => r !== 'Character');
+    } catch (e) {}
+    $('c-meta').textContent = [
+      N(u.side),
+      u.cls,
+      u.type !== 'marker' ? 'Size ' + uSize(u) + (baseSize(u).why ? ' (' + baseSize(u).why + ')' : '') : '',
+      roles.join(', ')
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  {
+    /* status: one row, one meaning per colour (gold acting, red engaged or Broken, grey done, green ready) */
     const bx = $('c-badges');
     bx.innerHTML = '';
-    const bd = (t, c, ti) => {
+    const bd = (t, c, ic, ti) => {
       const e = document.createElement('span');
       e.className = 'rbadge' + (c ? ' ' + c : '');
-      e.textContent = t;
+      if (ic) e.append(icon(ic, 13) || '');
+      e.append(document.createTextNode(t));
       if (ti) e.title = ti;
       bx.appendChild(e);
     };
@@ -95,122 +111,57 @@ function renderCard() {
     else if (!u.onTable) bd(u.arriving ? 'Arriving this round' : 'In reinforcements', 'info');
     if ((u.effects || []).includes('Broken')) bd('Broken', 'bad');
     if (u.onTable && !u.destroyed && u.type !== 'marker') {
-      if (act && act.id === u.id) bd('Activating now', 'warn');
-      else if (u.activated) bd('Activated', '');
-      else bd('Not yet activated', 'ok');
+      if (act && act.id === u.id) bd('Activating', 'act', 'play');
+      else if (u.activated) bd('Activated', 'done');
+      else bd('Ready', 'ok');
     }
-    if (u.charName && u.onTable && !u.destroyed)
-      bd(u.charName + (u.charActivated ? ' activated' : ' not yet activated'), u.charActivated ? '' : 'ok');
-    if (u.wounds || lostOf(u))
-      bd(
-        u.wounds +
-          ' wound' +
-          (u.wounds === 1 ? '' : 's') +
-          (lostOf(u) ? ' · ' + lostOf(u) + ' stand' + (lostOf(u) === 1 ? '' : 's') + ' lost' : ''),
-        'warn'
-      );
     {
       const eg = engaged(u);
-      if (eg.length) bd('Engaged: ' + eg.map(e => e.short || e.name).join(', '), 'bad');
+      if (eg.length) bd('Engaged · ' + eg.map(e => e.short || e.name).join(', '), 'bad', 'swords');
     }
+    if (u.charName && u.onTable && !u.destroyed)
+      bd(u.charName + (u.charActivated ? ' acted' : ' ready'), u.charActivated ? 'done' : 'ok');
     bx.hidden = !bx.children.length;
   }
+  /* the profile: one table with a row for the regiment, its character and any other stands */
   const st = $('c-stats');
   st.innerHTML = '';
-  const S0 = u.stats || {};
-  ['M', 'V', 'C', 'A', 'W', 'R', 'D', 'E'].forEach(k => {
-    const k1 = document.createElement('div');
-    k1.className = 'k';
-    k1.textContent = k;
-    st.appendChild(k1);
-  });
+  const tab = bEl('table', { className: 'ptab' });
   {
-    const B = baseStats(u),
-      E = u.type === 'marker' ? S0 : effStats(u);
-    ['M', 'V', 'C', 'A', 'W', 'R', 'D', 'E'].forEach(k => {
-      const v = document.createElement('div');
-      v.className = 'v';
-      const b = B[k],
-        e = E[k];
-      const num = x => typeof x === 'number' || (x != null && x !== '' && !isNaN(+x));
-      v.textContent = e ?? '–';
-      if (num(b) && num(e) && +e !== +b) {
-        v.classList.add('mod');
-        const up = +e > +b;
-        const m = document.createElement('sup');
-        m.textContent = up ? '▲' : '▼';
-        m.className = up ? 'up' : 'down';
-        v.appendChild(m);
-        v.title = 'Base ' + b + ' · now ' + e + (E._why && E._why[k] ? ' (' + E._why[k] + ')' : '');
-      } else if (E._why && E._why[k]) {
-        v.title = E._why[k];
-      }
-      st.appendChild(v);
-    });
+    const hr = bEl('tr', {}, [bEl('th', { scope: 'col' })]);
+    ['M', 'V', 'C', 'A', 'W', 'R', 'D', 'E'].forEach(k => hr.append(bEl('th', { scope: 'col', textContent: k })));
+    tab.append(hr);
   }
-  const subRow = (role, name, wtxt, tags, S, rules, B, why) => {
-    const blk = document.createElement('div');
-    blk.className = 'rblk';
-    const h = document.createElement('div');
-    h.className = 'rblk-h';
-    const r0 = document.createElement('span');
-    r0.className = 'role';
-    r0.textContent = role;
-    const nm = document.createElement('b');
-    nm.textContent = name;
-    h.append(r0, nm);
-    if (wtxt) {
-      const w = document.createElement('span');
-      w.className = 'w';
-      w.textContent = wtxt;
-      h.appendChild(w);
-    }
-    blk.appendChild(h);
-    if (tags && tags.length) {
-      const tg = document.createElement('div');
-      tg.className = 'tags';
-      tags.forEach(t => {
-        const e = document.createElement('span');
-        e.className = 'tag';
-        e.textContent = t;
-        tg.appendChild(e);
-      });
-      blk.appendChild(tg);
-    }
-    const g = document.createElement('div');
-    g.className = 'stats';
+  const num = x => typeof x === 'number' || (x != null && x !== '' && !isNaN(+x));
+  const prow = (label, sub, S, B, why, cls) => {
+    const tr = bEl('tr', { className: cls || '' });
+    tr.append(bEl('th', { scope: 'row' }, [bEl('b', { textContent: label }), sub ? bEl('small', { textContent: sub }) : '']));
     ['M', 'V', 'C', 'A', 'W', 'R', 'D', 'E'].forEach(k => {
-      const k1 = document.createElement('div');
-      k1.className = 'k';
-      k1.textContent = k;
-      g.appendChild(k1);
-    });
-    ['M', 'V', 'C', 'A', 'W', 'R', 'D', 'E'].forEach(k => {
-      const v = document.createElement('div');
-      v.className = 'v';
       const e = (S || {})[k],
         b = B ? B[k] : e;
-      v.textContent = e ?? '–';
-      if (B && e != null && b != null && String(e) !== String(b) && !isNaN(+e) && !isNaN(+b)) {
-        v.classList.add('mod');
-        const up = +e > +b;
-        const sp = document.createElement('sup');
-        sp.textContent = up ? '▲' : '▼';
-        sp.className = up ? 'up' : 'down';
-        v.appendChild(sp);
-        v.title = 'Base ' + b + ' → now ' + e + (why && why[k] ? ' (' + why[k] + ')' : '');
-      }
-      g.appendChild(v);
+      const td = bEl('td', { textContent: e ?? '–' });
+      if (B && num(b) && num(e) && +e !== +b) {
+        const d = +e - +b;
+        td.className = d > 0 ? 'up' : 'down';
+        td.append(bEl('sup', { textContent: (d > 0 ? '+' : '−') + Math.abs(d) }));
+        td.title = 'Base ' + b + ' · now ' + e + (why && why[k] ? ' (' + why[k] + ')' : '');
+      } else if (why && why[k]) td.title = why[k];
+      tr.append(td);
     });
-    blk.appendChild(g);
-    if (rules && rules.length) {
-      const r = document.createElement('div');
-      r.className = 'chips';
-      rules.forEach(x => r.appendChild(chip(x)));
-      blk.appendChild(r);
-    }
-    $('c-subs').appendChild(blk);
+    tab.append(tr);
   };
+  {
+    const B = baseStats(u),
+      E = u.type === 'marker' ? u.stats || {} : effStats(u);
+    prow(
+      u.type === 'marker' ? 'Marker' : 'Regiment',
+      u.type === 'marker' ? '' : live(u) + '/' + u.stands + (u.stands === 1 ? ' stand' : ' stands'),
+      E,
+      B,
+      E._why
+    );
+  }
+  let CR = [];
   if (u.charName) {
     const CX = chStatsX(u),
       why = {};
@@ -221,20 +172,14 @@ function renderCard() {
           if (v) why[k] = (why[k] ? why[k] + ', ' : '') + n + ' ' + (v > 0 ? '+' : '') + v;
         });
     });
-    const CR = chRulesX(u).concat(itemDuelRules(u).map(x => x + ' (in Duels)'));
-    subRow(
-      'Character' + (u.warlord ? ' · ★ Warlord' : ''),
+    CR = chRulesX(u).concat(itemDuelRules(u).map(x => x + ' (in Duels)'));
+    prow(
       u.charName,
-      Math.max(0, (+CX.W || 0) - (+u.charWounds || 0)) +
-        '/' +
-        (CX.W ?? '?') +
-        ' wounds left' +
-        (u.charActivated ? ' · activated' : ''),
-      itemsOf(u),
+      Math.max(0, (+CX.W || 0) - (+u.charWounds || 0)) + '/' + (CX.W ?? '?') + ' wounds' + (u.charActivated ? ' · acted' : ''),
       CX,
-      CR,
       u.charStats || {},
-      why
+      why,
+      'ch'
     );
   }
   if (Array.isArray(u.mods) && u.modProfiles) {
@@ -244,54 +189,93 @@ function renderCard() {
       if (!m) return;
       const n = liveT.filter(x => x === t).length,
         tot = u.mods.filter(x => x === t).length;
-      subRow(
-        t === (u.suiCmd || u.mods[0]) ? 'Stands · Command' : 'Stands',
-        t,
-        n + ' of ' + tot + ' stand' + (tot === 1 ? '' : 's') + ' left',
-        [],
-        Object.assign({}, u.stats, { V: m.V, C: m.C, A: m.A, W: m.W }),
-        m.rules || []
+      prow(
+        t + (t === (u.suiCmd || u.mods[0]) ? ' (Command)' : ''),
+        n + ' of ' + tot + ' left',
+        Object.assign({}, u.stats, { V: m.V, C: m.C, A: m.A, W: m.W })
       );
     });
   }
   if (u.aux != null && u.auxStats)
-    subRow(
-      'Auxiliary',
+    prow(
       u.auxName || 'Auxiliary',
-      auxDead(u) ? 'destroyed' : u.auxWounds ? u.auxWounds + ' wounds taken' : '',
-      [],
-      u.auxStats,
-      u.auxRules || []
+      auxDead(u) ? 'destroyed' : u.auxWounds ? u.auxWounds + ' wounds taken' : 'Auxiliary',
+      u.auxStats
     );
+  st.append(tab);
+  if (tab.querySelector('td.up, td.down'))
+    st.append(bEl('p', { className: 'hint', textContent: 'Green: raised this round, red: lowered. Hover a number for the reason.' }));
   const fxs = fx(u),
     eng = engaged(u);
   const fb = $('c-fx');
   fb.innerHTML = '';
-  fxs.forEach(x => fb.appendChild(chip(x, 'fx')));
+  fxs.forEach(x => {
+    /* the effect, with where it came from in grey: "Inspired (Dark Power III)" */
+    const c = chip(x, 'fx'),
+      m = String(x).match(/^(.*?)\s*\((.+)\)$/);
+    if (m) {
+      c.textContent = m[1];
+      c.append(bEl('em', { textContent: m[2] }));
+    }
+    fb.appendChild(c);
+  });
   $('c-fx-sec').hidden = !fb.children.length;
+  /* special rules: all of them on the profile, the character's in gold; the Rules tab reads each one out */
+  const BR = baseRules(u),
+    ER = effRules(u, BR),
+    all0 = [];
+  {
+    const box = bEl('section', { className: 'rrules' });
+    box.append(bEl('h3', { textContent: 'Special rules' }));
+    const ch = bEl('div', { className: 'chips' });
+    BR.forEach(x => {
+      ch.appendChild(chip(x));
+      all0.push(x);
+    });
+    ER.forEach(([t, base]) => {
+      const c = chip(t, 'mod');
+      c.title = base ? 'Base ' + base + ' · changed this round' : 'Gained this round';
+      ch.appendChild(c);
+      all0.push(t);
+    });
+    if (u.charName) {
+      itemsOf(u).forEach(t => ch.appendChild(chip(t, 'ch item')));
+      CR.forEach(x => {
+        ch.appendChild(chip(x, 'ch'));
+        all0.push(x);
+      });
+    }
+    if (Array.isArray(u.mods) && u.modProfiles)
+      [...new Set(u.mods)].forEach(t => {
+        const m = u.modProfiles[t];
+        if (!m || !(m.rules || []).length) return;
+        const h = bEl('span', { className: 'hint', textContent: t + ' stands:' });
+        h.style.cssText = 'flex-basis:100%;margin:6px 0 0';
+        ch.appendChild(h);
+        m.rules.forEach(x => {
+          ch.appendChild(chip(x));
+          all0.push(x);
+        });
+      });
+    if (!ch.children.length) ch.appendChild(chip('None'));
+    box.append(ch);
+    const notes = [];
+    if (u.charName) notes.push('Gold: from the ' + u.charName + '.');
+    if (ER.length) notes.push('Green: gained or raised this round.');
+    notes.push('Hover a rule to read it, or open the Rules tab.');
+    box.append(bEl('p', { className: 'hint', textContent: notes.join(' ') }));
+    $('c-subs').append(box);
+  }
   const rb = $('c-rules');
   rb.innerHTML = '';
-  const BR = baseRules(u);
-  BR.forEach(x => rb.appendChild(chip(x)));
-  effRules(u, BR).forEach(([t, base]) => {
-    const c = chip(t, 'mod');
-    c.title = base ? 'Base ' + base + ' · changed this round' : 'Gained this round';
-    const m = document.createElement('sup');
-    m.textContent = '▲';
-    m.className = 'up';
-    c.appendChild(m);
-    rb.appendChild(c);
+  [...new Set(all0)].forEach(t => {
+    let d = '';
+    try {
+      d = ruleInfo(t, chipFac) || '';
+    } catch (e) {}
+    rb.append(bEl('p', { className: 'rt-i' }, [bEl('b', { textContent: t }), bEl('span', { textContent: d || 'No description in the rules reference.' })]));
   });
-  if (Array.isArray(u.mods) && u.modProfiles)
-    [...new Set(u.mods)].forEach(t => {
-      const m = u.modProfiles[t];
-      if (!m || !(m.rules || []).length) return;
-      const h = bEl('span', { className: 'hint', textContent: t + ' stands:' });
-      h.style.cssText = 'flex-basis:100%;margin:6px 0 0';
-      rb.appendChild(h);
-      m.rules.forEach(x => rb.appendChild(chip(x)));
-    });
-  if (!rb.children.length) rb.appendChild(chip('None'));
+  if (!rb.children.length) rb.append(bEl('p', { className: 'hint', textContent: 'No special rules.' }));
   const ab = $('c-abil');
   ab.innerHTML = '';
   const G = { draw: [], abil: [], upg: [] };
@@ -337,7 +321,7 @@ function renderCard() {
   });
   const nAb = G.draw.length + G.abil.length + G.upg.length;
   $('c-abil-sec').hidden = !nAb;
-  regPaneCounts(u, rb.querySelectorAll('.chip').length, nAb);
+  regPaneCounts(u, rb.querySelectorAll('.rt-i').length, nAb);
   const mine = u.side === ME && u.type !== 'marker' && (!PVP() || !!seatSide());
   $('c-act-sec').hidden = !mine || aiBusy;
   if (!mine || aiBusy) return;

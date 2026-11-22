@@ -85,9 +85,14 @@ function renderFrStrip() {
               ? PN(side) || 'You'
               : PN(side) || N(side);
           b.innerHTML = '';
-          const bb = document.createElement('b');
-          bb.textContent = who + ': ';
-          b.append(bb, document.createTextNode(t));
+          /* a tile: who and what in small capitals, its state below ("Strategic Stack" / "Empty") */
+          const i = t.indexOf(': '),
+            what = i > 0 ? t.slice(0, i) : t,
+            val = i > 0 ? t.slice(i + 2) : '';
+          b.append(
+            bEl('span', { className: 'frs-k', textContent: who + ' · ' + what }),
+            bEl('b', { textContent: val ? val.charAt(0).toUpperCase() + val.slice(1) : what })
+          );
           b.title = 'Open the Faction rules panel';
           b.onclick = () => {
             frOpen = true;
