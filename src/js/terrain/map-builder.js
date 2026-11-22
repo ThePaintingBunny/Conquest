@@ -69,7 +69,8 @@ function mbOpen(name) {
 function mbClose() {
   mapEdit = null;
   terrKey = '';
-  mmOverlay = true;
+  /* back to the main menu itself; only a game still running behind the builder keeps it as an overlay */
+  mmOverlay = mmGameOn();
   mmPage = 'home';
   render();
 }
