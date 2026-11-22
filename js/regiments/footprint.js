@@ -4,8 +4,8 @@
  * The regiment's outline on the table, its facing arcs, which enemies it is in contact with and whether
  * a position is legal.
  *
- * In this file: corners(), occPoly(), engaged(), overlapsAny(), arcOf(), poseOk(), endPoseWhy(),
- *   nearestEndPose()
+ * In this file: corners(), occPoly(), engaged(), touchesAny(), overlapsAny(), arcOf(), poseOk(),
+ *   endPoseWhy(), nearestEndPose()
  */
 
 function corners(u) {
@@ -37,9 +37,26 @@ function engaged(u) {
   return all().filter(o => o.onTable && o.side !== u.side && polyDist(A, occPoly(o)) <= 0.3);
 }
 
-function overlapsAny(u) {
+/* touching or overlapping any regiment: a move may not end there */
+function touchesAny(u) {
   const A = corners(u);
   return all().some(o => o.onTable && o.id !== u.id && polyDist(A, corners(o)) <= 0.01);
+}
+
+/* a real overlap with another regiment, for the warning on the regiment card: touching is not overlapping, and the
+   enemies it is fighting never count (contact after a Charge is often a little inside the other base) */
+function overlapsAny(u) {
+  if (!u || !u.onTable) return false;
+  const A = shrinkPoly(corners(u), 0.25),
+    eng = new Set(engaged(u).map(e => e.id));
+  return all().some(
+    o =>
+      o.onTable &&
+      !o.destroyed &&
+      o.id !== u.id &&
+      !eng.has(o.id) &&
+      polyDist(A, shrinkPoly(corners(o), 0.25)) === 0
+  );
 }
 
 function arcOf(t, p) {

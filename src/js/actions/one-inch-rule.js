@@ -48,7 +48,7 @@ function pullBack(c) {
     S = c.start;
   for (let t = 1; t >= 0; t -= 0.02) {
     const q = { x: S.x + (P.x - S.x) * t, y: S.y + (P.y - S.y) * t, facing: t > 0.5 ? P.facing : S.facing };
-    if (!near1(c, q) && !overlapsAny(Object.assign({}, base(act.id), act.pose, q))) {
+    if (!near1(c, q) && !touchesAny(Object.assign({}, base(act.id), act.pose, q))) {
       Object.assign(act.pose, q);
       return true;
     }

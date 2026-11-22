@@ -33,7 +33,7 @@ function marchGhost() {
         return null;
       }
     })(),
-    col = bad || near || overlapsAny(gu) ? '#E57373' : '#FFE58A';
+    col = bad || near || touchesAny(gu) ? '#E57373' : '#FFE58A';
   el(
     'line',
     {
