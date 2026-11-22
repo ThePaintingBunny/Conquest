@@ -189,3 +189,157 @@ body:has(.ency:not([hidden])) {
   flex: none;
   width: min(100%, 280px);
 }
+
+/* ---- single player: the lobby (you, the battlefield, your opponent) with the army builder under it ---- */
+body.mm-lobby .turnbar.sp-lobby {
+  max-width: 1240px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  gap: 16px;
+}
+.turnbar.sp-lobby > #tb-info {
+  display: none;
+}
+.sp-lobby-in {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+.sp-lobby-in .mp3-p .pn-in {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.sp-lobby-in .mp3-p .sf {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sp-lobby-in .mp3-p .sf > span,
+.sp-lobby-in .opp-row > .tf-l {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold, #c9a24a);
+}
+.sp-lobby-in .opp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sp-lobby-in .opp-grp {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+.sp-lobby-in .mp3-p .hint {
+  margin: 0;
+}
+.sp-check > div {
+  font-size: 14px;
+  line-height: 1.9;
+}
+.sp-check > .ok {
+  color: var(--ok, #7fc28a);
+}
+.sp-check > .no {
+  color: var(--muted);
+}
+.sp-build {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--cs);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.sp-build > .sp-bh {
+  margin: 0;
+}
+body.mm-lobby:has(.turnbar.sp-lobby) .mm {
+  max-width: 1240px;
+}
+.sp-lobby-in .mp3-p select {
+  flex: none;
+  max-width: none;
+  height: auto;
+  min-height: 0;
+  width: 100%;
+  padding: 9px 10px;
+}
+.sp-lobby-in .mp3-p .pn-in > .tf-l {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold, #c9a24a);
+}
+.sp-lobby-in .mp3-p .pn-in input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.sp-build > .grp {
+  align-self: flex-start;
+  width: auto;
+}
+
+/* ---- the review: both armies side by side, the battlefield between them ---- */
+.sp-review .mp3-cols {
+  grid-template-columns: minmax(0, 1fr) 340px minmax(0, 1fr);
+  align-items: start;
+}
+.sp-review .sp-army {
+  min-height: 0;
+}
+.sp-review .sp-army .rost-wrap {
+  overflow: visible;
+}
+.sp-review .sp-army .rost-wrap > * {
+  max-width: 100%;
+}
+.sp-review .sp-rmid {
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  gap: 10px;
+}
+.sp-review .sp-rmid > .btn {
+  width: 100%;
+  justify-content: center;
+}
+.sp-review .sp-rmid .mp3-go {
+  margin-top: 6px;
+}
+.sp-review .sp-rmid select {
+  width: 100%;
+}
+@media (max-width: 900px) {
+  .sp-review .mp3-cols {
+    grid-template-columns: 1fr;
+  }
+}
+.turnbar.sp-lobby > .tb-status {
+  display: none;
+}
+.sp-review .sp-rh {
+  margin: 0;
+  font-family: var(--display, inherit);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold, #c9a24a);
+}
+.sp-review .sp-rmid > .hint {
+  margin: 0;
+}

@@ -24,7 +24,7 @@ function fitBoard() {
   wrap.style.maxWidth = '';
   const tools = $('tools');
   if (tools) tools.style.width = '';
-  if (innerWidth <= 900 || box.offsetParent === null || !document.body.classList.contains('tb-top')) return;
+  if (innerWidth <= 900 || box.offsetParent === null || !document.body.classList.contains('g-frame')) return;
   const vb = b.viewBox && b.viewBox.baseVal,
     ar = vb && vb.height ? vb.width / vb.height : 1.49;
   const dock = $('dock'),

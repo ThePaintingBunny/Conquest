@@ -38,6 +38,7 @@ function renderTabs() {
       t.setAttribute('aria-label', 'Armies, ' + n + ' still to activate');
     }
   }
+  $('tab-game').textContent = state && SBX() ? 'Field' : 'Game';
   {
     const t = $('tab-reg');
     t.textContent = 'Regiment';

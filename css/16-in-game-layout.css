@@ -1524,28 +1524,37 @@ body.has-dock #actbar {
   display: none !important;
 }
 
-/* wide screens in a game: the tools stand in a column beside the table, the dock sits under it */
+/* wide screens in a game, the builders and the test field: the tools stand in a column beside the table, the dock sits under it */
 @media (min-width: 901px) {
-  body.tb-top .leftcol {
+  body.g-frame .leftcol {
     display: grid;
     grid-template-columns: 46px minmax(0, 1fr);
     column-gap: 10px;
     row-gap: 10px;
     align-content: start;
   }
-  body.tb-top .leftcol > .mapbox {
+  body.g-frame .leftcol > .mapbox {
     grid-column: 2;
     grid-row: 1;
   }
-  body.tb-top .leftcol > .dock {
+  body.g-frame .leftcol > .dock {
     grid-column: 2;
     grid-row: 2;
     height: 146px;
   }
-  body.tb-top .leftcol > .tools {
+  /* the last move and the score are in the dock and the top row; the bar stays only for the Old Dominion tokens */
+  body.g-frame .leftcol > .tools {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  body.g-frame .leftcol > .tools:not(:has(#od-trk:not([hidden]))) {
     display: none;
   }
-  body.tb-top .leftcol > .toolstrip {
+  body.g-frame .leftcol > .tools > .last,
+  body.g-frame .leftcol > .tools > .score {
+    display: none;
+  }
+  body.g-frame .leftcol > .toolstrip {
     grid-column: 1;
     grid-row: 1 / span 3;
     align-self: start;
@@ -1556,7 +1565,7 @@ body.has-dock #actbar {
     background: none;
     gap: 6px;
   }
-  body.tb-top .toolstrip .tool {
+  body.g-frame .toolstrip .tool {
     width: 44px;
     height: 44px;
     padding: 0;
@@ -1566,7 +1575,7 @@ body.has-dock #actbar {
     background: var(--panel);
     color: var(--muted);
   }
-  body.tb-top .toolstrip .tool .tl {
+  body.g-frame .toolstrip .tool .tl {
     display: none;
   }
   /* the connection status keeps to its dot in the top row, so the score chips never get covered */
@@ -1601,4 +1610,48 @@ body.has-dock #actbar {
   .dock .dk-tiles {
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   }
+}
+
+/* ---- the test field: its tools in the side column (the Field tab) ---- */
+body.tf-panel #gp-body > .turnbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  position: static;
+}
+body.tf-panel #gp-body > .turnbar > .tb-status,
+body.tf-panel #gp-body > .turnbar > #tb-info {
+  display: none;
+}
+/* what you reach for first: the selected regiment, then adding regiments */
+body.tf-panel #gp-body > .turnbar > .tf-sel {
+  order: -3;
+}
+body.tf-panel #gp-body > .turnbar > .tf-add {
+  order: -2;
+}
+body.tf-panel #gp-body > .turnbar > .tf-row {
+  margin: 0;
+}
+body.tf-panel #gp-body .turnbar .grp {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+}
+body.tf-panel #gp-body .turnbar .grp > button {
+  white-space: normal;
+  text-align: center;
+}
+body.tf-panel #gp-body > .turnbar > .tf-row:not(.col-row) > .btn {
+  flex: 1 1 40%;
+  justify-content: center;
+}
+.dock .dk-foot:empty {
+  display: none;
 }

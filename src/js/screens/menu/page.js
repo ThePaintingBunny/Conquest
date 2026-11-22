@@ -346,7 +346,10 @@ function renderMenu() {
       mpLobby(inner);
       return;
     }
-    inner.append(mmSteps(rev ? 'field' : 'armies'));
+    /* single player before the review: the lobby (in the panel below) has its own progress bar */
+    if (page === 'single' && !rev) return;
+    /* the review has its own progress bar too */
+    if (!rev) inner.append(mmSteps('armies'));
     if (page === 'multi') {
       const nm = bEl('div', { className: 'mm-net mm-name' });
       const lab = bEl('label', { className: 'pn-in' });

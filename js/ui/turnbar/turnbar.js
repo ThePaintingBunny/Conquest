@@ -88,6 +88,11 @@ function tbInTop() {
   );
 }
 
+/* the test field on a wide screen keeps its tools in the side column */
+function tfInPanel() {
+  return !!state && SBX() && !mapEdit && !scenEdit && innerWidth > 900;
+}
+
 function placeTurnbar(tb) {
   const slot = $('top-turn'),
     gp = $('gp-body');
@@ -101,8 +106,19 @@ function placeTurnbar(tb) {
       .forEach(k => gp.appendChild(k));
     gp.appendChild(glogPanel());
     gp.appendChild(netPanel());
-  } else if (tb.parentNode === slot) $('mm').after(tb);
+  } else if (tfInPanel()) {
+    /* the test field: its tools sit in the side column (the Field tab) instead of above the table */
+    if (tb.parentNode !== gp) gp.appendChild(tb);
+    const key = 'tf|' + (state.gid || '');
+    if (placeTurnbar.tfKey !== key) {
+      placeTurnbar.tfKey = key;
+      if (!(state.units || []).length && rightTab !== 'game') setTab('game');
+    }
+  } else if (tb.previousElementSibling !== $('mm')) $('mm').after(tb);
   document.body.classList.toggle('tb-top', tbInTop());
+  /* the game frame (the tools in a column beside the table, the dock under it): a game, the builders, the test field */
+  document.body.classList.toggle('g-frame', tbInTop() || !!mapEdit || !!scenEdit || tfInPanel());
+  document.body.classList.toggle('tf-panel', tfInPanel());
   placeNetBar();
   /* ordering the Command Stack happens in the Game tab, which opens by itself once per round */
   const gs = $('gp-stack');
@@ -207,6 +223,7 @@ function foldTurnbar(tb) {
   if (!tb || aiBusy) return;
   const kids = [...tb.children];
   let fold, key, label;
+  if (SBX() && tfInPanel()) return;
   if (SBX()) {
     const i = kids.findIndex(k => k.classList && k.classList.contains('tf-row'));
     fold = i >= 0 ? kids.slice(i + 1) : [];
@@ -253,7 +270,7 @@ function renderTurnbar0() {
   const tb = $('turnbar');
   if (!tb || !state) return;
   tb.innerHTML = '';
-  tb.classList.remove('tb-empty');
+  tb.classList.remove('tb-empty', 'sp-lobby');
   const step = state.step || 'activations';
   const add = e => tb.appendChild(e);
   const info = document.createElement('span');
@@ -292,6 +309,8 @@ function renderTurnbar0() {
     addS(info);
     if (scenEdit) sbPanel(side, info, mk, addS);
     else mbPanel(side, info, mk, addS);
+    dockBuilder.text = info.textContent;
+    dockBuilder();
     return;
   }
   if (aiBusy) {

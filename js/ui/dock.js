@@ -7,7 +7,8 @@
  * the actions done so far. The dock's buttons press the regiment card's own buttons, so each is wired in one place.
  * Number keys 1–9 start the action on that tile; Enter finishes the action, or ends the activation.
  *
- * In this file: DOCK_ICO, dockOn(), dockTiles(), dockBtn(), renderDock(), dockKeys()
+ * In this file: DOCK_ICO, dockOn(), dockTiles(), dockDraw(), dockDrawTiles(), dockBtn(), renderDock(),
+ *   dockKeys()
  */
 
 /* an icon for each kind of action */
@@ -148,6 +149,10 @@ function renderDock() {
     main = $('dock-main'),
     who = $('dock-who');
   if (!dock || !main || !who) return;
+  if (mapEdit || scenEdit) {
+    dockBuilder();
+    return;
+  }
   const on = dockOn(),
     chg = $('c-chg'),
     ctl = $('c-ctl'),
@@ -157,7 +162,7 @@ function renderDock() {
   const game =
     on ||
     (!!state &&
-      tbInTop() &&
+      (tbInTop() || tfInPanel()) &&
       (state.step || 'activations') === 'activations' &&
       !mapEdit &&
       !scenEdit &&
@@ -191,10 +196,13 @@ function renderDock() {
     const mine = state.turn === HU || SBX(),
       a = act && byId(act.id);
     who.append(
-      bEl('div', { className: 'dk-k', textContent: 'Round ' + (state.round || 1) }),
+      bEl('div', {
+        className: 'dk-k',
+        textContent: (SBX() ? 'Test field · round ' : 'Round ') + (state.round || 1)
+      }),
       bEl('div', {
         className: 'dk-n',
-        textContent: a ? 'Activating' : mine ? 'Your turn' : N(state.turn || AI) + '’ turn'
+        textContent: a ? 'Activating' : SBX() ? 'Free play' : mine ? 'Your turn' : N(state.turn || AI) + '’ turn'
       })
     );
     const idle = bEl('div', { className: 'dk-idle' });
@@ -210,7 +218,9 @@ function renderDock() {
     } else
       idle.append(
         bEl('span', {
-          textContent: mine
+          textContent: SBX()
+            ? 'Click a regiment to activate it, or add regiments and terrain in the Field tab.'
+            : mine
             ? 'Click the regiment whose card is up to start its activation.'
             : 'Waiting for ' + N(state.turn || AI) + ' to act.'
         })
@@ -393,3 +403,46 @@ function dockKeys(ev) {
   }
 }
 document.addEventListener('keydown', dockKeys);
+
+/* the map and scenario builders: the dock under the table says what the builder is doing */
+function dockBuilder() {
+  const dock = $('dock'),
+    main = $('dock-main'),
+    who = $('dock-who');
+  if (!dock || !main || !who) return;
+  document.body.classList.remove('has-dock', 'dk-cur', 'dk-draw', 'dk-panel');
+  const was = !dock.hidden;
+  dock.hidden = false;
+  who.innerHTML = '';
+  main.innerHTML = '';
+  const foot = dock.querySelector('.dk-foot');
+  if (foot) foot.remove();
+  let mode = '';
+  if (mapEdit) {
+    const M = mapEdit;
+    mode =
+      M.tool === 'erase'
+        ? 'Erasing'
+        : M.tool === 'building'
+          ? 'Placing · ' + ((typeof BVAR !== 'undefined' && BVAR[M.bv || 'house']) || {}).name
+          : 'Painting · ' + TTYPES[M.type].name;
+  } else {
+    const t = scenEdit.tool;
+    mode = t === 'select' ? 'Pick and move' : t === 'marker' ? 'Adding markers' : 'Adding zones';
+  }
+  who.append(
+    bEl('div', { className: 'dk-k', textContent: mapEdit ? 'Map builder' : 'Scenario builder' }),
+    bEl('div', { className: 'dk-n', textContent: mode })
+  );
+  let text = dockBuilder.text || '';
+  if (scenEdit)
+    text +=
+      ' · ' +
+      (scenEdit.tool === 'zone'
+        ? 'Click where the centre of the objective zone goes.'
+        : scenEdit.tool === 'marker'
+          ? 'Click where the objective marker goes.'
+          : 'Click a zone or marker to change it in the side panel; drag it to move it.');
+  main.append(bEl('div', { className: 'dk-idle' }, [bEl('span', { textContent: text })]));
+  if (!was) requestAnimationFrame(fitBoard);
+}

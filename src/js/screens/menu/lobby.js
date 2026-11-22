@@ -6,7 +6,8 @@
  * shows how far the two of you are: opponent joined, seated, your army, their army, review. Building an army opens
  * under the lobby.
  *
- * In this file: mpEdit, MP_SAY, mpLog(), mpSay(), mpArmyLines(), mpCard(), mpLobby()
+ * In this file: mpEdit, MP_SAY, mpLog(), mpSay(), mpArmyLines(), mpCard(), mpLobby(), spSeg(),
+ *   spArmyReady(), spLobby()
  */
 
 let mpEdit = false; /* your army builder is open, though you already have an army */
@@ -351,4 +352,202 @@ function mpLobby(inner) {
   }
   cols.append(mpCard(me, true), mid, mpCard(opp, false));
   inner.append(cols);
+}
+
+/* ---------- the single player lobby: the same layout, with the built-in opponent or Claude on the right ---------- */
+
+/* a row of choices (Played by, Difficulty) */
+function spSeg(label, opts, cur, pick) {
+  const g = bEl('div', { className: 'grp opp-grp' });
+  g.setAttribute('role', 'group');
+  g.setAttribute('aria-label', label);
+  opts.forEach(([v, t, dis]) => {
+    const b = bEl('button', { type: 'button', textContent: t });
+    b.setAttribute('aria-pressed', String(cur === v));
+    if (dis) {
+      b.disabled = true;
+      b.title = dis;
+    }
+    b.onclick = () => {
+      pick(v);
+      renderTurnbar();
+    };
+    g.append(b);
+  });
+  return bEl('div', { className: 'opp-row' }, [bEl('span', { className: 'tf-l', textContent: label }), g]);
+}
+
+/* is your army ready to go to the review? */
+function spArmyReady() {
+  if (armyMode === 'paste') return !!String(setupDraft.list || '').trim();
+  return !!(bld.fac && bld.wbs.length && !bldProblems().length);
+}
+
+function spLobby(useClaude, aif, mk) {
+  const wrap = bEl('div', { className: 'sp-lobby-in' }),
+    ready = spArmyReady();
+  /* how far you are */
+  const st = [
+    ['Your army', ready],
+    ['Opponent', ready],
+    ['Review', false],
+    ['Battle', false]
+  ];
+  const cur = st.findIndex(x => !x[1]);
+  const prog = bEl('div', { className: 'mp3-prog' });
+  st.forEach(([t, ok], i) =>
+    prog.append(
+      bEl('div', { className: 'mp3-st' + (ok ? ' ok' : i === cur ? ' now' : '') }, [
+        bEl('i'),
+        bEl('span', { textContent: (ok ? '✓ ' : '') + t })
+      ])
+    )
+  );
+  wrap.append(prog);
+  const cols = bEl('div', { className: 'mp3-cols' });
+  const head = (name, sub, chip, cls) => {
+    const av = bEl('span', { className: 'mp3-av', textContent: (name || '?').slice(0, 1).toUpperCase() });
+    return bEl('div', { className: 'mp3-ph' }, [
+      av,
+      bEl('div', { className: 'mp3-pn' }, [bEl('strong', { textContent: name }), bEl('span', { textContent: sub })]),
+      bEl('span', { className: 'mp3-chip ' + cls, textContent: chip })
+    ]);
+  };
+  /* you */
+  const you = bEl('section', { className: 'mp3-p me' });
+  you.style.setProperty('--pc', 'var(--cs)');
+  you.append(
+    head(
+      PN('cs') || savedName() || 'You',
+      'You · ' + SEATNAME.cs,
+      ready ? 'Army ready ✓' : 'Building army…',
+      ready ? 'ok' : 'wait'
+    ),
+    nameInput('cs', 'Your name', true)
+  );
+  {
+    const ab = bEl('div', { className: 'mp3-army' });
+    if (armyMode === 'paste')
+      ab.append(
+        bEl('p', {
+          className: 'hint',
+          textContent: setupDraft.list.trim()
+            ? 'A pasted list (' + setupDraft.list.trim().split('\n').length + ' lines). It is read when you go to the review.'
+            : 'Paste your list below.'
+        })
+      );
+    else if (bld.fac && bld.wbs.length) {
+      ab.append(
+        bEl('div', { className: 'mp3-fac' }, [
+          bEl('strong', { textContent: bld.fac }),
+          bEl('span', {
+            textContent:
+              ' · ' +
+              bldTotal().toLocaleString('en') +
+              ' pts · ' +
+              bld.wbs.length +
+              (bld.wbs.length === 1 ? ' warband' : ' warbands')
+          })
+        ])
+      );
+      const ul = bEl('div', { className: 'mp3-list' });
+      bld.wbs.forEach(w => {
+        if (w.char) ul.append(bEl('div', {}, [bEl('b', { textContent: w.char }), bEl('span', { textContent: 'Character' })]));
+        (w.regs || []).forEach(r =>
+          ul.append(
+            bEl('div', {}, [
+              bEl('b', { textContent: r.unit || 'Regiment' }),
+              bEl('span', { textContent: r.stands ? r.stands + ' stands' : '' })
+            ])
+          )
+        );
+      });
+      ab.append(ul);
+      const pr = bldProblems();
+      if (pr.length) ab.append(bEl('p', { className: 'warn', textContent: pr[0] }));
+    } else
+      ab.append(bEl('p', { className: 'hint', textContent: 'Build your army below, or paste a list.' }));
+    you.append(ab);
+  }
+  you.append(bEl('div', { className: 'mp3-pf' }, [colorPicker('cs', 'Colour', true)]));
+  /* the opponent */
+  const opp = bEl('section', { className: 'mp3-p opp' });
+  opp.style.setProperty('--pc', 'var(--nord)');
+  opp.append(
+    head(
+      useClaude ? 'Claude' : 'Built-in opponent',
+      'Opponent · ' + SEATNAME.nord + ' · plays automatically',
+      'Ready ✓',
+      'ok'
+    ),
+    spSeg(
+      'Played by',
+      [
+        ['bot', 'Built-in (free)'],
+        ['claude', 'Claude', sample ? '' : 'Claude is not available here (add an API key in Claude settings)']
+      ],
+      useClaude ? 'claude' : 'bot',
+      v => (setupDraft.aiPlayer = v)
+    )
+  );
+  if (!useClaude)
+    opp.append(
+      spSeg(
+        'Difficulty',
+        [
+          ['easy', 'Easy'],
+          ['normal', 'Normal'],
+          ['hard', 'Hard']
+        ],
+        setupDraft.botLevel || 'normal',
+        v => (setupDraft.botLevel = v)
+      )
+    );
+  {
+    /* the faction picker's own label, moved here */
+    const l = aif.parentNode && aif.parentNode.tagName === 'LABEL' ? aif.parentNode : bEl('label', { className: 'sf' }, [aif]);
+    const ls = l.querySelector('span');
+    if (ls) ls.textContent = 'Its army';
+    opp.append(
+      l,
+      bEl('p', {
+        className: 'hint',
+        textContent: useClaude
+          ? 'Claude designs an army of the same size as yours.'
+          : 'It builds an army of the same size as yours.'
+      })
+    );
+  }
+  opp.append(bEl('div', { className: 'mp3-pf' }, [colorPicker('nord', 'Colour', true)]));
+  /* the middle */
+  const mid = bEl('div', { className: 'mp3-mid' });
+  mid.append(
+    bEl('section', { className: 'mp3-box' }, [
+      bEl('h3', { textContent: 'Battlefield' }),
+      bEl('p', {
+        className: 'hint',
+        textContent:
+          'You pick the scenario and the terrain in the review, with both armies in front of you, before the battle starts.'
+      })
+    ])
+  );
+  {
+    const c = bEl('section', { className: 'mp3-box sp-check' });
+    c.append(bEl('h3', { textContent: 'Ready to play' }));
+    [
+      [ready, ready ? 'Your army' + (bld.fac && armyMode !== 'paste' ? ' (' + bld.fac + ')' : '') : 'Your army is not ready yet'],
+      [true, 'Opponent: ' + (useClaude ? 'Claude' : 'built-in, ' + (setupDraft.botLevel || 'normal'))]
+    ].forEach(([ok, t]) => c.append(bEl('div', { className: ok ? 'ok' : 'no', textContent: (ok ? '✓ ' : '○ ') + t })));
+    mid.append(c);
+  }
+  mid.append(
+    bEl('p', {
+      className: 'mp3-why',
+      textContent: ready ? 'Both armies are built when you go on' : armyMode === 'paste' ? 'Paste your list first' : 'Finish your army first'
+    }),
+    bEl('span', { id: 'sp-go' })
+  );
+  cols.append(you, mid, opp);
+  wrap.append(cols);
+  return wrap;
 }
