@@ -1,7 +1,7 @@
 /*
  * Seats and private data
  *
- * Which side each player sits on, whether the game is online or against Claude, and each player's
+ * Which side each player sits on, whether the game is online or against the built-in opponent, and each player's
  * private data (hidden Command Stack).
  *
  * In this file: AI, HU, myId, realId, myStk, ract, lastCbJson, lastLive, liveT, usr, PVP(), SBX(),
@@ -52,7 +52,7 @@ function applySeat() {
   const ly = $('leg-you'),
     lt2 = $('leg-them'),
     ltt = $('leg-them-t');
-  if (ltt) ltt.textContent = PVP() ? 'Opponent' : 'Claude’s army';
+  if (ltt) ltt.textContent = PVP() ? 'Opponent' : 'Opponent’s army';
   const h = $('view-hint');
   if (h)
     h.textContent =

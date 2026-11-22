@@ -146,7 +146,7 @@ function mhSide(busy) {
   const sets = [mmCard('Settings', 'Dice, animations, controls and display', '⚙', () => $('set-open').click(), { small: true })];
   const n = mmNet();
   if (n && n.openSettings)
-    sets.push(mmCard('Claude settings', 'API key and models for playing Claude here', '✦', () => n.openSettings(), { small: true }));
+    sets.push(mmCard('Claude settings', 'API key for reading pasted army lists', '✦', () => n.openSettings(), { small: true }));
   side.append(bEl('div', { className: 'mh-sets' }, sets));
   return side;
 }
@@ -182,7 +182,7 @@ function mmHome(inner) {
   main.append(
     bEl('h2', { className: 'mh-k', textContent: 'Play' }),
     bEl('div', { className: 'mh-play' }, [
-      mmCard('Single player', bs('Against the built-in opponent (free) or Claude: bring your army, it brings its own'), '⚔', () => mmStart('single'), bz),
+      mmCard('Single player', bs('Against the built-in opponent: bring your army, it brings its own'), '⚔', () => mmStart('single'), bz),
       mmCard('Multiplayer', bs('Play a friend online: take a seat, bring your army, ready up'), '⚑', () => mmStart('multi'), bz),
       mmCard('Test field', bs('Drop regiments for either side and try out rules freely'), '⚗', () => mmStart('test'), bz)
     ]),

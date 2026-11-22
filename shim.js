@@ -7,7 +7,7 @@
  *        the device, so Command Stacks stay hidden. Every message is signed: only the
  *        host can publish the game, and only seated players can make moves.
  *  - user: a random id kept in this browser.
- *  - sample: Claude through the player's own Anthropic API key (optional).
+ *  - sample: Claude through the player's own Anthropic API key (optional), used only to read pasted army lists.
  */
 (function () {
   'use strict';
@@ -534,9 +534,9 @@
     if (!d) { d = document.createElement('dialog'); d.id = 'claude-settings'; d.className = 'en-dlg'; document.body.appendChild(d); }
     const s = settings(); d.innerHTML = '';
     const wrap = document.createElement('div'); wrap.className = 'en-dbody';
-    const h = document.createElement('h2'); h.textContent = 'Play against Claude'; h.style.cssText = 'margin:0;font-family:var(--display)';
+    const h = document.createElement('h2'); h.textContent = 'Reading army lists with Claude'; h.style.cssText = 'margin:0;font-family:var(--display)';
     const p = document.createElement('p'); p.className = 'hint'; p.style.margin = '0';
-    p.textContent = 'Claude reads army lists, designs its own army and plays as your opponent. Outside claude.ai it needs your own Anthropic API key, which is billed to your Anthropic account per game. The key is stored only in this browser and is sent only to api.anthropic.com. Online games against a friend do not need a key.';
+    p.textContent = 'Lists copied from the Para Bellum app are read directly. Claude reads any other pasted list; outside claude.ai that needs your own Anthropic API key, billed to your Anthropic account. The key is stored only in this browser and is sent only to api.anthropic.com. Nothing else in the game needs a key.';
     const lab = (t, el) => { const l = document.createElement('label'); l.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:14px'; const sp = document.createElement('span'); sp.textContent = t; l.append(sp, el); return l; };
     const key = Object.assign(document.createElement('input'), { type: 'password', value: s.key, placeholder: 'sk-ant-…', autocomplete: 'off' });
     const model = Object.assign(document.createElement('input'), { type: 'text', value: s.model });
@@ -549,7 +549,7 @@
     clear.onclick = () => { LS.set(PREFIX + 'claude', Object.assign(settings(), { key: '' })); key.value = ''; flash('API key removed from this browser.'); };
     const close = document.createElement('button'); close.type = 'button'; close.className = 'btn ghost'; close.textContent = 'Close'; close.onclick = () => d.close();
     row.append(clear, close, save);
-    wrap.append(h, p, lab('Anthropic API key', key), lab('Model for turns', model), lab('Model for building armies', strong), row);
+    wrap.append(h, p, lab('Anthropic API key', key), lab('Model', strong), row);
     d.appendChild(wrap); d.showModal();
   }
   const css = document.createElement('style');

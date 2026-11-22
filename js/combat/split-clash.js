@@ -59,7 +59,7 @@ function splitInfo(A, engIds) {
 }
 
 /* Default assignment. Players: a stand touching several enemies starts on the first; supporting stands join the enemy
-   most engaged stands attack. Claude (smart): the weakest target among the choices (lowest Defense, then fewest stands). */
+   most engaged stands attack. The opponent (smart): the weakest target among the choices (lowest Defense, then fewest stands). */
 function splitDefault(A, eng, smart) {
   const ids = eng.map(e => e.id),
     info = splitInfo(A, ids),

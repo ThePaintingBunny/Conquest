@@ -354,9 +354,9 @@ function mpLobby(inner) {
   inner.append(cols);
 }
 
-/* ---------- the single player lobby: the same layout, with the built-in opponent or Claude on the right ---------- */
+/* ---------- the single player lobby: the same layout, with the built-in opponent on the right ---------- */
 
-/* a row of choices (Played by, Difficulty) */
+/* a row of choices (Difficulty) */
 function spSeg(label, opts, cur, pick) {
   const g = bEl('div', { className: 'grp opp-grp' });
   g.setAttribute('role', 'group');
@@ -383,7 +383,7 @@ function spArmyReady() {
   return !!(bld.fac && bld.wbs.length && !bldProblems().length);
 }
 
-function spLobby(useClaude, aif, mk) {
+function spLobby(aif, mk) {
   const wrap = bEl('div', { className: 'sp-lobby-in' }),
     ready = spArmyReady();
   /* how far you are */
@@ -475,23 +475,13 @@ function spLobby(useClaude, aif, mk) {
   opp.style.setProperty('--pc', 'var(--nord)');
   opp.append(
     head(
-      useClaude ? 'Claude' : 'Built-in opponent',
+      'Built-in opponent',
       'Opponent · ' + SEATNAME.nord + ' · plays automatically',
       'Ready ✓',
       'ok'
-    ),
-    spSeg(
-      'Played by',
-      [
-        ['bot', 'Built-in (free)'],
-        ['claude', 'Claude', sample ? '' : 'Claude is not available here (add an API key in Claude settings)']
-      ],
-      useClaude ? 'claude' : 'bot',
-      v => (setupDraft.aiPlayer = v)
     )
   );
-  if (!useClaude)
-    opp.append(
+  opp.append(
       spSeg(
         'Difficulty',
         [
@@ -512,9 +502,7 @@ function spLobby(useClaude, aif, mk) {
       l,
       bEl('p', {
         className: 'hint',
-        textContent: useClaude
-          ? 'Claude designs an army of the same size as yours.'
-          : 'It builds an army of the same size as yours.'
+        textContent: 'It builds an army of the same size as yours.'
       })
     );
   }
@@ -536,7 +524,7 @@ function spLobby(useClaude, aif, mk) {
     c.append(bEl('h3', { textContent: 'Ready to play' }));
     [
       [ready, ready ? 'Your army' + (bld.fac && armyMode !== 'paste' ? ' (' + bld.fac + ')' : '') : 'Your army is not ready yet'],
-      [true, 'Opponent: ' + (useClaude ? 'Claude' : 'built-in, ' + (setupDraft.botLevel || 'normal'))]
+      [true, 'Opponent: built-in, ' + (setupDraft.botLevel || 'normal')]
     ].forEach(([ok, t]) => c.append(bEl('div', { className: ok ? 'ok' : 'no', textContent: (ok ? '✓ ' : '○ ') + t })));
     mid.append(c);
   }

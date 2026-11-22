@@ -1,5 +1,5 @@
 /*
- * Running Claude's turn
+ * Running the opponent's turn
  *
  * Plays one regiment, runs the whole turn and shows the report afterwards.
  *
@@ -268,7 +268,6 @@ async function runAITurn() {
     return;
   }
   aiBusy = true;
-  aiNotes = [];
   render();
   const report = [];
   try {
@@ -430,7 +429,6 @@ function showReport(report) {
     });
     body.appendChild(ul);
   });
-  aiNotes.forEach(n => body.appendChild(ptext(n, 'warn')));
   try {
     box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch (e) {}

@@ -106,7 +106,7 @@ function renderSetupPvp(tb, info, mk, add) {
           render();
           toast(
             e && e.code === 'not_granted'
-              ? 'Add your Anthropic API key under Claude settings at the top of the page to use Claude.'
+              ? 'Add your Anthropic API key under Claude settings at the top of the page to read pasted lists.'
               : 'Claude could not read the army (' + ((e && e.code) || 'error') + '). Try again.'
           );
         }

@@ -1,7 +1,7 @@
 /*
- * Setup: game against Claude
+ * Setup: single player
  *
- * The setup screen for a single-player game.
+ * The setup screen for a game against the built-in opponent.
  *
  * In this file: renderSetup()
  */
@@ -10,7 +10,7 @@ function renderSetup(tb, info, mk, add) {
   if (state.step === 'setup') {
     if (PVP()) return renderSetupPvp(tb, info, mk, add);
     info.textContent =
-      'New game. Build your army here or paste one, then choose your opponent: the built-in opponent (free, works offline) or Claude.';
+      'New game. Build your army here or paste one, then set up the built-in opponent.';
     const f = document.createElement('div');
     f.className = 'setupf';
     const lab = (t, el) => {
@@ -41,9 +41,8 @@ function renderSetup(tb, info, mk, add) {
       })
     );
     pts.oninput = () => (setupDraft.pts = +pts.value || 2000);
-    const useClaude = setupDraft.aiPlayer === 'claude';
     const aif = lab('Its faction', bEl('select', { className: 'tf-in' }));
-    aif.append(bEl('option', { value: '', textContent: useClaude ? 'Let Claude choose' : 'Random' }));
+    aif.append(bEl('option', { value: '', textContent: 'Random' }));
     ENCY.filter(x => x.units.some(u => u.kind === 'char')).forEach(x =>
       aif.append(bEl('option', { value: x.name, textContent: x.name }))
     );
@@ -68,7 +67,7 @@ function renderSetup(tb, info, mk, add) {
       }
       /* the lobby: you on the left, your opponent on the right, the battlefield and the next step between them */
       tb.classList.add('sp-lobby');
-      add(spLobby(useClaude, aif, mk));
+      add(spLobby(aif, mk));
     }
     const bwrap = bEl('section', { className: 'sp-build' });
     const addB = e => bwrap.appendChild(e);
@@ -100,13 +99,6 @@ function renderSetup(tb, info, mk, add) {
         toast('Paste your army list first.');
         return;
       }
-      const bot = setupDraft.aiPlayer !== 'claude';
-      if (!bot && !sample) {
-        toast(
-          'Claude is not available in this view. Choose the built-in opponent, or add an API key in Claude settings.'
-        );
-        return;
-      }
       if (armyMode === 'paste' && !pbLooks(setupDraft.list) && !sample) {
         toast(
           'Without Claude only lists copied from the Para Bellum app can be read. Build your army here instead, or import it in the army builder.'
@@ -124,18 +116,15 @@ function renderSetup(tb, info, mk, add) {
         const mine = built || (await convertList(setupDraft.list, setupDraft.faction, setupDraft.pts));
         const P =
           built || mine.points ? Math.max(500, Math.round((built || mine).points / 50) * 50) : setupDraft.pts;
-        aiStatus(bot ? 'Building the opponent’s army…' : 'Claude is designing its army…');
+        aiStatus('Building the opponent’s army…');
         render();
-        const theirs = bot
-          ? botArmy(setupDraft.aiFaction, P)
-          : await designList(setupDraft.aiFaction, P, mine.faction || setupDraft.faction);
+        const theirs = botArmy(setupDraft.aiFaction, P);
         if (!theirs) throw { code: 'no army' };
         aiBusy = false;
         aiStatus('');
         await putState({
           scenario: scenId(),
           zones: scenOf().zones,
-          aiPlayer: bot ? 'bot' : 'claude',
           botLevel: setupDraft.botLevel || 'normal'
         });
         await putState({
@@ -144,7 +133,7 @@ function renderSetup(tb, info, mk, add) {
           setup: { cs: mine, nord: theirs },
           names: {
             cs: String(mine.faction || setupDraft.faction || 'Your army'),
-            nord: String(theirs.faction || setupDraft.aiFaction || (bot ? 'Opponent' : 'Claude'))
+            nord: String(theirs.faction || setupDraft.aiFaction || 'Opponent')
           },
           phase: 'New game · Check both armies'
         });
@@ -154,10 +143,8 @@ function renderSetup(tb, info, mk, add) {
         render();
         toast(
           e && e.code === 'not_granted'
-            ? 'Add your Anthropic API key under Claude settings at the top of the page to use Claude.'
-            : bot
-              ? 'The armies could not be built (' + ((e && e.code) || 'error') + '). Try again.'
-              : 'Claude could not build the armies (' + ((e && e.code) || 'error') + '). Try again.'
+            ? 'Add your Anthropic API key under Claude settings at the top of the page to read pasted lists.'
+            : 'The armies could not be built (' + ((e && e.code) || 'error') + '). Try again.'
         );
       }
     });
@@ -219,9 +206,7 @@ function renderSetup(tb, info, mk, add) {
         ? PN(side) || SEATNAME[side]
         : mine
           ? PN(side) || savedName() || 'You'
-          : state.aiPlayer === 'claude'
-            ? 'Claude'
-            : 'Built-in opponent';
+          : 'Built-in opponent';
       box.append(
         bEl('div', { className: 'mp3-ph' }, [
           bEl('span', { className: 'mp3-av', textContent: name.slice(0, 1).toUpperCase() }),

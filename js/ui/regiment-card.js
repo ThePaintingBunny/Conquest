@@ -1248,7 +1248,7 @@ function renderCard() {
                     : ` Gold: effective range, within ${vr.range / 2}″ of a stand, +1 shot per stand. Blue: full range, ${vr.range}″.`) +
                   ' Measured from each front-rank stand across its firing arc. Hover an enemy for its distance.'
                 : '') +
-              ' Claude checks Line of Sight.'
+              ' The game checks Line of Sight.'
             );
           })()
         : c.type === 'clash' && c.stage === 'node'

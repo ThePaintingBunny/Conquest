@@ -126,7 +126,7 @@ const SET_SECTIONS = [
   ['controls', 'Controls', 'keys', 'Every keyboard shortcut'],
   ['table', 'Table and display', 'map', 'How the table moves and what it shows'],
   ['player', 'Player', 'person', 'How others see you'],
-  ['claude', 'Claude', 'spark', 'Playing against Claude']
+  ['claude', 'Army lists', 'spark', 'Reading pasted army lists']
 ];
 
 function openSettings(tab) {
@@ -332,14 +332,19 @@ function openSettings(tab) {
         dg.close();
         n.openSettings();
       };
-      row(body, 'API key and models', 'Claude needs an API key on this site. Set it, and choose the models it plays with.', b);
+      row(
+        body,
+        'API key for reading lists',
+        'A list copied from the Para Bellum app is read directly. Any other pasted list is read by Claude, which needs an API key on this site.',
+        b
+      );
     } else
       row(
         body,
         'Nothing to set up',
         sample
-          ? 'Claude plays through your Claude account on this page. Pick Claude as the opponent in Single player.'
-          : 'Claude is not available in this view. The built-in opponent is free and always available.',
+          ? 'A list copied from the Para Bellum app is read directly. Any other pasted list is read by Claude, through your Claude account on this page.'
+          : 'Lists copied from the Para Bellum app are read directly. Other lists cannot be read in this view: build the army in the army builder instead.',
         bEl('span')
       );
   }

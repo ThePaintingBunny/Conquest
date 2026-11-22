@@ -1,7 +1,7 @@
 /*
  * Action executors
  *
- * Carries out each step of Claude's plan on the table: enter, March, Reform, Charge, Clash, Volley,
+ * Carries out each step of the opponent's plan on the table: enter, March, Reform, Charge, Clash, Volley,
  * cast, Withdraw.
  *
  * In this file: canDo(), aiRl(), exEnter(), aiSeg(), fwdLegal(), exMarch(), describeSpec(), exReform(),
@@ -240,7 +240,7 @@ async function exClash(st) {
   if (why) return 'could not clash (' + why + ')';
   if (availableActions(byId(act.id)).some(a => a.type === 'assassin' && !a.why)) return exAssassin();
   if (nodeClashOffer(byId(act.id))) {
-    /* Claude always detonates a Catabolic Node when it declares a Clash, resolving the blast first */
+    /* the opponent always detonates a Catabolic Node when it declares a Clash, resolving the blast first */
     act.nodeAsked = true;
     logAI('detonates its Catabolic Node');
     offNode(byId(act.id));
@@ -256,7 +256,7 @@ async function exClash(st) {
   }
   startAction('clash');
   if (cb && cb.split === 'plan') {
-    /* several enemies engaged: Claude assigns its stands, then resolves each pool in turn */
+    /* several enemies engaged: the opponent assigns its stands, then resolves each pool in turn */
     const A0 = byId(act.id);
     cb.assign = splitDefault(A0, cb.engIds.map(byId), true);
     const n = new Set(Object.values(cb.assign)).size;

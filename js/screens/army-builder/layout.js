@@ -8,7 +8,8 @@
  * character picker) and the rules check.
  * armyBuilder() builds the page; abEnhance() runs on it afterwards and changes no army data.
  *
- * In this file: abOpen, abSeen, abLimit(), abSetLimit(), abUndoTimer, abUndoOffer(), abRail(), abEnhance()
+ * In this file: abOpen, abSeen, abLimit(), abSetLimit(), abUndoTimer, abUndoOffer(), abEnhance(),
+ *   abFacPick(), abRail()
  */
 
 /* which regiments are unfolded ("warband:regiment"), and how many regiments each warband had last time */

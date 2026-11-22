@@ -120,7 +120,7 @@ function glogWatch() {
       title: 'Round ' + state.round,
       text: `Score: ${N('cs')} ${(state.vp || {}).cs || 0}, ${N('nord')} ${(state.vp || {}).nord || 0}`
     });
-    if (!PVP() && botOn())
+    if (!PVP())
       botTraceAdd({
         k: 'board',
         units: glogBoard(),

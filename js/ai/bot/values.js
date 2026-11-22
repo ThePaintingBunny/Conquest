@@ -4,7 +4,7 @@
  * Everything the built-in opponent weighs is measured in army points: a regiment's worth, a wound, a zone, a
  * Victory Point. The weights live in BOT so they can be tuned in one place.
  *
- * In this file: BOT, botLevel(), botOn(), botNoise(), botVal(), botMaxW(), botLeftW(), botWoundPts(),
+ * In this file: BOT, botLevel(), botNoise(), botVal(), botMaxW(), botLeftW(), botWoundPts(),
  *   botZoneW(), botZoneScore()
  */
 
@@ -28,11 +28,6 @@ const BOT = {
 function botLevel() {
   const v = state && state.botLevel;
   return v === 'easy' || v === 'hard' ? v : 'normal';
-}
-
-/* is the built-in opponent playing (rather than Claude)? */
-function botOn() {
-  return !state || state.aiPlayer !== 'claude' || !sample;
 }
 
 /* a random nudge for Easy and Normal, so the opponent is not perfectly predictable */

@@ -1,7 +1,8 @@
 /*
- * Claude status
+ * Opponent status
  *
- * Whether Claude is busy, its status line and its log.
+ * Whether the opponent is busy, its status line and its log; and Claude (sample), used only to read pasted army
+ * lists.
  *
  * In this file: sample, aiBusy, aiLog, logAI(), aiStatus()
  */

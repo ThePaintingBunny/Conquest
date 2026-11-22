@@ -1,7 +1,7 @@
 /*
  * Automatic combat and spells
  *
- * Resolves combat dice and spellcasting for Claude.
+ * Resolves combat dice and spellcasting for the built-in opponent.
  *
  * In this file: huRolls(), cbDrain(), autoResolve(), aiCast(), aiCastSpell()
  */
@@ -201,7 +201,7 @@ async function aiCast(id, spellName, targetId) {
   return `the ${u.charName} casts ${sp.name} on ${T.short || T.name}: ${won ? 'it works' : 'it fails'}`;
 }
 
-/* Claude casting: pick and resolve without the panel */
+/* the opponent casting: pick and resolve without the panel */
 async function aiCastSpell(u, asChar, spellName, targetId) {
   const sps = spellsOf(u, asChar),
     lvl = magicLevel(u, asChar);

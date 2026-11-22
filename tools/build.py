@@ -39,9 +39,9 @@ def swap_page(text, old, new):
     return text.replace(old, new)
 
 
-KEY_HINT = 'Add your Anthropic API key under Claude settings at the top of the page to use Claude.'
+KEY_HINT = 'Add your Anthropic API key under Claude settings at the top of the page to read pasted lists.'
 swap("'Claude was not allowed to run, so the army was not read.'", repr(KEY_HINT))
-swap("'Claude was not allowed to run, so the armies were not built.'", repr(KEY_HINT))
+swap("'Claude was not allowed to run, so your list was not read.'", repr(KEY_HINT))
 
 STAMP = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
 VER = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M')
@@ -68,7 +68,7 @@ extra_css = ('<style>.fan-note{max-width:1240px;margin:24px auto 32px;font-size:
 
 out = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-       '<meta name="description" content="A battle map for Conquest: The Last Argument of Kings. Play a friend online or face Claude.">\n'
+       '<meta name="description" content="A battle map for Conquest: The Last Argument of Kings. Play a friend online or face the built-in opponent.">\n'
        + head + extra_css + '</head>\n<body>\n' + body + '\n</body>\n</html>\n')
 
 # Write the site: generated css/ and js/ are replaced wholesale.

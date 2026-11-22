@@ -556,7 +556,7 @@ function renderCombat0() {
   );
   s4.appendChild(
     ptext(
-      'Recording saves every roll and the wounds to the board. Claude checks casualty removal and Broken.'
+      'Recording saves every roll and the wounds to the board. The game checks casualty removal and Broken.'
     )
   );
   s4.appendChild(

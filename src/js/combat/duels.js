@@ -88,7 +88,7 @@ function duelNoPenalty(T) {
   return rh(RU(T), 'Bodyguard') || rh(RU(T), 'Bodyguards') || rh(T.charRules || [], 'Refined Beyond Nature');
 }
 
-/* expected wounds X deals to Y, for Claude's choices */
+/* expected wounds X deals to Y, for the opponent's choices */
 function duelExp(X, Y) {
   const ph = Math.min(5, Math.max(1, X.C)) / 6,
     phR = rh(X.rules, 'Flurry') && !rh(Y.rules, 'Parry') ? ph + (1 - ph) * ph : ph;

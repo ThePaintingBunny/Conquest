@@ -1,11 +1,11 @@
 /*
- * Claude's faction choices
+ * The opponent's faction choices
  *
- * The once-per-round faction options Claude can choose from, and Claude choosing them each round and on
+ * The once-per-round faction options the opponent can choose from, and the opponent choosing them each round and on
  * activation.
  *
  * In this file: frRoundOptions(), frRoundOptions0(), applyRoundOption(), aiFactionRound(),
- *   aiLastPlanBy, aiFacOpts(), exFaction(), aiAutoFaction()
+ *   aiLastPlanBy, exFaction(), aiAutoFaction()
  */
 
 function frRoundOptions(side) {
@@ -166,24 +166,6 @@ async function aiFactionRound(chosen) {
 }
 
 let aiLastPlanBy = '';
-
-/* options offered to Claude at the start of a regiment activation */
-function aiFacOpts(u) {
-  let L = [],
-    h = '',
-    out = [];
-  try {
-    L = frOptions(u);
-  } catch (e) {}
-  L.forEach(it => {
-    if (it.head) {
-      h = it.head.replace(/\s*\(.*\)\s*$/, '').replace(/\?$/, '');
-      return;
-    }
-    if (!it.why) out.push(h && !/:/.test(it.label) ? h + ': ' + it.label : it.label);
-  });
-  return out;
-}
 
 async function exFaction(st) {
   const u = byId(act.id);

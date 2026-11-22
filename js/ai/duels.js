@@ -1,7 +1,7 @@
 /*
- * Claude and Duels
+ * The opponent and Duels
  *
- * Whether Claude accepts a Duel and when it challenges.
+ * Whether the opponent accepts a Duel and when it challenges.
  *
  * In this file: aiAcceptDuel(), aiDuel()
  */
@@ -12,7 +12,7 @@ function aiAcceptDuel(Tu, Au) {
   return o >= 0.8 || (duelNoPenalty(Tu) ? false : o >= 0.5);
 }
 
-/* Claude */
+/* the opponent */
 async function aiDuel(id, tid) {
   const u = byId(id),
     C = duelTargets(u);

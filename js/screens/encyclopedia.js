@@ -7,8 +7,8 @@
  * entry on the right. Two entries can be put side by side to compare them. On a narrow screen an entry opens as a
  * window over the page.
  *
- * In this file: enFac, enKind, enQ, enCmp, enNorm(), enSideOn(), enStats(), enCard(), enSec(), enRuleList(),
- *   enWarband(), enDetail(), enSideClear(), enCompare(), renderEncy()
+ * In this file: enFac, enKind, enQ, enCmp, enSideOn(), enNorm(), enStats(), enCard(), enSec(),
+ *   enRuleList(), enWarband(), enDetail(), enSideClear(), enCompare(), renderEncy()
  */
 
 let enFac = 0,

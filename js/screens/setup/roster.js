@@ -7,7 +7,7 @@
  *   AUTO_ARMY, armyRulesBox()
  */
 
-let setupDraft = { faction: '', pts: 2000, list: '', aiFaction: '', aiPlayer: 'bot', botLevel: 'normal' },
+let setupDraft = { faction: '', pts: 2000, list: '', aiFaction: '', botLevel: 'normal' },
   resetArm = false;
 
 /* a regiment's options, officers and its own upgrades, from its abilities (not Draw Events, not the character's upgrades) */

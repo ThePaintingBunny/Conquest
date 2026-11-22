@@ -1,9 +1,9 @@
 /*
- * Claude reads and designs army lists
+ * Claude reads army lists
  *
- * Converts a pasted army list into regiments and designs an army for Claude.
+ * Converts a pasted army list (one not copied from the Para Bellum app) into regiments.
  *
- * In this file: UNIT_SCHEMA, convertList(), designList()
+ * In this file: UNIT_SCHEMA, convertList()
  */
 
 const UNIT_SCHEMA = `{"faction":"<faction name>","armyRules":["<army-wide rules or abilities, short>"],"points":<total>,"units":[{
@@ -31,16 +31,4 @@ async function convertList(text, faction, pts) {
   return await sample.json(prompt.replace('\n\nReply with JSON only', ref + '\nReply with JSON only'), {
     modelTier: 'complex'
   });
-}
-
-async function designList(faction, pts, enemyFaction) {
-  const prompt = `You are Claude, about to play Conquest: The Last Argument of Kings against a human playing ${enemyFaction || 'an opponent'} in a 10-round scenario with objective zones on a 6x4 ft table. Design your own tournament-legal ${pts}-point army list${faction ? ` for the ${faction} faction` : ' from a faction of your choice'}: legal warbands (each character leads a warband of regiments), correct points, current official profiles. Build a list that plays well with simple, aggressive tactics and holds zones.\nReply with JSON only, in this shape:\n${UNIT_SCHEMA}`;
-  const ff = faction ? encyFor('', faction).faction : null;
-  const ref = ff
-    ? `\nOfficial 2026 ${ff.name} roster (use only these units and numbers):\n${ff.units
-        .filter(u => u.pts != null)
-        .map(u => encyBrief(Object.assign({ faction: ff.name }, u)))
-        .join('\n')}\n`
-    : '';
-  return await sample.json(prompt + ref, { modelTier: 'complex' });
 }

@@ -12,7 +12,7 @@ const L = $('legend');
 function lt(x, y, cls, t) {
   const e = el('text', { x, y, class: cls, 'dominant-baseline': 'central' }, L);
   e.textContent = t;
-  if (t === 'Claude’s army') e.id = 'leg-them-t';
+  if (t === 'Opponent’s army') e.id = 'leg-them-t';
 }
 
 [
@@ -22,7 +22,7 @@ function lt(x, y, cls, t) {
   ['Hill', 'Blocks sight'],
   ['Rocks', 'Impassable'],
   ['Your army', 'Bottom edge'],
-  ['Claude’s army', 'Top edge'],
+  ['Opponent’s army', 'Top edge'],
   ['Command stand', 'Leader, gold edge'],
   ['Minotaur', 'Auxiliary stand']
 ].forEach(([a, b], i) => {

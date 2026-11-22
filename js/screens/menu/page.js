@@ -190,7 +190,7 @@ function renderMenu() {
     }
     head(
       page === 'single' ? 'Single player' : 'Multiplayer',
-      page === 'single' ? 'You against the built-in opponent or Claude.' : 'You against a friend, online.',
+      page === 'single' ? 'You against the built-in opponent.' : 'You against a friend, online.',
       {
         label: 'Main menu',
         fn: () => {
