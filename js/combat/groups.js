@@ -105,6 +105,7 @@ function buildGroups(type, A, T) {
       gg.lambs = fxHas(A, /^Supremacy: Lambs to the Slaughter/);
       gg.pt = type === 'clash' && fxHas(A, /^Professional Troops/);
       gg.crop = (type === 'clash' || type === 'impact') && fxHas(A, /^Crop Rotation/);
+      gg.water = rh(R, 'Water Elemental') && srInWater(A);
       gg.blade = fxHas(A, /^Blade Masters/);
       gg.exploit =
         type === 'volley' &&

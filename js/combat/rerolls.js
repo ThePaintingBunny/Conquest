@@ -85,6 +85,7 @@ function hitSources(g, parry) {
     if (g.wrath) S.push({ k: 'fail', face: 6, src: 'Wrathful Momentum' });
     if (g.pt) S.push({ k: 'fail', face: 6, src: 'Professional Troops' });
     if (g.crop) S.push({ k: 'fail', face: 6, src: 'Crop Rotation' });
+    if (g.water) S.push({ k: 'fail', face: 6, src: 'Water Elemental (in Water)' });
     if (g.marked) S.push({ k: 'fail', src: 'Designate Target (Marked)' });
   }
   return S;

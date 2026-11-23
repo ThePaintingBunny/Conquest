@@ -3,7 +3,7 @@
  *
  * Rolling for the Charge and resolving the result.
  *
- * In this file: chargeRollBtn(), resolveCharge(), rollPicker()
+ * In this file: chargeRollBtn(), resolveCharge()
  */
 
 /* the Charge Roll happens in the game: one die (two, keep the highest, with Master of the Legions) */
@@ -102,23 +102,3 @@ function resolveCharge(roll, reroll) {
   render();
 }
 
-function rollPicker(label, cb) {
-  const w = document.createElement('div');
-  w.className = 'row';
-  const sel = document.createElement('select');
-  sel.id = 'chg-roll';
-  sel.setAttribute('aria-label', 'Charge roll');
-  for (let i = 1; i <= 6; i++) {
-    const o = document.createElement('option');
-    o.value = i;
-    o.textContent = i;
-    sel.appendChild(o);
-  }
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'btn';
-  b.textContent = label;
-  b.onclick = () => cb(+sel.value);
-  w.append(sel, b);
-  return w;
-}

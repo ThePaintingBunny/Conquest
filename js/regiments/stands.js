@@ -4,8 +4,8 @@
  * A regiment as stands: wounds and casualty order, where each stand sits in the formation, and the
  * footprint of every stand.
  *
- * In this file: regTot(), auxDead(), modHas(), sW(), woundState(), removalSeq(), fullSlots(), layout(),
- *   MODSTYLE, auxStyle(), lostOf(), live(), specials(), allocate(), riderOn(), geom(), standsOf()
+ * In this file: regTot(), auxDead(), sW(), woundState(), removalSeq(), fullSlots(), layout(), MODSTYLE,
+ *   auxStyle(), lostOf(), live(), specials(), allocate(), riderOn(), geom(), standsOf()
  */
 
 function regTot(u) {
@@ -14,12 +14,6 @@ function regTot(u) {
 
 function auxDead(u) {
   return !!(u.aux != null && u.auxStats && (u.auxWounds || 0) >= (+u.auxStats.W || 4));
-}
-
-function modHas(u, re) {
-  if (!u || !u.mods || !u.modProfiles) return false;
-  const liveN = regTot(u) - lostOf(u);
-  return u.mods.slice(0, liveN).some(t => ((u.modProfiles[t] || {}).rules || []).some(r => re.test(r)));
 }
 
 function sW(u, i) {

@@ -12,14 +12,12 @@
  * Every setting and input sits in the side column (the gameplay tabs step aside); the table shows the zones and
  * markers with their names and points.
  *
- * In this file: scenEdit, SB_ROUNDS, sbScens(), sbSaveScens(), sbBlank(), sbOpen(), sbClose(),
- *   sbZone(), sbZonesOf(), sbRanges(), sbSideName(), sbText(), sbFind(), sbPointer(), sbDraw(),
- *   sbStepper(), sbChips(), sbSeg(), sbPanel(), scenCustom(), scenCustomList()
+ * In this file: scenEdit, sbScens(), sbSaveScens(), sbBlank(), sbOpen(), sbClose(), sbZone(),
+ *   sbZonesOf(), sbRanges(), sbSideName(), sbText(), sbFind(), sbPointer(), sbDraw(), sbStepper(),
+ *   sbChips(), sbSeg(), sbPanel(), scenCustom(), scenCustomList()
  */
 
 let scenEdit = null;
-const SB_ROUNDS = 10;
-
 /* saved scenarios on this device: { name: scenario } */
 function sbScens() {
   try {

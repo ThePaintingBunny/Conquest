@@ -73,7 +73,7 @@ FGLOSS['Sorcerer Kings'] = {
   ],
   'water elemental': [
     'Water Elemental',
-    'Ignores Water terrain penalties and re-rolls failed hit rolls of 6.'
+    'In Water terrain it suffers none of the penalties and re-rolls failed hit rolls of 6 instead.'
   ],
   'aqueous branding': [
     'Aqueous Branding',

@@ -30,7 +30,10 @@ function frFx(u) {
         (u.garrisonD || tInfo(gt).def) +
         ' Defense, 360° sight, all stands front rank)'
     );
-  if (u.onTable && tWater(u)) out.push('In water (−1 Clash)');
+  if (u.onTable && rh(u.rules, 'Water Elemental')) {
+    if (srInWater(u))
+      out.push((tWater(u) ? 'In Water' : 'Counts as in Water (Tidecaller)') + ': re-rolls failed hits of 6, no Clash penalty');
+  } else if (u.onTable && tWater(u)) out.push('In water (−1 Clash)');
   {
     const e = terrainOf().find(t => tHas(t, 'Elevated') && inT(t, [u.x, u.y]));
     if (e) out.push('On ' + tInfo(e).name.toLowerCase() + ' (Size ' + uSize(u) + ')');

@@ -4,7 +4,7 @@
  * Which abilities a character can use, legal targets, using one, and the abilities box in the
  * activation panel.
  *
- * In this file: chAbil(), chTargets(), chWhy(), autoDefend(), hurt(), useAbil(), charAbilBox()
+ * In this file: chAbil(), chTargets(), chWhy(), hurt(), useAbil(), charAbilBox()
  */
 
 function chAbil(u) {
@@ -72,18 +72,6 @@ function chWhy(u, a) {
   if (a.combat && !engaged(u).length) return 'A Combat Action: its regiment must be in combat';
   if (a.combat && a.grant && (u.temp || []).some(g => g.src === a.n)) return 'Already active this round';
   return '';
-}
-
-function autoDefend(T, hits, ap) {
-  const D = Math.max(0, (+(T.stats && T.stats.D) || 0) - (ap || 0)),
-    r = [];
-  let w = 0;
-  for (let i = 0; i < hits; i++) {
-    const d = d6();
-    r.push(d);
-    if (d > D || d === 6) w++;
-  }
-  return { w, rolls: r };
 }
 
 function hurt(units, id, n) {

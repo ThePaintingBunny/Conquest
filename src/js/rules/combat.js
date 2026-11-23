@@ -4,8 +4,8 @@
  * Contact arcs, Water and aura effects in a Clash, Fearsome, Decay, queued follow-up combats and
  * everything that triggers after combat.
  *
- * In this file: contactArc(), cArcU(), cArc(), mostlyHindering(), srClashWater(), srWaterAura(),
- *   srAirNow(), cbQueue, queueHits(), srQueue(), srFearsome(), decayN(), srAfterCombat()
+ * In this file: contactArc(), cArcU(), cArc(), mostlyHindering(), srClashWater(), srInWater(),
+ *   srWaterAura(), srAirNow(), cbQueue, queueHits(), srQueue(), srFearsome(), decayN(), srAfterCombat()
  */
 
 /* combat helpers */
@@ -66,11 +66,17 @@ function srClashWater(A) {
   );
 }
 
+/* a Water Elemental counts as in Water when it stands in Water terrain, or within 8″ of a Tidecaller's aura */
+function srInWater(u) {
+  return tWater(u) || srWaterAura(u);
+}
+
 function srWaterAura(u) {
   return (
     rh(u.rules, 'Water Elemental') &&
-    srFriends(u).some(
-      f => hasGrant(f, 'Tidecaller: Water Elementals within 8″ count as in Water') && srNear(f, u, 8)
+    /* the Tidecaller is a Water Elemental itself, so its own aura covers it too */
+    [u, ...srFriends(u)].some(
+      f => hasGrant(f, 'Tidecaller: Water Elementals within 8″ count as in Water') && (f === u || srNear(f, u, 8))
     )
   );
 }

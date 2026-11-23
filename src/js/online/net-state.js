@@ -29,8 +29,8 @@
  *   stPatch(), stMerge(), netHash(), logKeyN(), logChunkOf(), logPath, logStart(), logOpen(),
  *   logSetCk(), logSubChunks(), logRebuild(), logApply(), logChecked, logCheck(), logEmit(), logMaxN(),
  *   logAppend(), stateSave(), stateUpdate(), logPump(), logVerify(), logEnsureChunk(), logCheckpoint(),
- *   logNewEpoch(), logFlushEarly(), logMigrating, logMigrate(), logRecent(), logUndo(), netEvent(),
- *   netStat(), netPanel(), netPanelFill()
+ *   logNewEpoch(), logFlushEarly(), logMigrating, logMigrate(), logRecent(), logUndo(), netStat(),
+ *   netPanel(), netPanelFill()
  */
 
 const netW = {
@@ -734,11 +734,6 @@ function logUndo(key, label) {
   logRebuild();
   logEmit();
   return p;
-}
-
-/* the per-action records the game used to keep separately: they now travel inside the log entries */
-function netEvent() {
-  return Promise.resolve();
 }
 
 function netStat(ms, bytes) {

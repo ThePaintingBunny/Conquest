@@ -61,7 +61,8 @@ function renderCard() {
   chipFac = u ? facOf(N(u.side)) : null;
   $('card').classList.toggle('activating', !!(act && u && act.id === u.id));
   $('card').style.setProperty('--side', u && COL[u.side] ? COL[u.side].fill : 'var(--trim)');
-  $('c-roll-sec').hidden = !(u && u.onTable) || !!cb || !!(act && act.id === (u && u.id));
+  /* the combat roller rolls an attack outside the turn order: a test field tool, not part of a real game */
+  $('c-roll-sec').hidden = !SBX() || !(u && u.onTable) || !!cb || !!(act && act.id === (u && u.id));
   ['c-stats', 'c-fx-sec', 'c-rules-sec', 'c-abil-sec', 'c-act-sec', 'c-subtabs', 'c-badges'].forEach(
     i => ($(i).hidden = !u)
   );

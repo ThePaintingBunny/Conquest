@@ -3,7 +3,7 @@
  *
  * Buttons, text lines, info lines and other elements that many panels share.
  *
- * In this file: bEl(), cbtn(), ptext(), infoLine(), hookInfo(), waitP()
+ * In this file: bEl(), cbtn(), ptext(), infoLine(), hookInfo()
  */
 
 function bEl(tag, props, kids) {
@@ -61,9 +61,3 @@ function hookInfo(bt, txt, box) {
   bt.addEventListener('touchend', () => clearTimeout(tm));
 }
 
-function waitP(t) {
-  const p = document.createElement('span');
-  p.className = 'read';
-  p.textContent = t;
-  return p;
-}

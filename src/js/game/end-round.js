@@ -3,29 +3,8 @@
  *
  * Counts the round's kills and ends the round; when one army has nothing left, simulates the rest.
  *
- * In this file: roundKills(), endRound(), sideHasArmy(), simEndSide(), simEndOk(), simToEnd()
+ * In this file: endRound(), sideHasArmy(), simEndSide(), simEndOk(), simToEnd()
  */
-
-function roundKills(side) {
-  const R = state.round;
-  let v = 0;
-  const why = [];
-  (state.units || [])
-    .filter(u => u.side !== side && u.destroyed && u.destroyedRound === R)
-    .forEach(u => {
-      v += 2;
-      why.push(u.name + ' destroyed 2');
-      if (u.charName) {
-        v += 2;
-        why.push(u.charName + ' slain 2');
-        if (u.warlord) {
-          v += 2;
-          why.push('enemy Warlord 2');
-        }
-      }
-    });
-  return { v, why };
-}
 
 async function endRound() {
   if (!state) return;

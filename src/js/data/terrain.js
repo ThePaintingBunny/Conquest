@@ -4,7 +4,7 @@
  * The terrain types with their rules, the terrain keywords and what each means, and the default table
  * layout.
  *
- * In this file: TTYPES, TKW, TKWD, TERR0, ROCKS
+ * In this file: TTYPES, TKW, TKWD, TERR0
  */
 
 const TTYPES = {
@@ -62,7 +62,3 @@ const TERR0 = [
   { type: 'rocks', x: 10, y: 11, rx: 2.5, ry: 1.5, seed: 16 }
 ];
 
-const ROCKS = [
-  [61, 37],
-  [10, 11]
-];

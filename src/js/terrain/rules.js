@@ -4,14 +4,9 @@
  * Size, Hindering and Dangerous crossings, Cover, line of sight, Water and Garrison terrain (core
  * rules, Terrain chapter).
  *
- * In this file: tBlocks(), baseSize(), uSize(), tIgnore(), segHits(), tCrossed(), stC(),
- *   standCenters(), tAfterMove(), terrRolls(), tCover(), tLos(), stIn(), tWater(), tGarrisonNear(),
- *   tGarrisonOf()
+ * In this file: baseSize(), uSize(), tIgnore(), segHits(), tCrossed(), stC(), standCenters(),
+ *   tAfterMove(), terrRolls(), tCover(), tLos(), stIn(), tWater(), tGarrisonNear(), tGarrisonOf()
  */
-
-function tBlocks(t, occ) {
-  return tHas(t, 'Impassable') || (tHas(t, 'Garrison') && !occ);
-}
 
 function baseSize(u) {
   const c = u.cls || '';

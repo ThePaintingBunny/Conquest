@@ -4,25 +4,13 @@
  * Where Supremacy Abilities change the rest of the game: re-rolls and dice, Chants, command cards,
  * reinforcements, Awakening, after combat and tokens.
  *
- * In this file: supHitSrc(), supDefSrc(), supEvasion(), glimmerN(), supOnChant(), vocOk(), mwExtra(),
- *   srGodflesh(), supReinfNeed(), supAfterReinf(), supAfterReinf1(), supTactical(), supLeadByExample(),
- *   supParagon(), fsTok(), aolTry(), totPool(), supOnAwaken(), supAfterCombat(), supApplyBloom(),
- *   glimApply(), totAdd()
+ * In this file: supEvasion(), glimmerN(), supOnChant(), vocOk(), mwExtra(), srGodflesh(),
+ *   supReinfNeed(), supAfterReinf(), supAfterReinf1(), supTactical(), supLeadByExample(), supParagon(),
+ *   fsTok(), aolTry(), totPool(), supOnAwaken(), supAfterCombat(), supApplyBloom(), glimApply(),
+ *   totAdd()
  */
 
 /* re-roll and dice hooks */
-function supHitSrc(A, g, T) {
-  const S = [];
-  if (srHas(A, /^Professional Troops/) && (g.type === 'clash' || !g.type))
-    S.push({ k: 'fail', face: 6, src: 'Professional Troops' });
-  if (srHas(A, /^Crop Rotation/)) S.push({ k: 'fail', face: 6, src: 'Crop Rotation' });
-  return S;
-}
-
-function supDefSrc(T) {
-  return srHas(T, /^Professional Troops/) ? [{ k: 'fail', face: 6, src: 'Professional Troops' }] : [];
-}
-
 function supEvasion(T, E) {
   return supOn(T.side, 'Divine Protection') && E < 2 ? E + 1 : E;
 }

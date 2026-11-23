@@ -4,9 +4,9 @@
  * Command Cards and the Command Stack, including Yoroni Ideal Cards.
  *
  * In this file: regCardLive(), huStackOn(), humanTop(), huHeldOk(), cardName(), sideCardsLeft(),
- *   humanCardsLeft(), defaultHumanStack(), oppOut(), entOk(), huDraft, popHuCard(), cardOf(), IDEALS,
- *   yCard(), cardIdeal(), ySame(), sameCard(), cardAvail(), cardPick(), cardKey(), yCap(),
- *   validCards(), cardOk(), aiCardsLeft(), cardsTotal0(), cardsTotal(), defaultStack()
+ *   humanCardsLeft(), defaultHumanStack(), oppOut(), entOk(), huDraft, cardOf(), IDEALS, yCard(),
+ *   cardIdeal(), ySame(), sameCard(), cardAvail(), cardPick(), cardKey(), yCap(), validCards(),
+ *   cardOk(), aiCardsLeft(), cardsTotal0(), cardsTotal(), defaultStack()
  */
 
 function regCardLive(u) {
@@ -83,17 +83,6 @@ function entOk(u) {
 }
 
 let huDraft = null;
-
-async function popHuCard(card, extra) {
-  if (!Array.isArray(PS().huStack)) return;
-  const st = PS().huStack.filter(c => c !== card);
-  if (PVP()) {
-    await savePS({ huStack: st, huLastCard: card });
-    await putState(extra || {});
-    return;
-  }
-  await putState(Object.assign({ huStack: st, huLastCard: card }, extra || {}));
-}
 
 /* a regiment card can activate any regiment of the same type (not one whose card is in the Strategic Stack); a character card any character of the same name */
 /* Command Cards are their own things: a card belongs to a regiment type (or character name), not to one regiment.

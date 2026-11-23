@@ -54,7 +54,8 @@ function hitMods(A, p, type, T) {
   const inFront = T && cArcU(T, A) === 'front',
     pike = T && rh(RU(T), 'Pike Formation') && inFront && fxHas(A, /charged/);
   if (type === 'clash' && T && rh(RU(T), 'Disruptive') && inFront) base -= 1;
-  if (type === 'clash' && (tWater(A) || srClashWater(A))) base = Math.max(1, base - 1);
+  /* Water: −1 Clash, except for Water Elementals, which re-roll failed hits of 6 there instead (groups.js) */
+  if (type === 'clash' && (tWater(A) || srClashWater(A)) && !rh(RU(A), 'Water Elemental')) base = Math.max(1, base - 1);
   if (type === 'clash' && T && rh(RU(A), 'Endless Hunger') && uSize(T) < uSize(A)) base += 1;
   if (type === 'impact' && fxHas(A, /^Glorious Charge/)) base += 1;
   if (type === 'volley' && ((cb && cb.arcing) || (act && act.id === A.id && act.arcUsed))) base -= 1;

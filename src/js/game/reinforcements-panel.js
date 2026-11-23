@@ -3,81 +3,12 @@
  *
  * The panel where the player picks which regiments arrive.
  *
- * In this file: rfName(), reinfChoose(), reinfPanel()
+ * In this file: rfName(), reinfPanel()
  */
 
 /* a regiment's name, with its stands, the character who arrives with it and its upgrades */
 function rfName(u) {
   return (u.short || u.name) + (regBrief(u) ? ' (' + regBrief(u) + ')' : '');
-}
-
-/* pick which regiments of a weight class arrive after rolling for the whole class */
-function reinfChoose(g, succ, side) {
-  return new Promise(res => {
-    bannerHide();
-    let dg = $('rf-dlg');
-    if (!dg) {
-      dg = document.createElement('dialog');
-      dg.id = 'rf-dlg';
-      dg.className = 'en-dlg set-dlg';
-      dg.setAttribute('aria-labelledby', 'rf-h');
-      document.body.appendChild(dg);
-      dg.addEventListener('cancel', e => e.preventDefault());
-    }
-    dg.innerHTML = '';
-    const head = document.createElement('div');
-    head.className = 'en-head';
-    const h = document.createElement('h2');
-    h.id = 'rf-h';
-    h.textContent = 'Reinforcements: ' + g.cls;
-    head.append(h);
-    dg.appendChild(head);
-    const body = document.createElement('div');
-    body.className = 'set-body';
-    const d = document.createElement('div');
-    d.className = 'drow';
-    g.dice.forEach(v => d.appendChild(dieMini(v, v <= g.need ? 'hit' : 'miss')));
-    body.appendChild(d);
-    const p = document.createElement('p');
-    p.textContent = `You rolled ${succ} success${succ === 1 ? '' : 'es'} (${g.need} or less) for ${g.units.length} ${g.cls} regiments. Choose the ${succ} that arrive${succ === 1 ? 's' : ''}.`;
-    body.appendChild(p);
-    const sel = new Set();
-    const go = document.createElement('button');
-    go.type = 'button';
-    go.className = 'btn';
-    const upd = () => {
-      go.disabled = sel.size !== succ;
-      go.textContent = sel.size === succ ? 'These arrive' : 'Choose ' + (succ - sel.size) + ' more';
-    };
-    g.units.forEach(u => {
-      const l = document.createElement('label');
-      l.className = 'set-row';
-      const c = document.createElement('input');
-      c.type = 'checkbox';
-      c.onchange = () => {
-        if (c.checked) {
-          if (sel.size >= succ) {
-            c.checked = false;
-            return;
-          }
-          sel.add(u);
-        } else sel.delete(u);
-        upd();
-      };
-      const t = document.createElement('span');
-      t.textContent = rfName(u) + ' · ' + (u.cls || '') + (u.points ? ' · ' + u.points + ' pts' : '');
-      l.append(c, t);
-      body.appendChild(l);
-    });
-    go.onclick = () => {
-      dg.close();
-      res(g.units.filter(u => sel.has(u)));
-    };
-    upd();
-    body.appendChild(go);
-    dg.appendChild(body);
-    dg.showModal();
-  });
 }
 
 /* Reinforcement Phase: one panel per army with the dice, what they needed, who arrives and why; it waits for the player */

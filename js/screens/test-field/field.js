@@ -4,7 +4,7 @@
  * Entering and leaving the test field, dropping regiments and setting conditions on them.
  *
  * In this file: tfDrag, tfSide, tfReserve, tfAddOpen, tfFx, tfEditOpen, tfOneOpen, tfEnter(),
- *   tfLeave(), tfUnits(), tfSet(), tfSpot(), tfDrop(), tfWmax(), tfKey(), tfDropChar(), tfSeeds()
+ *   tfLeave(), tfUnits(), tfSet(), tfSpot(), tfDrop(), tfWmax(), tfKey(), tfSeeds()
  */
 
 let tfDrag = null,
@@ -177,17 +177,6 @@ function tfKey(ev) {
     ev.preventDefault();
     tfSet(u.id, p);
   }
-}
-
-function tfDropChar(u) {
-  const o = (u.order || []).filter(t => t !== 'c');
-  const st = Math.max(1, (u.stands || 2) - 1);
-  const x = Object.assign({}, u, { stands: st, files: Math.min(u.files || 1, st) });
-  ['char', 'charName', 'charStats', 'charRules', 'warlord', 'spells', 'charActivated'].forEach(
-    k => delete x[k]
-  );
-  if (u.order) x.order = o;
-  return x;
 }
 
 function tfSeeds(u, d) {
