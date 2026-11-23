@@ -343,3 +343,107 @@ body.mm-lobby:has(.turnbar.sp-lobby) .mm {
 .sp-review .sp-rmid > .hint {
   margin: 0;
 }
+
+/* ---- the review in two pages: the armies, then the battlefield ---- */
+.sp-review .mp3-cols.sp-rcols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .sp-review .mp3-cols.sp-rcols {
+    grid-template-columns: 1fr;
+  }
+}
+.sp-racts {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sp-racts > .mp3-go {
+  min-width: 260px;
+}
+/* page 1 has no map: the table and the in-game tools wait for page 2 */
+body.sp-rarm .main {
+  display: none !important;
+}
+/* page 2: the settings take the side column; the gameplay tabs and tools step aside until the game starts */
+body.sp-field .rcol > :not(#sp-fside),
+body.sp-field #tools,
+body.sp-field #dock,
+body.sp-field #toolstrip > :not(#leg-btn) {
+  display: none !important;
+}
+body.sp-field .main {
+  margin-top: 4px;
+}
+.sp-rfhead {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.sp-rfhead .hint {
+  margin: 0;
+}
+.sp-fside {
+  gap: 12px;
+}
+.sp-fside .rev {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sp-fside .rev > h3,
+.sp-fside > h3 {
+  margin: 0;
+}
+.sp-fside select {
+  width: 100%;
+}
+.sp-fside > .btn {
+  width: 100%;
+  justify-content: center;
+}
+.sp-fside > .mp3-go {
+  margin-top: 4px;
+}
+/* the whole table fits on screen beside its settings; the column keeps Start in view */
+@media (min-width: 901px) {
+  body.sp-field #board {
+    max-height: calc(100vh - 290px);
+    min-height: 380px;
+    min-width: 0;
+    width: auto;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  body.sp-field #sp-fside {
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    padding-bottom: 0;
+  }
+  body.sp-field .sp-ffoot {
+    position: sticky;
+    bottom: 0;
+  }
+}
+.sp-fside > .rev:first-child,
+.sp-fside > :first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.sp-ffoot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px -16px 0;
+  padding: 12px 16px 14px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+.sp-ffoot > .btn {
+  width: 100%;
+  justify-content: center;
+}

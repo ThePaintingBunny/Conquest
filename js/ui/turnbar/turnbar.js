@@ -274,6 +274,12 @@ function renderTurnbar0() {
   if (!tb || !state) return;
   tb.innerHTML = '';
   tb.classList.remove('tb-empty', 'sp-lobby');
+  /* the review's two pages (solo.js) set these again while they show */
+  document.body.classList.remove('sp-rarm', 'sp-field');
+  {
+    const fs = $('sp-fside');
+    if (fs) fs.remove();
+  }
   const step = state.step || 'activations';
   const add = e => tb.appendChild(e);
   const info = document.createElement('span');

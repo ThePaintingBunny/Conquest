@@ -3,10 +3,14 @@
  *
  * The setup screen for a game against the built-in opponent.
  *
- * In this file: renderSetup()
+ * In this file: spRevView, renderSetup()
  */
 
+/* the review comes in two pages: 'armies' (both lists) and 'field' (the map with its settings beside it) */
+let spRevView = 'armies';
+
 function renderSetup(tb, info, mk, add) {
+  if (state.step !== 'review') spRevView = 'armies';
   if (state.step === 'setup') {
     if (PVP()) return renderSetupPvp(tb, info, mk, add);
     info.textContent =
@@ -160,15 +164,17 @@ function renderSetup(tb, info, mk, add) {
     info.textContent = guest
       ? 'Check both armies; fix your own in its JSON box if something is off. The host chooses the scenario and terrain and starts the game.'
       : 'Check both armies. Fix any profile in the JSON boxes if something is off, then start the game.';
-    /* the lobby layout: both armies side by side, the battlefield and Start between them */
+    const field = spRevView === 'field';
     tb.classList.add('sp-lobby');
-    const lw = bEl('div', { className: 'sp-lobby-in sp-review' });
+    document.body.classList.add(field ? 'sp-field' : 'sp-rarm');
+    const lw = bEl('div', { className: 'sp-lobby-in sp-review' + (field ? ' sp-rfield' : '') });
     {
       const prog = bEl('div', { className: 'mp3-prog' });
       [
         ['Armies', 1],
         ['Opponent', 1],
-        ['Review', 0],
+        ['Review armies', field ? 1 : 0],
+        ['Battlefield', field ? 0 : -1],
         ['Battle', -1]
       ].forEach(([t, k]) =>
         prog.append(
@@ -180,87 +186,133 @@ function renderSetup(tb, info, mk, add) {
       );
       lw.append(prog);
     }
-    const cols = bEl('div', { className: 'mp3-cols' }),
-      mid = bEl('div', { className: 'mp3-mid sp-rmid' }),
-      left = PVP() ? seatSide() || 'cs' : HU,
-      colOf = {};
-    [left, other(left)].forEach(side => {
-      const c = bEl('section', { className: 'mp3-p sp-army' + (side === left ? ' me' : ' opp') });
-      c.style.setProperty('--pc', 'var(--' + side + ')');
-      colOf[side] = c;
-    });
-    cols.append(colOf[left], mid, colOf[other(left)]);
-    lw.append(cols);
     add(lw);
-    ['cs', 'nord'].forEach(side => {
-      const L = S[side] || { units: [] };
-      const box = colOf[side];
-      const mine = PVP() ? side === seatSide() : side === HU;
-      const name = PVP()
-        ? PN(side) || SEATNAME[side]
-        : mine
-          ? PN(side) || savedName() || 'You'
-          : 'Built-in opponent';
-      box.append(
-        bEl('div', { className: 'mp3-ph' }, [
-          bEl('span', { className: 'mp3-av', textContent: name.slice(0, 1).toUpperCase() }),
-          bEl('div', { className: 'mp3-pn' }, [
-            bEl('strong', { textContent: name }),
-            bEl('span', {
-              textContent:
-                (L.faction || N(side)) + (L.points ? ' · ' + L.points.toLocaleString('en') + ' pts' : '') + ' · ' + SEATNAME[side]
-            })
-          ]),
-          bEl('span', { className: 'mp3-chip ok', textContent: mine ? 'Your army' : 'Ready ✓' })
-        ])
-      );
-      if ((L.armyRules || []).length) box.appendChild(ptext('Army rules: ' + L.armyRules.join(', '), 'hint'));
-      const units = buildUnits(side, L);
-      const sc = document.createElement('div');
-      sc.className = 'rost-wrap';
-      sc.appendChild(
-        rosterTable(units, (i, v) => {
-          if (guest && side !== seatSide()) {
-            toast('Only that player (or the host) changes this army.');
-            render();
-            return;
-          }
-          const L2 = JSON.parse(JSON.stringify(L));
-          if (L2.units[i]) L2.units[i].standardBearer = v;
-          putState({ setup: Object.assign({}, state.setup, { [side]: L2 }) });
+    const goField = () => {
+      spRevView = 'field';
+      render();
+      scrollTo({ top: 0 });
+    };
+    const goArmies = () => {
+      spRevView = 'armies';
+      render();
+      scrollTo({ top: 0 });
+    };
+    /* ---- page 1: both armies side by side ---- */
+    if (!field) {
+      info.textContent = guest
+        ? 'Check both armies; fix your own in its JSON box if something is off. Then look at the battlefield.'
+        : 'Check both armies. Fix any profile in the JSON boxes if something is off, then set up the battlefield.';
+      const cols = bEl('div', { className: 'mp3-cols sp-rcols' }),
+        left = PVP() ? seatSide() || 'cs' : HU,
+        colOf = {};
+      [left, other(left)].forEach(side => {
+        const c = bEl('section', { className: 'mp3-p sp-army' + (side === left ? ' me' : ' opp') });
+        c.style.setProperty('--pc', 'var(--' + side + ')');
+        colOf[side] = c;
+      });
+      cols.append(colOf[left], colOf[other(left)]);
+      lw.append(cols);
+      ['cs', 'nord'].forEach(side => {
+        const L = S[side] || { units: [] };
+        const box = colOf[side];
+        const mine = PVP() ? side === seatSide() : side === HU;
+        const name = PVP()
+          ? PN(side) || SEATNAME[side]
+          : mine
+            ? PN(side) || savedName() || 'You'
+            : 'Built-in opponent';
+        box.append(
+          bEl('div', { className: 'mp3-ph' }, [
+            bEl('span', { className: 'mp3-av', textContent: name.slice(0, 1).toUpperCase() }),
+            bEl('div', { className: 'mp3-pn' }, [
+              bEl('strong', { textContent: name }),
+              bEl('span', {
+                textContent:
+                  (L.faction || N(side)) +
+                  (L.points ? ' · ' + L.points.toLocaleString('en') + ' pts' : '') +
+                  ' · ' +
+                  SEATNAME[side]
+              })
+            ]),
+            bEl('span', { className: 'mp3-chip ok', textContent: mine ? 'Your army' : 'Ready ✓' })
+          ])
+        );
+        if ((L.armyRules || []).length) box.appendChild(ptext('Army rules: ' + L.armyRules.join(', '), 'hint'));
+        const units = buildUnits(side, L);
+        const sc = document.createElement('div');
+        sc.className = 'rost-wrap';
+        sc.appendChild(
+          rosterTable(units, (i, v) => {
+            if (guest && side !== seatSide()) {
+              toast('Only that player (or the host) changes this army.');
+              render();
+              return;
+            }
+            const L2 = JSON.parse(JSON.stringify(L));
+            if (L2.units[i]) L2.units[i].standardBearer = v;
+            putState({ setup: Object.assign({}, state.setup, { [side]: L2 }) });
+          })
+        );
+        box.appendChild(sc);
+        if (guest && side !== seatSide()) return;
+        const det = document.createElement('details');
+        const sm = document.createElement('summary');
+        sm.textContent = 'Edit as JSON';
+        det.appendChild(sm);
+        const ta = document.createElement('textarea');
+        ta.rows = 10;
+        ta.value = JSON.stringify(L, null, 1);
+        ta.id = 'json-' + side;
+        det.appendChild(ta);
+        const sv = mk(
+          'Apply changes',
+          async () => {
+            try {
+              const v = JSON.parse(ta.value);
+              const set = Object.assign({}, state.setup, { [side]: v });
+              await putState({ setup: set });
+            } catch (e) {
+              toast('That JSON has an error: ' + e.message);
+            }
+          },
+          true
+        );
+        det.appendChild(sv);
+        box.appendChild(det);
+      });
+      const acts = bEl('div', { className: 'sp-racts' });
+      acts.append(mk('← Change the armies', () => putState({ step: 'setup' }), true), mk('Next: the battlefield →', goField));
+      acts.lastChild.classList.add('mp3-go');
+      lw.append(acts);
+      /* someone watching without a seat can look at both pages but not change the armies */
+      if (PVP() && !seatSide()) acts.firstChild.disabled = true;
+      return true;
+    }
+    /* ---- page 2: the map, with the scenario, terrain and Start in the column beside it ---- */
+    info.textContent = guest
+      ? 'The host chooses the scenario and terrain and starts the game.'
+      : 'Choose the scenario and terrain, then start the game.';
+    lw.append(
+      bEl('div', { className: 'sp-rfhead' }, [
+        bEl('h3', { className: 'sp-rh', textContent: 'Battlefield' }),
+        bEl('p', {
+          className: 'hint',
+          textContent: guest
+            ? 'This is the table you will play on. The host sets it up.'
+            : 'This is the table you will play on. Change the scenario or terrain and the map updates as you go.'
         })
-      );
-      box.appendChild(sc);
-      if (guest && side !== seatSide()) return;
-      const det = document.createElement('details');
-      const sm = document.createElement('summary');
-      sm.textContent = 'Edit as JSON';
-      det.appendChild(sm);
-      const ta = document.createElement('textarea');
-      ta.rows = 10;
-      ta.value = JSON.stringify(L, null, 1);
-      ta.id = 'json-' + side;
-      det.appendChild(ta);
-      const sv = mk(
-        'Apply changes',
-        async () => {
-          try {
-            const v = JSON.parse(ta.value);
-            const set = Object.assign({}, state.setup, { [side]: v });
-            await putState({ setup: set });
-          } catch (e) {
-            toast('That JSON has an error: ' + e.message);
-          }
-        },
-        true
-      );
-      det.appendChild(sv);
-      box.appendChild(det);
-    });
-    const addM = e => mid.appendChild(e);
-    addM(bEl('h3', { className: 'sp-rh', textContent: 'Battlefield' }));
-    addM(ptext('The table under this page shows the terrain and the objective zones as they will be.', 'hint'));
+      ])
+    );
+    const side = bEl('section', { id: 'sp-fside', className: 'mb-side sp-fside' });
+    side.setAttribute('aria-label', 'Battlefield settings');
+    {
+      const rc = document.querySelector('.rcol');
+      if (rc) rc.prepend(side);
+      else lw.append(side);
+    }
+    const addM = e => side.appendChild(e);
     if (guest) {
+      addM(bEl('h3', { className: 'sp-rh', textContent: 'Battlefield' }));
       addM(
         ptext(
           'Scenario: ' +
@@ -271,6 +323,7 @@ function renderSetup(tb, info, mk, add) {
           'hint'
         )
       );
+      addM(mk('← Back to the armies', goArmies, true));
       return true;
     }
     scenarioPanel(addM, mk);
@@ -284,6 +337,7 @@ function renderSetup(tb, info, mk, add) {
           toast('There are no regiments to play with.');
           return;
         }
+        spRevView = 'armies';
         await putState({
           units,
           army: { cs: (S.cs && S.cs.armyRules) || [], nord: (S.nord && S.nord.armyRules) || [] },
@@ -316,11 +370,11 @@ function renderSetup(tb, info, mk, add) {
         selId = null;
       })
     );
-    mid.lastChild.classList.add('mp3-go');
-    addM(mk('Back to the armies', () => putState({ step: 'setup' }), true));
-    if (PVP() && !seatSide()) {
-      tb.querySelectorAll('button').forEach(b => (b.disabled = true));
-    }
+    /* Start and Back stay at the foot of the column, in view while the settings scroll */
+    const go = side.lastChild;
+    go.classList.add('mp3-go');
+    side.append(bEl('div', { className: 'sp-ffoot' }, [go, mk('← Back to the armies', goArmies, true)]));
+    if (PVP() && !seatSide()) side.querySelectorAll('button').forEach(b => (b.disabled = true));
     return true;
   }
   return false;
